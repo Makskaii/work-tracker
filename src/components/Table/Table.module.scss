@@ -1,0 +1,115 @@
+.tableWrapper {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.container {
+  overflow-y: auto;
+  height: calc(100vh * 0.6);
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f5f5f5;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+
+    &:hover {
+      background: #a1a1a1;
+    }
+  }
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: white;
+}
+
+th {
+  padding: 16px 20px;
+  text-align: left;
+  color: rgb(0, 0, 0);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  position: relative;
+  border: none;
+
+
+  &:last-child::after {
+    display: none;
+  }
+}
+
+td {
+  padding: 18px 20px;
+  max-width: 200px;
+  max-height: 2rem;
+  /* Ограничение по высоте */
+  line-height: 1.5;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+
+  /* Для обрезки текста */
+  overflow: hidden;
+  position: relative;
+}
+
+tr {
+  transition: all 0.3s ease;
+
+  &:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  &:hover {
+    background-color: #f0f2ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  }
+
+  &:last-child {
+    td {
+      border-bottom: none;
+    }
+  }
+}
+
+
+
+/* Градиент для плавного исчезновения вниз */
+td::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.5em;
+  /* Высота градиента */
+  background: linear-gradient(to bottom,
+      transparent,
+      white
+      /* или цвет фона */
+    );
+  pointer-events: none;
+  /* Чтобы можно было выделять текст */
+}

@@ -1,11 +1,13 @@
 import { createBrowserRouter } from "react-router";
-import { EmptyPage } from "../../pages/emptyPage";
+import { MainLayout } from "../../components/layout/MainLayout";
+import { EmptyPage } from "../../pages/TablePage";
 
 export const router = createBrowserRouter(
 	[
 		{
 			path: "/",
-			element: <EmptyPage />,
+			element: <MainLayout />,
+			children: [{ path: "/emptyPage", element: <EmptyPage /> }],
 		},
 	],
 	{
