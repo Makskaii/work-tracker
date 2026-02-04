@@ -3,13 +3,13 @@ name: CI Build
 on:
   pull_request:
     branches: [ main, master, develop ]
+    types: [opened, synchronize, reopened]
   push:
     branches: [ main, master, develop ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
