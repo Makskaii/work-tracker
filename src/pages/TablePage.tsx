@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { Button } from "../components/buttons/ButtonComponent";
-import { Spinner } from "../components/spinner/Spinner";
+import { TablePagination } from "../components/pagination/Pagination";
 import { Table } from "../components/Table/TableComponent";
+import { TableSkeleton } from "../components/Table/TableSkeleton";
 import { TasksColumns } from "../components/Table/templates/tableTemplates";
-import { fakeApiCall } from "../config/axios/axios.config";
+import { usePaginatedData } from "../hooks/usePaginatedData";
 
 export const EmptyPage = () => {
-	const messagePromise = fakeApiCall();
+	const { dataPromise, setPage, page } = usePaginatedData();
 
 	return (
 		<div
@@ -62,12 +63,14 @@ export const EmptyPage = () => {
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
+					flexDirection: "column",
 				}}
 			>
-				<Suspense fallback={<Spinner />}>
-					<Table data={messagePromise} columns={TasksColumns} />
+				<Suspense fallback={<TableSkeleton columns={TasksColumns} />}>
+					<Table data={dataPromise} columns={TasksColumns} />
 				</Suspense>
 			</div>
+			<TablePagination page={page} setPage={setPage} />
 		</div>
 	);
 };

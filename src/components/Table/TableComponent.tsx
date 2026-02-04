@@ -1,6 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { use } from "react";
-import { TablePagination } from "../pagination/Pagination";
 import cls from "./Table.module.scss";
 import type { ColumnConfig } from "./templates/tableTemplates";
 
@@ -14,8 +13,8 @@ export const Table = ({
 	columns: ColumnConfig[];
 }) => {
 	const fetchedData = use(data);
-	const itemsToRender = fetchedData.result.tasks;
-	console.log(fetchedData);
+	const itemsToRender = fetchedData.data.result.tasks;
+
 	return (
 		<div className={cls.tableWrapper}>
 			<div className={cls.container}>
@@ -43,7 +42,6 @@ export const Table = ({
 					</tbody>
 				</table>
 			</div>
-			<TablePagination next={fetchedData.next} total={fetchedData.total} />
 		</div>
 	);
 };
