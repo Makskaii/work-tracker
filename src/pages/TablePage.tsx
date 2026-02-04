@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { Button } from "../components/buttons/ButtonComponent";
 import { Spinner } from "../components/spinner/Spinner";
-import { TableComponent } from "../components/Table/TableComponent";
+import { Table } from "../components/Table/TableComponent";
+import { TasksColumns } from "../components/Table/templates/tableTemplates";
 import { fakeApiCall } from "../config/axios/axios.config";
 
 export const EmptyPage = () => {
@@ -64,11 +65,7 @@ export const EmptyPage = () => {
 				}}
 			>
 				<Suspense fallback={<Spinner />}>
-					<TableComponent
-						data={messagePromise}
-						type={"tasks"}
-						fields={["Название", "Статус", "Дата создания"]}
-					/>
+					<Table data={messagePromise} columns={TasksColumns} />
 				</Suspense>
 			</div>
 		</div>
