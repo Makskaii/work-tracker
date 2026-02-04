@@ -1,13 +1,14 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Button } from "../components/buttons/ButtonComponent";
-import { TablePagination } from "../components/pagination/Pagination";
 import { Table } from "../components/Table/TableComponent";
 import { TableSkeleton } from "../components/Table/TableSkeleton";
-import { TasksColumns } from "../components/Table/templates/tableTemplates";
-import { usePaginatedData } from "../hooks/usePaginatedData";
+import { MainTemplate } from "../components/Table/templates";
+import { Endpoints } from "../shared/constants/const";
+import { usePaginatedData } from "../shared/hooks/usePaginatedData";
 
 export const EmptyPage = () => {
-	const { dataPromise, setPage, page } = usePaginatedData();
+	const { dataPromise, setPage, page, setEndpoint } = usePaginatedData();
+	const [template, setTemplate] = useState<keyof typeof MainTemplate>("tasks");
 
 	return (
 		<div
@@ -30,10 +31,28 @@ export const EmptyPage = () => {
 						gap: "1rem",
 					}}
 				>
-					<Button text="Задачи" />
-					<Button text="Сотрудники" />
-					<Button text="Проекты" />
-					<Button text="Отчеты" />
+					<Button
+						onClick={() => {
+							setEndpoint(Endpoints.tasks);
+							setTemplate("tasks");
+						}}
+						text="Задачи"
+					/>
+					<Button
+						onClick={() => {
+							setEndpoint(Endpoints.users);
+							setTemplate("users");
+						}}
+						text="Сотрудники"
+					/>
+					<Button
+						onClick={() => {
+							setEndpoint(Endpoints.groups);
+							setTemplate("groups");
+						}}
+						text="Проекты"
+					/>
+					{/* <Button text="Отчеты" /> */}
 				</div>
 				<div
 					style={{
@@ -66,11 +85,17 @@ export const EmptyPage = () => {
 					flexDirection: "column",
 				}}
 			>
-				<Suspense fallback={<TableSkeleton columns={TasksColumns} />}>
-					<Table data={dataPromise} columns={TasksColumns} />
+				<Suspense
+					fallback={<TableSkeleton template={MainTemplate[template]} />}
+				>
+					<Table
+						data={dataPromise}
+						template={MainTemplate[template]}
+						setPage={setPage}
+						page={page}
+					/>
 				</Suspense>
 			</div>
-			<TablePagination page={page} setPage={setPage} />
 		</div>
 	);
 };

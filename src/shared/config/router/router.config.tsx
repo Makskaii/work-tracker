@@ -1,6 +1,6 @@
 import { createBrowserRouter } from "react-router";
-import { MainLayout } from "../../components/layout/MainLayout";
-import { EmptyPage } from "../../pages/TablePage";
+import { MainLayout } from "../../../components/layout/MainLayout";
+import { EmptyPage } from "../../../pages/TablePage";
 
 export const router = createBrowserRouter(
 	[

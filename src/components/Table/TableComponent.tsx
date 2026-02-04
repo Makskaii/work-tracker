@@ -1,35 +1,51 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { use } from "react";
+import type { AnyObject } from "../../shared/types/types";
+import { TablePagination } from "../pagination/Pagination";
 import cls from "./Table.module.scss";
-import type { ColumnConfig } from "./templates/tableTemplates";
-
-// Определяем интерфейс для колонок
+import type { TableTemplate } from "./types";
 
 export const Table = ({
 	data,
-	columns,
+	template,
+	setPage,
+	page,
 }: {
-	data: Promise<any>;
-	columns: ColumnConfig[];
+	data: Promise<AnyObject>;
+	template: TableTemplate;
+	setPage: (page: number) => void;
+	page: number;
 }) => {
 	const fetchedData = use(data);
-	const itemsToRender = fetchedData.data.result.tasks;
+
+	const getItemsToRender = () => {
+		switch (template.path) {
+			case "result.tasks":
+				return fetchedData.data.result?.tasks || [];
+			default:
+				return fetchedData.data.result || [];
+		}
+	};
+
+	const itemsToRender =
+		template.beforeEdit?.(getItemsToRender()) ?? getItemsToRender();
 
 	return (
 		<div className={cls.tableWrapper}>
+			{template.title}
 			<div className={cls.container}>
 				<table>
 					<thead>
 						<tr>
-							{columns.map((column) => (
+							{template.columns.map((column) => (
 								<th key={column.key}>{column.name}</th>
 							))}
 						</tr>
 					</thead>
 					<tbody>
+						{/** biome-ignore lint/suspicious/noExplicitAny: <s> */}
 						{itemsToRender.map((item: any) => (
 							<tr key={item.id}>
-								{columns.map((column) => (
+								{template.columns.map((column) => (
 									<td
 										key={column.key + item.id}
 										title={item[column.key]?.toString() || ""}
@@ -42,6 +58,12 @@ export const Table = ({
 					</tbody>
 				</table>
 			</div>
+			<TablePagination
+				page={page}
+				setPage={setPage}
+				total={fetchedData.total}
+				next={fetchedData.next}
+			/>
 		</div>
 	);
 };

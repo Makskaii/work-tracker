@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <to avoid biome errors> */
 import axios from "axios";
-import { tasks } from "../../mock/mockData";
+import { tasks } from "../../../mock/mockData";
 
 export const $api = axios.create({
 	baseURL: import.meta.env.VITE_API_URL,

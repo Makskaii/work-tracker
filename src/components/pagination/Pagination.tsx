@@ -1,9 +1,12 @@
 export const TablePagination = ({
 	setPage,
 	page,
+	next,
 }: {
 	page: number;
 	setPage: (page: number) => void;
+	total: number;
+	next: number;
 }) => {
 	return (
 		<div
@@ -27,6 +30,7 @@ export const TablePagination = ({
 			</button>
 			<span> Страница {page} </span>
 			<button
+				disabled={!next}
 				style={{
 					backgroundColor: "white",
 					color: "black",
