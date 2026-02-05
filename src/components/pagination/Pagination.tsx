@@ -1,17 +1,49 @@
 export const TablePagination = ({
+	setPage,
+	page,
 	next,
 	total,
 }: {
-	next: number;
+	page: number;
+	setPage: (page: number) => void;
 	total: number;
+	next: number;
 }) => {
-	const totalPages = Math.floor(total / next + 1);
-
 	return (
-		<div style={{ display: "flex", color: "black" }}>
-			{Array.from({ length: totalPages }).map((_item, index) => (
-				<div>{index}</div>
-			))}
+		<div
+			style={{
+				display: "flex",
+				color: "black",
+				justifyContent: "space-between",
+				gap: "10px",
+				padding: "1rem",
+				alignItems: "center",
+			}}
+		>
+			<div>
+				<button
+					style={{
+						backgroundColor: "white",
+						color: "black",
+					}}
+					onClick={() => setPage(page - 1)}
+					disabled={page <= 1}
+				>
+					Назад
+				</button>
+				<span> Страница {page} </span>
+				<button
+					disabled={!next}
+					style={{
+						backgroundColor: "white",
+						color: "black",
+					}}
+					onClick={() => setPage(page + 1)}
+				>
+					Вперёд
+				</button>
+			</div>
+			<div>Всего записей: {total}</div>
 		</div>
 	);
 };

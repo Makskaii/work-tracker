@@ -1,12 +1,14 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Button } from "../components/buttons/ButtonComponent";
-import { Spinner } from "../components/spinner/Spinner";
 import { Table } from "../components/Table/TableComponent";
-import { TasksColumns } from "../components/Table/templates/tableTemplates";
-import { fakeApiCall } from "../config/axios/axios.config";
+import { TableSkeleton } from "../components/Table/TableSkeleton";
+import { MainTemplate } from "../components/Table/templates";
+import { Endpoints } from "../shared/constants/const";
+import { usePaginatedData } from "../shared/hooks/usePaginatedData";
 
-export const EmptyPage = () => {
-	const messagePromise = fakeApiCall();
+export const DataPage = () => {
+	const { dataPromise, setPage, page, setEndpoint } = usePaginatedData();
+	const [template, setTemplate] = useState<keyof typeof MainTemplate>("tasks");
 
 	return (
 		<div
@@ -14,6 +16,7 @@ export const EmptyPage = () => {
 				display: "flex",
 				flexDirection: "column",
 				gap: "1rem",
+				padding: "1rem",
 			}}
 		>
 			<div
@@ -29,10 +32,27 @@ export const EmptyPage = () => {
 						gap: "1rem",
 					}}
 				>
-					<Button text="Задачи" />
-					<Button text="Сотрудники" />
-					<Button text="Проекты" />
-					<Button text="Отчеты" />
+					<Button
+						onClick={() => {
+							setEndpoint(Endpoints.tasks);
+							setTemplate("tasks");
+						}}
+						text="Задачи"
+					/>
+					<Button
+						onClick={() => {
+							setEndpoint(Endpoints.users);
+							setTemplate("users");
+						}}
+						text="Сотрудники"
+					/>
+					<Button
+						onClick={() => {
+							setEndpoint(Endpoints.groups);
+							setTemplate("groups");
+						}}
+						text="Проекты"
+					/>
 				</div>
 				<div
 					style={{
@@ -62,10 +82,18 @@ export const EmptyPage = () => {
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
+					flexDirection: "column",
 				}}
 			>
-				<Suspense fallback={<Spinner />}>
-					<Table data={messagePromise} columns={TasksColumns} />
+				<Suspense
+					fallback={<TableSkeleton template={MainTemplate[template]} />}
+				>
+					<Table
+						data={dataPromise}
+						template={MainTemplate[template]}
+						setPage={setPage}
+						page={page}
+					/>
 				</Suspense>
 			</div>
 		</div>

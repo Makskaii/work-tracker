@@ -1,36 +1,83 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { use } from "react";
+import type { AnyObject } from "../../shared/types/types";
 import { TablePagination } from "../pagination/Pagination";
 import cls from "./Table.module.scss";
-import type { ColumnConfig } from "./templates/tableTemplates";
+import type { TableTemplate } from "./types";
 
-// Определяем интерфейс для колонок
+export const textFilter = () => {
+	return <input type="text" />;
+};
 
 export const Table = ({
 	data,
-	columns,
+	template,
+	setPage,
+	page,
 }: {
-	data: Promise<any>;
-	columns: ColumnConfig[];
+	data: Promise<AnyObject>;
+	template: TableTemplate;
+	setPage: (page: number) => void;
+	page: number;
 }) => {
 	const fetchedData = use(data);
-	const itemsToRender = fetchedData.result.tasks;
-	console.log(fetchedData);
+
+	const getItemsToRender = () => {
+		switch (template.path) {
+			case "result.tasks":
+				return fetchedData.data.result?.tasks || [];
+			default:
+				return fetchedData.data.result || [];
+		}
+	};
+
+	const itemsToRender =
+		template.beforeEdit?.(getItemsToRender()) ?? getItemsToRender();
+
 	return (
 		<div className={cls.tableWrapper}>
+			<div
+				style={{
+					display: "flex",
+					alignSelf: "flex-start",
+
+					justifyContent: "space-between",
+					width: "100%",
+				}}
+			>
+				<span
+					style={{
+						padding: "0.3rem 1rem",
+						fontWeight: "bolder",
+					}}
+				>
+					{template.title}
+				</span>
+			</div>
+
 			<div className={cls.container}>
 				<table>
 					<thead>
 						<tr>
-							{columns.map((column) => (
-								<th key={column.key}>{column.name}</th>
+							{template.columns.map((column) => (
+								<th key={column.key}>
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+										}}
+									>
+										{column.name}
+										{column.filter?.()}
+									</div>
+								</th>
 							))}
 						</tr>
 					</thead>
 					<tbody>
+						{/** biome-ignore lint/suspicious/noExplicitAny: <s> */}
 						{itemsToRender.map((item: any) => (
 							<tr key={item.id}>
-								{columns.map((column) => (
+								{template.columns.map((column) => (
 									<td
 										key={column.key + item.id}
 										title={item[column.key]?.toString() || ""}
@@ -43,7 +90,12 @@ export const Table = ({
 					</tbody>
 				</table>
 			</div>
-			<TablePagination next={fetchedData.next} total={fetchedData.total} />
+			<TablePagination
+				page={page}
+				setPage={setPage}
+				total={fetchedData.data.total}
+				next={fetchedData.data.next}
+			/>
 		</div>
 	);
 };

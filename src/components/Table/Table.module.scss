@@ -1,7 +1,11 @@
 .tableWrapper {
+  /* Styles for table wrapper */
   width: 100%;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .container {
@@ -29,6 +33,24 @@
   }
 }
 
+/* Skeleton styles */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  height: 3rem;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -45,16 +67,19 @@ thead {
 
 th {
   padding: 16px 20px;
-  text-align: left;
+  text-align: center;
   color: rgb(0, 0, 0);
   font-size: 14px;
   letter-spacing: 0.5px;
   position: relative;
   border: none;
 
-
   &:last-child::after {
     display: none;
+  }
+
+  &:first-child {
+    text-align: left;
   }
 }
 
@@ -62,7 +87,6 @@ td {
   padding: 18px 20px;
   max-width: 200px;
   max-height: 2rem;
-  /* Ограничение по высоте */
   line-height: 1.5;
   font-size: 14px;
   color: #333;
@@ -72,6 +96,12 @@ td {
   /* Для обрезки текста */
   overflow: hidden;
   position: relative;
+  text-align: center;
+
+
+  &:first-child {
+    text-align: left;
+  }
 }
 
 tr {
@@ -95,7 +125,6 @@ tr {
 }
 
 
-
 /* Градиент для плавного исчезновения вниз */
 td::after {
   content: '';
@@ -107,9 +136,7 @@ td::after {
   /* Высота градиента */
   background: linear-gradient(to bottom,
       transparent,
-      white
-      /* или цвет фона */
-    );
+      white);
   pointer-events: none;
-  /* Чтобы можно было выделять текст */
+
 }

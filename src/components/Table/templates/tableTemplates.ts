@@ -1,10 +1,5 @@
-import { convertMinutesInHrs, convertToDate } from "../../../utils";
-
-export interface ColumnConfig {
-	key: string;
-	name: string;
-	convertFn?: (value: string) => string;
-}
+import { convertMinutesInHrs, convertToDate } from "../../../shared/utils";
+import type { ColumnConfig } from "../types";
 
 export const TasksColumns: ColumnConfig[] = [
 	{
@@ -47,5 +42,56 @@ export const TasksColumns: ColumnConfig[] = [
 		key: "timeEstimate",
 		name: "Оценка времени",
 		convertFn: convertMinutesInHrs,
+	},
+];
+
+export const GroupsColumns: ColumnConfig[] = [
+	{
+		key: "NAME",
+		name: "Название",
+	},
+	{
+		key: "NUMBER_OF_MEMBERS",
+		name: "Кол-во участников",
+	},
+	{
+		key: "DATE_CREATE",
+		name: "Дата создания",
+		convertFn: convertToDate,
+	},
+	{
+		key: "DATE_UPDATE",
+		name: "Дата обновления",
+		convertFn: convertToDate,
+	},
+	{
+		key: "DATE_ACTIVITY",
+		name: "Дата активности",
+		convertFn: convertToDate,
+	},
+];
+
+export const UsersColumns: ColumnConfig[] = [
+	{
+		key: "NAME",
+		name: "Имя",
+	},
+	{
+		key: "EMAIL",
+		name: "Почта",
+	},
+	{
+		key: "LAST_LOGIN",
+		name: "Последний вход",
+		convertFn: convertToDate,
+	},
+	{
+		key: "DATE_REGISTER",
+		name: "Дата регистрации",
+		convertFn: convertToDate,
+	},
+	{
+		key: "USER_TYPE",
+		name: "Тип пользователя",
 	},
 ];
