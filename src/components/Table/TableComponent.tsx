@@ -4,6 +4,10 @@ import { TablePagination } from "../pagination/Pagination";
 import cls from "./Table.module.scss";
 import type { TableTemplate } from "./types";
 
+export const textFilter = () => {
+	return <input type="text" />;
+};
+
 export const Table = ({
 	data,
 	template,
@@ -31,13 +35,41 @@ export const Table = ({
 
 	return (
 		<div className={cls.tableWrapper}>
-			{template.title}
+			<div
+				style={{
+					display: "flex",
+					alignSelf: "flex-start",
+
+					justifyContent: "space-between",
+					width: "100%",
+				}}
+			>
+				<span
+					style={{
+						padding: "0.3rem 1rem",
+						fontWeight: "bolder",
+					}}
+				>
+					{template.title}
+				</span>
+			</div>
+
 			<div className={cls.container}>
 				<table>
 					<thead>
 						<tr>
 							{template.columns.map((column) => (
-								<th key={column.key}>{column.name}</th>
+								<th key={column.key}>
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+										}}
+									>
+										{column.name}
+										{column.filter?.()}
+									</div>
+								</th>
 							))}
 						</tr>
 					</thead>
@@ -61,8 +93,8 @@ export const Table = ({
 			<TablePagination
 				page={page}
 				setPage={setPage}
-				total={fetchedData.total}
-				next={fetchedData.next}
+				total={fetchedData.data.total}
+				next={fetchedData.data.next}
 			/>
 		</div>
 	);

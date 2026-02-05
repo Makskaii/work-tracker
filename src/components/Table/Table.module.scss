@@ -67,16 +67,19 @@ thead {
 
 th {
   padding: 16px 20px;
-  text-align: left;
+  text-align: center;
   color: rgb(0, 0, 0);
   font-size: 14px;
   letter-spacing: 0.5px;
   position: relative;
   border: none;
 
-
   &:last-child::after {
     display: none;
+  }
+
+  &:first-child {
+    text-align: left;
   }
 }
 
@@ -84,7 +87,6 @@ td {
   padding: 18px 20px;
   max-width: 200px;
   max-height: 2rem;
-  /* Ограничение по высоте */
   line-height: 1.5;
   font-size: 14px;
   color: #333;
@@ -94,6 +96,12 @@ td {
   /* Для обрезки текста */
   overflow: hidden;
   position: relative;
+  text-align: center;
+
+
+  &:first-child {
+    text-align: left;
+  }
 }
 
 tr {
@@ -117,7 +125,6 @@ tr {
 }
 
 
-
 /* Градиент для плавного исчезновения вниз */
 td::after {
   content: '';
@@ -129,9 +136,7 @@ td::after {
   /* Высота градиента */
   background: linear-gradient(to bottom,
       transparent,
-      white
-      /* или цвет фона */
-    );
+      white);
   pointer-events: none;
-  /* Чтобы можно было выделять текст */
+
 }

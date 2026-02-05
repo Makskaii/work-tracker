@@ -2,6 +2,7 @@ export const TablePagination = ({
 	setPage,
 	page,
 	next,
+	total,
 }: {
 	page: number;
 	setPage: (page: number) => void;
@@ -13,32 +14,36 @@ export const TablePagination = ({
 			style={{
 				display: "flex",
 				color: "black",
+				justifyContent: "space-between",
 				gap: "10px",
 				padding: "1rem",
 				alignItems: "center",
 			}}
 		>
-			<button
-				style={{
-					backgroundColor: "white",
-					color: "black",
-				}}
-				onClick={() => setPage(page - 1)}
-				disabled={page <= 1}
-			>
-				Назад
-			</button>
-			<span> Страница {page} </span>
-			<button
-				disabled={!next}
-				style={{
-					backgroundColor: "white",
-					color: "black",
-				}}
-				onClick={() => setPage(page + 1)}
-			>
-				Вперёд
-			</button>
+			<div>
+				<button
+					style={{
+						backgroundColor: "white",
+						color: "black",
+					}}
+					onClick={() => setPage(page - 1)}
+					disabled={page <= 1}
+				>
+					Назад
+				</button>
+				<span> Страница {page} </span>
+				<button
+					disabled={!next}
+					style={{
+						backgroundColor: "white",
+						color: "black",
+					}}
+					onClick={() => setPage(page + 1)}
+				>
+					Вперёд
+				</button>
+			</div>
+			<div>Всего записей: {total}</div>
 		</div>
 	);
 };

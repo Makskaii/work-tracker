@@ -1,7 +1,10 @@
+import type { JSX, ReactElement, ReactNode } from "react";
+
 export interface ColumnConfig {
 	key: string;
 	name: string;
 	convertFn?: (value: string) => string;
+	filter?: () => ReactElement;
 }
 
 export interface Template<T> {

@@ -6,7 +6,7 @@ import { MainTemplate } from "../components/Table/templates";
 import { Endpoints } from "../shared/constants/const";
 import { usePaginatedData } from "../shared/hooks/usePaginatedData";
 
-export const EmptyPage = () => {
+export const DataPage = () => {
 	const { dataPromise, setPage, page, setEndpoint } = usePaginatedData();
 	const [template, setTemplate] = useState<keyof typeof MainTemplate>("tasks");
 
@@ -16,6 +16,7 @@ export const EmptyPage = () => {
 				display: "flex",
 				flexDirection: "column",
 				gap: "1rem",
+				padding: "1rem",
 			}}
 		>
 			<div
@@ -52,7 +53,6 @@ export const EmptyPage = () => {
 						}}
 						text="Проекты"
 					/>
-					{/* <Button text="Отчеты" /> */}
 				</div>
 				<div
 					style={{
