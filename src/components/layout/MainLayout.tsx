@@ -40,6 +40,16 @@ export const MainLayout = () => {
 					>
 						Отчеты
 					</NavLink>
+					/
+					<NavLink
+						className={({ isActive, isPending }) =>
+							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+						}
+						to="/activity"
+						end
+					>
+						Активность
+					</NavLink>
 				</div>
 				<Outlet />
 			</main>

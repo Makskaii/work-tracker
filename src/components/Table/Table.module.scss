@@ -1,5 +1,4 @@
 .tableWrapper {
-  /* Styles for table wrapper */
   width: 100%;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -33,7 +32,7 @@
   }
 }
 
-/* Skeleton styles */
+
 .skeleton {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
@@ -79,7 +78,8 @@ th {
   }
 
   &:first-child {
-    text-align: left;
+    text-align: left !important;
+    min-width: 300px;
   }
 }
 
@@ -93,7 +93,7 @@ td {
   border-bottom: 1px solid #f0f0f0;
   transition: all 0.2s ease;
 
-  /* Для обрезки текста */
+
   overflow: hidden;
   position: relative;
   text-align: center;
