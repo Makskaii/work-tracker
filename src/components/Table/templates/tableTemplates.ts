@@ -1,7 +1,12 @@
 import { convertMinutesInHrs, convertToDate } from "../../../shared/utils";
-import type { ColumnConfig } from "../types";
+import type {
+	ColumnConfig,
+	TGroupsColumns,
+	TTasksColumns,
+	TUsersColumns,
+} from "../types";
 
-export const TasksColumns: ColumnConfig[] = [
+export const TasksColumns: ColumnConfig<TTasksColumns>[] = [
 	{
 		key: "title",
 		name: "Название",
@@ -45,7 +50,7 @@ export const TasksColumns: ColumnConfig[] = [
 	},
 ];
 
-export const GroupsColumns: ColumnConfig[] = [
+export const GroupsColumns: ColumnConfig<TGroupsColumns>[] = [
 	{
 		key: "NAME",
 		name: "Название",
@@ -71,7 +76,7 @@ export const GroupsColumns: ColumnConfig[] = [
 	},
 ];
 
-export const UsersColumns: ColumnConfig[] = [
+export const UsersColumns: ColumnConfig<TUsersColumns>[] = [
 	{
 		key: "NAME",
 		name: "Имя",

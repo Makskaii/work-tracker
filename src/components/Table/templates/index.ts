@@ -1,10 +1,5 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <explanation> */
-import type {
-	TableTemplate,
-	TemplateName,
-	TGroupsColumns,
-	TUsersColumns,
-} from "../types";
+/** biome-ignore-all lint/suspicious/noExplicitAny: <for avoiding errors> */
+import type { TableTemplate, TemplateName } from "../types";
 import { GroupsColumns, TasksColumns, UsersColumns } from "./tableTemplates";
 
 export const MainTemplate: { [k in TemplateName]: TableTemplate } = {
@@ -13,7 +8,7 @@ export const MainTemplate: { [k in TemplateName]: TableTemplate } = {
 		title: "Проекты",
 		columns: GroupsColumns,
 		path: "result",
-		beforeEdit: (groups: TGroupsColumns[]) => {
+		beforeEdit: (groups: any[]) => {
 			const groupsMapped = groups.map((group) => ({
 				...group,
 				id: group.ID,
@@ -26,7 +21,7 @@ export const MainTemplate: { [k in TemplateName]: TableTemplate } = {
 		title: "Пользователи",
 		columns: UsersColumns,
 		path: "result",
-		beforeEdit: (users: TUsersColumns[]) => {
+		beforeEdit: (users: any[]) => {
 			const usersMapped = users.map((user) => ({
 				...user,
 				id: user.ID,

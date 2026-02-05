@@ -1,14 +1,15 @@
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { Button } from "../components/buttons/ButtonComponent";
 import { Table } from "../components/Table/TableComponent";
-import { TableSkeleton } from "../components/Table/TableSkeleton";
 import { MainTemplate } from "../components/Table/templates";
 import { Endpoints } from "../shared/constants/const";
-import { usePaginatedData } from "../shared/hooks/usePaginatedData";
+import { useLoadData } from "../shared/hooks/useLoadData";
 
 export const DataPage = () => {
-	const { dataPromise, setPage, page, setEndpoint } = usePaginatedData();
 	const [template, setTemplate] = useState<keyof typeof MainTemplate>("tasks");
+
+	const { data, loading, page, total, next, setEndpoint, setPage } =
+		useLoadData("tasks.task.list");
 
 	return (
 		<div
@@ -36,13 +37,20 @@ export const DataPage = () => {
 						onClick={() => {
 							setEndpoint(Endpoints.tasks);
 							setTemplate("tasks");
+							if (page !== 1) {
+								setPage(1);
+							}
 						}}
 						text="Задачи"
 					/>
-					<Button
+
+					{/* <Button
 						onClick={() => {
 							setEndpoint(Endpoints.users);
 							setTemplate("users");
+							if (page !== 1) {
+								setPage(1);
+							}
 						}}
 						text="Сотрудники"
 					/>
@@ -50,9 +58,12 @@ export const DataPage = () => {
 						onClick={() => {
 							setEndpoint(Endpoints.groups);
 							setTemplate("groups");
+							if (page !== 1) {
+								setPage(1);
+							}
 						}}
 						text="Проекты"
-					/>
+					/> */}
 				</div>
 				<div
 					style={{
@@ -85,16 +96,15 @@ export const DataPage = () => {
 					flexDirection: "column",
 				}}
 			>
-				<Suspense
-					fallback={<TableSkeleton template={MainTemplate[template]} />}
-				>
-					<Table
-						data={dataPromise}
-						template={MainTemplate[template]}
-						setPage={setPage}
-						page={page}
-					/>
-				</Suspense>
+				<Table
+					isLoading={loading}
+					data={data}
+					template={MainTemplate[template]}
+					setPage={setPage}
+					page={page}
+					total={total}
+					next={next}
+				/>
 			</div>
 		</div>
 	);

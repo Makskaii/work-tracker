@@ -1,23 +1,25 @@
-import type { JSX, ReactElement, ReactNode } from "react";
+import type { ReactElement } from "react";
+import type { AnyObject } from "../../shared/types/types";
 
-export interface ColumnConfig {
-	key: string;
+interface ColumnConfig<T> {
+	key: keyof T;
 	name: string;
 	convertFn?: (value: string) => string;
 	filter?: () => ReactElement;
 }
 
-export interface Template<T> {
+interface Template<T> {
 	data?: T;
-	columns: ColumnConfig[];
+	columns: ColumnConfig<T>[];
 	path: string;
 	beforeEdit?: (data: T[]) => T[];
 	title: string;
+	keyMapping?: Record<keyof T, string>;
 }
 
-export type TemplateName = "tasks" | "groups" | "users";
+type TemplateName = "tasks" | "groups" | "users";
 
-export type TTasksColumns = {
+type TTasksColumns = {
 	id: string;
 	title: string;
 	groupId: string;
@@ -30,7 +32,7 @@ export type TTasksColumns = {
 	timeEstimate: string;
 };
 
-export type TGroupsColumns = {
+type TGroupsColumns = {
 	ID: string;
 	NAME: string;
 	NUMBER_OF_MEMBERS: string;
@@ -39,28 +41,68 @@ export type TGroupsColumns = {
 	DATE_ACTIVITY: string;
 };
 
-export type TUsersColumns = {
+type TUsersColumns = {
 	ID: string;
 	NAME: string;
 	LAST_NAME: string;
 	EMAIL: string;
+	LAST_LOGIN: string;
 	DATE_REGISTER: string;
 	USER_TYPE: string;
 };
 
-export interface TasksTemplate extends Template<TTasksColumns> {
+type commonDto = TGroupsColumns[] | TTasksColumns[] | TUsersColumns[];
+
+interface TasksTemplate extends Template<TTasksColumns> {
 	path: "result.tasks";
 	title: "Задачи";
+	beforeEdit?: (data: AnyObject[]) => TTasksColumns[];
 }
 
-export interface GroupsTemplate extends Template<TGroupsColumns> {
+interface GroupsTemplate extends Template<TGroupsColumns> {
 	path: "result";
 	title: "Проекты";
+	beforeEdit?: (data: AnyObject[]) => TGroupsColumns[];
 }
 
-export interface UsersTemplate extends Template<TUsersColumns> {
+interface UsersTemplate extends Template<TUsersColumns> {
 	path: "result";
 	title: "Пользователи";
+	beforeEdit?: (data: AnyObject[]) => TUsersColumns[];
 }
 
-export type TableTemplate = TasksTemplate | GroupsTemplate | UsersTemplate;
+type TableTemplate = TasksTemplate | GroupsTemplate | UsersTemplate;
+
+export type {
+	UsersTemplate,
+	GroupsTemplate,
+	TasksTemplate,
+	TableTemplate,
+	TUsersColumns,
+	TGroupsColumns,
+	TTasksColumns,
+	commonDto,
+	TemplateName,
+	ColumnConfig,
+};
+
+// Type guards
+function isTasksColumns(
+	item: TTasksColumns | TGroupsColumns | TUsersColumns,
+): item is TTasksColumns {
+	return item && "title" in item;
+}
+
+function isGroupsColumns(
+	item: TTasksColumns | TGroupsColumns | TUsersColumns,
+): item is TGroupsColumns {
+	return item && "NAME" in item && "NUMBER_OF_MEMBERS" in item;
+}
+
+function isUsersColumns(
+	item: TTasksColumns | TGroupsColumns | TUsersColumns,
+): item is TUsersColumns {
+	return item && "NAME" in item && "EMAIL" in item;
+}
+
+export { isGroupsColumns, isUsersColumns, isTasksColumns };

@@ -1,37 +1,37 @@
-import { use } from "react";
-import type { AnyObject } from "../../shared/types/types";
+import {
+	classNames,
+	getItemId,
+	getItemValueByKey,
+} from "../../shared/utils/utils";
 import { TablePagination } from "../pagination/Pagination";
 import cls from "./Table.module.scss";
-import type { TableTemplate } from "./types";
-
-export const textFilter = () => {
-	return <input type="text" />;
-};
+import {
+	type TableTemplate,
+	type TGroupsColumns,
+	type TTasksColumns,
+	type TUsersColumns,
+} from "./types";
 
 export const Table = ({
-	data,
 	template,
 	setPage,
 	page,
+	data,
+	total,
+	next,
+	isLoading,
 }: {
-	data: Promise<AnyObject>;
+	data: (TTasksColumns | TGroupsColumns | TUsersColumns)[];
 	template: TableTemplate;
 	setPage: (page: number) => void;
 	page: number;
+	total?: number;
+	next?: number;
+	isLoading: boolean;
 }) => {
-	const fetchedData = use(data);
+	const itemsToRender = template.beforeEdit?.(data) ?? data;
 
-	const getItemsToRender = () => {
-		switch (template.path) {
-			case "result.tasks":
-				return fetchedData.data.result?.tasks || [];
-			default:
-				return fetchedData.data.result || [];
-		}
-	};
-
-	const itemsToRender =
-		template.beforeEdit?.(getItemsToRender()) ?? getItemsToRender();
+	console.log(itemsToRender);
 
 	return (
 		<div className={cls.tableWrapper}>
@@ -74,27 +74,39 @@ export const Table = ({
 						</tr>
 					</thead>
 					<tbody>
-						{/** biome-ignore lint/suspicious/noExplicitAny: <s> */}
-						{itemsToRender.map((item: any) => (
-							<tr key={item.id}>
-								{template.columns.map((column) => (
-									<td
-										key={column.key + item.id}
-										title={item[column.key]?.toString() || ""}
-									>
-										{column.convertFn?.(item[column.key]) ?? item[column.key]}
-									</td>
-								))}
-							</tr>
-						))}
+						{itemsToRender.map((item) => {
+							const itemId = getItemId(item);
+
+							return (
+								<tr
+									key={itemId}
+									className={classNames("", {
+										[cls.skeleton]: isLoading,
+									})}
+								>
+									{template.columns.map((column) => {
+										const titleValue = getItemValueByKey(item, column.key);
+										const displayValue = column.convertFn
+											? column.convertFn(titleValue)
+											: titleValue;
+
+										return (
+											<td key={`${column.key}_${itemId}`} title={titleValue}>
+												{displayValue}
+											</td>
+										);
+									})}
+								</tr>
+							);
+						})}
 					</tbody>
 				</table>
 			</div>
 			<TablePagination
 				page={page}
 				setPage={setPage}
-				total={fetchedData.data.total}
-				next={fetchedData.data.next}
+				total={total}
+				next={next}
 			/>
 		</div>
 	);

@@ -2,12 +2,11 @@ export const TablePagination = ({
 	setPage,
 	page,
 	next,
-	total,
 }: {
 	page: number;
 	setPage: (page: number) => void;
-	total: number;
-	next: number;
+	total?: number;
+	next?: number;
 }) => {
 	return (
 		<div
@@ -43,7 +42,6 @@ export const TablePagination = ({
 					Вперёд
 				</button>
 			</div>
-			<div>Всего записей: {total}</div>
 		</div>
 	);
 };
