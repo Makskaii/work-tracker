@@ -7,7 +7,7 @@ export const ProjectsReports = () => {
 	const Context = useOutletContext<ContextType>();
 
 	const toalCompleted = Context?.tasks.filter(
-		(task) => task.status === "5",
+		(task) => task?.status === "5",
 	).length;
 	const methods = useForm<{
 		project: string;
@@ -161,11 +161,11 @@ export const ProjectsReports = () => {
 							<div>
 								% завершённости{" "}
 								{Context?.tasks.length &&
+									toalCompleted &&
 									Math.round(
-										(toalCompleted ?? 0 / Context?.tasks.length) * 100,
+										(toalCompleted / Context?.tasks.length) * 100,
 									)}{" "}
 							</div>
-
 							<div>
 								Задач в работе{" "}
 								{Context?.tasks.filter((task) => task.status === "3").length}
@@ -177,17 +177,17 @@ export const ProjectsReports = () => {
 										.length
 								}
 							</div>
-
 							{/* оценка факт план */}
 							<div>
 								<h3>Часы</h3>
 							</div>
 							<div>
 								План{" "}
-								{Context?.tasks.reduce(
-									(acc, task) => acc + Number(task.timeEstimate),
-									0,
-								) ?? 0 / 3600}{" "}
+								{Context?.tasks &&
+									Context?.tasks.reduce(
+										(acc, task) => acc + Number(task.timeEstimate),
+										0,
+									) / 3600}{" "}
 							</div>
 							<div>
 								В работе{" "}
@@ -196,32 +196,30 @@ export const ProjectsReports = () => {
 									.reduce((acc, task) => acc + Number(task.timeEstimate), 0) ??
 									0 / 3600}{" "}
 							</div>
-
 							{/* часы факт план */}
-							<div>
-								<h3>Факт</h3>
-							</div>
 
 							<div>
 								Факт{" "}
-								{Math.ceil(
-									Context?.tasks.reduce(
-										(acc, task) => acc + Number(task.timeSpentInLogs),
-										0,
-									) ?? 0 / 3600,
-								)}{" "}
+								{Context?.tasks &&
+									Math.ceil(
+										Context?.tasks.reduce(
+											(acc, task) => acc + Number(task.timeSpentInLogs),
+											0,
+										) / 3600,
+									)}{" "}
 								ч
 							</div>
 							<div>
 								В работе:
-								{Math.ceil(
-									Context?.tasks
-										.filter((task) => task.status === "3")
-										.reduce(
-											(acc, task) => acc + Number(task.timeSpentInLogs),
-											0,
-										) ?? 0 / 3600,
-								)}{" "}
+								{Context?.tasks &&
+									Math.ceil(
+										Context?.tasks
+											.filter((task) => task.status === "3")
+											.reduce(
+												(acc, task) => acc + Number(task.timeSpentInLogs),
+												0,
+											) / 3600,
+									)}{" "}
 							</div>
 						</div>
 					)}{" "}

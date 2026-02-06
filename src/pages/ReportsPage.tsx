@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { $api } from "../shared/config";
 import { Endpoints } from "../shared/constants/const";
@@ -29,6 +29,12 @@ type UserReports = {
 	setTitle: (id: string) => void;
 	title: string;
 	user?: string;
+	users: {
+		id: string;
+		value: string;
+		title: string;
+	}[];
+	userIds: string[];
 };
 
 export type ContextType = UserReports | null;
@@ -52,9 +58,46 @@ export const ReportsPage = () => {
 			value: string;
 		}[]
 	>([]);
+	const [users, setUsers] = useState<
+		{
+			id: string;
+			value: string;
+			title: string;
+		}[]
+	>([]);
 	const [currProject, setCurrProject] = useState("");
 	const [title, setTitle] = useState("");
 	const [user, setUser] = useState("");
+
+	const userIds = useMemo(() => {
+		return users.map((user) => {
+			return user.id;
+		});
+	}, [users]);
+
+	useEffect(() => {
+		const getUsers = async () => {
+			try {
+				const response = await $api.get(Endpoints.users, {
+					params: {
+						UF_DEPARTMENT: 23,
+					},
+				});
+
+				setUsers(
+					response.data.result.map((task: AnyObject) => ({
+						id: task.ID,
+						value: task.NAME + task.LAST_NAME,
+						title: task.NAME + " " + task.LAST_NAME,
+					})),
+				);
+			} catch {
+				console.log("Ошибка при получении списка сотрудников");
+			}
+		};
+
+		getUsers();
+	}, []);
 
 	useEffect(() => {
 		const getTasks = async () => {
@@ -70,16 +113,22 @@ export const ReportsPage = () => {
 				});
 
 				setTasks(
-					response.data.result.tasks.map((task: AnyObject) => ({
-						id: task.id,
-						title: task.title,
-						value: task.title,
-						responsible: task.responsible.name,
-						status: task.status,
-						timeEstimate: task.timeEstimate,
-						timeSpentInLogs: task.timeSpentInLogs,
-						groupId: task.groupId,
-					})),
+					response.data.result.tasks
+						.map((task: AnyObject) => {
+							if (userIds.includes(task.responsible.id)) {
+								return {
+									id: task?.id,
+									title: task?.title,
+									value: task?.title,
+									responsible: task?.responsible.name,
+									status: task?.status,
+									timeEstimate: task?.timeEstimate,
+									timeSpentInLogs: task?.timeSpentInLogs,
+									groupId: task?.groupId,
+								};
+							}
+						})
+						.filter(Boolean),
 				);
 			} catch {
 				console.log("Ошибка при получении списка задач");
@@ -87,7 +136,7 @@ export const ReportsPage = () => {
 		};
 
 		getTasks();
-	}, [currProject, title, user]);
+	}, [currProject, title, user, userIds]);
 
 	useEffect(() => {
 		const getProjects = async () => {
@@ -155,6 +204,8 @@ export const ReportsPage = () => {
 						title,
 						setUser,
 						user,
+						users,
+						userIds,
 					} satisfies ContextType
 				}
 			/>
