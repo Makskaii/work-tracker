@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import { AsyncSelect } from "../components/form/SelectField";
@@ -23,6 +24,12 @@ export const ProjectsReports = () => {
 		Context?.setCurrProject(data.project);
 		Context?.setTitle(data.title);
 	});
+
+	useEffect(() => {
+		return () => {
+			Context?.setCurrProject("");
+		};
+	}, [Context?.setCurrProject]);
 
 	return (
 		<>
@@ -191,10 +198,11 @@ export const ProjectsReports = () => {
 							</div>
 							<div>
 								В работе{" "}
-								{Context?.tasks
-									.filter((task) => task.status === "3")
-									.reduce((acc, task) => acc + Number(task.timeEstimate), 0) ??
-									0 / 3600}{" "}
+								{Context?.tasks &&
+									Context?.tasks
+										.filter((task) => task.status === "3")
+										.reduce((acc, task) => acc + Number(task.timeEstimate), 0) /
+										3600}{" "}
 							</div>
 							{/* часы факт план */}
 
