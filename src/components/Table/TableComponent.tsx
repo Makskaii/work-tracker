@@ -31,8 +31,6 @@ export const Table = ({
 }) => {
 	const itemsToRender = template.beforeEdit?.(data) ?? data;
 
-	console.log(itemsToRender);
-
 	return (
 		<div className={cls.tableWrapper}>
 			<div
