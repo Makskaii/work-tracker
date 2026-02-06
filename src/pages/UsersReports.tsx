@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import { AsyncSelect } from "../components/form/SelectField";
-import { $api } from "../shared/config";
-import { Endpoints } from "../shared/constants/const";
-import type { AnyObject } from "../shared/types/types";
 import type { ContextType } from "./ReportsPage";
 
 export const UsersReports = () => {
-	const [users, setUsers] = useState([]);
 	const Context = useOutletContext<ContextType>();
 
 	const methods = useForm<{
@@ -20,26 +16,6 @@ export const UsersReports = () => {
 
 	const { handleSubmit } = methods;
 
-	useEffect(() => {
-		const getUsers = async () => {
-			try {
-				const response = await $api.get(Endpoints.users);
-
-				setUsers(
-					response.data.result.map((task: AnyObject) => ({
-						id: task.ID,
-						value: task.NAME + task.LAST_NAME,
-						title: task.NAME + " " + task.LAST_NAME,
-					})),
-				);
-			} catch {
-				console.log("Ошибка при получении списка сотрудников");
-			}
-		};
-
-		getUsers();
-	}, []);
-
 	const handleChange = handleSubmit((data) => {
 		Context?.setUser(data.userId);
 	});
@@ -48,6 +24,12 @@ export const UsersReports = () => {
 	const taskWithNoEstimeTime = Context?.tasks.filter(
 		(task) => task.timeEstimate === "0",
 	);
+
+	useEffect(() => {
+		return () => {
+			Context?.setUser("");
+		};
+	}, [Context?.setUser]);
 
 	return (
 		<div
@@ -65,7 +47,7 @@ export const UsersReports = () => {
 					<form onChange={handleChange}>
 						<AsyncSelect
 							name="userId"
-							options={users}
+							options={Context?.users ?? []}
 							placeholder="Сотрудники"
 						/>
 					</form>
