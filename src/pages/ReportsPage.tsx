@@ -23,6 +23,8 @@ type UserReports = {
 		timeEstimate?: string;
 		timeSpentInLogs?: string;
 		groupId?: string;
+		deadline?: string;
+		endDate?: string;
 	}[];
 	projects: { id: string; title: string; value: string }[];
 	setCurrProject: (id: string) => void;
@@ -37,7 +39,7 @@ type UserReports = {
 	userIds: string[];
 };
 
-export type ContextType = UserReports | null;
+export type ContextType = UserReports;
 
 export const ReportsPage = () => {
 	const [tasks, setTasks] = useState<
@@ -49,6 +51,7 @@ export const ReportsPage = () => {
 			status?: string;
 			timeEstimate?: string;
 			timeSpentInLogs?: string;
+			deadline?: string;
 		}[]
 	>([]);
 	const [projects, setProjects] = useState<
@@ -125,6 +128,8 @@ export const ReportsPage = () => {
 									timeEstimate: task?.timeEstimate,
 									timeSpentInLogs: task?.timeSpentInLogs,
 									groupId: task?.groupId,
+									deadline: task?.deadline,
+									endDate: task?.endDatePlan,
 								};
 							}
 						})

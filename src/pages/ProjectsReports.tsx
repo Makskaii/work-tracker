@@ -2,14 +2,11 @@ import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import { AsyncSelect } from "../components/form/SelectField";
+import { Statistics } from "../components/statistics/StaticticComponents";
 import type { ContextType } from "./ReportsPage";
 
 export const ProjectsReports = () => {
 	const Context = useOutletContext<ContextType>();
-
-	const toalCompleted = Context?.tasks.filter(
-		(task) => task?.status === "5",
-	).length;
 	const methods = useForm<{
 		project: string;
 		title: string;
@@ -28,8 +25,9 @@ export const ProjectsReports = () => {
 	useEffect(() => {
 		return () => {
 			Context?.setCurrProject("");
+			Context.setTitle("");
 		};
-	}, [Context?.setCurrProject]);
+	}, [Context.setCurrProject, Context.setTitle]);
 
 	return (
 		<>
@@ -93,6 +91,8 @@ export const ProjectsReports = () => {
 			<div
 				style={{
 					display: "flex",
+					padding: "1rem",
+					gap: "10px",
 				}}
 			>
 				<div
@@ -155,80 +155,18 @@ export const ProjectsReports = () => {
 				<div
 					style={{
 						flex: 1,
+						border: "1px solid #ccc",
+						borderRadius: "10px",
+						padding: "1rem",
 					}}
 				>
 					{Context?.tasks.length !== 0 && (
 						<div>
-							{/* задачи факт план */}
-							<div>
-								<h3>Задачи</h3>
-							</div>
-							<div>Всего задач по проекту {Context?.tasks.length}</div>
-							<div>Выполнено {toalCompleted}</div>
-							<div>
-								% завершённости{" "}
-								{Context?.tasks.length &&
-									toalCompleted &&
-									Math.round(
-										(toalCompleted / Context?.tasks.length) * 100,
-									)}{" "}
-							</div>
-							<div>
-								Задач в работе{" "}
-								{Context?.tasks.filter((task) => task.status === "3").length}
-							</div>
-							<div>
-								Задач без оценки{" "}
-								{
-									Context?.tasks.filter((task) => task.timeEstimate === "0")
-										.length
-								}
-							</div>
-							{/* оценка факт план */}
-							<div>
-								<h3>Часы</h3>
-							</div>
-							<div>
-								План{" "}
-								{Context?.tasks &&
-									Context?.tasks.reduce(
-										(acc, task) => acc + Number(task.timeEstimate),
-										0,
-									) / 3600}{" "}
-							</div>
-							<div>
-								В работе{" "}
-								{Context?.tasks &&
-									Context?.tasks
-										.filter((task) => task.status === "3")
-										.reduce((acc, task) => acc + Number(task.timeEstimate), 0) /
-										3600}{" "}
-							</div>
-							{/* часы факт план */}
+							<Statistics type="tasks" />
 
-							<div>
-								Факт{" "}
-								{Context?.tasks &&
-									Math.ceil(
-										Context?.tasks.reduce(
-											(acc, task) => acc + Number(task.timeSpentInLogs),
-											0,
-										) / 3600,
-									)}{" "}
-								ч
-							</div>
-							<div>
-								В работе:
-								{Context?.tasks &&
-									Math.ceil(
-										Context?.tasks
-											.filter((task) => task.status === "3")
-											.reduce(
-												(acc, task) => acc + Number(task.timeSpentInLogs),
-												0,
-											) / 3600,
-									)}{" "}
-							</div>
+							<Statistics type="time" />
+
+							<Statistics type="date" />
 						</div>
 					)}{" "}
 				</div>

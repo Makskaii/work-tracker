@@ -31,11 +31,27 @@ export const UsersReports = () => {
 		};
 	}, [Context?.setUser]);
 
+	const dataArray = [
+		{
+			title: "Всего задач на сотруднике",
+			value: Context.tasks.length,
+		},
+		{
+			title: "В работе",
+			value: tasksInProgress.length,
+		},
+		{
+			title: "Задач без оценки времени",
+			value: taskWithNoEstimeTime.length,
+		},
+	];
+
 	return (
 		<div
 			style={{
 				display: "flex",
 				height: "100%",
+				padding: "2rem",
 			}}
 		>
 			<div
@@ -59,14 +75,29 @@ export const UsersReports = () => {
 				}}
 			>
 				{Context?.user ? (
-					<>
-						<h2>Задачи</h2>
-						<div>Всего задач на сотруднике: {Context?.tasks?.length}</div>
-						<div>В работе {tasksInProgress?.length}</div>
-						<div>
-							Задач без оценки трудозатрат: {taskWithNoEstimeTime?.length}
+					<div>
+						<div
+							style={{
+								display: "flex",
+								borderBottom: "1px solid #ccc",
+							}}
+						>
+							<h3>Задачи</h3>
 						</div>
-					</>
+						<ul>
+							{dataArray.map((item) => (
+								<li
+									style={{
+										display: "flex",
+										justifyContent: "space-between",
+									}}
+								>
+									<div>{item.title}</div>
+									<div>{item.value}</div>
+								</li>
+							))}
+						</ul>
+					</div>
 				) : (
 					"Выберите сотрудника"
 				)}
