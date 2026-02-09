@@ -52,7 +52,11 @@ export const DateStats = ({
 				>
 					<h3>Сроки</h3>
 				</div>
-				<ul>
+				<ul
+					style={{
+						paddingRight: "1rem",
+					}}
+				>
 					{dataArray.map((item) => (
 						<li
 							style={{

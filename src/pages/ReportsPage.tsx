@@ -37,6 +37,7 @@ type UserReports = {
 		title: string;
 	}[];
 	userIds: string[];
+	currProject?: string;
 };
 
 export type ContextType = UserReports;
@@ -211,6 +212,7 @@ export const ReportsPage = () => {
 						user,
 						users,
 						userIds,
+						currProject,
 					} satisfies ContextType
 				}
 			/>

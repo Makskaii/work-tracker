@@ -24,7 +24,9 @@ export const AsyncSelect = ({
 				maxWidth: "200px",
 			}}
 		>
-			<option selected>{placeholder}</option>
+			<option selected value={""}>
+				{placeholder}
+			</option>
 			{options?.map((item) => (
 				<option value={item.id} key={item.id}>
 					{item.title}

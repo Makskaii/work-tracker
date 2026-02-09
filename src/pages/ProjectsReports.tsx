@@ -28,7 +28,7 @@ export const ProjectsReports = () => {
 			Context.setTitle("");
 		};
 	}, [Context.setCurrProject, Context.setTitle]);
-
+	console.log(Context.currProject);
 	return (
 		<>
 			<div className="header">
@@ -160,7 +160,7 @@ export const ProjectsReports = () => {
 						padding: "1rem",
 					}}
 				>
-					{Context?.tasks.length !== 0 && (
+					{Context?.tasks.length !== 0 && Context.currProject !== "" ? (
 						<div>
 							<Statistics type="tasks" />
 
@@ -168,7 +168,18 @@ export const ProjectsReports = () => {
 
 							<Statistics type="date" />
 						</div>
-					)}{" "}
+					) : (
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								height: "100%",
+							}}
+						>
+							Выберите проект
+						</div>
+					)}
 				</div>
 			</div>
 		</>

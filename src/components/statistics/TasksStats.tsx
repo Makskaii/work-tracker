@@ -49,7 +49,11 @@ export const TasksStatistics = ({
 			>
 				<h3>Задачи</h3>
 			</div>
-			<ul>
+			<ul
+				style={{
+					paddingRight: "1rem",
+				}}
+			>
 				{dataArray.map((item) => (
 					<li
 						style={{
