@@ -28,7 +28,7 @@ export const ProjectsReports = () => {
 			Context.setTitle("");
 		};
 	}, [Context.setCurrProject, Context.setTitle]);
-	console.log(Context.currProject);
+
 	return (
 		<>
 			<div className="header">
