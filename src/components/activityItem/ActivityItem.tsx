@@ -26,31 +26,59 @@ export const ActivityItem = ({
 			<div
 				style={{
 					display: "flex",
-					gap: "5px",
+					flexDirection: "column",
 				}}
 			>
-				<p>c</p>
-				<input type="datetime-local" {...register(`${id}.startDate`)} />
+				Время
+				<div
+					style={{
+						display: "flex",
+					}}
+				>
+					<div
+						style={{
+							display: "flex",
+							gap: "5px",
+						}}
+					>
+						<p>c</p>
+						<input type="datetime-local" {...register(`${id}.startDate`)} />
+					</div>
+					<div
+						style={{
+							display: "flex",
+							gap: "5px",
+						}}
+					>
+						<p>до</p>
+						<input type="datetime-local" {...register(`${id}.endDate`)} />
+					</div>
+				</div>
 			</div>
-			<div
-				style={{
-					display: "flex",
-					gap: "5px",
-				}}
-			>
-				<p>до</p>
-				<input type="datetime-local" {...register(`${id}.endDate`)} />
+
+			<div>
+				<AsyncSelect
+					options={activityTypes}
+					name={`${id}.activityType`}
+					placeholder="Вид активности"
+				/>
 			</div>
 			<div>
-				<AsyncSelect options={activityTypes} name={`${id}.activityType`} />
+				<AsyncSelect
+					options={tasks}
+					name={`${id}.activityTask`}
+					placeholder="Задача"
+				/>
 			</div>
 			<div>
-				<AsyncSelect options={tasks} name={`${id}.activityTask`} />
+				<AsyncSelect
+					options={projects}
+					name={`${id}.activityProject`}
+					placeholder="Проект"
+				/>
 			</div>
 			<div>
-				<AsyncSelect options={projects} name={`${id}.activityProject`} />
-			</div>
-			<div>
+				<span>Введите описание</span>
 				<input type="text" {...register(`${id}.description`)} />
 			</div>
 		</div>

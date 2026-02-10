@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
+import { Calendar } from "../components/calendar/Calendar";
 import { AsyncSelect } from "../components/form/SelectField";
 import type { ContextType } from "./ReportsPage";
 
@@ -51,7 +52,7 @@ export const UsersReports = () => {
 			style={{
 				display: "flex",
 				height: "100%",
-				padding: "2rem",
+				padding: "1rem",
 			}}
 		>
 			<div
@@ -68,12 +69,6 @@ export const UsersReports = () => {
 						/>
 					</form>
 				</FormProvider>
-			</div>
-			<div
-				style={{
-					flex: 4,
-				}}
-			>
 				{Context?.user ? (
 					<div>
 						<div
@@ -91,6 +86,7 @@ export const UsersReports = () => {
 										display: "flex",
 										justifyContent: "space-between",
 									}}
+									key={item.title}
 								>
 									<div>{item.title}</div>
 									<div>{item.value}</div>
@@ -99,8 +95,16 @@ export const UsersReports = () => {
 						</ul>
 					</div>
 				) : (
-					"Выберите сотрудника"
+					"Выберите сотрудника, чтобы просмотреть его активность по дням"
 				)}
+			</div>
+			<div
+				style={{
+					flex: 4,
+					overflowX: "auto",
+				}}
+			>
+				<Calendar />
 			</div>
 		</div>
 	);
