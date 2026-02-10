@@ -343,21 +343,18 @@ export const Calendar = () => {
 							className={cls["worked-hours-bg"]}
 							style={{
 								width: `${((day.totalHours || 0) / 8) * 100}%`,
+								maxWidth: "100%",
 							}}
 						/>
 					</div>
 				))}
 			</div>
-			<Modal
-				innerScroll
-				isOpen={open}
-				onClose={() => setOpen(false)}
-				size="covered"
-			>
+			<Modal innerScroll isOpen={open} onClose={() => setOpen(false)}>
 				<div
 					style={{
 						display: "flex",
 						flexDirection: "column",
+						padding: "1rem",
 					}}
 				>
 					<div className={cls.container}>
@@ -372,12 +369,7 @@ export const Calendar = () => {
 							<tbody>
 								{activeReport.map((item) => {
 									return (
-										<tr
-											key={item.id}
-											className={classNames("", {
-												[cls.skeleton]: false,
-											})}
-										>
+										<tr key={item.id}>
 											{headers.map((rep) => (
 												<td>
 													{rep.convertFn
