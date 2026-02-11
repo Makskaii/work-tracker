@@ -43,7 +43,7 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					display: "flex",
 				}}
 			>
-				<div className={cls["time-gutter"]}>
+				<div>
 					<div
 						style={{
 							padding: "0.5rem 1rem",
@@ -55,12 +55,8 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					{Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
 						const hour = START_HOUR + i;
 						return (
-							<div
-								key={hour}
-								className={cls["hour-marker"]}
-								style={{ height: HOUR_HEIGHT }}
-							>
-								<span className={cls["hour-label"]}>{hour}:00</span>
+							<div key={hour} style={{ height: HOUR_HEIGHT }}>
+								<span>{hour}:00</span>
 							</div>
 						);
 					})}
@@ -69,7 +65,7 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					<div
 						key={day.id}
 						style={{
-							minWidth: "200px",
+							minWidth: "230px",
 							position: "relative",
 						}}
 					>
@@ -98,6 +94,8 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 									flexDirection: "column",
 									padding: "1rem",
 									gap: "15px",
+									maxWidth: "230px",
+									boxSizing: "border-box",
 								}}
 							>
 								{day.reports?.map((report) => (
@@ -110,7 +108,7 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 										}}
 										className={cls.reportItem}
 									>
-										{report.title}
+										{report.title}{" "}
 									</div>
 								))}
 							</div>

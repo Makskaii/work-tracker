@@ -5,7 +5,7 @@ import cls from "./Modal.module.scss";
 
 export default function Modal({
 	children,
-	size = "small",
+	size,
 	isOpen,
 	onClose,
 	innerScroll,

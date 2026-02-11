@@ -154,7 +154,7 @@ export const CalendarMonth = ({
 					</div>
 				))}
 			</div>
-			<Modal innerScroll isOpen={open} onClose={() => setOpen(false)}>
+			<Modal isOpen={open} onClose={() => setOpen(false)}>
 				<div
 					style={{
 						display: "flex",
