@@ -1,3 +1,5 @@
+import { useState } from "react";
+import Modal from "../modal/Modal";
 import cls from "./WeekCalendar.module.scss";
 
 interface ReportProps {
@@ -27,6 +29,8 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 	const HOUR_HEIGHT = 800 / 8;
 	const START_HOUR = 10;
 	const END_HOUR = 19;
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [activeTitle, setActiveTitle] = useState<string>("");
 
 	return (
 		<div
@@ -101,6 +105,7 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 							>
 								{day.reports?.map((report) => (
 									<div
+										title={report.title}
 										style={{
 											minHeight: HOUR_HEIGHT * report.timeSpent,
 											maxHeight: HOUR_HEIGHT * report.timeSpent,
@@ -108,6 +113,10 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 											maxWidth: "200px",
 										}}
 										className={cls.reportItem}
+										onClick={() => {
+											setIsModalOpen(true);
+											setActiveTitle(report.title);
+										}}
 									>
 										{report.title}{" "}
 									</div>
@@ -117,6 +126,9 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					</div>
 				))}
 			</div>
+			<Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+				{activeTitle}
+			</Modal>
 		</div>
 	);
 };

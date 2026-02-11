@@ -154,7 +154,7 @@ export const CalendarMonth = ({
 					</div>
 				))}
 			</div>
-			<Modal isOpen={open} onClose={() => setOpen(false)}>
+			<Modal isOpen={open} onClose={() => setOpen(false)} size="small">
 				<div
 					style={{
 						display: "flex",
