@@ -86,16 +86,17 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 							style={{
 								flexDirection: "column",
 								justifyContent: "space-between",
+								height: "100%",
 							}}
 						>
 							<div
 								style={{
 									display: "flex",
 									flexDirection: "column",
-									padding: "1rem",
-									gap: "15px",
+									padding: "0.5rem 1rem",
 									maxWidth: "230px",
 									boxSizing: "border-box",
+									height: "100%",
 								}}
 							>
 								{day.reports?.map((report) => (
