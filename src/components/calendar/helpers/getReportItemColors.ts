@@ -3,7 +3,7 @@ import type { ReportProps } from "./generateMonthDays";
 
 export const getColorAdnBorder = (report: ReportProps) => {
 	switch (report?.activityType) {
-		case ActivityType.deleopment:
+		case ActivityType.development:
 			return {
 				background: "rgba(76, 175, 80, 0.2)",
 				borderLeft: "4px solid #4caf50",

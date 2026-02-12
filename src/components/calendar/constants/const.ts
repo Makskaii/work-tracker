@@ -57,8 +57,15 @@ export const dtoFieldsCodes = {
 };
 
 export enum ActivityType {
-	deleopment = 269,
+	development = 269,
 	clientCall = 270,
 	analitycsCall = 271,
 	dash = 272,
 }
+
+export const ActivityTitle: { [key: number]: string } = {
+	[ActivityType.development]: "Разработка",
+	[ActivityType.clientCall]: "Созвон с клиентом",
+	[ActivityType.analitycsCall]: "Внутренний созвон",
+	[ActivityType.dash]: "Внутренние коммуникации",
+};
