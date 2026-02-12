@@ -28,6 +28,13 @@ export const convertMinutesInHrs = (minutes: string): string => {
 	return `${parseInt(minutes) / 600}.ч`;
 };
 
+export const convertToMinutesOrHours = (number: number) => {
+	if (number < 1) {
+		return `${number * 60} мин.`;
+	}
+	return `${number} ч.`;
+};
+
 export const classNames = (
 	cls: string,
 	options: Record<string, boolean>,

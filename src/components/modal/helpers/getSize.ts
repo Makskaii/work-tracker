@@ -7,7 +7,7 @@ export const getModalWidth = (size?: string) => {
 		case "small":
 			return "50%";
 		default:
-			return "auto";
+			return "500px";
 	}
 };
 

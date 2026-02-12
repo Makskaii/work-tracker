@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import { Calendar } from "../components/calendar/Calendar";
@@ -7,6 +7,7 @@ import type { ContextType } from "./ReportsPage";
 
 export const UsersReports = () => {
 	const Context = useOutletContext<ContextType>();
+	const [view, setView] = useState<"month" | "week">("month");
 
 	const methods = useForm<{
 		userId: string;
@@ -25,7 +26,6 @@ export const UsersReports = () => {
 	const taskWithNoEstimeTime = Context?.tasks.filter(
 		(task) => task.timeEstimate === "0",
 	);
-
 	useEffect(() => {
 		return () => {
 			Context?.setUser("");
@@ -75,11 +75,16 @@ export const UsersReports = () => {
 							style={{
 								display: "flex",
 								borderBottom: "1px solid #ccc",
+								padding: "0 1rem",
 							}}
 						>
 							<h3>Задачи</h3>
 						</div>
-						<ul>
+						<ul
+							style={{
+								padding: "0 1rem",
+							}}
+						>
 							{dataArray.map((item) => (
 								<li
 									style={{
@@ -101,10 +106,31 @@ export const UsersReports = () => {
 			<div
 				style={{
 					flex: 4,
-					overflowX: "auto",
+					overflow: "hidden",
+					borderLeft: "1px solid #ccc",
 				}}
 			>
-				<Calendar />
+				<div
+					style={{
+						display: "flex",
+						gap: "1rem",
+						borderBottom: "1px solid #ccc",
+						padding: "0.5rem 2rem",
+						justifyContent: "space-between",
+					}}
+				>
+					<div
+						style={{
+							display: "flex",
+							gap: "1rem",
+						}}
+					>
+						<button onClick={() => setView("month")}>Месяц</button>
+						<button onClick={() => setView("week")}>Неделя</button>
+					</div>
+				</div>
+
+				<Calendar view={view} />
 			</div>
 		</div>
 	);
