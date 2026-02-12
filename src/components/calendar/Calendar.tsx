@@ -8,7 +8,7 @@ import { Endpoints } from "../../shared/constants/const";
 import type { AnyObject } from "../../shared/types/types";
 import { CalendarMonth } from "./CalendarMonth";
 import { WeekCalendar } from "./CalendarWeek";
-import { dtoFieldsCodes, months } from "./constants/const";
+import { dtoFieldsCodesDailyReports, months } from "./constants/const";
 import {
 	generateMonthDays,
 	getWeek,
@@ -30,12 +30,12 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 						select: [
 							"id",
 							"title",
-							dtoFieldsCodes.day,
-							dtoFieldsCodes.title,
-							dtoFieldsCodes.timeSpent,
-							dtoFieldsCodes.taskId,
-							dtoFieldsCodes.responsible,
-							dtoFieldsCodes.activityType,
+							dtoFieldsCodesDailyReports.day,
+							dtoFieldsCodesDailyReports.title,
+							dtoFieldsCodesDailyReports.timeSpent,
+							dtoFieldsCodesDailyReports.taskId,
+							dtoFieldsCodesDailyReports.responsible,
+							dtoFieldsCodesDailyReports.activityType,
 							"assignedById",
 							"createdTime",
 							"lastActivityTime",
@@ -59,12 +59,12 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 				setReports(
 					res.data.result.items.map((report: AnyObject) => ({
 						id: report.id,
-						title: report[dtoFieldsCodes.title],
-						timeSpent: report[dtoFieldsCodes.timeSpent],
-						taskId: report[dtoFieldsCodes.taskId],
-						day: report[dtoFieldsCodes.day],
-						responsible: report[dtoFieldsCodes.responsible],
-						activityType: report[dtoFieldsCodes.activityType],
+						title: report[dtoFieldsCodesDailyReports.title],
+						timeSpent: report[dtoFieldsCodesDailyReports.timeSpent],
+						taskId: report[dtoFieldsCodesDailyReports.taskId],
+						day: report[dtoFieldsCodesDailyReports.day],
+						responsible: report[dtoFieldsCodesDailyReports.responsible],
+						activityType: report[dtoFieldsCodesDailyReports.activityType],
 					})),
 				);
 			} catch {

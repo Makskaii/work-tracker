@@ -1,6 +1,40 @@
+import type { B24Frame } from "@bitrix24/b24jssdk";
+import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
+import { useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router";
 
+const devMode =
+	typeof import.meta !== "undefined" && (import.meta.env?.DEV ?? false);
+const $logger = LoggerFactory.createForBrowser("MyApp", devMode);
+
 export const MainLayout = () => {
+	const b24Ref = useRef<B24Frame | null>(null);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		async function init() {
+			try {
+				const b24 = await initializeB24Frame();
+
+				if (!isMounted) {
+					b24.destroy();
+					return;
+				}
+				b24Ref.current = b24;
+			} catch (error) {
+				$logger.error("Some problems", { error });
+			}
+		}
+
+		init();
+
+		return () => {
+			isMounted = false;
+			b24Ref.current?.destroy();
+		};
+	}, []);
+
 	return (
 		<div style={{ display: "flex", height: "100%" }}>
 			<main
@@ -39,16 +73,6 @@ export const MainLayout = () => {
 						end
 					>
 						Отчеты
-					</NavLink>
-					/
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="/activity"
-						end
-					>
-						Активность
 					</NavLink>
 				</div>
 				<Outlet />

@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { MainLayout } from "../../../components/layout/MainLayout";
 import { ActivityPage } from "../../../pages/ActivityPage";
+import { Progress } from "../../../pages/Progress";
 import { ProjectsReports } from "../../../pages/ProjectsReports";
 import { ReportsPage } from "../../../pages/ReportsPage";
 import { DataPage } from "../../../pages/TablePage";
@@ -24,6 +25,10 @@ export const router = createBrowserRouter(
 						{
 							path: "employees",
 							element: <UsersReports />,
+						},
+						{
+							path: "progress",
+							element: <Progress />,
 						},
 					],
 				},

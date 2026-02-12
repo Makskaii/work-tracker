@@ -47,13 +47,20 @@ export const headers: {
 ];
 
 //
-export const dtoFieldsCodes = {
+export const dtoFieldsCodesDailyReports = {
 	title: "ufCrm11_1770627903531",
 	timeSpent: "ufCrm11_1770627880479",
 	taskId: "ufCrm11_1770393502397",
 	day: "begindate",
 	responsible: "ufCrm11_1770627880479",
 	activityType: "ufCrm11_1770804288638",
+};
+
+export const dtoFieldsCodesUserReports = {
+	description: "ufCrm14_1770731622242",
+	stage: "ufCrm14_1770890673468",
+	estimateTime: "ufCrm14_1770731674952",
+	project: "ufCrm14_1770801014487",
 };
 
 export enum ActivityType {
