@@ -5,6 +5,7 @@ export interface ReportProps {
 	taskId: string;
 	timeSpent: number;
 	responsible: string;
+	activityType?: number;
 }
 
 const getDaysInMonth = (year: number, month: number) => {

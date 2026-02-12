@@ -35,17 +35,18 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 							dtoFieldsCodes.timeSpent,
 							dtoFieldsCodes.taskId,
 							dtoFieldsCodes.responsible,
+							dtoFieldsCodes.activityType,
 							"assignedById",
 							"createdTime",
 							"lastActivityTime",
 						],
 						filter: {
-							">=createdTime": new Date(
+							">=begindate": new Date(
 								selectedYear,
 								selectedMonth,
 								1,
 							).toISOString(),
-							"<=createdTime": new Date(
+							"<=begindate": new Date(
 								selectedYear,
 								selectedMonth + 1,
 								1,
@@ -63,6 +64,7 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 						taskId: report[dtoFieldsCodes.taskId],
 						day: report[dtoFieldsCodes.day],
 						responsible: report[dtoFieldsCodes.responsible],
+						activityType: report[dtoFieldsCodes.activityType],
 					})),
 				);
 			} catch {

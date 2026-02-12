@@ -1,15 +1,8 @@
 import { useState } from "react";
 import Modal from "../modal/Modal";
+import type { ReportProps } from "./helpers/generateMonthDays";
+import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import cls from "./WeekCalendar.module.scss";
-
-interface ReportProps {
-	id: string;
-	title: string;
-	day: string;
-	taskId: string;
-	timeSpent: number;
-	responsible: string;
-}
 
 interface DayProps {
 	id: string;
@@ -50,7 +43,6 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 				<div>
 					<div
 						style={{
-							padding: "0.5rem 1rem",
 							height: "92px",
 						}}
 					>
@@ -75,14 +67,17 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					>
 						<div
 							data-today={day.isToday}
-							style={{
-								padding: "1rem",
-							}}
 							className={cls.weekHeader}
 							data-weekend={day.isWeekend}
 						>
 							<div className={cls.dayName}>{day.dayName}</div>
-							<div className={cls.dayNumber}>{day.dayNumber}</div>
+
+							<div className={cls.dayNumber}>
+								{new Date(day.date ?? "").toLocaleDateString("ru-RU", {
+									day: "numeric",
+									month: "short",
+								})}
+							</div>
 						</div>
 
 						<div
@@ -105,12 +100,14 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 							>
 								{day.reports?.map((report) => (
 									<div
+										key={report.id}
 										title={report.title}
 										style={{
 											minHeight: HOUR_HEIGHT * report.timeSpent,
 											maxHeight: HOUR_HEIGHT * report.timeSpent,
 											height: HOUR_HEIGHT * report.timeSpent,
 											maxWidth: "200px",
+											...getColorAdnBorder(report),
 										}}
 										className={cls.reportItem}
 										onClick={() => {

@@ -51,6 +51,14 @@ export const dtoFieldsCodes = {
 	title: "ufCrm11_1770627903531",
 	timeSpent: "ufCrm11_1770627880479",
 	taskId: "ufCrm11_1770393502397",
-	day: "createdTime",
+	day: "begindate",
 	responsible: "ufCrm11_1770627880479",
+	activityType: "ufCrm11_1770804288638",
 };
+
+export enum ActivityType {
+	deleopment = 269,
+	clientCall = 270,
+	analitycsCall = 271,
+	dash = 272,
+}
