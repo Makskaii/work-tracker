@@ -1,11 +1,18 @@
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
-import { dtoFieldsCodesUserReports as UserCodes } from "../components/calendar/constants/const";
+import {
+	months,
+	dtoFieldsCodesUserReports as UserCodes,
+} from "../components/calendar/constants/const";
 import { AsyncSelect } from "../components/form/SelectField";
 import { $api } from "../shared/config";
 import { Endpoints } from "../shared/constants/const";
+import { getWorkWeeks } from "../shared/utils";
 import type { ContextType } from "./ReportsPage";
+
+const monthCapacity = 160;
 
 interface KanbanTask {
 	assignedById: number;
@@ -20,37 +27,48 @@ interface KanbanTask {
 	[UserCodes.stage]: string;
 }
 
-export const Progress = () => {
-	const getWeekNumber = (date: string): number => {
-		const d = new Date(date);
-		d.setHours(0, 0, 0, 0);
-		d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-		const week1 = new Date(d.getFullYear(), 0, 4);
-		return (
-			1 +
-			Math.round(
-				((d.getTime() - week1.getTime()) / 86400000 -
-					3 +
-					((week1.getDay() + 6) % 7)) /
-					7,
-			)
-		);
-	};
+const getTasksByWeek = async (userId: string) => {
+	const currMonthWeeks = getWorkWeeks(
+		new Date().getMonth(),
+		new Date().getFullYear(),
+	);
 
-	const groupByWeek = (tasks: KanbanTask[]) => {
-		return tasks.reduce(
-			(acc, task) => {
-				const week = getWeekNumber(task.createdTime);
-				if (!acc[week]) {
-					acc[week] = [];
-				}
-				acc[week].push(task);
-				return acc;
-			},
-			{} as Record<number, KanbanTask[]>,
-		);
-	};
+	const result = await Promise.all(
+		currMonthWeeks.map((week) =>
+			$api.get(Endpoints.reports, {
+				params: {
+					entityTypeId: 1072,
+					select: [
+						"id",
+						"title",
+						"assignedById",
+						"createdTime",
+						"lastActivityTime",
+						"stageId",
+						UserCodes.project,
+						UserCodes.estimateTime,
+						UserCodes.description,
+						UserCodes.stage,
+					],
+					filter: {
+						assignedById: userId,
+						stageId: "DT1072_18:UC_6JNSDG",
+						"<=lastActivityTime": dayjs(week.endOfTheWeek).toISOString(),
+						">=lastActivityTime": dayjs(week.startOfTheWeek).toISOString(),
+					},
+				},
+			}),
+		),
+	);
+	return result;
+};
+
+export const Progress = () => {
 	const [data, setData] = useState<KanbanTask[]>([]);
+	const [weeks, setWeekTasks] = useState<
+		{ week: number; title: string; tasks?: KanbanTask[] }[]
+	>([]);
+	console.log(weeks);
 	const [projects, setProjects] = useState<
 		{
 			ID: string;
@@ -82,14 +100,15 @@ export const Progress = () => {
 		getProjects();
 	}, []);
 
-	const tasksByWeek = groupByWeek(data);
-	console.log(tasksByWeek);
 	const groupedByProjectsTasks = Object.groupBy(data, (task) => {
 		return task[UserCodes.project] ?? "unknown";
 	});
 
+	console.log(groupedByProjectsTasks);
+
 	const handleChange = handleSubmit(async (data) => {
 		try {
+			const res = await getTasksByWeek(data.userId);
 			const response = await $api.get(Endpoints.reports, {
 				params: {
 					entityTypeId: 1072,
@@ -113,6 +132,22 @@ export const Progress = () => {
 			});
 
 			setData(response.data.result.items);
+
+			const grouped = res.map((res, i) => {
+				if (res.data.result.items.length === 0)
+					return {
+						week: i + 1,
+						title: "Нет задач",
+					};
+
+				return {
+					week: i + 1,
+					title: `${res.data.result.items.length} задач`,
+					tasks: res.data.result.items,
+				};
+			});
+
+			setWeekTasks(grouped);
 		} catch {
 			console.log("Ошибка при получении списка сотрудников");
 		}
@@ -145,17 +180,87 @@ export const Progress = () => {
 				</FormProvider>
 			</div>
 			<div style={{ flex: 4 }}>
+				{/* {weeks.map((week) => (
+					<>
+						<div>Итоги недели: {week.week}</div>
+						<div>Задач: {week.tasks.length ?? 0}</div>
+						{week.tasks && (
+							<div>
+								Часов:{" "}
+								{week.tasks?.reduce(
+									(acc, task) => acc + +task[UserCodes.estimateTime],
+									0,
+								)}
+							</div>
+						)}
+					</>
+				))} */}
 				{Object.entries(groupedByProjectsTasks).map(([projectId, tasks]) => (
 					<div style={{ textAlign: "left" }} key={projectId}>
-						<h3>
-							{projects.find((project) => project.ID === projectId)?.VALUE}
-						</h3>
+						<div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+							<h3>
+								{projects.find((project) => project.ID === projectId)?.VALUE}
+							</h3>
+							<div>
+								{tasks?.reduce(
+									(acc, task) => acc + +task[UserCodes.estimateTime],
+									0,
+								)}
+								ч. из {monthCapacity}ч. за {months[dayjs().month()]}
+							</div>
+						</div>
+
+						<div
+							style={{
+								display: "flex",
+								gap: "10px",
+							}}
+						>
+							{weeks.map((week) => {
+								{
+									const weekTasksInProject =
+										week.tasks?.filter(
+											(task) => task[UserCodes.project] === Number(projectId),
+										) || [];
+
+									if (weekTasksInProject.length > 0) {
+										const totalHours = weekTasksInProject.reduce(
+											(acc, task) => acc + Number(task[UserCodes.estimateTime]),
+											0,
+										);
+										return (
+											<div key={week.week}>
+												<strong>Неделя {week.week}:</strong>
+												<div>задач: {weekTasksInProject.length}</div>
+												<div>часов: {totalHours} ч.</div>
+											</div>
+										);
+									} else {
+										return (
+											<div key={week.week}>
+												<strong>Неделя {week.week}:</strong>
+												<div>задач: 0</div>
+												<div>часов: 0 ч.</div>
+											</div>
+										);
+									}
+								}
+							})}
+						</div>
+
 						<ul>
 							{tasks?.map((task) => (
 								<li key={task.id}>{task.title}</li>
 							))}
 						</ul>
-						<div> Задач в спринте: {tasks?.length}</div>
+						<div>
+							{" "}
+							Задач в спринте: {tasks?.length}
+							{` (${tasks?.reduce(
+								(acc, task) => acc + Number(task[UserCodes.estimateTime]),
+								0,
+							)}  ч.)`}
+						</div>
 						<div>
 							Задач в работе:{" "}
 							{
@@ -167,7 +272,7 @@ export const Progress = () => {
 						<div>
 							Задач выполнено:{" "}
 							{
-								tasks?.filter((task) => task[UserCodes.stage] === "Общая\/Done")
+								tasks?.filter((task) => task.stageId === "DT1072_18:UC_6JNSDG")
 									.length
 							}
 						</div>
@@ -177,14 +282,14 @@ export const Progress = () => {
 								Задач выполнено:{" "}
 								{
 									tasks?.filter(
-										(task) => task[UserCodes.stage] === "Общая\/Done",
+										(task) => task.stageId === "DT1072_18:UC_6JNSDG",
 									).length
 								}{" "}
 							</li>
 							<li>
 								Часы:{" "}
 								{tasks
-									?.filter((task) => task[UserCodes.stage] === "Общая\/Done")
+									?.filter((task) => task.stageId === "DT1072_18:UC_6JNSDG")
 									.reduce(
 										(acc, task) => acc + Number(task[UserCodes.estimateTime]),
 										0,
