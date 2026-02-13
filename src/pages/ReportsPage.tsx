@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
+import { CheckPermission } from "../components/protectedRoute/CheckPermission";
 import { $api } from "../shared/config";
 import { Endpoints } from "../shared/constants/const";
 import type { AnyObject } from "../shared/types/types";
@@ -165,57 +166,69 @@ export const ReportsPage = () => {
 	}, []);
 
 	return (
-		<div
-			style={{
-				width: "100%",
-				display: "flex",
-				gap: "2rem",
-				flexDirection: "column",
-				padding: "1rem",
-			}}
-		>
+		<CheckPermission permission="read">
 			<div
 				style={{
+					width: "100%",
 					display: "flex",
-					gap: "1rem",
+					gap: "2rem",
+					flexDirection: "column",
+					padding: "1rem",
 				}}
 			>
-				<NavLink
-					className={({ isActive, isPending }) =>
-						[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-					}
-					to="projects"
-					end
+				<div
+					style={{
+						display: "flex",
+						gap: "1rem",
+					}}
 				>
-					<div>Проекты</div>
-				</NavLink>
-				/
-				<NavLink
-					className={({ isActive, isPending }) =>
-						[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+					<NavLink
+						className={({ isActive, isPending }) =>
+							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+						}
+						to="projects"
+						end
+					>
+						<div>Проекты</div>
+					</NavLink>
+					/
+					<NavLink
+						className={({ isActive, isPending }) =>
+							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+						}
+						to="employees"
+						end
+					>
+						<div>Сотрудники</div>
+					</NavLink>
+					/
+					<NavLink
+						className={({ isActive, isPending }) =>
+							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+						}
+						to="progress"
+						end
+					>
+						<div>Занятость</div>
+					</NavLink>
+				</div>
+				<Outlet
+					context={
+						{
+							tasks,
+							projects,
+							setCurrProject,
+							setTitle,
+							title,
+							setUser,
+							user,
+							users,
+							userIds,
+							currProject,
+						} satisfies ContextType
 					}
-					to="employees"
-					end
-				>
-					<div>Сотрудники</div>
-				</NavLink>
+				/>
 			</div>
-			<Outlet
-				context={
-					{
-						tasks,
-						projects,
-						setCurrProject,
-						setTitle,
-						title,
-						setUser,
-						user,
-						users,
-						userIds,
-						currProject,
-					} satisfies ContextType
-				}
-			/>
-		</div>
+		</CheckPermission>
 	);
 };
