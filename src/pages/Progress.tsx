@@ -7,6 +7,7 @@ import {
 	dtoFieldsCodesUserReports as UserCodes,
 } from "../components/calendar/constants/const";
 import { AsyncSelect } from "../components/form/SelectField";
+import { StatucBadge } from "../components/statusBadge/StatucBadge";
 import { $api } from "../shared/config";
 import { Endpoints } from "../shared/constants/const";
 import { getWorkWeeks } from "../shared/utils";
@@ -68,7 +69,11 @@ export const Progress = () => {
 	const [weeks, setWeekTasks] = useState<
 		{ week: number; title: string; tasks?: KanbanTask[] }[]
 	>([]);
-	console.log(weeks);
+	const [tasksToShow, setTasksToShow] = useState<{
+		tasks: KanbanTask[];
+		projId: string;
+	}>();
+
 	const [projects, setProjects] = useState<
 		{
 			ID: string;
@@ -179,7 +184,14 @@ export const Progress = () => {
 					</form>
 				</FormProvider>
 			</div>
-			<div style={{ flex: 4 }}>
+			<div
+				style={{
+					flex: 4,
+					display: "flex",
+					flexDirection: "column",
+					gap: "1rem",
+				}}
+			>
 				{/* {weeks.map((week) => (
 					<>
 						<div>Итоги недели: {week.week}</div>
@@ -196,17 +208,45 @@ export const Progress = () => {
 					</>
 				))} */}
 				{Object.entries(groupedByProjectsTasks).map(([projectId, tasks]) => (
-					<div style={{ textAlign: "left" }} key={projectId}>
-						<div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+					<div
+						style={{
+							textAlign: "left",
+							display: "flex",
+							flexDirection: "column",
+							gap: "1rem",
+							border: "1px solid #ccc",
+							borderRadius: "10px",
+							padding: "10px",
+						}}
+						key={projectId}
+					>
+						<div
+							style={{
+								display: "flex",
+								gap: "10px",
+								flexDirection: "column",
+								borderBottom: "1px solid #ccc",
+							}}
+						>
 							<h3>
 								{projects.find((project) => project.ID === projectId)?.VALUE}
 							</h3>
-							<div>
-								{tasks?.reduce(
-									(acc, task) => acc + +task[UserCodes.estimateTime],
-									0,
-								)}
-								ч. из {monthCapacity}ч. за {months[dayjs().month()]}
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: "10px",
+								}}
+							>
+								<div>
+									Запланировано:{" "}
+									{tasks?.reduce(
+										(acc, task) => acc + +task[UserCodes.estimateTime],
+										0,
+									)}
+									ч. из {monthCapacity}ч. за {months[dayjs().month()]}
+								</div>
+								<div> Всего задач: {tasks?.length}</div>
 							</div>
 						</div>
 
@@ -216,6 +256,7 @@ export const Progress = () => {
 								gap: "10px",
 							}}
 						>
+							Результаты:{" "}
 							{weeks.map((week) => {
 								{
 									const weekTasksInProject =
@@ -229,7 +270,19 @@ export const Progress = () => {
 											0,
 										);
 										return (
-											<div key={week.week}>
+											<div
+												style={{
+													cursor: "pointer",
+												}}
+												key={week.week}
+												onClick={(e) => {
+													e.stopPropagation();
+													setTasksToShow({
+														tasks: weekTasksInProject ?? [],
+														projId: projectId,
+													});
+												}}
+											>
 												<strong>Неделя {week.week}:</strong>
 												<div>задач: {weekTasksInProject.length}</div>
 												<div>часов: {totalHours} ч.</div>
@@ -237,7 +290,19 @@ export const Progress = () => {
 										);
 									} else {
 										return (
-											<div key={week.week}>
+											<div
+												style={{
+													cursor: "pointer",
+												}}
+												key={week.week}
+												onClick={(e) => {
+													e.stopPropagation();
+													setTasksToShow({
+														tasks: [],
+														projId: "",
+													});
+												}}
+											>
 												<strong>Неделя {week.week}:</strong>
 												<div>задач: 0</div>
 												<div>часов: 0 ч.</div>
@@ -246,21 +311,39 @@ export const Progress = () => {
 									}
 								}
 							})}
+							<button
+								style={{
+									height: "50%",
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+								onClick={(e) => {
+									e.stopPropagation();
+									setTasksToShow({
+										tasks: tasks ?? [],
+										projId: projectId,
+									});
+								}}
+							>
+								Все задачи
+							</button>
 						</div>
+						{tasksToShow?.projId === projectId && (
+							<ul
+								style={{
+									border: "1px solid #ccc",
+									borderRadius: "10px",
+								}}
+							>
+								{tasksToShow.tasks?.map((task) => (
+									<li key={task.id}>
+										<StatucBadge status={task.stageId} /> {task.title}
+									</li>
+								))}
+							</ul>
+						)}
 
-						<ul>
-							{tasks?.map((task) => (
-								<li key={task.id}>{task.title}</li>
-							))}
-						</ul>
-						<div>
-							{" "}
-							Задач в спринте: {tasks?.length}
-							{` (${tasks?.reduce(
-								(acc, task) => acc + Number(task[UserCodes.estimateTime]),
-								0,
-							)}  ч.)`}
-						</div>
 						<div>
 							Задач в работе:{" "}
 							{
@@ -276,7 +359,14 @@ export const Progress = () => {
 									.length
 							}
 						</div>
-						<div> Итог сотрудника за месяц: </div>
+						<div
+							style={{
+								borderBottom: "1px solid #ccc",
+							}}
+						>
+							{" "}
+							Итог сотрудника за месяц:{" "}
+						</div>
 						<ul>
 							<li>
 								Задач выполнено:{" "}
