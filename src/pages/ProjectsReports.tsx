@@ -5,7 +5,7 @@ import { AsyncSelect } from "../components/form/SelectField";
 import { Statistics } from "../components/statistics/StaticticComponents";
 import type { ContextType } from "./ReportsPage";
 
-export const ProjectsReports = () => {
+const ProjectsReports = () => {
 	const Context = useOutletContext<ContextType>();
 	const methods = useForm<{
 		project: string;
@@ -185,3 +185,5 @@ export const ProjectsReports = () => {
 		</>
 	);
 };
+
+export default ProjectsReports;

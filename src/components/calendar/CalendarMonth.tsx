@@ -1,12 +1,12 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <explanation> */
 import { useState } from "react";
 import { classNames } from "../../shared/utils/utils";
-import Modal from "../modal/Modal";
+import { Modal } from "../modal";
 import cls from "./Calendar.module.scss";
 import { headers, months, years } from "./constants/const";
 import type { ReportProps } from "./helpers/generateMonthDays";
 
-export const CalendarMonth = ({
+const CalendarMonth = ({
 	monthDays,
 	handlePrevMonth,
 	selectedMonth,
@@ -154,7 +154,12 @@ export const CalendarMonth = ({
 					</div>
 				))}
 			</div>
-			<Modal isOpen={open} onClose={() => setOpen(false)} size="small">
+			<Modal
+				isOpen={open}
+				onClose={() => setOpen(false)}
+				size="small"
+				innerScroll
+			>
 				<div
 					style={{
 						display: "flex",
@@ -204,3 +209,5 @@ export const CalendarMonth = ({
 		</div>
 	);
 };
+
+export default CalendarMonth;
