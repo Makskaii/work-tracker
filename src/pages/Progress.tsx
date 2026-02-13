@@ -64,7 +64,7 @@ const getTasksByWeek = async (userId: string) => {
 	return result;
 };
 
-export const Progress = () => {
+const Progress = () => {
 	const [data, setData] = useState<KanbanTask[]>([]);
 	const [weeks, setWeekTasks] = useState<
 		{ week: number; title: string; tasks?: KanbanTask[] }[]
@@ -393,3 +393,5 @@ export const Progress = () => {
 		</div>
 	);
 };
+
+export default Progress;

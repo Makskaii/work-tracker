@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { CheckPermission } from "../components/protectedRoute/CheckPermission";
 import { $api } from "../shared/config";
-import { ability } from "../shared/config/ability/casl";
 import { Endpoints } from "../shared/constants/const";
 import type { AnyObject } from "../shared/types/types";
 
@@ -44,7 +43,7 @@ type UserReports = {
 
 export type ContextType = UserReports;
 
-export const ReportsPage = () => {
+const ReportsPage = () => {
 	const [tasks, setTasks] = useState<
 		{
 			id: string;
@@ -166,13 +165,6 @@ export const ReportsPage = () => {
 		getProjects();
 	}, []);
 
-	ability.update([
-		{
-			action: "read",
-			subject: "post",
-		},
-	]);
-
 	return (
 		<CheckPermission permission="read">
 			<div
@@ -240,3 +232,5 @@ export const ReportsPage = () => {
 		</CheckPermission>
 	);
 };
+
+export default ReportsPage;

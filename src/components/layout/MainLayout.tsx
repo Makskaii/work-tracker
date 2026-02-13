@@ -2,6 +2,7 @@ import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
 import { useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router";
+import { ability } from "../../shared/config/ability/casl";
 
 const devMode =
 	typeof import.meta !== "undefined" && (import.meta.env?.DEV ?? false);
@@ -16,20 +17,35 @@ export const MainLayout = () => {
 		async function init() {
 			try {
 				const b24 = await initializeB24Frame();
-
-				console.log(b24);
-
 				if (!isMounted) {
 					b24.destroy();
 					return;
 				}
 				b24Ref.current = b24;
+
+				if (b24.auth.isAdmin && ability && !devMode) {
+					ability.update([
+						{
+							action: "read",
+							subject: "post",
+						},
+					]);
+				}
 			} catch (error) {
 				$logger.error("Some problems", { error });
 			}
 		}
 
 		init();
+
+		if (devMode) {
+			ability.update([
+				{
+					action: "read",
+					subject: "post",
+				},
+			]);
+		}
 
 		return () => {
 			isMounted = false;

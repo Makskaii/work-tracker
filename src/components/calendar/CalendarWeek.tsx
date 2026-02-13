@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { convertToMinutesOrHours } from "../../shared/utils/utils";
-import Modal from "../modal/Modal";
+import { Modal } from "../modal";
 import { ActivityTitle, ActivityType } from "./constants/const";
 import type { ReportProps } from "./helpers/generateMonthDays";
 import { getColorAdnBorder } from "./helpers/getReportItemColors";
@@ -20,7 +20,7 @@ interface DayProps {
 	reports?: ReportProps[] | null;
 }
 
-export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
+const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 	const HOUR_HEIGHT = 800 / 8;
 	const START_HOUR = 10;
 	const END_HOUR = 19;
@@ -169,7 +169,11 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					</div>
 				))}
 			</div>
-			<Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+			<Modal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				innerScroll
+			>
 				{activeReport && (
 					<div
 						style={{
@@ -209,3 +213,5 @@ export const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 		</div>
 	);
 };
+
+export default WeekCalendar;

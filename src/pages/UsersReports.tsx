@@ -5,7 +5,7 @@ import { Calendar } from "../components/calendar/Calendar";
 import { AsyncSelect } from "../components/form/SelectField";
 import type { ContextType } from "./ReportsPage";
 
-export const UsersReports = () => {
+const UsersReports = () => {
 	const Context = useOutletContext<ContextType>();
 	const [view, setView] = useState<"month" | "week">("month");
 
@@ -135,3 +135,5 @@ export const UsersReports = () => {
 		</div>
 	);
 };
+
+export default UsersReports;

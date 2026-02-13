@@ -5,7 +5,7 @@ import { MainTemplate } from "../components/Table/templates";
 import { Endpoints } from "../shared/constants/const";
 import { useLoadData } from "../shared/hooks/useLoadData";
 
-export const DataPage = () => {
+const DataPage = () => {
 	const [template, setTemplate] = useState<keyof typeof MainTemplate>("tasks");
 
 	const { data, loading, page, total, next, setEndpoint, setPage } =
@@ -109,3 +109,5 @@ export const DataPage = () => {
 		</div>
 	);
 };
+
+export default DataPage;

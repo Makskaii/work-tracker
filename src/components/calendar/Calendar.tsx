@@ -6,8 +6,7 @@ import type { ContextType } from "../../pages/ReportsPage";
 import { $api } from "../../shared/config";
 import { Endpoints } from "../../shared/constants/const";
 import type { AnyObject } from "../../shared/types/types";
-import { CalendarMonth } from "./CalendarMonth";
-import { WeekCalendar } from "./CalendarWeek";
+import { CalendarMonth, WeekCalendar } from ".";
 import { dtoFieldsCodesDailyReports, months } from "./constants/const";
 import {
 	generateMonthDays,
