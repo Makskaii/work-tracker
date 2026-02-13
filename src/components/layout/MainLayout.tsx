@@ -17,6 +17,8 @@ export const MainLayout = () => {
 			try {
 				const b24 = await initializeB24Frame();
 
+				console.log(b24);
+
 				if (!isMounted) {
 					b24.destroy();
 					return;
