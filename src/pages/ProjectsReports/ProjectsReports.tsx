@@ -1,13 +1,27 @@
+import dayjs from "dayjs";
 import { useEffect } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
+import { months } from "../../components/calendar/constants/const";
 import { AsyncSelect } from "../../components/form/SelectField";
 import { Statistics } from "../../components/statistics/StaticticComponents";
 import type { ContextType } from "../ReportsPage";
 import styles from "./ProjectsReports.module.scss";
 
 const ProjectsReports = () => {
-	const Context = useOutletContext<ContextType>();
+	const {
+		setCurrProject,
+		setTitle,
+		projects,
+		tasks,
+		users,
+		currProject,
+		setMonth,
+		month,
+		year,
+		setYear,
+	} = useOutletContext<ContextType>();
+
 	const methods = useForm<{
 		project: string;
 		title: string;
@@ -19,16 +33,36 @@ const ProjectsReports = () => {
 	const { handleSubmit, register } = methods;
 
 	const handleChange = handleSubmit((data) => {
-		Context?.setCurrProject(data.project);
-		Context?.setTitle(data.title);
+		setCurrProject(data.project);
+		setTitle(data.title);
 	});
-
+	const currMonth = month && month - 1;
 	useEffect(() => {
 		return () => {
-			Context?.setCurrProject("");
-			Context.setTitle("");
+			setCurrProject("");
+			setTitle("");
 		};
-	}, [Context.setCurrProject, Context.setTitle]);
+	}, [setCurrProject, setTitle]);
+
+	const handlePrev = () => {
+		if (month === 1) {
+			setMonth(12);
+			setYear((prev) => prev - 1);
+			return;
+		}
+
+		setMonth((prev) => prev - 1);
+	};
+
+	const handleNext = () => {
+		if (month === 12) {
+			setMonth(1);
+			setYear((prev) => prev + 1);
+			return;
+		}
+
+		setMonth((prev) => prev + 1);
+	};
 
 	return (
 		<>
@@ -41,7 +75,7 @@ const ProjectsReports = () => {
 									Сортировать:
 									<AsyncSelect
 										name={"project"}
-										options={Context?.projects ?? []}
+										options={projects ?? []}
 										placeholder="Выберите проект"
 									/>
 								</div>
@@ -58,7 +92,50 @@ const ProjectsReports = () => {
 									/>
 								</div>
 							</div>
-							<div>Статистика по проекту</div>
+							<div
+								style={{
+									display: "flex",
+									alignItems: "center",
+								}}
+							>
+								<div>Статистика по проекту</div>{" "}
+								<div
+									style={{
+										background: "#ccc",
+										padding: "10px",
+										borderRadius: "10px",
+										minWidth: "100px",
+										textAlign: "center",
+										placeContent: "center",
+									}}
+								>
+									{months[currMonth ?? dayjs().month()]} {year}
+								</div>
+								<button
+									onClick={(e) => {
+										e.preventDefault();
+										handlePrev();
+									}}
+									style={{
+										background: "transparent",
+										color: "#ccc",
+									}}
+								>
+									пред. месяц
+								</button>
+								<button
+									onClick={(e) => {
+										e.preventDefault();
+										handleNext();
+									}}
+									style={{
+										background: "transparent",
+										color: "#ccc",
+									}}
+								>
+									след. месяц
+								</button>
+							</div>
 						</div>
 					</form>
 				</FormProvider>
@@ -69,9 +146,9 @@ const ProjectsReports = () => {
 						<div>Задачи:</div>
 						<div>Исполнитель:</div>
 					</div>
-					{Context?.tasks.length === 0 && <div>Нет задач</div>}
+					{tasks.length === 0 && <div>Нет задач</div>}
 
-					{Context?.tasks.map((task) => (
+					{tasks.map((task) => (
 						<div key={task.id} className={styles.taskItem}>
 							<div>
 								<div className={styles.taskTitle}> {task.title}</div>
@@ -79,7 +156,7 @@ const ProjectsReports = () => {
 							<div>
 								<div>
 									{
-										Context.users.filter(
+										users.filter(
 											(user) => user.id === String(task.assignedById),
 										)[0]?.title
 									}
@@ -89,7 +166,7 @@ const ProjectsReports = () => {
 					))}
 				</div>
 				<div className={styles.statisticsContainer}>
-					{Context?.tasks.length !== 0 && Context.currProject !== "" ? (
+					{tasks.length !== 0 && currProject !== "" ? (
 						<div>
 							<Statistics />
 						</div>
