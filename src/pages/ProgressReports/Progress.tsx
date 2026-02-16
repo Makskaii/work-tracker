@@ -148,7 +148,8 @@ const Progress = () => {
 
 									if (weekTasksInProject.length > 0) {
 										const totalHours = weekTasksInProject.reduce(
-											(acc, task) => acc + Number(task[UserCodes.estimateTime]),
+											(acc, task) =>
+												acc + convertNumberFormat(task[UserCodes.estimateTime]),
 											0,
 										);
 										return (
@@ -263,7 +264,8 @@ const Progress = () => {
 								{tasks
 									?.filter((task) => task.stageId === "DT1072_18:UC_6JNSDG")
 									.reduce(
-										(acc, task) => acc + Number(task[UserCodes.estimateTime]),
+										(acc, task) =>
+											acc + convertNumberFormat(task[UserCodes.estimateTime]),
 										0,
 									)}{" "}
 								ч.
