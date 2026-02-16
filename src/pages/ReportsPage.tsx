@@ -1,32 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import {
+	type Dispatch,
+	type SetStateAction,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "../components/calendar/constants/const";
 import { CheckPermission } from "../components/protectedRoute/CheckPermission";
 import { $api } from "../shared/config";
-import { Endpoints } from "../shared/constants/const";
-import type { AnyObject } from "../shared/types/types";
-
-// const statuses =
-// 	2: "ждет выполнения",
-// 	3: "выполняется",
-// 	4: "ожидает контроля",
-// 	5: "завершена",
-// 	6: "отложена",
-// };
-
-interface TaskProps {
-	id: string;
-	title: string;
-	createdBy: string;
-	assignedById: number;
-	createdTime: string;
-	lastActivityTime: string;
-	stageId: string;
-	[UserCodes.project]: number;
-	[UserCodes.estimateTime]: string;
-	[UserCodes.description]: string;
-	[UserCodes.stage]: string;
-}
+import { Endpoints, TASK_SELECT_FIELDS } from "../shared/constants/const";
+import type { AnyObject, TaskProps } from "../shared/types/types";
+import { getSrartEndMonthDate } from "../shared/utils/utils";
 
 type UserReports = {
 	setUser: (id: string) => void;
@@ -43,9 +29,16 @@ type UserReports = {
 	}[];
 	userIds: string[];
 	currProject?: string;
+	setMonth: Dispatch<SetStateAction<number>>;
+	setYear: Dispatch<SetStateAction<number>>;
+	month?: number;
+	year?: number;
 };
 
 export type ContextType = UserReports;
+
+const currentMonth = dayjs().month() + 1;
+const currentYear = dayjs().year();
 
 const ReportsPage = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -65,8 +58,12 @@ const ReportsPage = () => {
 	const [currProject, setCurrProject] = useState("");
 	const [title, setTitle] = useState("");
 	const [user, setUser] = useState("");
+	const [month, setMonth] = useState<number>(currentMonth);
+	const [year, setYear] = useState<number>(currentYear);
 
 	const userIds = useMemo(() => {
+		if (!users) return [];
+
 		return users.map((user) => {
 			return user.id;
 		});
@@ -103,21 +100,11 @@ const ReportsPage = () => {
 					params: {
 						entityTypeId: 1072,
 
-						select: [
-							"id",
-							"title",
-							"createdBy",
-							"assignedById",
-							"createdTime",
-							"lastActivityTime",
-							"stageId",
-							UserCodes.project,
-							UserCodes.estimateTime,
-							UserCodes.description,
-							UserCodes.stage,
-						],
+						select: TASK_SELECT_FIELDS,
 						filter: {
 							[UserCodes.project]: currProject,
+							">=createdTime": getSrartEndMonthDate("start", month, year),
+							"<=createdTime": getSrartEndMonthDate("end", month, year),
 						},
 					},
 				});
@@ -129,7 +116,7 @@ const ReportsPage = () => {
 		};
 
 		getTasks();
-	}, [currProject]);
+	}, [currProject, month, year]);
 
 	useEffect(() => {
 		const getProjects = async () => {
@@ -151,7 +138,6 @@ const ReportsPage = () => {
 		<CheckPermission permission="read">
 			<div
 				style={{
-					width: "100%",
 					display: "flex",
 					gap: "2rem",
 					flexDirection: "column",
@@ -207,6 +193,10 @@ const ReportsPage = () => {
 							users,
 							userIds,
 							currProject,
+							setMonth,
+							month,
+							setYear,
+							year,
 						} satisfies ContextType
 					}
 				/>

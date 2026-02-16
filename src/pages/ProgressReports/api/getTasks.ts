@@ -1,6 +1,5 @@
 import { $api } from "../../../shared/config";
-import { Endpoints } from "../../../shared/constants/const";
-import { TASK_SELECT_FIELDS } from "../constants/taskApiFields";
+import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
 import type { KanbanTask } from "../types";
 
 export const getTasks = async (userId: string): Promise<KanbanTask[]> => {

@@ -75,3 +75,16 @@ export const getItemValueByKey = (
 	}
 	return "";
 };
+
+export const getSrartEndMonthDate = (
+	type: "start" | "end",
+	month: number,
+	year: number,
+) => {
+	switch (type) {
+		case "start":
+			return dayjs(`${year}.${month}.01`).startOf("month").format();
+		case "end":
+			return dayjs(`${year}.${month}.01`).endOf("month").format();
+	}
+};
