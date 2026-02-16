@@ -1,86 +1,33 @@
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
+
 import {
 	months,
 	dtoFieldsCodesUserReports as UserCodes,
-} from "../components/calendar/constants/const";
-import { AsyncSelect } from "../components/form/SelectField";
-import { StatucBadge } from "../components/statusBadge/StatucBadge";
-import { $api } from "../shared/config";
-import { Endpoints } from "../shared/constants/const";
-import { getWorkWeeks } from "../shared/utils";
-import type { ContextType } from "./ReportsPage";
+} from "../../components/calendar/constants/const";
+import { AsyncSelect } from "../../components/form/SelectField";
+import { StatucBadge } from "../../components/statusBadge/StatucBadge";
+import { convertNumberFormat } from "../../shared/utils";
+import type { ContextType } from "../ReportsPage";
+import { getTasks } from "./api/getTasks";
+import { getTasksByWeek } from "./api/getTasksByWeek";
+import { groupTasksByProject, groupTasksByWeek } from "./helpers/groupTasks";
+import {
+	type TasksWithProject,
+	type TGroupedTasks,
+	type WeeklyTasks,
+} from "./types";
 
 const monthCapacity = 160;
 
-interface KanbanTask {
-	assignedById: number;
-	createdTime: string;
-	id: number;
-	lastActivityTime: string;
-	stageId: string;
-	title: string;
-	[UserCodes.description]: string;
-	[UserCodes.estimateTime]: string;
-	[UserCodes.project]: number;
-	[UserCodes.stage]: string;
-}
-
-const getTasksByWeek = async (userId: string) => {
-	const currMonthWeeks = getWorkWeeks(
-		new Date().getMonth(),
-		new Date().getFullYear(),
-	);
-
-	const result = await Promise.all(
-		currMonthWeeks.map((week) =>
-			$api.get(Endpoints.reports, {
-				params: {
-					entityTypeId: 1072,
-					select: [
-						"id",
-						"title",
-						"assignedById",
-						"createdTime",
-						"lastActivityTime",
-						"stageId",
-						UserCodes.project,
-						UserCodes.estimateTime,
-						UserCodes.description,
-						UserCodes.stage,
-					],
-					filter: {
-						assignedById: userId,
-						stageId: "DT1072_18:UC_6JNSDG",
-						"<=lastActivityTime": dayjs(week.endOfTheWeek).toISOString(),
-						">=lastActivityTime": dayjs(week.startOfTheWeek).toISOString(),
-					},
-				},
-			}),
-		),
-	);
-	return result;
-};
-
 const Progress = () => {
-	const [data, setData] = useState<KanbanTask[]>([]);
-	const [weeks, setWeekTasks] = useState<
-		{ week: number; title: string; tasks?: KanbanTask[] }[]
-	>([]);
-	const [tasksToShow, setTasksToShow] = useState<{
-		tasks: KanbanTask[];
-		projId: string;
-	}>();
+	const [groupedTasks, setGroupedTasks] = useState<TGroupedTasks>({});
+	const [weeks, setWeekTasks] = useState<WeeklyTasks[]>([]);
+	const [tasksToShow, setTasksToShow] = useState<TasksWithProject>();
+	const { users, projects } = useOutletContext<ContextType>();
 
-	const [projects, setProjects] = useState<
-		{
-			ID: string;
-			VALUE: string;
-		}[]
-	>([]);
-	const { users } = useOutletContext<ContextType>();
 	const methods = useForm<{
 		userId: string;
 	}>({
@@ -89,68 +36,14 @@ const Progress = () => {
 	});
 	const { handleSubmit } = methods;
 
-	useEffect(() => {
-		const getProjects = async () => {
-			try {
-				const response = await $api.post("crm.item.fields", {
-					entityTypeId: 1072,
-				});
-
-				setProjects(response.data.result.fields["ufCrm14_1770801014487"].items);
-			} catch {
-				console.log("Ошибка при получении списка задач");
-			}
-		};
-
-		getProjects();
-	}, []);
-
-	const groupedByProjectsTasks = Object.groupBy(data, (task) => {
-		return task[UserCodes.project] ?? "unknown";
-	});
-
-	console.log(groupedByProjectsTasks);
-
 	const handleChange = handleSubmit(async (data) => {
 		try {
 			const res = await getTasksByWeek(data.userId);
-			const response = await $api.get(Endpoints.reports, {
-				params: {
-					entityTypeId: 1072,
+			const tasks = await getTasks(data.userId);
 
-					select: [
-						"id",
-						"title",
-						"assignedById",
-						"createdTime",
-						"lastActivityTime",
-						"stageId",
-						UserCodes.project,
-						UserCodes.estimateTime,
-						UserCodes.description,
-						UserCodes.stage,
-					],
-					filter: {
-						assignedById: data.userId,
-					},
-				},
-			});
+			setGroupedTasks(groupTasksByProject(tasks));
 
-			setData(response.data.result.items);
-
-			const grouped = res.map((res, i) => {
-				if (res.data.result.items.length === 0)
-					return {
-						week: i + 1,
-						title: "Нет задач",
-					};
-
-				return {
-					week: i + 1,
-					title: `${res.data.result.items.length} задач`,
-					tasks: res.data.result.items,
-				};
-			});
+			const grouped = groupTasksByWeek(res);
 
 			setWeekTasks(grouped);
 		} catch {
@@ -192,22 +85,7 @@ const Progress = () => {
 					gap: "1rem",
 				}}
 			>
-				{/* {weeks.map((week) => (
-					<>
-						<div>Итоги недели: {week.week}</div>
-						<div>Задач: {week.tasks.length ?? 0}</div>
-						{week.tasks && (
-							<div>
-								Часов:{" "}
-								{week.tasks?.reduce(
-									(acc, task) => acc + +task[UserCodes.estimateTime],
-									0,
-								)}
-							</div>
-						)}
-					</>
-				))} */}
-				{Object.entries(groupedByProjectsTasks).map(([projectId, tasks]) => (
+				{Object.entries(groupedTasks).map(([projectId, tasks]) => (
 					<div
 						style={{
 							textAlign: "left",
@@ -240,9 +118,13 @@ const Progress = () => {
 							>
 								<div>
 									Запланировано:{" "}
-									{tasks?.reduce(
-										(acc, task) => acc + +task[UserCodes.estimateTime],
-										0,
+									{Number(
+										tasks?.reduce(
+											(acc, task) =>
+												acc +
+												+convertNumberFormat(task[UserCodes.estimateTime]),
+											0,
+										),
 									)}
 									ч. из {monthCapacity}ч. за {months[dayjs().month()]}
 								</div>

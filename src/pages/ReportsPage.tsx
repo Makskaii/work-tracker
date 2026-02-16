@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
+import { dtoFieldsCodesUserReports as UserCodes } from "../components/calendar/constants/const";
 import { CheckPermission } from "../components/protectedRoute/CheckPermission";
 import { $api } from "../shared/config";
 import { Endpoints } from "../shared/constants/const";
@@ -13,21 +14,24 @@ import type { AnyObject } from "../shared/types/types";
 // 	6: "отложена",
 // };
 
+interface TaskProps {
+	id: string;
+	title: string;
+	createdBy: string;
+	assignedById: number;
+	createdTime: string;
+	lastActivityTime: string;
+	stageId: string;
+	[UserCodes.project]: number;
+	[UserCodes.estimateTime]: string;
+	[UserCodes.description]: string;
+	[UserCodes.stage]: string;
+}
+
 type UserReports = {
 	setUser: (id: string) => void;
-	tasks: {
-		id: string;
-		title: string;
-		value: string;
-		responsible?: string;
-		status?: string;
-		timeEstimate?: string;
-		timeSpentInLogs?: string;
-		groupId?: string;
-		deadline?: string;
-		endDate?: string;
-	}[];
-	projects: { id: string; title: string; value: string }[];
+	tasks: TaskProps[];
+	projects: { ID: string; VALUE: string }[];
 	setCurrProject: (id: string) => void;
 	setTitle: (id: string) => void;
 	title: string;
@@ -44,23 +48,11 @@ type UserReports = {
 export type ContextType = UserReports;
 
 const ReportsPage = () => {
-	const [tasks, setTasks] = useState<
-		{
-			id: string;
-			title: string;
-			value: string;
-			responsible?: string;
-			status?: string;
-			timeEstimate?: string;
-			timeSpentInLogs?: string;
-			deadline?: string;
-		}[]
-	>([]);
+	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [projects, setProjects] = useState<
 		{
-			id: string;
-			title: string;
-			value: string;
+			ID: string;
+			VALUE: string;
 		}[]
 	>([]);
 	const [users, setUsers] = useState<
@@ -107,56 +99,46 @@ const ReportsPage = () => {
 	useEffect(() => {
 		const getTasks = async () => {
 			try {
-				const response = await $api.get(Endpoints.tasks, {
+				const response = await $api.get(Endpoints.reports, {
 					params: {
+						entityTypeId: 1072,
+
+						select: [
+							"id",
+							"title",
+							"createdBy",
+							"assignedById",
+							"createdTime",
+							"lastActivityTime",
+							"stageId",
+							UserCodes.project,
+							UserCodes.estimateTime,
+							UserCodes.description,
+							UserCodes.stage,
+						],
 						filter: {
-							GROUP_ID: currProject,
-							TITLE: title,
-							RESPONSIBLE_ID: user,
+							[UserCodes.project]: currProject,
 						},
 					},
 				});
 
-				setTasks(
-					response.data.result.tasks
-						.map((task: AnyObject) => {
-							if (userIds.includes(task.responsible.id)) {
-								return {
-									id: task?.id,
-									title: task?.title,
-									value: task?.title,
-									responsible: task?.responsible.name,
-									status: task?.status,
-									timeEstimate: task?.timeEstimate,
-									timeSpentInLogs: task?.timeSpentInLogs,
-									groupId: task?.groupId,
-									deadline: task?.deadline,
-									endDate: task?.endDatePlan,
-								};
-							}
-						})
-						.filter(Boolean),
-				);
+				setTasks(response.data.result.items);
 			} catch {
-				console.log("Ошибка при получении списка задач");
+				console.log("Ошибка при получении списка сотрудников");
 			}
 		};
 
 		getTasks();
-	}, [currProject, title, user, userIds]);
+	}, [currProject]);
 
 	useEffect(() => {
 		const getProjects = async () => {
 			try {
-				const response = await $api.get(Endpoints.groups);
+				const response = await $api.post("crm.item.fields", {
+					entityTypeId: 1072,
+				});
 
-				setProjects(
-					response.data.result.map((group: AnyObject) => ({
-						id: group.ID,
-						title: group.NAME,
-						value: group.NAME,
-					})),
-				);
+				setProjects(response.data.result.fields["ufCrm14_1770801014487"].items);
 			} catch {
 				console.log("Ошибка при получении списка задач");
 			}

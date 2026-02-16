@@ -5,7 +5,13 @@ export const AsyncSelect = ({
 	name,
 	placeholder,
 }: {
-	options: { id: string; title: string; value: string }[];
+	options: {
+		ID?: string;
+		VALUE?: string;
+		id?: string;
+		value?: string;
+		title?: string;
+	}[];
 	name: string;
 	placeholder?: string;
 }) => {
@@ -28,8 +34,8 @@ export const AsyncSelect = ({
 				{placeholder}
 			</option>
 			{options?.map((item) => (
-				<option value={item.id} key={item.id}>
-					{item.title}
+				<option value={item.ID ?? item.id} key={item.ID ?? item.id}>
+					{item.VALUE ?? item.title}
 				</option>
 			))}
 		</select>

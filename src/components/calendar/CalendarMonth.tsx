@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <explanation> */
+/** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
 import { classNames } from "../../shared/utils/utils";
 import { Modal } from "../modal";
