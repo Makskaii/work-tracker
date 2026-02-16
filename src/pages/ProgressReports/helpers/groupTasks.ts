@@ -1,0 +1,27 @@
+import { dtoFieldsCodesUserReports as UserCodes } from "../../../components/calendar/constants/const";
+import type { AnyObject } from "../../../shared/types/types";
+import type { KanbanTask } from "../types";
+
+export const groupTasksByWeek = (res: AnyObject[]) => {
+	const result = res.map((item, i) => {
+		if (item.data.result.items.length === 0)
+			return {
+				week: i + 1,
+				title: "Нет задач",
+			};
+
+		return {
+			week: i + 1,
+			title: `${item.data.result.items.length} задач`,
+			tasks: item.data.result.items,
+		};
+	});
+
+	return result;
+};
+
+export const groupTasksByProject = (tasks: KanbanTask[]) => {
+	return Object.groupBy(tasks, (task) => {
+		return task[UserCodes.project] ?? "unknown";
+	});
+};

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import uuid4 from "uuid4";
-import { ActivityItem } from "../components/activityItem/ActivityItem";
-import { $api } from "../shared/config";
-
-import { Endpoints } from "../shared/constants/const";
-import type { AnyObject } from "../shared/types/types";
+import { ActivityItem } from "../../components/activityItem/ActivityItem";
+import { $api } from "../../shared/config";
+import { Endpoints } from "../../shared/constants/const";
+import type { AnyObject } from "../../shared/types/types";
 
 export const ActivityPage = () => {
 	const [tasks, setTasks] = useState([]);

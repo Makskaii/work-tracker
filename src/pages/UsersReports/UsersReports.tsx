@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
-import { Calendar } from "../components/calendar/Calendar";
-import { AsyncSelect } from "../components/form/SelectField";
-import type { ContextType } from "./ReportsPage";
+import { Calendar } from "../../components/calendar/Calendar";
+import { AsyncSelect } from "../../components/form/SelectField";
+import type { ContextType } from "../ReportsPage";
+import { dataArray } from "./constants/titleMap";
+
+type ViewCalendar = "month" | "week";
 
 const UsersReports = () => {
 	const Context = useOutletContext<ContextType>();
-	const [view, setView] = useState<"month" | "week">("month");
+	const [view, setView] = useState<ViewCalendar>("month");
 
 	const methods = useForm<{
 		userId: string;
@@ -31,21 +34,6 @@ const UsersReports = () => {
 			Context?.setUser("");
 		};
 	}, [Context?.setUser]);
-
-	const dataArray = [
-		{
-			title: "Всего задач на сотруднике",
-			value: Context.tasks.length,
-		},
-		{
-			title: "В работе",
-			value: tasksInProgress.length,
-		},
-		{
-			title: "Задач без оценки времени",
-			value: taskWithNoEstimeTime.length,
-		},
-	];
 
 	return (
 		<div
@@ -85,7 +73,11 @@ const UsersReports = () => {
 								padding: "0 1rem",
 							}}
 						>
-							{dataArray.map((item) => (
+							{dataArray(
+								Context.tasks.length,
+								tasksInProgress.length,
+								taskWithNoEstimeTime.length,
+							).map((item) => (
 								<li
 									style={{
 										display: "flex",

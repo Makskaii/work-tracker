@@ -9,7 +9,6 @@ import {
 	ReportsPage,
 	UsersReports,
 } from "../../../pages";
-import { ActivityPage } from "../../../pages/ActivityPage";
 
 export const router = createBrowserRouter(
 	[
@@ -40,7 +39,6 @@ export const router = createBrowserRouter(
 						},
 					],
 				},
-				{ path: "/activity", element: <ActivityPage /> },
 			],
 		},
 	],
