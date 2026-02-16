@@ -102,7 +102,7 @@ const ReportsPage = () => {
 
 						select: TASK_SELECT_FIELDS,
 						filter: {
-							[UserCodes.project]: currProject,
+							[UserCodes.project]: currProject === "" ? null : currProject,
 							">=createdTime": getSrartEndMonthDate("start", month, year),
 							"<=createdTime": getSrartEndMonthDate("end", month, year),
 						},
@@ -121,7 +121,7 @@ const ReportsPage = () => {
 	useEffect(() => {
 		const getProjects = async () => {
 			try {
-				const response = await $api.post("crm.item.fields", {
+				const response = await $api.post(Endpoints.crmFeilds, {
 					entityTypeId: 1072,
 				});
 

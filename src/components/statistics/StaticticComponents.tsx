@@ -86,14 +86,16 @@ export const Statistics = () => {
 				</span>
 				<span>
 					Выполнение плана:{" "}
-					{(tasks.filter(
-						(task) =>
-							task.stageId === "DT1072_18:UC_6JNSDG" && [
-								UserCodes.stage === "Общая/In Work",
-							],
-					).length /
-						tasks.length) *
-						100}{" "}
+					{Math.floor(
+						(tasks.filter(
+							(task) =>
+								task.stageId === "DT1072_18:UC_6JNSDG" && [
+									UserCodes.stage === "Общая/In Work",
+								],
+						).length /
+							tasks.length) *
+							100,
+					)}
 					%
 				</span>
 

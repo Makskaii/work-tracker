@@ -171,7 +171,9 @@ const ProjectsReports = () => {
 							<Statistics />
 						</div>
 					) : (
-						<div className={styles.noTasksMessage}>Выберите проект</div>
+						<div className={styles.noTasksMessage}>
+							{currProject ? "Нет данных за этот месяц" : "Выберите проект"}
+						</div>
 					)}
 				</div>
 			</div>
