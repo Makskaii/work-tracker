@@ -50,7 +50,7 @@ const Progress = () => {
 			console.log("Ошибка при получении списка сотрудников");
 		}
 	});
-
+	console.log(weeks);
 	return (
 		<div
 			style={{

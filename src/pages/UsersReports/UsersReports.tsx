@@ -4,7 +4,6 @@ import { useOutletContext } from "react-router";
 import { Calendar } from "../../components/calendar/Calendar";
 import { AsyncSelect } from "../../components/form/SelectField";
 import type { ContextType } from "../ReportsPage";
-import { dataArray } from "./constants/titleMap";
 
 type ViewCalendar = "month" | "week";
 
@@ -25,10 +24,6 @@ const UsersReports = () => {
 		Context?.setUser(data.userId);
 	});
 
-	const tasksInProgress = Context?.tasks.filter((task) => task.status === "3");
-	const taskWithNoEstimeTime = Context?.tasks.filter(
-		(task) => task.timeEstimate === "0",
-	);
 	useEffect(() => {
 		return () => {
 			Context?.setUser("");
@@ -57,43 +52,6 @@ const UsersReports = () => {
 						/>
 					</form>
 				</FormProvider>
-				{Context?.user ? (
-					<div>
-						<div
-							style={{
-								display: "flex",
-								borderBottom: "1px solid #ccc",
-								padding: "0 1rem",
-							}}
-						>
-							<h3>Задачи</h3>
-						</div>
-						<ul
-							style={{
-								padding: "0 1rem",
-							}}
-						>
-							{dataArray(
-								Context.tasks.length,
-								tasksInProgress.length,
-								taskWithNoEstimeTime.length,
-							).map((item) => (
-								<li
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-									}}
-									key={item.title}
-								>
-									<div>{item.title}</div>
-									<div>{item.value}</div>
-								</li>
-							))}
-						</ul>
-					</div>
-				) : (
-					"Выберите сотрудника, чтобы просмотреть его активность по дням"
-				)}
 			</div>
 			<div
 				style={{

@@ -17,3 +17,11 @@ export interface TaskProps {
 	[UserCodes.description]: string;
 	[UserCodes.stage]: string;
 }
+
+export interface User {
+	id: string;
+	value: string;
+	title: string;
+	position: string;
+	photo: string;
+}

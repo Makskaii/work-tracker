@@ -14,6 +14,7 @@ export const Endpoints = {
 	users: "user.get",
 	reports: "crm.item.list",
 	crmFeilds: "crm.item.fields",
+	status: "crm.status.list",
 };
 
 export const TASK_SELECT_FIELDS = [
@@ -28,4 +29,7 @@ export const TASK_SELECT_FIELDS = [
 	UserCodes.estimateTime,
 	UserCodes.description,
 	UserCodes.stage,
+	UserCodes.comment,
+	UserCodes.reportDate,
+	UserCodes.timeSpent,
 ] as const;

@@ -26,6 +26,8 @@ type UserReports = {
 		id: string;
 		value: string;
 		title: string;
+		position: string;
+		photo: string;
 	}[];
 	userIds: string[];
 	currProject?: string;
@@ -34,6 +36,19 @@ type UserReports = {
 	month?: number;
 	year?: number;
 };
+
+interface Status {
+	ID: string;
+	ENTITY_ID: string;
+	STATUS_ID: string;
+	NAME: string;
+	NAME_INIT: string;
+	SORT: string;
+	SYSTEM: string;
+	COLOR: string;
+	SEMANTICS: string;
+	CATEGORY_ID: string;
+}
 
 export type ContextType = UserReports;
 
@@ -53,6 +68,8 @@ const ReportsPage = () => {
 			id: string;
 			value: string;
 			title: string;
+			position: string;
+			photo: string;
 		}[]
 	>([]);
 	const [currProject, setCurrProject] = useState("");
@@ -60,7 +77,8 @@ const ReportsPage = () => {
 	const [user, setUser] = useState("");
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
-
+	const [statuses, setStatuses] = useState<Status[]>([]);
+	console.log(statuses);
 	const userIds = useMemo(() => {
 		if (!users) return [];
 
@@ -83,6 +101,8 @@ const ReportsPage = () => {
 						id: task.ID,
 						value: task.NAME + task.LAST_NAME,
 						title: task.NAME + " " + task.LAST_NAME,
+						position: task.WORK_POSITION,
+						photo: task.PERSONAL_PHOTO,
 					})),
 				);
 			} catch {
@@ -117,6 +137,24 @@ const ReportsPage = () => {
 
 		getTasks();
 	}, [currProject, month, year]);
+
+	useEffect(() => {
+		const getStatuses = async () => {
+			try {
+				const response = await $api.post(Endpoints.status, {
+					filter: {
+						ENTITY_ID: "DYNAMIC_1072_STAGE_18",
+					},
+				});
+
+				setStatuses(response.data.result);
+			} catch {
+				console.log("Ошибка при получении списка задач");
+			}
+		};
+
+		getStatuses();
+	}, []);
 
 	useEffect(() => {
 		const getProjects = async () => {
@@ -178,6 +216,16 @@ const ReportsPage = () => {
 						end
 					>
 						<div>Занятость</div>
+					</NavLink>
+					/
+					<NavLink
+						className={({ isActive, isPending }) =>
+							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+						}
+						to="new-reports"
+						end
+					>
+						<div>Новые отчеты</div>
 					</NavLink>
 				</div>
 				<Outlet

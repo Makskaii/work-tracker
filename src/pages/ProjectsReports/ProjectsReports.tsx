@@ -99,16 +99,7 @@ const ProjectsReports = () => {
 								}}
 							>
 								<div>Статистика по проекту</div>{" "}
-								<div
-									style={{
-										background: "#ccc",
-										padding: "10px",
-										borderRadius: "10px",
-										minWidth: "100px",
-										textAlign: "center",
-										placeContent: "center",
-									}}
-								>
+								<div className={styles.monthText}>
 									{months[currMonth ?? dayjs().month()]} {year}
 								</div>
 								<button

@@ -7,6 +7,8 @@ export const convertNumberFormat = (value: string | number): number => {
 
 	const number = Number(normalizedValue);
 
+	if (value === "-") return 0;
+
 	if (isNaN(number)) {
 		throw new Error(`Invalid number format: ${value}`);
 	}
