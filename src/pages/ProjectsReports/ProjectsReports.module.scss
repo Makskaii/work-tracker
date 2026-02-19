@@ -61,6 +61,15 @@
   padding: 0 1rem;
 }
 
+.monthText {
+  background: #ccc;
+  padding: 10px;
+  border-radius: 10px;
+  min-width: 100px;
+  text-align: center;
+  place-content: center;
+}
+
 .taskItem {
   display: flex;
   justify-content: space-between;

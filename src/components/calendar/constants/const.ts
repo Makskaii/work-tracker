@@ -61,6 +61,9 @@ export const dtoFieldsCodesUserReports = {
 	stage: "ufCrm14_1770890673468",
 	estimateTime: "ufCrm14_1770731674952",
 	project: "ufCrm14_1770801014487",
+	reportDate: "ufCrm14_1771314375250",
+	timeSpent: "ufCrm14_1771314387497",
+	comment: "ufCrm14_1771314401297",
 };
 
 export enum ActivityType {

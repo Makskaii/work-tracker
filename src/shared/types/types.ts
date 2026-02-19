@@ -16,4 +16,13 @@ export interface TaskProps {
 	[UserCodes.estimateTime]: string;
 	[UserCodes.description]: string;
 	[UserCodes.stage]: string;
+	[UserCodes.timeSpent]: string;
+}
+
+export interface User {
+	id: string;
+	value: string;
+	title: string;
+	position: string;
+	photo: string;
 }

@@ -1,5 +1,6 @@
 import { useOutletContext } from "react-router";
 import type { ContextType } from "../../pages/ReportsPage";
+import { convertNumberFormat } from "../../shared/utils";
 import { dtoFieldsCodesUserReports as UserCodes } from "../calendar/constants/const";
 
 export const Statistics = () => {
@@ -47,7 +48,6 @@ export const Statistics = () => {
 					<span>Разработчики:</span>
 
 					<div>
-						{" "}
 						{developers.map((item) => (
 							<div>
 								{users.filter((user) => user.id === String(item))[0]?.title}
@@ -68,11 +68,11 @@ export const Statistics = () => {
 					}
 				</span>
 
-				<span>Доступная емкость команды: {developers.length * 160} ч.</span>
+				<span>Доступная емкость команды: {users.length * 160} ч.</span>
 				<span>
-					Загрузка месяца по емкости команды:
+					Загрузка месяца по емкости команды:{" "}
 					{tasks.reduce((acc, task) => {
-						return acc + Number(task[UserCodes.estimateTime]);
+						return acc + convertNumberFormat(task[UserCodes.estimateTime]);
 					}, 0)}{" "}
 					ч.
 				</span>
@@ -81,19 +81,21 @@ export const Statistics = () => {
 					Незапланированное время:{" "}
 					{developers.length * 160 -
 						tasks.reduce((acc, task) => {
-							return acc + Number(task[UserCodes.estimateTime]);
+							return acc + convertNumberFormat(task[UserCodes.estimateTime]);
 						}, 0)}
 				</span>
 				<span>
 					Выполнение плана:{" "}
-					{(tasks.filter(
-						(task) =>
-							task.stageId === "DT1072_18:UC_6JNSDG" && [
-								UserCodes.stage === "Общая/In Work",
-							],
-					).length /
-						tasks.length) *
-						100}{" "}
+					{Math.floor(
+						(tasks.filter(
+							(task) =>
+								task.stageId === "DT1072_18:UC_6JNSDG" && [
+									UserCodes.stage === "Общая/In Work",
+								],
+						).length /
+							tasks.length) *
+							100,
+					)}
 					%
 				</span>
 

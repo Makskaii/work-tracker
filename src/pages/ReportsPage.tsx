@@ -26,6 +26,8 @@ type UserReports = {
 		id: string;
 		value: string;
 		title: string;
+		position: string;
+		photo: string;
 	}[];
 	userIds: string[];
 	currProject?: string;
@@ -34,6 +36,19 @@ type UserReports = {
 	month?: number;
 	year?: number;
 };
+
+interface Status {
+	ID: string;
+	ENTITY_ID: string;
+	STATUS_ID: string;
+	NAME: string;
+	NAME_INIT: string;
+	SORT: string;
+	SYSTEM: string;
+	COLOR: string;
+	SEMANTICS: string;
+	CATEGORY_ID: string;
+}
 
 export type ContextType = UserReports;
 
@@ -53,6 +68,8 @@ const ReportsPage = () => {
 			id: string;
 			value: string;
 			title: string;
+			position: string;
+			photo: string;
 		}[]
 	>([]);
 	const [currProject, setCurrProject] = useState("");
@@ -60,6 +77,7 @@ const ReportsPage = () => {
 	const [user, setUser] = useState("");
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
+	const [_statuses, setStatuses] = useState<Status[]>([]);
 
 	const userIds = useMemo(() => {
 		if (!users) return [];
@@ -83,6 +101,8 @@ const ReportsPage = () => {
 						id: task.ID,
 						value: task.NAME + task.LAST_NAME,
 						title: task.NAME + " " + task.LAST_NAME,
+						position: task.WORK_POSITION,
+						photo: task.PERSONAL_PHOTO,
 					})),
 				);
 			} catch {
@@ -102,7 +122,7 @@ const ReportsPage = () => {
 
 						select: TASK_SELECT_FIELDS,
 						filter: {
-							[UserCodes.project]: currProject,
+							[UserCodes.project]: currProject === "" ? null : currProject,
 							">=createdTime": getSrartEndMonthDate("start", month, year),
 							"<=createdTime": getSrartEndMonthDate("end", month, year),
 						},
@@ -119,9 +139,27 @@ const ReportsPage = () => {
 	}, [currProject, month, year]);
 
 	useEffect(() => {
+		const getStatuses = async () => {
+			try {
+				const response = await $api.post(Endpoints.status, {
+					filter: {
+						ENTITY_ID: "DYNAMIC_1072_STAGE_18",
+					},
+				});
+
+				setStatuses(response.data.result);
+			} catch {
+				console.log("Ошибка при получении списка задач");
+			}
+		};
+
+		getStatuses();
+	}, []);
+
+	useEffect(() => {
 		const getProjects = async () => {
 			try {
-				const response = await $api.post("crm.item.fields", {
+				const response = await $api.post(Endpoints.crmFeilds, {
 					entityTypeId: 1072,
 				});
 
@@ -178,6 +216,16 @@ const ReportsPage = () => {
 						end
 					>
 						<div>Занятость</div>
+					</NavLink>
+					/
+					<NavLink
+						className={({ isActive, isPending }) =>
+							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+						}
+						to="new-reports"
+						end
+					>
+						<div>Новые отчеты</div>
 					</NavLink>
 				</div>
 				<Outlet

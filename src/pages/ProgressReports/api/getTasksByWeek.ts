@@ -30,8 +30,8 @@ export const getTasksByWeek = async (userId: string) => {
 					filter: {
 						assignedById: userId,
 						stageId: "DT1072_18:UC_6JNSDG",
-						"<=lastActivityTime": dayjs(week.endOfTheWeek).toISOString(),
-						">=lastActivityTime": dayjs(week.startOfTheWeek).toISOString(),
+						"<=createdTime": dayjs(week.endOfTheWeek).toISOString(),
+						">=createdTime": dayjs(week.startOfTheWeek).toISOString(),
 					},
 				},
 			}),

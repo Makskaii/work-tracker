@@ -8,7 +8,7 @@ export const CheckPermission = ({
 	permission: string;
 	children: ReactNode;
 }) => {
-	if (ability.can(permission, "post")) {
+	if (ability && ability.can(permission, "post")) {
 		return children;
 	}
 

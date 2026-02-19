@@ -9,33 +9,54 @@ import {
 	ReportsPage,
 	UsersReports,
 } from "../../../pages";
+import { NewUserReports } from "../../../pages/NewUiVersion/UserReports/UserNewReports";
 
 export const router = createBrowserRouter(
 	[
 		{
 			path: "/",
-			element: (
-				<Suspense fallback={<Spinner />}>
-					<MainLayout />
-				</Suspense>
-			),
+			element: <MainLayout />,
 			children: [
 				{ path: "/data", element: <DataPage /> },
 				{
 					path: "/reports",
-					element: <ReportsPage />,
+					element: (
+						<Suspense fallback={<Spinner />}>
+							<ReportsPage />
+						</Suspense>
+					),
 					children: [
 						{
 							path: "projects",
-							element: <ProjectsReports />,
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<ProjectsReports />
+								</Suspense>
+							),
 						},
 						{
 							path: "employees",
-							element: <UsersReports />,
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<UsersReports />
+								</Suspense>
+							),
 						},
 						{
 							path: "progress",
-							element: <Progress />,
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<Progress />
+								</Suspense>
+							),
+						},
+						{
+							path: "new-reports",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<NewUserReports />
+								</Suspense>
+							),
 						},
 					],
 				},

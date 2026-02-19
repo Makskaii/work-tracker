@@ -13,7 +13,7 @@ export const AsyncSelect = ({
 		title?: string;
 	}[];
 	name: string;
-	placeholder?: string;
+	placeholder: string;
 }) => {
 	const { register } = useFormContext();
 
@@ -30,7 +30,7 @@ export const AsyncSelect = ({
 				maxWidth: "200px",
 			}}
 		>
-			<option selected value={""}>
+			<option value="" disabled>
 				{placeholder}
 			</option>
 			{options?.map((item) => (
