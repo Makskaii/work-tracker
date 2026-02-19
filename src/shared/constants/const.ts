@@ -1,4 +1,8 @@
-import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
+import {
+	dtoFieldsCodesUserReports,
+	dtoFieldsCodesUserReports as UserCodes,
+} from "../../components/calendar/constants/const";
+import type { TaskProps } from "../types/types";
 
 // const statuses =
 // 	2: "ждет выполнения",
@@ -33,3 +37,40 @@ export const TASK_SELECT_FIELDS = [
 	UserCodes.reportDate,
 	UserCodes.timeSpent,
 ] as const;
+
+export const statsFields: {
+	title: string;
+	key: string;
+	filterFn?: (task: TaskProps, length?: number) => void;
+}[] = [
+	{ title: "Всего задач", key: "length" },
+	{
+		title: "Выполнено задач",
+		key: "completed",
+		filterFn: (task: TaskProps) => task.stageId === "DT1072_18:UC_6JNSDG",
+	},
+	{
+		title: "Просрочено задач",
+		key: "expired",
+		filterFn: (task) => {
+			if (
+				task[dtoFieldsCodesUserReports.estimateTime] === "0" ||
+				task[dtoFieldsCodesUserReports.estimateTime] === 0
+			)
+				return;
+
+			const estimate = parseFloat(
+				String(task[dtoFieldsCodesUserReports.estimateTime]) || "0",
+			);
+			const spent = parseFloat(
+				String(task[dtoFieldsCodesUserReports.timeSpent]) || "0",
+			);
+			return spent > estimate;
+		},
+	},
+	{
+		title: "Задач в работе",
+		key: "inWork",
+		filterFn: (task) => task.stageId === "DT1072_18:CLIENT",
+	},
+];

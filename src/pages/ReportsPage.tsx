@@ -77,8 +77,8 @@ const ReportsPage = () => {
 	const [user, setUser] = useState("");
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
-	const [statuses, setStatuses] = useState<Status[]>([]);
-	console.log(statuses);
+	const [_statuses, setStatuses] = useState<Status[]>([]);
+
 	const userIds = useMemo(() => {
 		if (!users) return [];
 

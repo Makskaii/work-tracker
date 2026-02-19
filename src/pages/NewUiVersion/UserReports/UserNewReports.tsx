@@ -1,23 +1,42 @@
 // user list
 // user name,  current task, project, lastActivity
 
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { EmployeeStats } from "../../../components/statistics/EmployeeStats/EmployeeStats";
+import { Modal } from "../../../components/modal";
 import { StatsModal } from "../../../components/statistics/EmployeeStats/StatsModal";
 import { ListItem } from "../../../components/userListItem/UserListItem";
+import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
+import { useLoadAllData } from "../../../shared/hooks/useLoadAllTasks";
 import type { User } from "../../../shared/types/types";
+import { getSrartEndMonthDate } from "../../../shared/utils/utils";
 import type { ContextType } from "../../ReportsPage";
 import cls from "./UserReports.module.scss";
 
 export const NewUserReports = () => {
-	const { users, tasks, projects } = useOutletContext<ContextType>();
+	const { users, projects, month, year } = useOutletContext<ContextType>();
 	const [open, setOpen] = useState(false);
 	const [activeUser, setActiveUser] = useState<User>();
 
+	const currMonth = month ?? dayjs().month();
+	const currYear = year ?? dayjs().year();
+
+	const { data } = useLoadAllData(Endpoints.reports, {
+		params: {
+			entityTypeId: 1072,
+
+			select: TASK_SELECT_FIELDS,
+			filter: {
+				">=createdTime": getSrartEndMonthDate("start", currMonth, currYear),
+				"<=createdTime": getSrartEndMonthDate("end", currMonth, currYear),
+			},
+		},
+	});
+
 	const filteredTasks = useMemo(() => {
-		return tasks.filter((task) => task.stageId === "DT1072_18:CLIENT");
-	}, [tasks]);
+		return data.filter((task) => task.stageId === "DT1072_18:CLIENT");
+	}, [data]);
 
 	return (
 		<div className={cls.container}>
@@ -78,13 +97,9 @@ export const NewUserReports = () => {
 			></div>
 
 			{activeUser && (
-				<StatsModal
-					open={open}
-					onClose={() => setOpen(false)}
-					user={activeUser}
-				>
-					<EmployeeStats />
-				</StatsModal>
+				<Modal isOpen={open} onClose={() => setOpen(false)} size="covered">
+					<StatsModal user={activeUser} />
+				</Modal>
 			)}
 		</div>
 	);

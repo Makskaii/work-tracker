@@ -44,15 +44,22 @@ export const ListItem = memo(function ListIten({
 			<div
 				style={{
 					flex: 1,
+					minWidth: 0,
+
+					height: "100%",
 				}}
 			>
 				{task && (
 					<div
 						style={{
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							whiteSpace: "nowrap",
+							minWidth: "0px",
 							borderRadius: "10px",
 						}}
 					>
-						{task?.title}
+						{task.title}
 					</div>
 				)}
 			</div>

@@ -16,6 +16,9 @@ const UsersReports = () => {
 	}>({
 		mode: "onChange",
 		reValidateMode: "onChange",
+		defaultValues: {
+			userId: Context?.user || "",
+		},
 	});
 
 	const { handleSubmit } = methods;
