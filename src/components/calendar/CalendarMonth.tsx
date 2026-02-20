@@ -17,34 +17,19 @@ const CalendarMonth = ({
 	getCurrentMonthName,
 	handleToday,
 }: {
-	monthDays: (
-		| {
-				id: string;
-				date: null;
-				dayNumber: null;
-				dayName: string;
-				fullDayName: string;
-				isToday: boolean;
-				isWeekend: boolean;
-				isCurrentMonth: boolean;
-				isEmpty: boolean;
-				totalHours?: undefined;
-				reports?: undefined;
-		  }
-		| {
-				id: string;
-				date: Date;
-				dayNumber: number;
-				dayName: string;
-				fullDayName: string;
-				isToday: boolean;
-				isWeekend: boolean;
-				isCurrentMonth: boolean;
-				isEmpty: boolean;
-				totalHours: number | null;
-				reports: ReportProps[];
-		  }
-	)[];
+	monthDays: {
+		id: string;
+		date: Date | null;
+		dayNumber: number | null;
+		dayName: string;
+		fullDayName: string;
+		isToday: boolean;
+		isWeekend: boolean;
+		isCurrentMonth: boolean;
+		isEmpty: boolean;
+		totalHours?: number | null;
+		reports?: ReportProps[];
+	}[];
 	handlePrevMonth: () => void;
 	selectedMonth: number;
 	selectedYear: number;

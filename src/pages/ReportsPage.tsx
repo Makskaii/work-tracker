@@ -128,7 +128,7 @@ const ReportsPage = () => {
 						},
 					},
 				});
-
+				console.log(currProject);
 				setTasks(response.data.result.items);
 			} catch {
 				console.log("Ошибка при получении списка сотрудников");
@@ -157,7 +157,7 @@ const ReportsPage = () => {
 	}, []);
 
 	useEffect(() => {
-		const getProjects = async () => {
+		const getProjectsAsCRMfields = async () => {
 			try {
 				const response = await $api.post(Endpoints.crmFeilds, {
 					entityTypeId: 1072,
@@ -169,7 +169,7 @@ const ReportsPage = () => {
 			}
 		};
 
-		getProjects();
+		getProjectsAsCRMfields();
 	}, []);
 
 	return (

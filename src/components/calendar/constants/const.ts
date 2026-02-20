@@ -50,10 +50,9 @@ export const headers: {
 export const dtoFieldsCodesDailyReports = {
 	title: "ufCrm11_1770627903531",
 	timeSpent: "ufCrm11_1770627880479",
-	taskId: "ufCrm11_1770393502397",
+	taskId: "ufCrm11_1770627808462",
 	day: "begindate",
-	responsible: "ufCrm11_1770627880479",
-	activityType: "ufCrm11_1770804288638",
+	project: "ufCrm11_1770393502397",
 };
 
 export const dtoFieldsCodesUserReports = {
@@ -64,6 +63,7 @@ export const dtoFieldsCodesUserReports = {
 	reportDate: "ufCrm14_1771314375250",
 	timeSpent: "ufCrm14_1771314387497",
 	comment: "ufCrm14_1771314401297",
+	sprintDateStart: "ufCrm14_1771510367281",
 };
 
 export enum ActivityType {

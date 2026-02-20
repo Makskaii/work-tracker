@@ -1,173 +1,87 @@
-import dayjs from "dayjs";
-import { useEffect } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
-import { months } from "../../components/calendar/constants/const";
-import { AsyncSelect } from "../../components/form/SelectField";
-import { Statistics } from "../../components/statistics/StaticticComponents";
+import { Modal } from "../../components/modal";
+import { $api } from "../../shared/config";
+import { Endpoints } from "../../shared/constants/const";
+import { connectProjectIds } from "../../shared/utils/crmFieldsConnect/connectProjectsIds";
 import type { ContextType } from "../ReportsPage";
+import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
 
 const ProjectsReports = () => {
-	const {
-		setCurrProject,
-		setTitle,
-		projects,
-		tasks,
-		users,
-		currProject,
-		setMonth,
-		month,
-		year,
-		setYear,
-	} = useOutletContext<ContextType>();
+	const [open, setOpen] = useState<boolean>(false);
+	const [activeProject, setActiveProject] = useState<{
+		ID: string;
+		VALUE: string;
+	}>();
 
-	const methods = useForm<{
-		project: string;
-		title: string;
-	}>({
-		mode: "onChange",
-		reValidateMode: "onChange",
-	});
+	const { setCurrProject, projects: taskProjects } =
+		useOutletContext<ContextType>();
 
-	const { handleSubmit, register } = methods;
+	const [projects, setProjects] = useState<
+		{
+			ID: string;
+			VALUE: string;
+		}[]
+	>([]);
 
-	const handleChange = handleSubmit((data) => {
-		setCurrProject(data.project);
-		setTitle(data.title);
-	});
-	const currMonth = month && month - 1;
 	useEffect(() => {
-		return () => {
+		if (!open) {
 			setCurrProject("");
-			setTitle("");
+		}
+	}, [open, setCurrProject]);
+
+	useEffect(() => {
+		const getProjectsAsCRMfields = async () => {
+			try {
+				const response = await $api.post(Endpoints.crmFeilds, {
+					entityTypeId: 1060,
+				});
+
+				setProjects(response.data.result.fields["ufCrm11_1770393502397"].items);
+			} catch {
+				console.log("Ошибка при получении списка задач");
+			}
 		};
-	}, [setCurrProject, setTitle]);
 
-	const handlePrev = () => {
-		if (month === 1) {
-			setMonth(12);
-			setYear((prev) => prev - 1);
-			return;
-		}
-
-		setMonth((prev) => prev - 1);
-	};
-
-	const handleNext = () => {
-		if (month === 12) {
-			setMonth(1);
-			setYear((prev) => prev + 1);
-			return;
-		}
-
-		setMonth((prev) => prev + 1);
-	};
+		getProjectsAsCRMfields();
+	}, []);
 
 	return (
 		<>
-			<div className={styles.header}>
-				<FormProvider {...methods}>
-					<form onChange={handleChange}>
-						<div>
-							<div>
-								<div>
-									Сортировать:
-									<AsyncSelect
-										name={"project"}
-										options={projects ?? []}
-										placeholder="Выберите проект"
-									/>
-								</div>
-								<div
-									style={{
-										width: "50%",
-									}}
-								>
-									<input
-										autoComplete="off"
-										type="text"
-										{...register("title")}
-										placeholder="Поиск по названию"
-									/>
-								</div>
-							</div>
-							<div
-								style={{
-									display: "flex",
-									alignItems: "center",
-								}}
-							>
-								<div>Статистика по проекту</div>{" "}
-								<div className={styles.monthText}>
-									{months[currMonth ?? dayjs().month()]} {year}
-								</div>
-								<button
-									onClick={(e) => {
-										e.preventDefault();
-										handlePrev();
-									}}
-									style={{
-										background: "transparent",
-										color: "#ccc",
-									}}
-								>
-									пред. месяц
-								</button>
-								<button
-									onClick={(e) => {
-										e.preventDefault();
-										handleNext();
-									}}
-									style={{
-										background: "transparent",
-										color: "#ccc",
-									}}
-								>
-									след. месяц
-								</button>
-							</div>
-						</div>
-					</form>
-				</FormProvider>
-			</div>
+			<div className={styles.header}>Проекты</div>
 			<div className={styles.contentContainer}>
-				<div className={styles.tasksContainer}>
-					<div className={styles.taskHeader}>
-						<div>Задачи:</div>
-						<div>Исполнитель:</div>
-					</div>
-					{tasks.length === 0 && <div>Нет задач</div>}
-
-					{tasks.map((task) => (
-						<div key={task.id} className={styles.taskItem}>
+				<div className={styles.itemsContainer}>
+					{projects.map((proj) => (
+						<div
+							key={proj.ID}
+							className={styles.projectItem}
+							onClick={() => {
+								setCurrProject(
+									connectProjectIds(taskProjects, proj.VALUE) ?? "",
+								);
+								setActiveProject(proj);
+								setOpen(true);
+							}}
+						>
 							<div>
-								<div className={styles.taskTitle}> {task.title}</div>
-							</div>
-							<div>
-								<div>
-									{
-										users.filter(
-											(user) => user.id === String(task.assignedById),
-										)[0]?.title
-									}
-								</div>
+								<div className={styles.projectTitle}> {proj.VALUE}</div>
 							</div>
 						</div>
 					))}
 				</div>
 				<div className={styles.statisticsContainer}>
-					{tasks.length !== 0 && currProject !== "" ? (
-						<div>
-							<Statistics />
-						</div>
-					) : (
-						<div className={styles.noTasksMessage}>
-							{currProject ? "Нет данных за этот месяц" : "Выберите проект"}
-						</div>
-					)}
+					<div className={styles.noTasksMessage}>
+						Количество проектов: {projects.length}
+					</div>
 				</div>
 			</div>
+
+			{activeProject && (
+				<Modal isOpen={open} onClose={() => setOpen(false)} innerScroll>
+					<ProjectsStats project={activeProject} />
+				</Modal>
+			)}
 		</>
 	);
 };

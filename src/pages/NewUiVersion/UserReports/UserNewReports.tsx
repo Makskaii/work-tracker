@@ -11,6 +11,7 @@ import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
 import { useLoadAllData } from "../../../shared/hooks/useLoadAllTasks";
 import type { User } from "../../../shared/types/types";
 import { getSrartEndMonthDate } from "../../../shared/utils/utils";
+import type { TaskProps } from "../../ProgressReports/types";
 import type { ContextType } from "../../ReportsPage";
 import cls from "./UserReports.module.scss";
 
@@ -22,7 +23,7 @@ export const NewUserReports = () => {
 	const currMonth = month ?? dayjs().month();
 	const currYear = year ?? dayjs().year();
 
-	const { data } = useLoadAllData(Endpoints.reports, {
+	const { data } = useLoadAllData<TaskProps>(Endpoints.reports, {
 		params: {
 			entityTypeId: 1072,
 
@@ -97,7 +98,12 @@ export const NewUserReports = () => {
 			></div>
 
 			{activeUser && (
-				<Modal isOpen={open} onClose={() => setOpen(false)} size="covered">
+				<Modal
+					isOpen={open}
+					onClose={() => setOpen(false)}
+					size="covered"
+					innerScroll
+				>
 					<StatsModal user={activeUser} />
 				</Modal>
 			)}

@@ -79,9 +79,11 @@ export const Statistics = () => {
 
 				<span>
 					Незапланированное время:{" "}
-					{developers.length * 160 -
+					{users.length * 160 -
 						tasks.reduce((acc, task) => {
-							return acc + convertNumberFormat(task[UserCodes.estimateTime]);
+							return (
+								acc + convertNumberFormat(String(task[UserCodes.estimateTime]))
+							);
 						}, 0)}
 				</span>
 				<span>

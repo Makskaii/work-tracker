@@ -1,3 +1,5 @@
+import { dtoFieldsCodesDailyReports } from "../constants/const";
+
 export interface ReportProps {
 	id: string;
 	title: string;
@@ -6,6 +8,11 @@ export interface ReportProps {
 	timeSpent: number;
 	responsible: string;
 	activityType?: number;
+	[dtoFieldsCodesDailyReports.day]: string;
+	[dtoFieldsCodesDailyReports.title]: string;
+	[dtoFieldsCodesDailyReports.timeSpent]: string;
+	[dtoFieldsCodesDailyReports.project]: string;
+	[dtoFieldsCodesDailyReports.taskId]: string;
 }
 
 const getDaysInMonth = (year: number, month: number) => {
@@ -61,6 +68,7 @@ export const generateMonthDays = ({
 	selectedMonth: number;
 	reports: ReportProps[];
 }) => {
+	console.log({ reports });
 	const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
 	const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
 

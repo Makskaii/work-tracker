@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
+import { groupTasksByProject } from "../../../pages/ProgressReports/helpers/groupTasks";
+import type { TGroupedTasks } from "../../../pages/ProgressReports/types";
 import type { ContextType } from "../../../pages/ReportsPage";
 import { $api } from "../../../shared/config";
 import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
@@ -13,8 +15,8 @@ import { TasksList } from "./TasksList";
 export const StatsModal = ({ user }: { user: User }) => {
 	const [date, _setDate] = useState<dayjs.Dayjs | Date>(dayjs());
 	const borders = useMemo(() => getWeekBorders(dayjs(date)), [date]);
-	const { setUser } = useOutletContext<ContextType>();
-
+	const { setUser, projects } = useOutletContext<ContextType>();
+	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 
 	useEffect(() => {
@@ -34,6 +36,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 				});
 
 				setTasks(response.data.result.items);
+				setGrouped(groupTasksByProject(response.data.result.items));
 			} catch {
 				console.log("Ошибка при получении списка сотрудников");
 			}
@@ -85,15 +88,23 @@ export const StatsModal = ({ user }: { user: User }) => {
 					}}
 				>
 					<button
+						style={{
+							background: "white",
+							color: "#aeacac",
+						}}
 						onClick={() => console.log(dayjs(borders.startOfTheWeek).day())}
 					>
-						prev
+						пред. спринт
 					</button>
-					<div>select sprint</div>
+					<div>Текущий спринт</div>
 					<button
+						style={{
+							background: "white",
+							color: "#aeacac",
+						}}
 						onClick={() => console.log(dayjs(borders.endOfTheWeek).format())}
 					>
-						next
+						след. спринт
 					</button>
 				</div>
 			</div>
@@ -106,7 +117,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 				<div
 					style={{
 						flex: 1,
-						padding: "1rem",
+						padding: "0 1rem",
 						height: "calc(100vh * 0.65)",
 						overflowY: "auto",
 					}}
@@ -127,10 +138,52 @@ export const StatsModal = ({ user }: { user: User }) => {
 				<div
 					style={{
 						flex: 1,
-						padding: "1rem",
+						padding: "0 1rem",
 					}}
 				>
 					<EmployeeStats tasks={tasks} />
+					<div>
+						<div
+							style={{
+								display: "flex",
+								justifyContent: "space-between",
+								marginBottom: "1rem",
+							}}
+						>
+							<div> Список проектов:</div>
+							<div> Задач в проекте:</div>
+						</div>
+
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								overflowY: "auto",
+								height: "calc(100vh * 0.4)",
+								background: "#f9fafb",
+								padding: "1rem",
+								gap: "10px",
+								borderRadius: "24px",
+							}}
+						>
+							{Object.entries(grouped).map(([projectId, tasks]) => (
+								<div
+									style={{
+										display: "flex",
+										justifyContent: "space-between",
+									}}
+								>
+									<div>
+										{
+											projects.find((project) => project.ID === projectId)
+												?.VALUE
+										}
+									</div>
+									<div> {tasks?.length}</div>
+								</div>
+							))}
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>

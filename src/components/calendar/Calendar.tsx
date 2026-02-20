@@ -32,9 +32,8 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 							dtoFieldsCodesDailyReports.day,
 							dtoFieldsCodesDailyReports.title,
 							dtoFieldsCodesDailyReports.timeSpent,
+							dtoFieldsCodesDailyReports.project,
 							dtoFieldsCodesDailyReports.taskId,
-							dtoFieldsCodesDailyReports.responsible,
-							dtoFieldsCodesDailyReports.activityType,
 							"assignedById",
 							"createdTime",
 							"lastActivityTime",
@@ -62,8 +61,7 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 						timeSpent: report[dtoFieldsCodesDailyReports.timeSpent],
 						taskId: report[dtoFieldsCodesDailyReports.taskId],
 						day: report[dtoFieldsCodesDailyReports.day],
-						responsible: report[dtoFieldsCodesDailyReports.responsible],
-						activityType: report[dtoFieldsCodesDailyReports.activityType],
+						activityType: report[dtoFieldsCodesDailyReports.project],
 					})),
 				);
 			} catch {
@@ -74,7 +72,11 @@ export const Calendar = ({ view }: { view: "month" | "week" }) => {
 		user && getReports();
 	}, [selectedMonth, selectedYear, user]);
 
-	const monthDays = generateMonthDays({ selectedYear, selectedMonth, reports });
+	const monthDays = generateMonthDays({
+		selectedYear,
+		selectedMonth,
+		reports,
+	});
 
 	const handleMonthChange = (e: any) => {
 		setSelectedMonth(parseInt(e.target.value));
