@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
 import { useOutletContext } from "react-router";
-import { dtoFieldsCodesDailyReports } from "../../components/calendar/constants/const";
-import type { ReportProps } from "../../components/calendar/helpers/generateMonthDays";
-import { Endpoints } from "../../shared/constants/const";
-import { useLoadAllData } from "../../shared/hooks/useLoadAllTasks";
-import { getWeekBorders } from "../../shared/utils/statisticUtils/generateWeekBorders";
-import type { ContextType } from "../ReportsPage";
+import { dtoFieldsCodesDailyReports } from "../../../../components/calendar/constants/const";
+import type { ReportProps } from "../../../../components/calendar/helpers/generateMonthDays";
+import { Endpoints } from "../../../../shared/constants/const";
+import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
+import type { ContextType } from "../../../../shared/types/types";
+import { getWeekBorders } from "../../../../shared/utils/statisticUtils/generateWeekBorders";
 
 export const ProjectsStats = ({
 	project,
@@ -25,7 +25,7 @@ export const ProjectsStats = ({
 			select: [
 				"id",
 				"title",
-				dtoFieldsCodesDailyReports.day,
+				"begindate",
 				dtoFieldsCodesDailyReports.title,
 				dtoFieldsCodesDailyReports.timeSpent,
 				dtoFieldsCodesDailyReports.project,

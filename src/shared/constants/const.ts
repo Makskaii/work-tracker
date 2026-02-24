@@ -53,11 +53,7 @@ export const statsFields: {
 		title: "Просрочено задач",
 		key: "expired",
 		filterFn: (task) => {
-			if (
-				task[dtoFieldsCodesUserReports.estimateTime] === "0" ||
-				task[dtoFieldsCodesUserReports.estimateTime] === 0
-			)
-				return;
+			if (task[dtoFieldsCodesUserReports.estimateTime] === "0") return;
 
 			const estimate = parseFloat(
 				String(task[dtoFieldsCodesUserReports.estimateTime]) || "0",

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { convertToMinutesOrHours } from "../../shared/utils/utils";
 import { Modal } from "../modal";
 import { ActivityTitle, ActivityType } from "./constants/const";
-import type { ReportProps } from "./helpers/generateMonthDays";
+import type { GroupedReportFields } from "./helpers/generateMonthDays";
 import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import cls from "./WeekCalendar.module.scss";
 
@@ -17,7 +17,7 @@ interface DayProps {
 	isCurrentMonth: boolean;
 	isEmpty: boolean;
 	totalHours?: number | null;
-	reports?: ReportProps[] | null;
+	reports?: GroupedReportFields[] | null;
 }
 
 const WeekCalendar = ({ week }: { week: DayProps[] }) => {
@@ -25,7 +25,7 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 	const START_HOUR = 10;
 	const END_HOUR = 19;
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [activeReport, setActiveReport] = useState<ReportProps>();
+	const [activeReport, setActiveReport] = useState<GroupedReportFields>();
 
 	return (
 		<div
@@ -149,9 +149,9 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 										key={report.id}
 										title={report.title}
 										style={{
-											minHeight: HOUR_HEIGHT * report.timeSpent,
-											maxHeight: HOUR_HEIGHT * report.timeSpent,
-											height: HOUR_HEIGHT * report.timeSpent,
+											minHeight: HOUR_HEIGHT * +report.timeSpent,
+											maxHeight: HOUR_HEIGHT * +report.timeSpent,
+											height: HOUR_HEIGHT * +report.timeSpent,
 											maxWidth: "200px",
 											...getColorAdnBorder(report),
 										}}
@@ -191,13 +191,13 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 								justifyContent: "space-between",
 							}}
 						>
-							{ActivityTitle[activeReport?.activityType ?? ActivityType.dash]}
+							{ActivityTitle[activeReport?.project ?? ActivityType.dash]}
 							<div
 								style={{
 									padding: "0 0.5rem",
 								}}
 							>
-								{convertToMinutesOrHours(activeReport.timeSpent)}
+								{convertToMinutesOrHours(+activeReport.timeSpent)}
 							</div>
 						</div>
 						<div

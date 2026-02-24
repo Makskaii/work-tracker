@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router";
-import type { ContextType } from "../../pages/ReportsPage";
+import type { ContextType } from "../../shared/types/types";
 import { convertNumberFormat } from "../../shared/utils";
 import { dtoFieldsCodesUserReports as UserCodes } from "../calendar/constants/const";
 
@@ -61,9 +61,8 @@ export const Statistics = () => {
 					{
 						tasks.filter(
 							(task) =>
-								task.stageId === "DT1072_18:UC_6JNSDG" && [
-									UserCodes.stage === "Общая/In Work",
-								],
+								task.stageId === "DT1072_18:UC_6JNSDG" &&
+								task[UserCodes.stage] === "Общая/In Work",
 						).length
 					}
 				</span>
@@ -91,9 +90,8 @@ export const Statistics = () => {
 					{Math.floor(
 						(tasks.filter(
 							(task) =>
-								task.stageId === "DT1072_18:UC_6JNSDG" && [
-									UserCodes.stage === "Общая/In Work",
-								],
+								task.stageId === "DT1072_18:UC_6JNSDG" &&
+								task[UserCodes.stage] === "Общая/In Work",
 						).length /
 							tasks.length) *
 							100,

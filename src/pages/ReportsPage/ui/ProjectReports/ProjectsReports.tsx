@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Modal } from "../../components/modal";
-import { $api } from "../../shared/config";
-import { Endpoints } from "../../shared/constants/const";
-import { connectProjectIds } from "../../shared/utils/crmFieldsConnect/connectProjectsIds";
-import type { ContextType } from "../ReportsPage";
+import { Modal } from "../../../../components/modal";
+import { $api } from "../../../../shared/config";
+import { Endpoints } from "../../../../shared/constants/const";
+import type { ContextType } from "../../../../shared/types/types";
+import { connectProjectIds } from "../../../../shared/utils/crmFieldsConnect/connectProjectsIds";
 import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
 

@@ -4,7 +4,7 @@ import { classNames } from "../../shared/utils/utils";
 import { Modal } from "../modal";
 import cls from "./Calendar.module.scss";
 import { headers, months, years } from "./constants/const";
-import type { ReportProps } from "./helpers/generateMonthDays";
+import type { GroupedReportFields } from "./helpers/generateMonthDays";
 
 const CalendarMonth = ({
 	monthDays,
@@ -28,7 +28,7 @@ const CalendarMonth = ({
 		isCurrentMonth: boolean;
 		isEmpty: boolean;
 		totalHours?: number | null;
-		reports?: ReportProps[];
+		reports?: GroupedReportFields[];
 	}[];
 	handlePrevMonth: () => void;
 	selectedMonth: number;
@@ -40,7 +40,7 @@ const CalendarMonth = ({
 	handleToday: () => void;
 }) => {
 	const [open, setOpen] = useState(false);
-	const [activeReport, setActiveReports] = useState<ReportProps[]>([]);
+	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 
 	return (
 		<div className={cls.calendar}>

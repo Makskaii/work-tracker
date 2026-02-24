@@ -1,6 +1,6 @@
 import { $api } from "../../../shared/config";
 import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
-import type { TaskProps } from "../types";
+import type { TaskProps } from "../ui/ProgressReports/types";
 
 export const getTasks = async (userId: string): Promise<TaskProps[]> => {
 	try {

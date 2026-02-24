@@ -9,7 +9,7 @@ import {
 	ReportsPage,
 	UsersReports,
 } from "../../../pages";
-import { NewUserReports } from "../../../pages/NewUiVersion/UserReports/UserNewReports";
+import { NewUserReports } from "../../../pages/ReportsPage/ui/UserReports/UserNewReports";
 
 export const router = createBrowserRouter(
 	[

@@ -70,7 +70,7 @@ export function useLoadAllData<T>(
 			resultData = response.data.result?.items || [];
 
 			totalCount = response.data.total;
-
+			console.log({ resultData, totalCount });
 			if (nextValue !== null && nextValue > 0 && totalCount > 0) {
 				const allData = [...resultData];
 				let currentStart = start + limit;

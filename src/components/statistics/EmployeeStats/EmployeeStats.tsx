@@ -29,18 +29,20 @@ export const EmployeeStats = ({ tasks }: { tasks: TaskProps[] }) => {
 					</div>
 				))}
 
-				<div className={cls.statCard}>
-					<div className={cls.statLabel}>Эффективность:</div>
-					<div className={cls.statValue}>
-						{(
-							(tasks.filter((task) => task.stageId === "DT1072_18:UC_6JNSDG")
-								.length /
-								tasks.length) *
-							100
-						).toFixed(2)}
-						%
+				{tasks.length !== 0 && (
+					<div className={cls.statCard}>
+						<div className={cls.statLabel}>Эффективность:</div>
+						<div className={cls.statValue}>
+							{(
+								(tasks.filter((task) => task.stageId === "DT1072_18:UC_6JNSDG")
+									.length /
+									tasks.length) *
+								100
+							).toFixed(2)}
+							%
+						</div>
 					</div>
-				</div>
+				)}
 			</div>
 		</div>
 	);

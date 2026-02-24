@@ -4,15 +4,17 @@
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Modal } from "../../../components/modal";
-import { StatsModal } from "../../../components/statistics/EmployeeStats/StatsModal";
-import { ListItem } from "../../../components/userListItem/UserListItem";
-import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
-import { useLoadAllData } from "../../../shared/hooks/useLoadAllTasks";
-import type { User } from "../../../shared/types/types";
-import { getSrartEndMonthDate } from "../../../shared/utils/utils";
-import type { TaskProps } from "../../ProgressReports/types";
-import type { ContextType } from "../../ReportsPage";
+import { Modal } from "../../../../components/modal";
+import { StatsModal } from "../../../../components/statistics/EmployeeStats/StatsModal";
+import { ListItem } from "../../../../components/userListItem/UserListItem";
+import {
+	Endpoints,
+	TASK_SELECT_FIELDS,
+} from "../../../../shared/constants/const";
+import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
+import type { ContextType, User } from "../../../../shared/types/types";
+import { getSrartEndMonthDate } from "../../../../shared/utils/utils";
+import type { TaskProps } from "../ProgressReports/types";
 import cls from "./UserReports.module.scss";
 
 export const NewUserReports = () => {

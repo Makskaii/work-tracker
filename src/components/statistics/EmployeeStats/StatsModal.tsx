@@ -1,12 +1,11 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { groupTasksByProject } from "../../../pages/ProgressReports/helpers/groupTasks";
-import type { TGroupedTasks } from "../../../pages/ProgressReports/types";
-import type { ContextType } from "../../../pages/ReportsPage";
+import { groupTasksByProject } from "../../../pages/ReportsPage/helpers/groupTasks";
+import type { TGroupedTasks } from "../../../pages/ReportsPage/ui/ProgressReports/types";
 import { $api } from "../../../shared/config";
 import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
-import type { TaskProps, User } from "../../../shared/types/types";
+import type { ContextType, TaskProps, User } from "../../../shared/types/types";
 import { getWeekBorders } from "../../../shared/utils/statisticUtils/generateWeekBorders";
 import { UserCard } from "../../userCard/UserCard";
 import { EmployeeStats } from "./EmployeeStats";
@@ -142,48 +141,50 @@ export const StatsModal = ({ user }: { user: User }) => {
 					}}
 				>
 					<EmployeeStats tasks={tasks} />
-					<div>
-						<div
-							style={{
-								display: "flex",
-								justifyContent: "space-between",
-								marginBottom: "1rem",
-							}}
-						>
-							<div> Список проектов:</div>
-							<div> Задач в проекте:</div>
-						</div>
+					{tasks.length !== 0 && (
+						<div>
+							<div
+								style={{
+									display: "flex",
+									justifyContent: "space-between",
+									marginBottom: "1rem",
+								}}
+							>
+								<div> Список проектов:</div>
+								<div> Задач в проекте:</div>
+							</div>
 
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								overflowY: "auto",
-								height: "calc(100vh * 0.4)",
-								background: "#f9fafb",
-								padding: "1rem",
-								gap: "10px",
-								borderRadius: "24px",
-							}}
-						>
-							{Object.entries(grouped).map(([projectId, tasks]) => (
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-									}}
-								>
-									<div>
-										{
-											projects.find((project) => project.ID === projectId)
-												?.VALUE
-										}
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									overflowY: "auto",
+									height: "calc(100vh * 0.4)",
+									background: "#f9fafb",
+									padding: "1rem",
+									gap: "10px",
+									borderRadius: "24px",
+								}}
+							>
+								{Object.entries(grouped).map(([projectId, tasks]) => (
+									<div
+										style={{
+											display: "flex",
+											justifyContent: "space-between",
+										}}
+									>
+										<div>
+											{
+												projects.find((project) => project.ID === projectId)
+													?.VALUE
+											}
+										</div>
+										<div> {tasks?.length}</div>
 									</div>
-									<div> {tasks?.length}</div>
-								</div>
-							))}
+								))}
+							</div>
 						</div>
-					</div>
+					)}
 				</div>
 			</div>
 		</div>

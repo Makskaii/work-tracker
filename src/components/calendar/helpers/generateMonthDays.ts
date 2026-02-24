@@ -3,16 +3,25 @@ import { dtoFieldsCodesDailyReports } from "../constants/const";
 export interface ReportProps {
 	id: string;
 	title: string;
-	day: string;
-	taskId: string;
-	timeSpent: number;
-	responsible: string;
-	activityType?: number;
-	[dtoFieldsCodesDailyReports.day]: string;
-	[dtoFieldsCodesDailyReports.title]: string;
-	[dtoFieldsCodesDailyReports.timeSpent]: string;
-	[dtoFieldsCodesDailyReports.project]: string;
+	createdTime: string;
+	begindate: string;
+	[dtoFieldsCodesDailyReports.project]: number;
 	[dtoFieldsCodesDailyReports.taskId]: string;
+	[dtoFieldsCodesDailyReports.timeSpent]: string;
+	[dtoFieldsCodesDailyReports.title]: string;
+	assignedById: string;
+	lastActivityTime: string;
+}
+
+export interface GroupedReportFields {
+	id: string;
+	title: string;
+	timeSpent: string;
+
+	taskId: string;
+	day: string;
+	project: number;
+	assignedById: string;
 }
 
 const getDaysInMonth = (year: number, month: number) => {
@@ -24,10 +33,10 @@ const getDayName = (date: Date) => {
 };
 
 const groupReportsByDate = (
-	reports: ReportProps[],
+	reports: GroupedReportFields[],
 ): {
 	[key: string]: {
-		reports: ReportProps[];
+		reports: GroupedReportFields[];
 		total: number;
 	};
 } => {
@@ -35,7 +44,7 @@ const groupReportsByDate = (
 		(
 			groups: {
 				[key: string]: {
-					reports: ReportProps[];
+					reports: GroupedReportFields[];
 					total: number;
 				};
 			},
@@ -66,9 +75,8 @@ export const generateMonthDays = ({
 }: {
 	selectedYear: number;
 	selectedMonth: number;
-	reports: ReportProps[];
+	reports: GroupedReportFields[];
 }) => {
-	console.log({ reports });
 	const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
 	const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
 
@@ -101,7 +109,7 @@ export const generateMonthDays = ({
 		const groupedReports = groupReportsByDate(reports);
 
 		const dateKey = date.toLocaleDateString("en-CA");
-
+		console.log({ groupedReports });
 		daysArray.push({
 			id: `${selectedYear}-${selectedMonth}-${day}`,
 			date: date,

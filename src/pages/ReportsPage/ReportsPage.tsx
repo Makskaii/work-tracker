@@ -1,56 +1,18 @@
 import dayjs from "dayjs";
-import {
-	type Dispatch,
-	type SetStateAction,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
-import { dtoFieldsCodesUserReports as UserCodes } from "../components/calendar/constants/const";
-import { CheckPermission } from "../components/protectedRoute/CheckPermission";
-import { $api } from "../shared/config";
-import { Endpoints, TASK_SELECT_FIELDS } from "../shared/constants/const";
-import type { AnyObject, TaskProps } from "../shared/types/types";
-import { getSrartEndMonthDate } from "../shared/utils/utils";
-
-type UserReports = {
-	setUser: (id: string) => void;
-	tasks: TaskProps[];
-	projects: { ID: string; VALUE: string }[];
-	setCurrProject: (id: string) => void;
-	setTitle: (id: string) => void;
-	title: string;
-	user?: string;
-	users: {
-		id: string;
-		value: string;
-		title: string;
-		position: string;
-		photo: string;
-	}[];
-	userIds: string[];
-	currProject?: string;
-	setMonth: Dispatch<SetStateAction<number>>;
-	setYear: Dispatch<SetStateAction<number>>;
-	month?: number;
-	year?: number;
-};
-
-interface Status {
-	ID: string;
-	ENTITY_ID: string;
-	STATUS_ID: string;
-	NAME: string;
-	NAME_INIT: string;
-	SORT: string;
-	SYSTEM: string;
-	COLOR: string;
-	SEMANTICS: string;
-	CATEGORY_ID: string;
-}
-
-export type ContextType = UserReports;
+import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
+import { CheckPermission } from "../../components/protectedRoute/CheckPermission";
+import { $api } from "../../shared/config";
+import { Endpoints, TASK_SELECT_FIELDS } from "../../shared/constants/const";
+import type {
+	AnyObject,
+	ContextType,
+	Status,
+	TaskProps,
+} from "../../shared/types/types";
+import { getSrartEndMonthDate } from "../../shared/utils/utils";
+import { Navigation } from "./constants/titleMap";
 
 const currentMonth = dayjs().month() + 1;
 const currentYear = dayjs().year();
@@ -160,7 +122,7 @@ const ReportsPage = () => {
 		const getProjectsAsCRMfields = async () => {
 			try {
 				const response = await $api.post(Endpoints.crmFeilds, {
-					entityTypeId: 1072,
+					entityTypeId: 1060,
 				});
 
 				setProjects(response.data.result.fields["ufCrm14_1770801014487"].items);
@@ -185,48 +147,25 @@ const ReportsPage = () => {
 				<div
 					style={{
 						display: "flex",
-						gap: "1rem",
+						gap: "3px",
 					}}
 				>
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="projects"
-						end
-					>
-						<div>Проекты</div>
-					</NavLink>
-					/
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="employees"
-						end
-					>
-						<div>Сотрудники</div>
-					</NavLink>
-					/
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="progress"
-						end
-					>
-						<div>Занятость</div>
-					</NavLink>
-					/
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="new-reports"
-						end
-					>
-						<div>Новые отчеты</div>
-					</NavLink>
+					{Navigation.map((link) => (
+						<NavLink
+							style={{
+								border: "1px solid #ccc",
+								padding: "0.3rem",
+								borderRadius: "12px",
+							}}
+							className={({ isActive, isPending }) =>
+								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+							}
+							to={link.path}
+							end
+						>
+							<div>{link.title}</div>
+						</NavLink>
+					))}
 				</div>
 				<Outlet
 					context={
