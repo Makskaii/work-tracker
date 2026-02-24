@@ -4,7 +4,7 @@ import { classNames } from "../../shared/utils/utils";
 import { Modal } from "../modal";
 import cls from "./Calendar.module.scss";
 import { headers, months, years } from "./constants/const";
-import type { GroupedReportFields } from "./helpers/generateMonthDays";
+import type { GroupedReportFields, MonthDays } from "./types/types";
 
 const CalendarMonth = ({
 	monthDays,
@@ -17,19 +17,7 @@ const CalendarMonth = ({
 	getCurrentMonthName,
 	handleToday,
 }: {
-	monthDays: {
-		id: string;
-		date: Date | null;
-		dayNumber: number | null;
-		dayName: string;
-		fullDayName: string;
-		isToday: boolean;
-		isWeekend: boolean;
-		isCurrentMonth: boolean;
-		isEmpty: boolean;
-		totalHours?: number | null;
-		reports?: GroupedReportFields[];
-	}[];
+	monthDays: MonthDays[];
 	handlePrevMonth: () => void;
 	selectedMonth: number;
 	selectedYear: number;

@@ -4,7 +4,11 @@ import { Link, useOutletContext } from "react-router";
 import { groupTasksByProject } from "../../../pages/ReportsPage/helpers/groupTasks";
 import type { TGroupedTasks } from "../../../pages/ReportsPage/ui/ProgressReports/types";
 import { $api } from "../../../shared/config";
-import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "../../../shared/constants/const";
 import type { ContextType, TaskProps, User } from "../../../shared/types/types";
 import { getWeekBorders } from "../../../shared/utils/statisticUtils/generateWeekBorders";
 import { UserCard } from "../../userCard/UserCard";
@@ -23,7 +27,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 			try {
 				const response = await $api.get(Endpoints.reports, {
 					params: {
-						entityTypeId: 1072,
+						entityTypeId: EntityTypeIds.tasks,
 
 						select: TASK_SELECT_FIELDS,
 						filter: {

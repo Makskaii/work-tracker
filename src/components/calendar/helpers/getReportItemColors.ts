@@ -1,5 +1,5 @@
 import { ActivityType } from "../constants/const";
-import type { GroupedReportFields } from "./generateMonthDays";
+import type { GroupedReportFields } from "../types/types";
 
 export const getColorAdnBorder = (report: GroupedReportFields) => {
 	switch (report.project) {

@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Endpoints } from "../../shared/constants/const";
+import { Endpoints, EntityTypeIds } from "../../shared/constants/const";
 import { useLoadAllData } from "../../shared/hooks/useLoadAllTasks";
 import type { ContextType } from "../../shared/types/types";
 import { CalendarMonth, WeekCalendar } from ".";
-import { dtoFieldsCodesDailyReports, months } from "./constants/const";
 import {
-	type GroupedReportFields,
-	generateMonthDays,
-	getWeek,
-	type ReportProps,
-} from "./helpers/generateMonthDays";
+	dtoFieldsCodesDailyReports,
+	months,
+	selectFields,
+} from "./constants/const";
+import { generateMonthDays, getWeek } from "./helpers/generateMonthDays";
+import type { GroupedReportFields, ReportProps } from "./types/types";
 
 export const Calendar = ({
 	view,
@@ -27,20 +27,9 @@ export const Calendar = ({
 
 	const { data } = useLoadAllData<ReportProps>(Endpoints.reports, {
 		params: {
-			entityTypeId: 1060,
+			entityTypeId: EntityTypeIds.reports,
 
-			select: [
-				"id",
-				"title",
-				"begindate",
-				dtoFieldsCodesDailyReports.title,
-				dtoFieldsCodesDailyReports.timeSpent,
-				dtoFieldsCodesDailyReports.project,
-				dtoFieldsCodesDailyReports.taskId,
-				"assignedById",
-				"createdTime",
-				"lastActivityTime",
-			],
+			select: selectFields,
 
 			filter: {
 				">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
@@ -69,49 +58,6 @@ export const Calendar = ({
 			);
 	}, [data]);
 
-	// useEffect(() => {
-	// 	const getReports = async () => {
-	// 		try {
-	// 			const res = await $api.get(Endpoints.reports, {
-	// 				params: {
-	// 					entityTypeId: 1060,
-	// 					select: [
-	// 						"id",
-	// 						"title",
-	// 						dtoFieldsCodesDailyReports.day,
-	// 						dtoFieldsCodesDailyReports.title,
-	// 						dtoFieldsCodesDailyReports.timeSpent,
-	// 						dtoFieldsCodesDailyReports.project,
-	// 						dtoFieldsCodesDailyReports.taskId,
-	// 						"assignedById",
-	// 						"createdTime",
-	// 						"lastActivityTime",
-	// 					],
-	// 					filter: {
-	// 						">=begindate": new Date(
-	// 							selectedYear,
-	// 							selectedMonth,
-	// 							1,
-	// 						).toISOString(),
-	// 						"<=begindate": new Date(
-	// 							selectedYear,
-	// 							selectedMonth + 1,
-	// 							1,
-	// 						).toISOString(),
-	// 						assignedById: user === "" ? null : user,
-	// 					},
-	// 				},
-	// 			});
-
-	// 			setReports(
-	// 				res.data.result.items.map((report: AnyObject) => ({
-	// 					id: report.id,
-	// 					title: report[dtoFieldsCodesDailyReports.title],
-	// 					timeSpent: report[dtoFieldsCodesDailyReports.timeSpent],
-	// 					taskId: report[dtoFieldsCodesDailyReports.taskId],
-	// 					day: report[dtoFieldsCodesDailyReports.day],
-	// 					activityType: String(report[dtoFieldsCodesDailyReports.project]),
-	// 				})),
 	// 			);
 	// 		} catch {
 	// 			console.log("Ошибка при получении списка задач");

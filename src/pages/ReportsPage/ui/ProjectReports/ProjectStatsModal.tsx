@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
 import { useOutletContext } from "react-router";
 import { dtoFieldsCodesDailyReports } from "../../../../components/calendar/constants/const";
-import type { ReportProps } from "../../../../components/calendar/helpers/generateMonthDays";
-import { Endpoints } from "../../../../shared/constants/const";
+import type { ReportProps } from "../../../../components/calendar/types/types";
+import { Endpoints, EntityTypeIds } from "../../../../shared/constants/const";
 import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
 import type { ContextType } from "../../../../shared/types/types";
 import { getWeekBorders } from "../../../../shared/utils/statisticUtils/generateWeekBorders";
@@ -20,7 +20,7 @@ export const ProjectsStats = ({
 
 	const { data } = useLoadAllData<ReportProps>(Endpoints.reports, {
 		params: {
-			entityTypeId: 1060,
+			entityTypeId: EntityTypeIds.reports,
 
 			select: [
 				"id",

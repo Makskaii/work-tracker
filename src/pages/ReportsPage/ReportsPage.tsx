@@ -4,7 +4,11 @@ import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
 import { CheckPermission } from "../../components/protectedRoute/CheckPermission";
 import { $api } from "../../shared/config";
-import { Endpoints, TASK_SELECT_FIELDS } from "../../shared/constants/const";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "../../shared/constants/const";
 import type {
 	AnyObject,
 	ContextType,
@@ -80,7 +84,7 @@ const ReportsPage = () => {
 			try {
 				const response = await $api.get(Endpoints.reports, {
 					params: {
-						entityTypeId: 1072,
+						entityTypeId: EntityTypeIds.tasks,
 
 						select: TASK_SELECT_FIELDS,
 						filter: {
@@ -122,7 +126,7 @@ const ReportsPage = () => {
 		const getProjectsAsCRMfields = async () => {
 			try {
 				const response = await $api.post(Endpoints.crmFeilds, {
-					entityTypeId: 1060,
+					entityTypeId: EntityTypeIds.reports,
 				});
 
 				setProjects(response.data.result.fields["ufCrm14_1770801014487"].items);

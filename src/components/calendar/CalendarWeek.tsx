@@ -2,23 +2,10 @@ import { useState } from "react";
 import { convertToMinutesOrHours } from "../../shared/utils/utils";
 import { Modal } from "../modal";
 import { ActivityTitle, ActivityType } from "./constants/const";
-import type { GroupedReportFields } from "./helpers/generateMonthDays";
-import { getColorAdnBorder } from "./helpers/getReportItemColors";
-import cls from "./WeekCalendar.module.scss";
 
-interface DayProps {
-	id: string;
-	date: string | null | Date;
-	dayNumber: number | null;
-	dayName: string | null;
-	fullDayName: string;
-	isToday: boolean;
-	isWeekend: boolean;
-	isCurrentMonth: boolean;
-	isEmpty: boolean;
-	totalHours?: number | null;
-	reports?: GroupedReportFields[] | null;
-}
+import { getColorAdnBorder } from "./helpers/getReportItemColors";
+import type { DayProps, GroupedReportFields } from "./types/types";
+import cls from "./WeekCalendar.module.scss";
 
 const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 	const HOUR_HEIGHT = 800 / 8;

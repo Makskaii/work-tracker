@@ -21,6 +21,11 @@ export const Endpoints = {
 	status: "crm.status.list",
 };
 
+export const EntityTypeIds = {
+	reports: 1060,
+	tasks: 1072,
+};
+
 export const TASK_SELECT_FIELDS = [
 	"id",
 	"title",

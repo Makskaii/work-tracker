@@ -1,28 +1,4 @@
-import { dtoFieldsCodesDailyReports } from "../constants/const";
-
-export interface ReportProps {
-	id: string;
-	title: string;
-	createdTime: string;
-	begindate: string;
-	[dtoFieldsCodesDailyReports.project]: number;
-	[dtoFieldsCodesDailyReports.taskId]: string;
-	[dtoFieldsCodesDailyReports.timeSpent]: string;
-	[dtoFieldsCodesDailyReports.title]: string;
-	assignedById: string;
-	lastActivityTime: string;
-}
-
-export interface GroupedReportFields {
-	id: string;
-	title: string;
-	timeSpent: string;
-
-	taskId: string;
-	day: string;
-	project: number;
-	assignedById: string;
-}
+import type { GroupedReportFields } from "../types/types";
 
 const getDaysInMonth = (year: number, month: number) => {
 	return new Date(year, month + 1, 0).getDate();

@@ -9,6 +9,7 @@ import { StatsModal } from "../../../../components/statistics/EmployeeStats/Stat
 import { ListItem } from "../../../../components/userListItem/UserListItem";
 import {
 	Endpoints,
+	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "../../../../shared/constants/const";
 import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
@@ -27,7 +28,7 @@ export const NewUserReports = () => {
 
 	const { data } = useLoadAllData<TaskProps>(Endpoints.reports, {
 		params: {
-			entityTypeId: 1072,
+			entityTypeId: EntityTypeIds.tasks,
 
 			select: TASK_SELECT_FIELDS,
 			filter: {

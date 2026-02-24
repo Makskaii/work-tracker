@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Modal } from "../../../../components/modal";
 import { $api } from "../../../../shared/config";
-import { Endpoints } from "../../../../shared/constants/const";
+import { Endpoints, EntityTypeIds } from "../../../../shared/constants/const";
 import type { ContextType } from "../../../../shared/types/types";
 import { connectProjectIds } from "../../../../shared/utils/crmFieldsConnect/connectProjectsIds";
 import { ProjectsStats } from "./ProjectStatsModal";
@@ -35,7 +35,7 @@ const ProjectsReports = () => {
 		const getProjectsAsCRMfields = async () => {
 			try {
 				const response = await $api.post(Endpoints.crmFeilds, {
-					entityTypeId: 1060,
+					entityTypeId: EntityTypeIds.reports,
 				});
 
 				setProjects(response.data.result.fields["ufCrm11_1770393502397"].items);

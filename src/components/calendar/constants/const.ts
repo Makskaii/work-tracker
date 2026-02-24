@@ -2,7 +2,7 @@ import {
 	convertToDate,
 	convertToMinutesOrHours,
 } from "../../../shared/utils/utils";
-import type { GroupedReportFields } from "../helpers/generateMonthDays";
+import type { GroupedReportFields } from "../types/types";
 
 export const months = [
 	"Январь",
@@ -78,3 +78,16 @@ export const ActivityTitle: { [key: number]: string } = {
 	[ActivityType.analitycsCall]: "Внутренний созвон",
 	[ActivityType.dash]: "Внутренние коммуникации",
 };
+
+export const selectFields = [
+	"id",
+	"title",
+	"begindate",
+	dtoFieldsCodesDailyReports.title,
+	dtoFieldsCodesDailyReports.timeSpent,
+	dtoFieldsCodesDailyReports.project,
+	dtoFieldsCodesDailyReports.taskId,
+	"assignedById",
+	"createdTime",
+	"lastActivityTime",
+];

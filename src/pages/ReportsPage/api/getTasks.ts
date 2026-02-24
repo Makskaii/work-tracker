@@ -1,12 +1,16 @@
 import { $api } from "../../../shared/config";
-import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "../../../shared/constants/const";
 import type { TaskProps } from "../ui/ProgressReports/types";
 
 export const getTasks = async (userId: string): Promise<TaskProps[]> => {
 	try {
 		const response = await $api.get(Endpoints.reports, {
 			params: {
-				entityTypeId: 1072,
+				entityTypeId: EntityTypeIds.tasks,
 				select: TASK_SELECT_FIELDS,
 				filter: {
 					assignedById: userId,
