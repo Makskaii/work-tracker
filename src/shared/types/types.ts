@@ -64,4 +64,4 @@ export interface Status {
 	CATEGORY_ID: string;
 }
 
-export type ContextType = UserReports;
+export type ReportsContext = UserReports;

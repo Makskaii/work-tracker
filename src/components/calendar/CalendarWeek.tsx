@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { convertToMinutesOrHours } from "../../shared/utils/utils";
+import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import { ActivityTitle, ActivityType } from "./constants/const";
-
 import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import type { DayProps, GroupedReportFields } from "./types/types";
 import cls from "./WeekCalendar.module.scss";

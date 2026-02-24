@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
-import { classNames } from "../../shared/utils/utils";
+import { classNames } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import cls from "./Calendar.module.scss";
 import { headers, months, years } from "./constants/const";

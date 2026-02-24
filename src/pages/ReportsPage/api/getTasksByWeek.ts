@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
-import { dtoFieldsCodesUserReports as UserCodes } from "../../../components/calendar/constants/const";
-import { $api } from "../../../shared/config";
-import { Endpoints, EntityTypeIds } from "../../../shared/constants/const";
-import { getWorkWeeks } from "../../../shared/utils";
+import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
+import { $api } from "@/shared/config";
+import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { getWorkWeeks } from "@/shared/utils/getWorkWeeks";
 
 export const getTasksByWeek = async (userId: string) => {
 	const currMonthWeeks = getWorkWeeks(

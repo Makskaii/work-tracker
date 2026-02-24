@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Endpoints, EntityTypeIds } from "../../shared/constants/const";
-import { useLoadAllData } from "../../shared/hooks/useLoadAllTasks";
-import type { ContextType } from "../../shared/types/types";
+import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import type { ReportsContext } from "@/shared/types/types";
 import { CalendarMonth, WeekCalendar } from ".";
 import {
 	dtoFieldsCodesDailyReports,
@@ -20,7 +20,7 @@ export const Calendar = ({
 	view: "month" | "week";
 	userId: string;
 }) => {
-	const { user } = useOutletContext<ContextType>();
+	const { user } = useOutletContext<ReportsContext>();
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);

@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
 import { useOutletContext } from "react-router";
-import { dtoFieldsCodesDailyReports } from "../../../../components/calendar/constants/const";
-import type { ReportProps } from "../../../../components/calendar/types/types";
-import { Endpoints, EntityTypeIds } from "../../../../shared/constants/const";
-import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
-import type { ContextType } from "../../../../shared/types/types";
-import { getWeekBorders } from "../../../../shared/utils/statisticUtils/generateWeekBorders";
+import { dtoFieldsCodesDailyReports } from "@/components/calendar/constants/const";
+import type { ReportProps } from "@/components/calendar/types/types";
+import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import type { ReportsContext } from "@/shared/types/types";
+import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 
 export const ProjectsStats = ({
 	project,
@@ -15,7 +15,7 @@ export const ProjectsStats = ({
 		VALUE: string;
 	};
 }) => {
-	const { tasks } = useOutletContext<ContextType>();
+	const { tasks } = useOutletContext<ReportsContext>();
 	const borders = getWeekBorders(dayjs());
 
 	const { data } = useLoadAllData<ReportProps>(Endpoints.reports, {

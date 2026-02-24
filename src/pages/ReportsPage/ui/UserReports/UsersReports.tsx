@@ -3,12 +3,12 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import { AsyncSelect } from "../../../../components/form/SelectField";
-import type { ContextType } from "../../../../shared/types/types";
+import type { ReportsContext } from "../../../../shared/types/types";
 
 type ViewCalendar = "month" | "week";
 
 const UsersReports = () => {
-	const Context = useOutletContext<ContextType>();
+	const Context = useOutletContext<ReportsContext>();
 	const [view, setView] = useState<ViewCalendar>("month");
 
 	const methods = useForm<{

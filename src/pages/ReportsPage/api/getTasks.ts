@@ -1,9 +1,9 @@
-import { $api } from "../../../shared/config";
+import { $api } from "@/shared/config";
 import {
 	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
-} from "../../../shared/constants/const";
+} from "@/shared/constants/const";
 import type { AnyObject } from "../../../shared/types/types";
 import type { TaskProps } from "../ui/ProgressReports/types";
 

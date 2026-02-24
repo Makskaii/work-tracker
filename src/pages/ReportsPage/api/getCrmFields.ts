@@ -1,5 +1,5 @@
-import { $api } from "../../../shared/config";
-import { Endpoints } from "../../../shared/constants/const";
+import { $api } from "@/shared/config";
+import { Endpoints } from "@/shared/constants/const";
 
 export const getCrmFields = async (
 	crmId: number,

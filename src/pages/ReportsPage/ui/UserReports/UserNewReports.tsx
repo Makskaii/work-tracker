@@ -13,13 +13,13 @@ import {
 	TASK_SELECT_FIELDS,
 } from "../../../../shared/constants/const";
 import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
-import type { ContextType, User } from "../../../../shared/types/types";
+import type { ReportsContext, User } from "../../../../shared/types/types";
 import { getSrartEndMonthDate } from "../../../../shared/utils/utils";
 import type { TaskProps } from "../ProgressReports/types";
 import cls from "./UserReports.module.scss";
 
 export const NewUserReports = () => {
-	const { users, projects, month, year } = useOutletContext<ContextType>();
+	const { users, projects, month, year } = useOutletContext<ReportsContext>();
 	const [open, setOpen] = useState(false);
 	const [activeUser, setActiveUser] = useState<User>();
 

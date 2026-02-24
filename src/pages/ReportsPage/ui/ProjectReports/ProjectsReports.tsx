@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router";
 import { Modal } from "../../../../components/modal";
 import { $api } from "../../../../shared/config";
 import { Endpoints, EntityTypeIds } from "../../../../shared/constants/const";
-import type { ContextType } from "../../../../shared/types/types";
+import type { ReportsContext } from "../../../../shared/types/types";
 import { connectProjectIds } from "../../../../shared/utils/crmFieldsConnect/connectProjectsIds";
 import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
@@ -16,7 +16,7 @@ const ProjectsReports = () => {
 	}>();
 
 	const { setCurrProject, projects: taskProjects } =
-		useOutletContext<ContextType>();
+		useOutletContext<ReportsContext>();
 
 	const [projects, setProjects] = useState<
 		{

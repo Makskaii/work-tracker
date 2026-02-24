@@ -1,17 +1,15 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
-import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
-import { CheckPermission } from "../../components/protectedRoute/CheckPermission";
-import {
-	EntityTypeIds,
-} from "../../shared/constants/const";
+import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
+import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
+import { EntityTypeIds } from "@/shared/constants/const";
 import type {
 	AnyObject,
-	ContextType,
+	ReportsContext,
 	Status,
 	TaskProps,
-} from "../../shared/types/types";
+} from "@/shared/types/types";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
 import { getCrmFields } from "./api/getCrmFields";
 import { getDevelopers } from "./api/getDevelopers";
@@ -160,7 +158,7 @@ const ReportsPage = () => {
 							month,
 							setYear,
 							year,
-						} satisfies ContextType
+						} satisfies ReportsContext
 					}
 				/>
 			</div>

@@ -1,6 +1,6 @@
-import { $api } from "../../../shared/config";
-import { Endpoints } from "../../../shared/constants/const";
-import type { TaskProps } from "../ui/ProgressReports/types";
+import { $api } from "@/shared/config";
+import { Endpoints } from "@/shared/constants/const";
+import type { TaskProps } from "@/shared/types/types";
 
 export const getDevelopers = async (): Promise<TaskProps[]> => {
 	try {

@@ -9,7 +9,11 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "../../../shared/constants/const";
-import type { ContextType, TaskProps, User } from "../../../shared/types/types";
+import type {
+	ReportsContext,
+	TaskProps,
+	User,
+} from "../../../shared/types/types";
 import { getWeekBorders } from "../../../shared/utils/statisticUtils/generateWeekBorders";
 import { UserCard } from "../../userCard/UserCard";
 import { EmployeeStats } from "./EmployeeStats";
@@ -18,7 +22,7 @@ import { TasksList } from "./TasksList";
 export const StatsModal = ({ user }: { user: User }) => {
 	const [date, _setDate] = useState<dayjs.Dayjs | Date>(dayjs());
 	const borders = useMemo(() => getWeekBorders(dayjs(date)), [date]);
-	const { setUser, projects } = useOutletContext<ContextType>();
+	const { setUser, projects } = useOutletContext<ReportsContext>();
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 

@@ -1,6 +1,6 @@
-import { $api } from "../../../shared/config";
-import { Endpoints } from "../../../shared/constants/const";
-import type { Status } from "../../../shared/types/types";
+import { $api } from "@/shared/config";
+import { Endpoints } from "@/shared/constants/const";
+import type { Status } from "@/shared/types/types";
 
 // статусы для смарт-процесса канбан-доски
 export const getStatuses = async (): Promise<Status[]> => {
