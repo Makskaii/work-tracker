@@ -42,7 +42,9 @@ const Progress = () => {
 	const handleChange = handleSubmit(async (data) => {
 		try {
 			const res = await getTasksByWeek(data.userId);
-			const tasks = await getTasks(data.userId);
+			const tasks = await getTasks({
+				assygnedById: data.userId,
+			});
 
 			setGroupedTasks(groupTasksByProject(tasks));
 

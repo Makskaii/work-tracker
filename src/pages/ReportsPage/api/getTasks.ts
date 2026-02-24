@@ -4,16 +4,17 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "../../../shared/constants/const";
+import type { AnyObject } from "../../../shared/types/types";
 import type { TaskProps } from "../ui/ProgressReports/types";
 
-export const getTasks = async (userId: string): Promise<TaskProps[]> => {
+export const getTasks = async (filters: AnyObject): Promise<TaskProps[]> => {
 	try {
 		const response = await $api.get(Endpoints.reports, {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				select: TASK_SELECT_FIELDS,
 				filter: {
-					assignedById: userId,
+					...filters,
 				},
 			},
 		});
@@ -27,7 +28,11 @@ export const getTasks = async (userId: string): Promise<TaskProps[]> => {
 
 		return items;
 	} catch (error) {
-		console.error("Failed to fetch tasks for user:", userId, error);
+		console.error(
+			"Failed to fetch tasks for user:",
+			filters.filter.assignedById,
+			error,
+		);
 		return [];
 	}
 };

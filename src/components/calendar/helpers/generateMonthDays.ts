@@ -85,7 +85,7 @@ export const generateMonthDays = ({
 		const groupedReports = groupReportsByDate(reports);
 
 		const dateKey = date.toLocaleDateString("en-CA");
-		console.log({ groupedReports });
+
 		daysArray.push({
 			id: `${selectedYear}-${selectedMonth}-${day}`,
 			date: date,

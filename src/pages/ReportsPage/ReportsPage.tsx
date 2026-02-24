@@ -3,11 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
 import { CheckPermission } from "../../components/protectedRoute/CheckPermission";
-import { $api } from "../../shared/config";
 import {
-	Endpoints,
 	EntityTypeIds,
-	TASK_SELECT_FIELDS,
 } from "../../shared/constants/const";
 import type {
 	AnyObject,
@@ -16,6 +13,10 @@ import type {
 	TaskProps,
 } from "../../shared/types/types";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
+import { getCrmFields } from "./api/getCrmFields";
+import { getDevelopers } from "./api/getDevelopers";
+import { getStatuses } from "./api/getStatusFields";
+import { getTasks } from "./api/getTasks";
 import { Navigation } from "./constants/titleMap";
 
 const currentMonth = dayjs().month() + 1;
@@ -55,84 +56,54 @@ const ReportsPage = () => {
 
 	useEffect(() => {
 		const getUsers = async () => {
-			try {
-				const response = await $api.get(Endpoints.users, {
-					params: {
-						UF_DEPARTMENT: 23,
-					},
-				});
+			const response = await getDevelopers();
 
-				setUsers(
-					response.data.result.map((task: AnyObject) => ({
-						id: task.ID,
-						value: task.NAME + task.LAST_NAME,
-						title: task.NAME + " " + task.LAST_NAME,
-						position: task.WORK_POSITION,
-						photo: task.PERSONAL_PHOTO,
-					})),
-				);
-			} catch {
-				console.log("Ошибка при получении списка сотрудников");
-			}
+			setUsers(
+				response.map((task: AnyObject) => ({
+					id: task.ID,
+					value: task.NAME + task.LAST_NAME,
+					title: task.NAME + " " + task.LAST_NAME,
+					position: task.WORK_POSITION,
+					photo: task.PERSONAL_PHOTO,
+				})),
+			);
 		};
 
 		getUsers();
 	}, []);
 
 	useEffect(() => {
-		const getTasks = async () => {
-			try {
-				const response = await $api.get(Endpoints.reports, {
-					params: {
-						entityTypeId: EntityTypeIds.tasks,
+		const fetchTasks = async () => {
+			const response = await getTasks({
+				[UserCodes.project]: currProject === "" ? null : currProject,
+				">=createdTime": getSrartEndMonthDate("start", month, year),
+				"<=createdTime": getSrartEndMonthDate("end", month, year),
+			});
 
-						select: TASK_SELECT_FIELDS,
-						filter: {
-							[UserCodes.project]: currProject === "" ? null : currProject,
-							">=createdTime": getSrartEndMonthDate("start", month, year),
-							"<=createdTime": getSrartEndMonthDate("end", month, year),
-						},
-					},
-				});
-				console.log(currProject);
-				setTasks(response.data.result.items);
-			} catch {
-				console.log("Ошибка при получении списка сотрудников");
-			}
+			setTasks(response);
 		};
 
-		getTasks();
+		fetchTasks();
 	}, [currProject, month, year]);
 
 	useEffect(() => {
-		const getStatuses = async () => {
-			try {
-				const response = await $api.post(Endpoints.status, {
-					filter: {
-						ENTITY_ID: "DYNAMIC_1072_STAGE_18",
-					},
-				});
+		const fetchStatuses = async () => {
+			const response = await getStatuses();
 
-				setStatuses(response.data.result);
-			} catch {
-				console.log("Ошибка при получении списка задач");
-			}
+			setStatuses(response);
 		};
 
-		getStatuses();
+		fetchStatuses();
 	}, []);
 
 	useEffect(() => {
 		const getProjectsAsCRMfields = async () => {
-			try {
-				const response = await $api.post(Endpoints.crmFeilds, {
-					entityTypeId: EntityTypeIds.reports,
-				});
+			const response = await getCrmFields(
+				EntityTypeIds.tasks,
+				"ufCrm14_1770801014487",
+			);
 
-				setProjects(response.data.result.fields["ufCrm14_1770801014487"].items);
-			} catch {
-				console.log("Ошибка при получении списка задач");
-			}
+			setProjects(response);
 		};
 
 		getProjectsAsCRMfields();
@@ -156,6 +127,7 @@ const ReportsPage = () => {
 				>
 					{Navigation.map((link) => (
 						<NavLink
+							key={link.path}
 							style={{
 								border: "1px solid #ccc",
 								padding: "0.3rem",
