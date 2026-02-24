@@ -1,21 +1,24 @@
 import { Suspense } from "react";
 import { createBrowserRouter } from "react-router";
-import { MainLayout } from "../../../components/layout/MainLayout";
-import { Spinner } from "../../../components/spinner/Spinner";
+import ErrorElement from "@/components/errorElement/ErrorElement";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { Spinner } from "@/components/spinner/Spinner";
 import {
 	DataPage,
 	Progress,
 	ProjectsReports,
 	ReportsPage,
 	UsersReports,
-} from "../../../pages";
-import { NewUserReports } from "../../../pages/ReportsPage/ui/UserReports/UserNewReports";
+} from "@/pages";
+import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 
 export const router = createBrowserRouter(
 	[
 		{
 			path: "/",
 			element: <MainLayout />,
+			errorElement: <ErrorElement />,
+
 			children: [
 				{ path: "/data", element: <DataPage /> },
 				{
