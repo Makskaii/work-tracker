@@ -18,26 +18,29 @@ export const ProjectsStats = ({
 	const { tasks } = useOutletContext<ReportsContext>();
 	const borders = getWeekBorders(dayjs());
 
-	const { data } = useLoadAllData<ReportProps>(Endpoints.reports, {
-		params: {
-			entityTypeId: EntityTypeIds.reports,
+	const { data } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.reports,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.reports,
 
-			select: [
-				"id",
-				"title",
-				"begindate",
-				dtoFieldsCodesDailyReports.title,
-				dtoFieldsCodesDailyReports.timeSpent,
-				dtoFieldsCodesDailyReports.project,
-				dtoFieldsCodesDailyReports.taskId,
-				"assignedById",
-				"createdTime",
-				"lastActivityTime",
-			],
-			filter: {
-				[dtoFieldsCodesDailyReports.project]: project.ID,
-				">=createdTime": borders.startOfTheWeek,
-				"<=createdTime": borders.endOfTheWeek,
+				select: [
+					"id",
+					"title",
+					"begindate",
+					dtoFieldsCodesDailyReports.title,
+					dtoFieldsCodesDailyReports.timeSpent,
+					dtoFieldsCodesDailyReports.project,
+					dtoFieldsCodesDailyReports.taskId,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+				],
+				filter: {
+					[dtoFieldsCodesDailyReports.project]: project.ID,
+					">=createdTime": borders.startOfTheWeek,
+					"<=createdTime": borders.endOfTheWeek,
+				},
 			},
 		},
 	});

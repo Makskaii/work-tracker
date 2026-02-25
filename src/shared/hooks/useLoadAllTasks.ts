@@ -40,10 +40,13 @@ const fetchWithRetry = async (
 	}
 };
 
-export function useLoadAllData<T>(
-	initialEndpoint: string,
-	initialFilters: AnyObject = {},
-): UseLoadDataResult<T> {
+export function useLoadAllData<T>({
+	initialEndpoint,
+	initialFilters = {},
+}: {
+	initialEndpoint: string;
+	initialFilters: AnyObject;
+}): UseLoadDataResult<T> {
 	const [data, setData] = useState<T[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export function useLoadAllData<T>(
 			resultData = response.data.result?.items || [];
 
 			totalCount = response.data.total;
-			console.log({ resultData, totalCount });
+
 			if (nextValue !== null && nextValue > 0 && totalCount > 0) {
 				const allData = [...resultData];
 				let currentStart = start + limit;

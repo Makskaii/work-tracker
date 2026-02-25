@@ -82,7 +82,7 @@ const UsersReports = () => {
 						<button onClick={() => setView("week")}>Неделя</button>
 					</div>
 				</div>
-				<Calendar key={Context.user} view={view} userId={Context?.user} />
+				<Calendar view={view} userId={Context?.user} />
 			</div>
 		</div>
 	);
