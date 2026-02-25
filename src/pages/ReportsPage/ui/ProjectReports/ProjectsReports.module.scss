@@ -1,46 +1,11 @@
-.header {
-  form {
-    >div {
-      display: flex;
-      gap: 2rem;
-
-      >div {
-        display: flex;
-        justify-content: space-between;
-        flex: 1;
-
-        >div {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        input {
-          width: 100%;
-          background-color: white;
-          color: black;
-          height: 100%;
-          box-sizing: border-box;
-          border-color: #c1c1c1;
-          border-radius: 10px;
-        }
-      }
-
-      >div:last-child {
-        flex: 1;
-      }
-    }
-  }
-}
-
 .contentContainer {
   display: flex;
   padding: 1rem;
   gap: 10px;
 }
 
-.tasksContainer {
-  flex: 1;
+.itemsContainer {
+  flex: 2;
   height: calc(100vh * 0.7);
   border-radius: 12px;
   overflow-y: auto;
@@ -50,14 +15,14 @@
   gap: 10px;
 }
 
-.taskHeader {
+.header {
   position: sticky;
   top: 0;
   text-align: start;
   border-bottom: 1px solid #a9a8a8;
+  text-align: left;
   background-color: white;
   display: flex;
-  justify-content: space-between;
   padding: 0 1rem;
 }
 
@@ -70,7 +35,7 @@
   place-content: center;
 }
 
-.taskItem {
+.projectItem {
   display: flex;
   justify-content: space-between;
   padding: 0.3rem 1rem;
@@ -78,7 +43,7 @@
   text-align: start;
   border-bottom: 1px solid #f5f5f5;
 
-  .taskTitle {
+  .projectTitle {
     max-width: 400px;
   }
 }

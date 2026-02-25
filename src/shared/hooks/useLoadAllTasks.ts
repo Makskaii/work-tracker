@@ -1,10 +1,10 @@
 // useLoadData.ts
 import { useCallback, useEffect, useState } from "react";
 import { $api } from "../config/axios/axios.config";
-import type { AnyObject, TaskProps } from "../types/types";
+import type { AnyObject } from "../types/types";
 
-interface UseLoadDataResult {
-	data: TaskProps[];
+interface UseLoadDataResult<T> {
+	data: T[];
 	loading: boolean;
 	error: string | null;
 	page: number;
@@ -40,11 +40,11 @@ const fetchWithRetry = async (
 	}
 };
 
-export function useLoadAllData(
+export function useLoadAllData<T>(
 	initialEndpoint: string,
 	initialFilters: AnyObject = {},
-): UseLoadDataResult {
-	const [data, setData] = useState<TaskProps[]>([]);
+): UseLoadDataResult<T> {
+	const [data, setData] = useState<T[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [page, setPage] = useState(1);
@@ -70,7 +70,7 @@ export function useLoadAllData(
 			resultData = response.data.result?.items || [];
 
 			totalCount = response.data.total;
-
+			console.log({ resultData, totalCount });
 			if (nextValue !== null && nextValue > 0 && totalCount > 0) {
 				const allData = [...resultData];
 				let currentStart = start + limit;

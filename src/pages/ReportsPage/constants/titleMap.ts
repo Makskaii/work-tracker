@@ -18,3 +18,22 @@ export const dataArray = (
 		},
 	];
 };
+
+export const Navigation = [
+	{
+		title: "Проекты",
+		path: "projects",
+	},
+	{
+		title: "Сотрудники",
+		path: "employees",
+	},
+	{
+		title: "Занятость",
+		path: "progress",
+	},
+	{
+		title: "Новые отчеты",
+		path: "new-reports",
+	},
+];

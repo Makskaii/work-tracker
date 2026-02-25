@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <Для объектов с разными полями> */
+import type { Dispatch, SetStateAction } from "react";
 import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
 export type AnyObject = {
 	[key: string]: any;
@@ -26,3 +27,41 @@ export interface User {
 	position: string;
 	photo: string;
 }
+
+export type UserReports = {
+	setUser: (id: string) => void;
+	tasks: TaskProps[];
+	projects: { ID: string; VALUE: string }[];
+	setCurrProject: (id: string) => void;
+	setTitle: (id: string) => void;
+	title: string;
+	user: string;
+	users: {
+		id: string;
+		value: string;
+		title: string;
+		position: string;
+		photo: string;
+	}[];
+	userIds: string[];
+	currProject?: string;
+	setMonth: Dispatch<SetStateAction<number>>;
+	setYear: Dispatch<SetStateAction<number>>;
+	month?: number;
+	year?: number;
+};
+
+export interface Status {
+	ID: string;
+	ENTITY_ID: string;
+	STATUS_ID: string;
+	NAME: string;
+	NAME_INIT: string;
+	SORT: string;
+	SYSTEM: string;
+	COLOR: string;
+	SEMANTICS: string;
+	CATEGORY_ID: string;
+}
+
+export type ReportsContext = UserReports;

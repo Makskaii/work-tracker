@@ -4,27 +4,31 @@
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Modal } from "../../../components/modal";
-import { StatsModal } from "../../../components/statistics/EmployeeStats/StatsModal";
-import { ListItem } from "../../../components/userListItem/UserListItem";
-import { Endpoints, TASK_SELECT_FIELDS } from "../../../shared/constants/const";
-import { useLoadAllData } from "../../../shared/hooks/useLoadAllTasks";
-import type { User } from "../../../shared/types/types";
-import { getSrartEndMonthDate } from "../../../shared/utils/utils";
-import type { ContextType } from "../../ReportsPage";
+import { Modal } from "../../../../components/modal";
+import { StatsModal } from "../../../../components/statistics/EmployeeStats/StatsModal";
+import { ListItem } from "../../../../components/userListItem/UserListItem";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "../../../../shared/constants/const";
+import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
+import type { ReportsContext, User } from "../../../../shared/types/types";
+import { getSrartEndMonthDate } from "../../../../shared/utils/utils";
+import type { TaskProps } from "../ProgressReports/types";
 import cls from "./UserReports.module.scss";
 
 export const NewUserReports = () => {
-	const { users, projects, month, year } = useOutletContext<ContextType>();
+	const { users, projects, month, year } = useOutletContext<ReportsContext>();
 	const [open, setOpen] = useState(false);
 	const [activeUser, setActiveUser] = useState<User>();
 
 	const currMonth = month ?? dayjs().month();
 	const currYear = year ?? dayjs().year();
 
-	const { data } = useLoadAllData(Endpoints.reports, {
+	const { data } = useLoadAllData<TaskProps>(Endpoints.reports, {
 		params: {
-			entityTypeId: 1072,
+			entityTypeId: EntityTypeIds.tasks,
 
 			select: TASK_SELECT_FIELDS,
 			filter: {
@@ -97,7 +101,12 @@ export const NewUserReports = () => {
 			></div>
 
 			{activeUser && (
-				<Modal isOpen={open} onClose={() => setOpen(false)} size="covered">
+				<Modal
+					isOpen={open}
+					onClose={() => setOpen(false)}
+					size="covered"
+					innerScroll
+				>
 					<StatsModal user={activeUser} />
 				</Modal>
 			)}

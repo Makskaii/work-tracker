@@ -2,18 +2,20 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
-
 import {
 	months,
 	dtoFieldsCodesUserReports as UserCodes,
-} from "../../components/calendar/constants/const";
-import { AsyncSelect } from "../../components/form/SelectField";
-import { StatucBadge } from "../../components/statusBadge/StatucBadge";
-import { convertNumberFormat } from "../../shared/utils";
-import type { ContextType } from "../ReportsPage";
-import { getTasks } from "./api/getTasks";
-import { getTasksByWeek } from "./api/getTasksByWeek";
-import { groupTasksByProject, groupTasksByWeek } from "./helpers/groupTasks";
+} from "@/components/calendar/constants/const";
+import { AsyncSelect } from "@/components/form/SelectField";
+import { StatucBadge } from "@/components/statusBadge/StatucBadge";
+import type { ReportsContext } from "@/shared/types/types";
+import { convertNumberFormat } from "@/shared/utils";
+import { getTasks } from "../../api/getTasks";
+import { getTasksByWeek } from "../../api/getTasksByWeek";
+import {
+	groupTasksByProject,
+	groupTasksByWeek,
+} from "../../helpers/groupTasks";
 import {
 	type TasksWithProject,
 	type TGroupedTasks,
@@ -26,7 +28,7 @@ const Progress = () => {
 	const [groupedTasks, setGroupedTasks] = useState<TGroupedTasks>({});
 	const [weeks, setWeekTasks] = useState<WeeklyTasks[]>([]);
 	const [tasksToShow, setTasksToShow] = useState<TasksWithProject>();
-	const { users, projects } = useOutletContext<ContextType>();
+	const { users, projects } = useOutletContext<ReportsContext>();
 
 	const methods = useForm<{
 		userId: string;
@@ -39,7 +41,9 @@ const Progress = () => {
 	const handleChange = handleSubmit(async (data) => {
 		try {
 			const res = await getTasksByWeek(data.userId);
-			const tasks = await getTasks(data.userId);
+			const tasks = await getTasks({
+				assygnedById: data.userId,
+			});
 
 			setGroupedTasks(groupTasksByProject(tasks));
 

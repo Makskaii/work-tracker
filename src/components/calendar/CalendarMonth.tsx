@@ -1,10 +1,10 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
-import { classNames } from "../../shared/utils/utils";
+import { classNames } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import cls from "./Calendar.module.scss";
 import { headers, months, years } from "./constants/const";
-import type { ReportProps } from "./helpers/generateMonthDays";
+import type { GroupedReportFields, MonthDays } from "./types/types";
 
 const CalendarMonth = ({
 	monthDays,
@@ -17,34 +17,7 @@ const CalendarMonth = ({
 	getCurrentMonthName,
 	handleToday,
 }: {
-	monthDays: (
-		| {
-				id: string;
-				date: null;
-				dayNumber: null;
-				dayName: string;
-				fullDayName: string;
-				isToday: boolean;
-				isWeekend: boolean;
-				isCurrentMonth: boolean;
-				isEmpty: boolean;
-				totalHours?: undefined;
-				reports?: undefined;
-		  }
-		| {
-				id: string;
-				date: Date;
-				dayNumber: number;
-				dayName: string;
-				fullDayName: string;
-				isToday: boolean;
-				isWeekend: boolean;
-				isCurrentMonth: boolean;
-				isEmpty: boolean;
-				totalHours: number | null;
-				reports: ReportProps[];
-		  }
-	)[];
+	monthDays: MonthDays[];
 	handlePrevMonth: () => void;
 	selectedMonth: number;
 	selectedYear: number;
@@ -55,7 +28,7 @@ const CalendarMonth = ({
 	handleToday: () => void;
 }) => {
 	const [open, setOpen] = useState(false);
-	const [activeReport, setActiveReports] = useState<ReportProps[]>([]);
+	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 
 	return (
 		<div className={cls.calendar}>

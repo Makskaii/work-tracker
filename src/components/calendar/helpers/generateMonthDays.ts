@@ -1,12 +1,4 @@
-export interface ReportProps {
-	id: string;
-	title: string;
-	day: string;
-	taskId: string;
-	timeSpent: number;
-	responsible: string;
-	activityType?: number;
-}
+import type { GroupedReportFields } from "../types/types";
 
 const getDaysInMonth = (year: number, month: number) => {
 	return new Date(year, month + 1, 0).getDate();
@@ -17,10 +9,10 @@ const getDayName = (date: Date) => {
 };
 
 const groupReportsByDate = (
-	reports: ReportProps[],
+	reports: GroupedReportFields[],
 ): {
 	[key: string]: {
-		reports: ReportProps[];
+		reports: GroupedReportFields[];
 		total: number;
 	};
 } => {
@@ -28,7 +20,7 @@ const groupReportsByDate = (
 		(
 			groups: {
 				[key: string]: {
-					reports: ReportProps[];
+					reports: GroupedReportFields[];
 					total: number;
 				};
 			},
@@ -59,7 +51,7 @@ export const generateMonthDays = ({
 }: {
 	selectedYear: number;
 	selectedMonth: number;
-	reports: ReportProps[];
+	reports: GroupedReportFields[];
 }) => {
 	const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
 	const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);

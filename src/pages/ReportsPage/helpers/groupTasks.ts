@@ -1,6 +1,6 @@
 import { dtoFieldsCodesUserReports as UserCodes } from "../../../components/calendar/constants/const";
 import type { AnyObject } from "../../../shared/types/types";
-import type { KanbanTask } from "../types";
+import type { TaskProps } from "../ui/ProgressReports/types";
 
 export const groupTasksByWeek = (res: AnyObject[]) => {
 	const result = res.map((item, i) => {
@@ -20,7 +20,7 @@ export const groupTasksByWeek = (res: AnyObject[]) => {
 	return result;
 };
 
-export const groupTasksByProject = (tasks: KanbanTask[]) => {
+export const groupTasksByProject = (tasks: TaskProps[]) => {
 	return Object.groupBy(tasks, (task) => {
 		return task[UserCodes.project] ?? "unknown";
 	});

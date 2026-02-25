@@ -225,7 +225,7 @@ td::after {
     cursor: pointer;
 
     .worked-hours-bg {
-        border-radius: inherit;
+        border-radius: 5px 0 0 5px;
         position: absolute;
         bottom: 0;
         left: 0;
@@ -233,6 +233,7 @@ td::after {
         height: 100%;
         background-color: rgb(76, 175, 80, 0.3);
         transition: width 0.3s ease-out;
+        border-radius: none;
     }
 
     &.empty {
