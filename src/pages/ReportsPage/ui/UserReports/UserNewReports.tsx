@@ -26,14 +26,17 @@ export const NewUserReports = () => {
 	const currMonth = month ?? dayjs().month();
 	const currYear = year ?? dayjs().year();
 
-	const { data } = useLoadAllData<TaskProps>(Endpoints.reports, {
-		params: {
-			entityTypeId: EntityTypeIds.tasks,
+	const { data } = useLoadAllData<TaskProps>({
+		initialEndpoint: Endpoints.reports,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.tasks,
 
-			select: TASK_SELECT_FIELDS,
-			filter: {
-				">=createdTime": getSrartEndMonthDate("start", currMonth, currYear),
-				"<=createdTime": getSrartEndMonthDate("end", currMonth, currYear),
+				select: TASK_SELECT_FIELDS,
+				filter: {
+					">=createdTime": getSrartEndMonthDate("start", currMonth, currYear),
+					"<=createdTime": getSrartEndMonthDate("end", currMonth, currYear),
+				},
 			},
 		},
 	});

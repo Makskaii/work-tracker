@@ -1,10 +1,8 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
-import type { ReportsContext } from "@/shared/types/types";
 import { CalendarMonth, WeekCalendar } from ".";
 import {
 	dtoFieldsCodesDailyReports,
@@ -16,32 +14,60 @@ import type { GroupedReportFields, ReportProps } from "./types/types";
 
 export const Calendar = ({
 	view,
+	userId,
 }: {
 	view: "month" | "week";
 	userId: string;
 }) => {
-	const { user } = useOutletContext<ReportsContext>();
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
 
-	const { data } = useLoadAllData<ReportProps>(Endpoints.reports, {
-		params: {
-			entityTypeId: EntityTypeIds.reports,
+	const { data, setFilters } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.reports,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.reports,
 
-			select: selectFields,
+				select: selectFields,
 
-			filter: {
-				">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
-				"<=begindate": new Date(
-					selectedYear,
-					selectedMonth + 1,
-					1,
-				).toISOString(),
-				assignedById: user,
+				filter: {
+					">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
+					"<=begindate": new Date(
+						selectedYear,
+						selectedMonth + 1,
+						1,
+					).toISOString(),
+					assignedById: userId,
+				},
 			},
 		},
 	});
+
+	useEffect(() => {
+		if (userId)
+			setFilters({
+				params: {
+					entityTypeId: EntityTypeIds.reports,
+
+					select: selectFields,
+
+					filter: {
+						">=begindate": new Date(
+							selectedYear,
+							selectedMonth,
+							1,
+						).toISOString(),
+						"<=begindate": new Date(
+							selectedYear,
+							selectedMonth + 1,
+							1,
+						).toISOString(),
+						assignedById: userId,
+					},
+				},
+			});
+	}, [userId, selectedMonth, selectedYear, setFilters]);
 
 	useEffect(() => {
 		if (data)
@@ -57,15 +83,6 @@ export const Calendar = ({
 				})),
 			);
 	}, [data]);
-
-	// 			);
-	// 		} catch {
-	// 			console.log("Ошибка при получении списка задач");
-	// 		}
-	// 	};
-
-	// 	user && getReports();
-	// }, [selectedMonth, selectedYear, user]);
 
 	const monthDays = generateMonthDays({
 		selectedYear,
