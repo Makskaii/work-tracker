@@ -31,7 +31,7 @@ export interface User {
 export type UserReports = {
 	setUser: (id: string) => void;
 	tasks: TaskProps[];
-	projects: { ID: string; VALUE: string }[];
+	projects: { ID: string; NAME: string }[];
 	setCurrProject: (id: string) => void;
 	setTitle: (id: string) => void;
 	title: string;

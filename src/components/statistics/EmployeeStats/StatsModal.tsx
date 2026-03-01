@@ -184,7 +184,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 										<div>
 											{
 												projects.find((project) => project.ID === projectId)
-													?.VALUE
+													?.NAME
 											}
 										</div>
 										<div> {tasks?.length}</div>

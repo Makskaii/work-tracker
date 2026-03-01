@@ -19,6 +19,7 @@ export const Endpoints = {
 	reports: "crm.item.list",
 	crmFeilds: "crm.item.fields",
 	status: "crm.status.list",
+	lists: "lists.element.get",
 };
 
 export const EntityTypeIds = {

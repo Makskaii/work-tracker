@@ -272,6 +272,24 @@ td::after {
         color: #999;
         border-color: #eee;
     }
+
+
+    &.fullday {
+        border: 1px solid rgb(76, 175, 80, 0.3);
+    }
+
+    &.incompleteday {
+        border: 1px solid rgb(255, 0, 0);
+        color: red
+    }
+
+
+    &.overTime {
+        border: 1px solid #d400ff;
+        color: #d400ff
+    }
+
+
 }
 
 .day-number {

@@ -12,7 +12,7 @@ export const ProjectsStats = ({
 }: {
 	project: {
 		ID: string;
-		VALUE: string;
+		NAME: string;
 	};
 }) => {
 	const { tasks } = useOutletContext<ReportsContext>();

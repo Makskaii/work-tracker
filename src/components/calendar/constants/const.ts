@@ -35,6 +35,14 @@ export const headers: {
 		key: "taskId",
 	},
 	{
+		title: "Проект",
+		key: "project",
+	},
+	{
+		title: "Активность",
+		key: "activity",
+	},
+	{
 		title: "Время",
 		key: "timeSpent",
 		convertFn: convertToMinutesOrHours,
@@ -51,14 +59,14 @@ export enum dtoFieldsCodesDailyReports {
 	title = "ufCrm11_1770627903531",
 	timeSpent = "ufCrm11_1770627880479",
 	taskId = "ufCrm11_1770627808462",
-	project = "ufCrm11_1770393502397",
+	project = "ufCrm11_1772012010",
 }
 
 export enum dtoFieldsCodesUserReports {
 	description = "ufCrm14_1770731622242",
 	stage = "ufCrm14_1770890673468",
 	estimateTime = "ufCrm14_1770731674952",
-	project = "ufCrm14_1770801014487",
+	project = "ufCrm14_1772011269",
 	reportDate = "ufCrm14_1771314375250",
 	timeSpent = "ufCrm14_1771314387497",
 	comment = "ufCrm14_1771314401297",
