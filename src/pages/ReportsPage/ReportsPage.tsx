@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { EntityTypeIds } from "@/shared/constants/const";
 import type {
 	AnyObject,
 	ReportsContext,
@@ -11,7 +10,7 @@ import type {
 	TaskProps,
 } from "@/shared/types/types";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
-import { getCrmFields } from "./api/getCrmFields";
+import { getProjectsFromList } from "./api/getCrmFields";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
 import { getTasks } from "./api/getTasks";
@@ -25,7 +24,7 @@ const ReportsPage = () => {
 	const [projects, setProjects] = useState<
 		{
 			ID: string;
-			VALUE: string;
+			NAME: string;
 		}[]
 	>([]);
 	const [users, setUsers] = useState<
@@ -95,16 +94,13 @@ const ReportsPage = () => {
 	}, []);
 
 	useEffect(() => {
-		const getProjectsAsCRMfields = async () => {
-			const response = await getCrmFields(
-				EntityTypeIds.tasks,
-				"ufCrm14_1770801014487",
-			);
+		const fetchProjects = async () => {
+			const response = await getProjectsFromList();
 
 			setProjects(response);
 		};
 
-		getProjectsAsCRMfields();
+		fetchProjects();
 	}, []);
 
 	return (

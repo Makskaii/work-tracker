@@ -96,6 +96,13 @@ const CalendarMonth = ({
 							[cls.today]: day.isToday,
 							[cls.weekend]: day.isWeekend,
 							[cls["other-month"]]: !day.isCurrentMonth,
+							[cls.fullday]:
+								day.totalHours && day.totalHours === 8 ? true : false,
+							[cls.incompleteday]:
+								day.totalHours && day.totalHours < 8 ? true : false,
+
+							[cls.overTime]:
+								day.totalHours && day.totalHours > 8 ? true : false,
 						})}
 						onClick={() => {
 							day.reports && setActiveReports(day.reports);
@@ -105,25 +112,38 @@ const CalendarMonth = ({
 						<div className={cls["day-number"]}>{day.dayNumber}</div>
 						<div className={cls["day-name"]}>{day.dayName}</div>
 						{day.totalHours && (
-							<div
-								style={{
-									position: "absolute",
-									bottom: 0,
-									right: 0,
-									fontSize: "12px",
-									padding: "10px",
-								}}
-							>
-								Отчет
-							</div>
+							<>
+								<div
+									style={{
+										position: "absolute",
+										bottom: 0,
+										right: 0,
+										fontSize: "12px",
+										padding: "10px",
+									}}
+								>
+									Отчет
+								</div>
+								<div
+									style={{
+										position: "absolute",
+										right: 0,
+										top: 0,
+										fontSize: "12px",
+										padding: "10px",
+									}}
+								>
+									{day.totalHours} ч.
+								</div>
+								<div
+									className={cls["worked-hours-bg"]}
+									style={{
+										width: `${((day.totalHours || 0) / 8) * 100}%`,
+										maxWidth: "100%",
+									}}
+								/>
+							</>
 						)}
-						<div
-							className={cls["worked-hours-bg"]}
-							style={{
-								width: `${((day.totalHours || 0) / 8) * 100}%`,
-								maxWidth: "100%",
-							}}
-						/>
 					</div>
 				))}
 			</div>

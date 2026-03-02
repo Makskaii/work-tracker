@@ -22,6 +22,7 @@ export interface GroupedReportFields {
 	day: string;
 	project: number;
 	assignedById: string;
+	activity?: string;
 }
 
 export interface MonthDays {

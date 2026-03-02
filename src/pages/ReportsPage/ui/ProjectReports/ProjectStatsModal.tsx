@@ -12,14 +12,14 @@ export const ProjectsStats = ({
 }: {
 	project: {
 		ID: string;
-		VALUE: string;
+		NAME: string;
 	};
 }) => {
 	const { tasks } = useOutletContext<ReportsContext>();
 	const borders = getWeekBorders(dayjs());
 
 	const { data } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,

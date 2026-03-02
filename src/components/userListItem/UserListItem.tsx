@@ -20,7 +20,7 @@ export const ListItem = memo(function ListIten({
 	task?: TaskProps;
 	projects: {
 		ID: string;
-		VALUE: string;
+		NAME: string;
 	}[];
 	onClick: () => void;
 }) {
@@ -71,7 +71,7 @@ export const ListItem = memo(function ListIten({
 			>
 				{
 					projects.find((proj) => Number(proj.ID) === task?.[UserCodes.project])
-						?.VALUE
+						?.NAME
 				}
 			</div>
 		</div>

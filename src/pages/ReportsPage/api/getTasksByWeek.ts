@@ -12,7 +12,7 @@ export const getTasksByWeek = async (userId: string) => {
 
 	const result = await Promise.all(
 		currMonthWeeks.map((week) =>
-			$api.get(Endpoints.reports, {
+			$api.get(Endpoints.crmItems, {
 				params: {
 					entityTypeId: EntityTypeIds.tasks,
 					select: [

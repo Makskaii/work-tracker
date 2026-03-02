@@ -16,9 +16,10 @@ export const Endpoints = {
 	tasks: "tasks.task.list",
 	groups: "sonet_group.get",
 	users: "user.get",
-	reports: "crm.item.list",
+	crmItems: "crm.item.list",
 	crmFeilds: "crm.item.fields",
 	status: "crm.status.list",
+	lists: "lists.element.get",
 };
 
 export const EntityTypeIds = {

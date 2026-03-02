@@ -4,11 +4,7 @@ import { useEffect, useState } from "react";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { CalendarMonth, WeekCalendar } from ".";
-import {
-	dtoFieldsCodesDailyReports,
-	months,
-	selectFields,
-} from "./constants/const";
+import { dtoFieldsCodesDailyReports, months } from "./constants/const";
 import { generateMonthDays, getWeek } from "./helpers/generateMonthDays";
 import type { GroupedReportFields, ReportProps } from "./types/types";
 
@@ -24,12 +20,12 @@ export const Calendar = ({
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 
-				select: selectFields,
+				// select: selectFields,
 
 				filter: {
 					">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
@@ -50,7 +46,7 @@ export const Calendar = ({
 				params: {
 					entityTypeId: EntityTypeIds.reports,
 
-					select: selectFields,
+					// select: selectFields,
 
 					filter: {
 						">=begindate": new Date(

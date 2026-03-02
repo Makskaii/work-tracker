@@ -27,7 +27,7 @@ export const NewUserReports = () => {
 	const currYear = year ?? dayjs().year();
 
 	const { data } = useLoadAllData<TaskProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
