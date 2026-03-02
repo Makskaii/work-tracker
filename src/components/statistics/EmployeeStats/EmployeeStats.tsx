@@ -1,6 +1,6 @@
-import { statsFields } from "../../../shared/constants/const";
-import type { TaskProps } from "../../../shared/types/types";
-import { getStatsByEmplyee } from "../../../shared/utils/statisticUtils/getStatsByEmplyee";
+import { statsFields } from "@/shared/constants/const";
+import type { TaskProps } from "@/shared/types/types";
+import { getStatsByEmplyee } from "@/shared/utils/statisticUtils/getStatsByEmplyee";
 import cls from "./Emplyee.module.scss";
 
 export const EmployeeStats = ({ tasks }: { tasks: TaskProps[] }) => {

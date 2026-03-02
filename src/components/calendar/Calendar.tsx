@@ -20,7 +20,7 @@ export const Calendar = ({
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,

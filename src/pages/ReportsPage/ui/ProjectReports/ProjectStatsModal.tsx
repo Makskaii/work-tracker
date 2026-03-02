@@ -19,7 +19,7 @@ export const ProjectsStats = ({
 	const borders = getWeekBorders(dayjs());
 
 	const { data } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,

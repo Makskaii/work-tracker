@@ -19,9 +19,17 @@ import { UserCard } from "../../userCard/UserCard";
 import { EmployeeStats } from "./EmployeeStats";
 import { TasksList } from "./TasksList";
 
+const mockdates = [
+	"2026.02.02",
+	"2026.02.09",
+	"2026.02.16",
+	"2026.02.23",
+	"2026.03.02",
+];
+
 export const StatsModal = ({ user }: { user: User }) => {
-	const [date, _setDate] = useState<dayjs.Dayjs | Date>(dayjs());
-	const borders = useMemo(() => getWeekBorders(dayjs(date)), [date]);
+	const [day, setDay] = useState(mockdates.length - 1);
+	const borders = useMemo(() => getWeekBorders(dayjs(mockdates[day])), [day]);
 	const { setUser, projects } = useOutletContext<ReportsContext>();
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -29,7 +37,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 	useEffect(() => {
 		const getTasks = async () => {
 			try {
-				const response = await $api.get(Endpoints.reports, {
+				const response = await $api.get(Endpoints.crmItems, {
 					params: {
 						entityTypeId: EntityTypeIds.tasks,
 
@@ -99,7 +107,9 @@ export const StatsModal = ({ user }: { user: User }) => {
 							background: "white",
 							color: "#aeacac",
 						}}
-						onClick={() => console.log(dayjs(borders.startOfTheWeek).day())}
+						onClick={() => {
+							day > 0 && setDay((prev) => prev - 1);
+						}}
 					>
 						пред. спринт
 					</button>
@@ -109,7 +119,9 @@ export const StatsModal = ({ user }: { user: User }) => {
 							background: "white",
 							color: "#aeacac",
 						}}
-						onClick={() => console.log(dayjs(borders.endOfTheWeek).format())}
+						onClick={() => {
+							day < mockdates.length - 1 && setDay((prev) => prev + 1);
+						}}
 					>
 						след. спринт
 					</button>
