@@ -29,10 +29,6 @@ export const Navigation = [
 		path: "employees",
 	},
 	{
-		title: "Занятость",
-		path: "progress",
-	},
-	{
 		title: "Новые отчеты",
 		path: "new-reports",
 	},

@@ -10,16 +10,11 @@ export const EmployeeStats = ({ tasks }: { tasks: TaskProps[] }) => {
 		(stat) => stat.title === "Всего задач",
 	)?.estimateTime;
 
-	const SpentTime = stats.find(
-		(stat) => stat.title === "Выполнено задач",
-	)?.estimateTime;
-
 	return (
 		<div>
 			<div className={cls.headerContainer}>
 				<span> Загруженность {estimateTime}/40 ч.</span>
 				<span> {estimateTime && `Ререзв ${40 - estimateTime}ч.`}</span>
-				<span> Выполнено {`${SpentTime} / ${estimateTime}ч.`}</span>
 			</div>
 			<div className={cls.container}>
 				{stats.map((stat) => (
