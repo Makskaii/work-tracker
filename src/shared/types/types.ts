@@ -26,6 +26,7 @@ export interface User {
 	title: string;
 	position: string;
 	photo: string;
+	department: number;
 }
 
 export type UserReports = {
@@ -36,13 +37,7 @@ export type UserReports = {
 	setTitle: (id: string) => void;
 	title: string;
 	user: string;
-	users: {
-		id: string;
-		value: string;
-		title: string;
-		position: string;
-		photo: string;
-	}[];
+	users: User[];
 	userIds: string[];
 	currProject?: string;
 	setMonth: Dispatch<SetStateAction<number>>;

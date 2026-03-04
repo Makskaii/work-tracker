@@ -1,17 +1,12 @@
 import { useFormContext } from "react-hook-form";
+import type { AnyObject, User } from "@/shared/types/types";
 
 export const AsyncSelect = ({
 	options,
 	name,
 	placeholder,
 }: {
-	options: {
-		ID?: string;
-		VALUE?: string;
-		id?: string;
-		value?: string;
-		title?: string;
-	}[];
+	options: User[] | AnyObject[];
 	name: string;
 	placeholder: string;
 }) => {
@@ -34,8 +29,15 @@ export const AsyncSelect = ({
 				{placeholder}
 			</option>
 			{options?.map((item) => (
-				<option value={item.ID ?? item.id} key={item.ID ?? item.id}>
-					{item.VALUE ?? item.title}
+				<option
+					value={item.id}
+					key={item.id}
+					style={{
+						background:
+							item.department === 23 ? "rgb(76, 175, 80, 0.3)" : "#ff9800",
+					}}
+				>
+					{item.title}
 				</option>
 			))}
 		</select>

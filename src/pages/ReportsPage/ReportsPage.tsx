@@ -6,10 +6,10 @@ import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
 import type {
-	AnyObject,
 	ReportsContext,
 	Status,
 	TaskProps,
+	User,
 } from "@/shared/types/types";
 import { getProjectsFromList } from "../../shared/api/getCrmFields";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
@@ -29,15 +29,7 @@ const ReportsPage = () => {
 			NAME: string;
 		}[]
 	>([]);
-	const [users, setUsers] = useState<
-		{
-			id: string;
-			value: string;
-			title: string;
-			position: string;
-			photo: string;
-		}[]
-	>([]);
+	const [users, setUsers] = useState<User[]>([]);
 	const [currProject, setCurrProject] = useState("");
 	const [title, setTitle] = useState("");
 	const [user, setUser] = useState("");
@@ -58,13 +50,16 @@ const ReportsPage = () => {
 			const response = await getDevelopers();
 
 			setUsers(
-				response.map((task: AnyObject) => ({
-					id: task.ID,
-					value: task.NAME + task.LAST_NAME,
-					title: task.NAME + " " + task.LAST_NAME,
-					position: task.WORK_POSITION,
-					photo: task.PERSONAL_PHOTO,
-				})),
+				response
+					.map((user) => ({
+						id: user.ID,
+						value: user.NAME + user.LAST_NAME,
+						title: user.NAME + " " + user.LAST_NAME,
+						position: user.WORK_POSITION,
+						photo: user.PERSONAL_PHOTO,
+						department: user.UF_DEPARTMENT[0],
+					}))
+					.toSorted((a, b) => a.department - b.department),
 			);
 		};
 

@@ -83,17 +83,19 @@ export const NewUserReports = () => {
 							setOpen(true);
 						}}
 					>
-						{users.map((user) => (
-							<ListItem
-								key={user.id}
-								user={user}
-								task={filteredTasks.find(
-									(task) => task.assignedById === Number(user.id),
-								)}
-								projects={projects}
-								onClick={() => setActiveUser(user)}
-							/>
-						))}
+						{users
+							.filter((user) => user.department === 23)
+							.map((user) => (
+								<ListItem
+									key={user.id}
+									user={user}
+									task={filteredTasks.find(
+										(task) => task.assignedById === Number(user.id),
+									)}
+									projects={projects}
+									onClick={() => setActiveUser(user)}
+								/>
+							))}
 					</div>
 				</div>
 			</div>
