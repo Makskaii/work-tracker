@@ -9,7 +9,7 @@ export interface ReportProps {
 	[dtoFieldsCodesDailyReports.taskId]: string;
 	[dtoFieldsCodesDailyReports.timeSpent]: string;
 	[dtoFieldsCodesDailyReports.title]: string;
-	[dtoFieldsCodesDailyReports.activityType]: string;
+	[dtoFieldsCodesDailyReports.activityType]: number;
 	assignedById: string;
 	lastActivityTime: string;
 }
@@ -23,7 +23,7 @@ export interface GroupedReportFields {
 	day: string;
 	project: number;
 	assignedById: string;
-	activity?: string;
+	activity?: number;
 }
 
 export interface MonthDays {

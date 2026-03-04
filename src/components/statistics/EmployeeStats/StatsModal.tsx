@@ -144,9 +144,12 @@ export const StatsModal = ({ user }: { user: User }) => {
 							top: 0,
 							background: "white",
 							padding: "0.5rem 0",
+							display: "flex",
+							justifyContent: "space-between",
 						}}
 					>
-						Задачи спринта:
+						<span> Задачи спринта:</span>
+						<span>Времени затрачено/Оценка</span>
 					</div>
 					<TasksList tasks={tasks} userId={user.id} />
 				</div>
@@ -184,6 +187,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 							>
 								{Object.entries(grouped).map(([projectId, tasks]) => (
 									<div
+										key={projectId}
 										style={{
 											display: "flex",
 											justifyContent: "space-between",

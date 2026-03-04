@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Modal } from "../../../../components/modal";
-import { $api } from "../../../../shared/config";
-import { Endpoints } from "../../../../shared/constants/const";
 import type { ReportsContext } from "../../../../shared/types/types";
 import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
@@ -14,38 +12,13 @@ const ProjectsReports = () => {
 		NAME: string;
 	}>();
 
-	const { setCurrProject } = useOutletContext<ReportsContext>();
-
-	const [projects, setProjects] = useState<
-		{
-			ID: string;
-			NAME: string;
-		}[]
-	>([]);
+	const { setCurrProject, projects } = useOutletContext<ReportsContext>();
 
 	useEffect(() => {
 		if (!open) {
 			setCurrProject("");
 		}
 	}, [open, setCurrProject]);
-
-	useEffect(() => {
-		const getProjectsAsCRMfields = async () => {
-			try {
-				const response = await $api.post(Endpoints.lists, {
-					IBLOCK_TYPE_ID: "lists",
-					IBLOCK_ID: "23",
-					SELECT: ["ID", "NAME"],
-				});
-
-				setProjects(response.data.result);
-			} catch {
-				console.log("Ошибка при получении списка задач");
-			}
-		};
-
-		getProjectsAsCRMfields();
-	}, []);
 
 	return (
 		<>

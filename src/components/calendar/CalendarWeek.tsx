@@ -8,8 +8,6 @@ import cls from "./WeekCalendar.module.scss";
 
 const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 	const HOUR_HEIGHT = 800 / 8;
-	const START_HOUR = 10;
-	const END_HOUR = 19;
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReport, setActiveReport] = useState<GroupedReportFields>();
 
@@ -46,7 +44,6 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 						borderLeft: "4px solid #f3e300",
 					}}
 				>
-					{" "}
 					{ActivityTitle[ActivityType.analitycsCall]}
 				</div>
 				<div
@@ -72,23 +69,6 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 					display: "flex",
 				}}
 			>
-				<div>
-					<div
-						style={{
-							height: "92px",
-						}}
-					>
-						Время
-					</div>
-					{Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
-						const hour = START_HOUR + i;
-						return (
-							<div key={hour} style={{ height: HOUR_HEIGHT }}>
-								<span>{hour}:00</span>
-							</div>
-						);
-					})}
-				</div>
 				{week.map((day) => (
 					<div
 						key={day.id}
@@ -140,6 +120,9 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 											height: HOUR_HEIGHT * +report.timeSpent,
 											maxWidth: "200px",
 											...getColorAdnBorder(report),
+											display: "flex",
+											flexDirection: "row",
+											justifyContent: "space-between",
 										}}
 										className={cls.reportItem}
 										onClick={() => {
@@ -147,7 +130,20 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 											setActiveReport(report);
 										}}
 									>
-										{report.title}{" "}
+										<span
+											style={{
+												textAlign: "left",
+											}}
+										>
+											{report.title}
+										</span>
+										<span
+											style={{
+												whiteSpace: "nowrap",
+											}}
+										>
+											{convertToMinutesOrHours(report.timeSpent)}
+										</span>
 									</div>
 								))}
 							</div>
@@ -177,7 +173,7 @@ const WeekCalendar = ({ week }: { week: DayProps[] }) => {
 								justifyContent: "space-between",
 							}}
 						>
-							{ActivityTitle[activeReport?.project ?? ActivityType.dash]}
+							{ActivityTitle[activeReport?.activity ?? ActivityType.dash]}
 							<div
 								style={{
 									padding: "0 0.5rem",

@@ -2,7 +2,7 @@ import { ActivityType } from "../constants/const";
 import type { GroupedReportFields } from "../types/types";
 
 export const getColorAdnBorder = (report: GroupedReportFields) => {
-	switch (report.project) {
+	switch (report.activity) {
 		case ActivityType.development:
 			return {
 				background: "rgba(76, 175, 80, 0.2)",
