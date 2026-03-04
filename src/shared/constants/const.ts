@@ -12,6 +12,8 @@ import type { TaskProps } from "../types/types";
 // 	6: "отложена",
 // };
 
+export const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
 export const Endpoints = {
 	tasks: "tasks.task.list",
 	groups: "sonet_group.get",
