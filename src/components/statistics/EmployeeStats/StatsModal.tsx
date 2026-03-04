@@ -151,7 +151,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 						<span> Задачи спринта:</span>
 						<span>Времени затрачено/Оценка</span>
 					</div>
-					<TasksList tasks={tasks} userId={user.id} />
+					<TasksList tasks={tasks} userId={user.id} borders={borders} />
 				</div>
 				<div
 					style={{

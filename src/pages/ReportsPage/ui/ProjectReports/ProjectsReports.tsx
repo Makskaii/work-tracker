@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useOutletContext } from "react-router";
 import { Modal } from "../../../../components/modal";
 import type { ReportsContext } from "../../../../shared/types/types";
@@ -12,13 +12,7 @@ const ProjectsReports = () => {
 		NAME: string;
 	}>();
 
-	const { setCurrProject, projects } = useOutletContext<ReportsContext>();
-
-	useEffect(() => {
-		if (!open) {
-			setCurrProject("");
-		}
-	}, [open, setCurrProject]);
+	const { projects } = useOutletContext<ReportsContext>();
 
 	return (
 		<>
@@ -30,7 +24,6 @@ const ProjectsReports = () => {
 							key={proj.ID}
 							className={styles.projectItem}
 							onClick={() => {
-								setCurrProject(proj.ID);
 								setActiveProject(proj);
 								setOpen(true);
 							}}
@@ -49,7 +42,12 @@ const ProjectsReports = () => {
 			</div>
 
 			{activeProject && (
-				<Modal isOpen={open} onClose={() => setOpen(false)} innerScroll>
+				<Modal
+					isOpen={open}
+					onClose={() => setOpen(false)}
+					innerScroll
+					size="covered"
+				>
 					<ProjectsStats project={activeProject} />
 				</Modal>
 			)}

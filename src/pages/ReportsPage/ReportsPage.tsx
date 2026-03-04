@@ -43,7 +43,7 @@ const ReportsPage = () => {
 	const [user, setUser] = useState("");
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
-	const [_statuses, setStatuses] = useState<Status[]>([]);
+	const [statuses, setStatuses] = useState<Status[]>([]);
 
 	const userIds = useMemo(() => {
 		if (!users) return [];
@@ -163,6 +163,7 @@ const ReportsPage = () => {
 							month,
 							setYear,
 							year,
+							statuses,
 						} satisfies ReportsContext
 					}
 				/>

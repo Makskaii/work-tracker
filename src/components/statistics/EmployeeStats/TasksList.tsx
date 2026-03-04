@@ -4,17 +4,22 @@ import {
 	dtoFieldsCodesUserReports,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
+import { TaskItem } from "@/components/taskItem/TaskItemSimple";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { TaskProps } from "../../../shared/types/types";
-import { StatucBadge } from "../../statusBadge/StatucBadge";
 
 export const TasksList = ({
 	tasks,
 	userId,
+	borders,
 }: {
 	tasks: TaskProps[];
 	userId: string;
+	borders: {
+		startOfTheWeek: string;
+		endOfTheWeek: string;
+	};
 }) => {
 	const [reports, setReports] = useState<{
 		[key: string]: ReportProps[];
@@ -31,6 +36,8 @@ export const TasksList = ({
 								filter: {
 									[dtoFieldsCodesDailyReports.taskId]: task.id,
 									assignedById: userId,
+									">=begindate": borders.startOfTheWeek,
+									"<=begindate": borders.endOfTheWeek,
 								},
 							},
 						}),
@@ -52,7 +59,7 @@ export const TasksList = ({
 		};
 
 		if (userId) getReportsByTask();
-	}, [tasks, userId]);
+	}, [tasks, userId, borders.endOfTheWeek, borders.startOfTheWeek]);
 
 	return (
 		<div
@@ -68,39 +75,12 @@ export const TasksList = ({
 				}, 0);
 
 				return (
-					<div
+					<TaskItem
+						task={task}
+						estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
+						timeSpent={timespent}
 						key={task.id}
-						style={{
-							display: "flex",
-							border: "1px solid #ccc",
-							padding: "10px",
-							borderRadius: "12px",
-							justifyContent: "space-between",
-						}}
-					>
-						<div
-							style={{
-								display: "flex",
-								alignItems: "center",
-								maxWidth: "80%",
-							}}
-						>
-							<StatucBadge status={task.stageId} />
-							<span
-								style={{
-									overflow: "hidden",
-									textOverflow: "ellipsis",
-									whiteSpace: "nowrap",
-									maxWidth: "100%",
-								}}
-							>
-								{task.title}
-							</span>
-						</div>
-						<span>
-							{timespent ?? 0}/{task[dtoFieldsCodesUserReports.estimateTime]} ч
-						</span>
-					</div>
+					/>
 				);
 			})}
 		</div>
