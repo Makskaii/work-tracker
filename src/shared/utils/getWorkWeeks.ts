@@ -1,3 +1,6 @@
+import dayjs from "dayjs";
+import { days } from "../constants/const";
+
 export const getWorkWeeks = (
 	month: number,
 	year: number,
@@ -54,4 +57,14 @@ const formatLocalDate = (date: Date): string => {
 	const month = String(date.getMonth() + 1).padStart(2, "0");
 	const day = String(date.getDate()).padStart(2, "0");
 	return `${year}-${month}-${day}`;
+};
+
+export const getWeekArray = (start: string) => {
+	const startDate = dayjs(start);
+	const week = Array.from({ length: 7 }).map((_, index) => ({
+		day: startDate.add(index, "day").format("YYYY.MM.DD"),
+		name: days[dayjs(startDate.add(index, "day")).day()],
+	}));
+
+	return week;
 };

@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
+import { useOutletContext } from "react-router";
+import type { ReportsContext } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import cls from "./Calendar.module.scss";
@@ -29,6 +31,7 @@ const CalendarMonth = ({
 }) => {
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
+	const { projects } = useOutletContext<ReportsContext>();
 
 	return (
 		<div className={cls.calendar}>
@@ -171,12 +174,13 @@ const CalendarMonth = ({
 							</thead>
 							<tbody>
 								{activeReport.map((item) => {
+									console.log(activeReport);
 									return (
 										<tr key={item.id}>
 											{headers.map((rep) => (
 												<td key={rep.key}>
 													{rep.convertFn
-														? rep.convertFn(item[rep.key] as number)
+														? rep.convertFn(item[rep.key] as number, projects)
 														: String(item[rep.key])}
 												</td>
 											))}

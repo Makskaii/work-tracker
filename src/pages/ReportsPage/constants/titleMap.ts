@@ -26,14 +26,10 @@ export const Navigation = [
 	},
 	{
 		title: "Сотрудники",
-		path: "employees",
-	},
-	{
-		title: "Занятость",
-		path: "progress",
-	},
-	{
-		title: "Новые отчеты",
 		path: "new-reports",
+	},
+	{
+		title: "Календарь",
+		path: "employees",
 	},
 ];

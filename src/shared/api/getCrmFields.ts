@@ -27,3 +27,23 @@ export const getProjectsFromList = async (): Promise<
 		return [];
 	}
 };
+
+export const getActivities = async () => {
+	try {
+		const response = await $api.post(Endpoints.crmFeilds, {
+			entityTypeId: 1060,
+		});
+
+		const items = response.data.result;
+
+		if (!Array.isArray(items)) {
+			console.warn("Expected items to be an array, but got:", items);
+			return [];
+		}
+
+		return items;
+	} catch (error) {
+		console.error(`Failed to fetch fields`, error);
+		return [];
+	}
+};
