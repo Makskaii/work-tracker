@@ -3,8 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { $api } from "@/shared/config";
-import { Endpoints } from "@/shared/constants/const";
 import type {
 	ReportsContext,
 	Status,
@@ -98,18 +96,6 @@ const ReportsPage = () => {
 		};
 
 		fetchProjects();
-	}, []);
-
-	useEffect(() => {
-		const fetchFields = async () => {
-			const response = await $api.post(Endpoints.crmFeilds, {
-				entityTypeId: 1060,
-			});
-
-			console.log(response);
-		};
-
-		fetchFields();
 	}, []);
 
 	return (

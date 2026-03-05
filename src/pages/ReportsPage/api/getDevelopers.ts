@@ -29,7 +29,7 @@ export const getDevelopers = async (): Promise<
 		});
 
 		const items = response.data?.result;
-		console.log(items);
+
 		if (!Array.isArray(items)) {
 			console.warn("Expected items to be an array, but got:", items);
 			return [];
