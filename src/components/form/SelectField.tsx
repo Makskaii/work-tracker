@@ -4,6 +4,14 @@ import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
 import styles from "./f.module.scss";
 
+interface UserOption{
+		id: string;
+		value: string;
+		title: string;
+		position?: string;
+		photo?: string;
+		department?: number;}
+
 export const AsyncSelect = ({
 	name,
 	placeholder,
@@ -13,15 +21,8 @@ export const AsyncSelect = ({
 }) => {
 	const { register } = useFormContext();
 	const [loading, setLoading] = useState(false);
-	const [options, setOptions] = useState<
-		Array<{
-			ID?: string;
-			VALUE?: string;
-			id?: string;
-			value?: string;
-			title?: string;
-		}>
-	>([]);
+	const [options, setOptions] = useState<UserOption[]>([]);
+
 
 	const [isLoaded, setIsLoaded] = useState(false);
 
@@ -31,8 +32,18 @@ export const AsyncSelect = ({
 		try {
 			const response = await $api.get(Endpoints.users, {
 				params: {
-					UF_DEPARTMENT: 23,
-				},
+					filter: {
+					"@UF_DEPARTMENT": [23, 25],
+					},
+					select: [
+					"NAME",
+					"ID",
+					"LAST_NAME",
+					"UF_DEPARTMENT",
+					"WORK_POSITION",
+					"PERSONAL_PHOTO",
+					],
+					},
 			});
 
 			const items = response.data?.result;
@@ -43,8 +54,12 @@ export const AsyncSelect = ({
 			} else {
 				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 				const formatted = items.map((item: any) => ({
-					ID: item.ID ?? item.id,
-					VALUE: item.NAME ?? item.VALUE ?? item.title ?? "Без имени",
+					id: item.ID,
+					value: `${item.NAME} ${item.LAST_NAME}`,
+					title: `${item.NAME} ${item.LAST_NAME}`,
+					position: item.WORK_POSITION,
+					photo: item.PERSONAL_PHOTO,
+					department: Array.isArray(item.UF_DEPARTMENT) ? item.UF_DEPARTMENT[0] : item.UF_DEPARTMENT,
 				}));
 
 				setOptions(formatted);
@@ -85,25 +100,6 @@ export const AsyncSelect = ({
 				disabled={loading}
 			
 			>
-				{/* {loading ? (
-					<option value="" disabled>
-						{placeholder}...
-					</option>
-				) : options.length > 0 ? (
-					options.map((item) => (
-						<option value={item.ID ?? item.id} key={item.ID ?? item.id}>
-							{item.VALUE ?? item.title}
-						</option>
-					))
-				) : isLoaded ? (
-					<option value="" disabled>
-						Нет данных
-					</option>
-				) : (
-					<option value="" disabled>
-						{placeholder}
-					</option>
-				)} */}
 
 				<option value="" disabled selected>
 					{loading ? `${placeholder}...` : placeholder}
