@@ -18,6 +18,7 @@ const UsersReports = () => {
 		reValidateMode: "onChange",
 		defaultValues: {
 			userId: Context?.user || "",
+			
 		},
 	});
 
@@ -50,7 +51,6 @@ const UsersReports = () => {
 					<form onChange={handleChange}>
 						<AsyncSelect
 							name="userId"
-							options={Context?.users ?? []}
 							placeholder="Сотрудники"
 						/>
 					</form>
