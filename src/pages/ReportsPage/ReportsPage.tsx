@@ -3,15 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { EntityTypeIds } from "@/shared/constants/const";
+import { $api } from "@/shared/config";
+import { Endpoints } from "@/shared/constants/const";
 import type {
-	AnyObject,
 	ReportsContext,
 	Status,
 	TaskProps,
+	User,
 } from "@/shared/types/types";
+import { getProjectsFromList } from "../../shared/api/getCrmFields";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
-import { getCrmFields } from "./api/getCrmFields";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
 import { getTasks } from "./api/getTasks";
@@ -25,24 +26,16 @@ const ReportsPage = () => {
 	const [projects, setProjects] = useState<
 		{
 			ID: string;
-			VALUE: string;
+			NAME: string;
 		}[]
 	>([]);
-	const [users, setUsers] = useState<
-		{
-			id: string;
-			value: string;
-			title: string;
-			position: string;
-			photo: string;
-		}[]
-	>([]);
+	const [users, setUsers] = useState<User[]>([]);
 	const [currProject, setCurrProject] = useState("");
 	const [title, setTitle] = useState("");
 	const [user, setUser] = useState("");
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
-	const [_statuses, setStatuses] = useState<Status[]>([]);
+	const [statuses, setStatuses] = useState<Status[]>([]);
 
 	const userIds = useMemo(() => {
 		if (!users) return [];
@@ -57,13 +50,16 @@ const ReportsPage = () => {
 			const response = await getDevelopers();
 
 			setUsers(
-				response.map((task: AnyObject) => ({
-					id: task.ID,
-					value: task.NAME + task.LAST_NAME,
-					title: task.NAME + " " + task.LAST_NAME,
-					position: task.WORK_POSITION,
-					photo: task.PERSONAL_PHOTO,
-				})),
+				response
+					.map((user) => ({
+						id: user.ID,
+						value: user.NAME + user.LAST_NAME,
+						title: user.NAME + " " + user.LAST_NAME,
+						position: user.WORK_POSITION,
+						photo: user.PERSONAL_PHOTO,
+						department: user.UF_DEPARTMENT[0],
+					}))
+					.toSorted((a, b) => a.department - b.department),
 			);
 		};
 
@@ -95,16 +91,25 @@ const ReportsPage = () => {
 	}, []);
 
 	useEffect(() => {
-		const getProjectsAsCRMfields = async () => {
-			const response = await getCrmFields(
-				EntityTypeIds.tasks,
-				"ufCrm14_1770801014487",
-			);
+		const fetchProjects = async () => {
+			const response = await getProjectsFromList();
 
 			setProjects(response);
 		};
 
-		getProjectsAsCRMfields();
+		fetchProjects();
+	}, []);
+
+	useEffect(() => {
+		const fetchFields = async () => {
+			const response = await $api.post(Endpoints.crmFeilds, {
+				entityTypeId: 1060,
+			});
+
+			console.log(response);
+		};
+
+		fetchFields();
 	}, []);
 
 	return (
@@ -120,17 +125,12 @@ const ReportsPage = () => {
 				<div
 					style={{
 						display: "flex",
-						gap: "3px",
+						gap: "1rem",
 					}}
 				>
 					{Navigation.map((link) => (
 						<NavLink
 							key={link.path}
-							style={{
-								border: "1px solid #ccc",
-								padding: "0.3rem",
-								borderRadius: "12px",
-							}}
 							className={({ isActive, isPending }) =>
 								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
 							}
@@ -158,6 +158,7 @@ const ReportsPage = () => {
 							month,
 							setYear,
 							year,
+							statuses,
 						} satisfies ReportsContext
 					}
 				/>

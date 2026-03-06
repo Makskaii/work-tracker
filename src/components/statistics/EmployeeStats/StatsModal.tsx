@@ -1,27 +1,26 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { groupTasksByProject } from "../../../pages/ReportsPage/helpers/groupTasks";
-import type { TGroupedTasks } from "../../../pages/ReportsPage/ui/ProgressReports/types";
-import { $api } from "../../../shared/config";
+import { dtoFieldsCodesUserReports } from "@/components/calendar/constants/const";
+import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
+import type { TGroupedTasks } from "@/pages/ReportsPage/ui/ProgressReports/types";
+import { $api } from "@/shared/config";
 import {
 	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
-} from "../../../shared/constants/const";
-import type {
-	ReportsContext,
-	TaskProps,
-	User,
-} from "../../../shared/types/types";
-import { getWeekBorders } from "../../../shared/utils/statisticUtils/generateWeekBorders";
+} from "@/shared/constants/const";
+import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
+import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { UserCard } from "../../userCard/UserCard";
 import { EmployeeStats } from "./EmployeeStats";
 import { TasksList } from "./TasksList";
 
+const today = dayjs();
+
 export const StatsModal = ({ user }: { user: User }) => {
-	const [date, _setDate] = useState<dayjs.Dayjs | Date>(dayjs());
-	const borders = useMemo(() => getWeekBorders(dayjs(date)), [date]);
+	const [day, setDay] = useState<Dayjs>(today);
+	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
 	const { setUser, projects } = useOutletContext<ReportsContext>();
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -29,14 +28,16 @@ export const StatsModal = ({ user }: { user: User }) => {
 	useEffect(() => {
 		const getTasks = async () => {
 			try {
-				const response = await $api.get(Endpoints.reports, {
+				const response = await $api.get(Endpoints.crmItems, {
 					params: {
 						entityTypeId: EntityTypeIds.tasks,
 
 						select: TASK_SELECT_FIELDS,
 						filter: {
-							"<=createdTime": borders.endOfTheWeek,
-							">=createdTime": borders.startOfTheWeek,
+							[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]:
+								borders.endOfTheWeek,
+							[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]:
+								borders.startOfTheWeek,
 							assignedById: user.id,
 						},
 					},
@@ -99,17 +100,24 @@ export const StatsModal = ({ user }: { user: User }) => {
 							background: "white",
 							color: "#aeacac",
 						}}
-						onClick={() => console.log(dayjs(borders.startOfTheWeek).day())}
+						onClick={() => {
+							setDay((prev) => prev.subtract(7, "day"));
+						}}
 					>
 						пред. спринт
 					</button>
-					<div>Текущий спринт</div>
+					<div>
+						{dayjs(borders.startOfTheWeek).format("DD.MM")}-
+						{dayjs(borders.endOfTheWeek).format("DD.MM")}
+					</div>
 					<button
 						style={{
 							background: "white",
 							color: "#aeacac",
 						}}
-						onClick={() => console.log(dayjs(borders.endOfTheWeek).format())}
+						onClick={() => {
+							setDay((prev) => prev.add(7, "day"));
+						}}
 					>
 						след. спринт
 					</button>
@@ -136,11 +144,14 @@ export const StatsModal = ({ user }: { user: User }) => {
 							top: 0,
 							background: "white",
 							padding: "0.5rem 0",
+							display: "flex",
+							justifyContent: "space-between",
 						}}
 					>
-						Задачи спринта:
+						<span> Задачи спринта:</span>
+						<span>Времени затрачено/Оценка</span>
 					</div>
-					<TasksList tasks={tasks} />
+					<TasksList tasks={tasks} userId={user.id} borders={borders} />
 				</div>
 				<div
 					style={{
@@ -176,6 +187,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 							>
 								{Object.entries(grouped).map(([projectId, tasks]) => (
 									<div
+										key={projectId}
 										style={{
 											display: "flex",
 											justifyContent: "space-between",
@@ -184,7 +196,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 										<div>
 											{
 												projects.find((project) => project.ID === projectId)
-													?.VALUE
+													?.NAME
 											}
 										</div>
 										<div> {tasks?.length}</div>

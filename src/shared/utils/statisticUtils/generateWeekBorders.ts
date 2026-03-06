@@ -1,27 +1,35 @@
 import dayjs from "dayjs";
-
 /**
- * Возвращает граничные дни недели (начало и конец недели) для заданной даты.
- * Неделя начинается с понедельника и заканчивается воскресеньем.
- * Даже если дата приходится на 1-е число месяца и воскресенье, будет возвращена полная неделя.
+ * Возвращает граничные дни спринта (начало и конец) для заданной даты.
+ * Спринт начинается во вторник и заканчивается в понедельник следующей недели.
  *
  * @param date - Дата в формате dayjs() или new Date
- * @returns Объект с началом и концом недели в формате строки 'YYYY-MM-DD'
+ * @returns Объект с началом и концом спринта в формате строки 'YYYY-MM-DD'
  */
 export const getWeekBorders = (
 	date: dayjs.Dayjs | Date,
 ): { startOfTheWeek: string; endOfTheWeek: string } => {
-	// Преобразуем входную дату в dayjs, если это объект Date
 	const dayjsDate = dayjs.isDayjs(date) ? date : dayjs(date);
 
-	// Получаем начало недели (понедельник)
-	// dayjs по умолчанию считает воскресенье днём 0, понедельник — 1, ..., суббота — 6
-	// Поэтому для понедельника используем .day(1), для воскресенья — .day(7)
-	const startOfWeek = dayjsDate.day(1); // Понедельник
-	const endOfWeek = dayjsDate.day(7); // Воскресенье
+	//  (0 - воскресенье, 1 - понедельник, ..., 6 - суббота)
+	const currentDay = dayjsDate.day();
+
+	// начало спринта (ближайший вторник)
+	// Если сегодня вторник или позже, берём текущий вторник
+	// Если сегодня раньше вторника (воскресенье, понедельник), берём прошлый вторник
+	let startOfSprint;
+	if (currentDay >= 2) {
+		// 2 - это вторник
+		// Если сегодня вторник или позже, берём текущий вторник
+		startOfSprint = dayjsDate.day(2);
+	} else {
+		startOfSprint = dayjsDate.day(-5);
+	}
+
+	const endOfSprint = startOfSprint.add(6, "day");
 
 	return {
-		startOfTheWeek: startOfWeek.format("YYYY-MM-DD"),
-		endOfTheWeek: endOfWeek.format("YYYY-MM-DD"),
+		startOfTheWeek: startOfSprint.format("YYYY-MM-DD"),
+		endOfTheWeek: endOfSprint.format("YYYY-MM-DD"),
 	};
 };

@@ -1,3 +1,4 @@
+import type { AnyObject } from "@/shared/types/types";
 import {
 	convertToDate,
 	convertToMinutesOrHours,
@@ -24,7 +25,7 @@ export const years = Array.from({ length: 10 }, (_, i) => 2020 + i);
 export const headers: {
 	key: keyof GroupedReportFields;
 	title: string;
-	convertFn?: (value: number) => string;
+	convertFn?: (value: number, additionalData?: AnyObject) => string;
 }[] = [
 	{
 		title: "Описание",
@@ -33,6 +34,25 @@ export const headers: {
 	{
 		title: "Задача",
 		key: "taskId",
+	},
+	{
+		title: "Проект",
+		key: "project",
+		convertFn: (value, projects) => {
+			return (
+				projects?.find(
+					(project: { ID: string; NAME: string }) =>
+						Number(project.ID) === value,
+				)?.NAME || ""
+			);
+		},
+	},
+	{
+		title: "Активность",
+		key: "activity",
+		convertFn: (value) => {
+			return ActivityTitle[Number(value)];
+		},
 	},
 	{
 		title: "Время",
@@ -46,19 +66,19 @@ export const headers: {
 	},
 ];
 
-//
 export enum dtoFieldsCodesDailyReports {
 	title = "ufCrm11_1770627903531",
 	timeSpent = "ufCrm11_1770627880479",
 	taskId = "ufCrm11_1770627808462",
-	project = "ufCrm11_1770393502397",
+	project = "ufCrm11_1772012010",
+	activityType = "ufCrm11_1770804288638",
 }
 
 export enum dtoFieldsCodesUserReports {
 	description = "ufCrm14_1770731622242",
 	stage = "ufCrm14_1770890673468",
 	estimateTime = "ufCrm14_1770731674952",
-	project = "ufCrm14_1770801014487",
+	project = "ufCrm14_1772011269",
 	reportDate = "ufCrm14_1771314375250",
 	timeSpent = "ufCrm14_1771314387497",
 	comment = "ufCrm14_1771314401297",
@@ -87,6 +107,7 @@ export const selectFields = [
 	dtoFieldsCodesDailyReports.timeSpent,
 	dtoFieldsCodesDailyReports.project,
 	dtoFieldsCodesDailyReports.taskId,
+	dtoFieldsCodesDailyReports.activityType,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",

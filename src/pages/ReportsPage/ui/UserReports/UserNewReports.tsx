@@ -4,17 +4,17 @@
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Modal } from "../../../../components/modal";
-import { StatsModal } from "../../../../components/statistics/EmployeeStats/StatsModal";
-import { ListItem } from "../../../../components/userListItem/UserListItem";
+import { Modal } from "@/components/modal";
+import { StatsModal } from "@/components/statistics/EmployeeStats/StatsModal";
+import { ListItem } from "@/components/userListItem/UserListItem";
 import {
 	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
-} from "../../../../shared/constants/const";
-import { useLoadAllData } from "../../../../shared/hooks/useLoadAllTasks";
-import type { ReportsContext, User } from "../../../../shared/types/types";
-import { getSrartEndMonthDate } from "../../../../shared/utils/utils";
+} from "@/shared/constants/const";
+import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import type { ReportsContext, User } from "@/shared/types/types";
+import { getSrartEndMonthDate } from "@/shared/utils/utils";
 import type { TaskProps } from "../ProgressReports/types";
 import cls from "./UserReports.module.scss";
 
@@ -27,7 +27,7 @@ export const NewUserReports = () => {
 	const currYear = year ?? dayjs().year();
 
 	const { data } = useLoadAllData<TaskProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
@@ -83,17 +83,19 @@ export const NewUserReports = () => {
 							setOpen(true);
 						}}
 					>
-						{users.map((user) => (
-							<ListItem
-								key={user.id}
-								user={user}
-								task={filteredTasks.find(
-									(task) => task.assignedById === Number(user.id),
-								)}
-								projects={projects}
-								onClick={() => setActiveUser(user)}
-							/>
-						))}
+						{users
+							.filter((user) => user.department === 23)
+							.map((user) => (
+								<ListItem
+									key={user.id}
+									user={user}
+									task={filteredTasks.find(
+										(task) => task.assignedById === Number(user.id),
+									)}
+									projects={projects}
+									onClick={() => setActiveUser(user)}
+								/>
+							))}
 					</div>
 				</div>
 			</div>

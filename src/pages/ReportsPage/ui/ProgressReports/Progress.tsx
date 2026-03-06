@@ -110,7 +110,7 @@ const Progress = () => {
 							}}
 						>
 							<h3>
-								{projects.find((project) => project.ID === projectId)?.VALUE}
+								{projects.find((project) => project.ID === projectId)?.NAME}
 							</h3>
 							<div
 								style={{

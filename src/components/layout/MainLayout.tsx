@@ -82,7 +82,6 @@ export const MainLayout = () => {
 					>
 						Данные
 					</NavLink>
-					/
 					<NavLink
 						className={({ isActive, isPending }) =>
 							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")

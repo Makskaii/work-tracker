@@ -24,7 +24,7 @@ export const Calendar = ({
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.reports,
+		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
@@ -50,7 +50,7 @@ export const Calendar = ({
 				params: {
 					entityTypeId: EntityTypeIds.reports,
 
-					select: selectFields,
+					// select: selectFields,
 
 					filter: {
 						">=begindate": new Date(
@@ -79,6 +79,7 @@ export const Calendar = ({
 					taskId: report[dtoFieldsCodesDailyReports.taskId],
 					day: report.begindate,
 					project: report[dtoFieldsCodesDailyReports.project],
+					activity: report[dtoFieldsCodesDailyReports.activityType],
 					assignedById: report.assignedById,
 				})),
 			);

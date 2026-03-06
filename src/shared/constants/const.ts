@@ -12,13 +12,16 @@ import type { TaskProps } from "../types/types";
 // 	6: "отложена",
 // };
 
+export const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
 export const Endpoints = {
 	tasks: "tasks.task.list",
 	groups: "sonet_group.get",
 	users: "user.get",
-	reports: "crm.item.list",
+	crmItems: "crm.item.list",
 	crmFeilds: "crm.item.fields",
 	status: "crm.status.list",
+	lists: "lists.element.get",
 };
 
 export const EntityTypeIds = {

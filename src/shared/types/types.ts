@@ -26,29 +26,36 @@ export interface User {
 	title: string;
 	position: string;
 	photo: string;
+	department: number;
 }
 
 export type UserReports = {
 	setUser: (id: string) => void;
 	tasks: TaskProps[];
-	projects: { ID: string; VALUE: string }[];
+	projects: { ID: string; NAME: string }[];
 	setCurrProject: (id: string) => void;
 	setTitle: (id: string) => void;
 	title: string;
 	user: string;
-	users: {
-		id: string;
-		value: string;
-		title: string;
-		position: string;
-		photo: string;
-	}[];
+	users: User[];
 	userIds: string[];
 	currProject?: string;
 	setMonth: Dispatch<SetStateAction<number>>;
 	setYear: Dispatch<SetStateAction<number>>;
 	month?: number;
 	year?: number;
+	statuses: {
+		ID: string;
+		ENTITY_ID: string;
+		STATUS_ID: string;
+		NAME: string;
+		NAME_INIT: string;
+		SORT: string;
+		SYSTEM: string;
+		COLOR: string;
+		SEMANTICS: string;
+		CATEGORY_ID: string;
+	}[];
 };
 
 export interface Status {

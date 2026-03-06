@@ -9,7 +9,7 @@ import type { TaskProps } from "../ui/ProgressReports/types";
 
 export const getTasks = async (filters: AnyObject): Promise<TaskProps[]> => {
 	try {
-		const response = await $api.get(Endpoints.reports, {
+		const response = await $api.get(Endpoints.crmItems, {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				select: TASK_SELECT_FIELDS,
