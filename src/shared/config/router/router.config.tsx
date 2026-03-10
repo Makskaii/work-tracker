@@ -7,7 +7,7 @@ import {
 	DataPage,
 	Progress,
 	ProjectsReports,
-	ReportsPage,
+	ReportsCalendar,
 	UsersReports,
 } from "@/pages";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
@@ -25,7 +25,7 @@ export const router = createBrowserRouter(
 					path: "/reports",
 					element: (
 						<Suspense fallback={<Spinner />}>
-							<ReportsPage />
+							<ReportsCalendar />
 						</Suspense>
 					),
 					children: [

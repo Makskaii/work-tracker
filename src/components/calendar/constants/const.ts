@@ -90,6 +90,7 @@ export enum ActivityType {
 	clientCall = 270,
 	analitycsCall = 271,
 	dash = 272,
+	devsCall = 275,
 }
 
 export const ActivityTitle: { [key: number]: string } = {
@@ -97,6 +98,7 @@ export const ActivityTitle: { [key: number]: string } = {
 	[ActivityType.clientCall]: "Созвон с клиентом",
 	[ActivityType.analitycsCall]: "Внутренний созвон",
 	[ActivityType.dash]: "Внутренние коммуникации",
+	[ActivityType.devsCall]: "Встреча с разработчиками",
 };
 
 export const selectFields = [
