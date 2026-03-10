@@ -5,7 +5,7 @@ export const convertNumberFormat = (value: string | number): number => {
 
 	const normalizedValue = value.replace(",", ".");
 
-	const number = Number(normalizedValue);
+	const number = parseFloat(normalizedValue);
 
 	if (value === "-") return 0;
 
