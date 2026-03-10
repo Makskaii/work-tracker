@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
+import { Endpoints } from "@/shared/constants/const";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import { AsyncSelect } from "../../../../components/form/SelectField";
 import type { ReportsContext } from "../../../../shared/types/types";
@@ -18,7 +19,6 @@ const UsersReports = () => {
 		reValidateMode: "onChange",
 		defaultValues: {
 			userId: Context?.user || "",
-			
 		},
 	});
 
@@ -52,6 +52,22 @@ const UsersReports = () => {
 						<AsyncSelect
 							name="userId"
 							placeholder="Сотрудники"
+							endpoint={Endpoints.users}
+							params={{
+								params: {
+									filter: {
+										"@UF_DEPARTMENT": [23, 25],
+									},
+									select: [
+										"NAME",
+										"ID",
+										"LAST_NAME",
+										"UF_DEPARTMENT",
+										"WORK_POSITION",
+										"PERSONAL_PHOTO",
+									],
+								},
+							}}
 						/>
 					</form>
 				</FormProvider>

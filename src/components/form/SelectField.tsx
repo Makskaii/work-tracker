@@ -1,56 +1,59 @@
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { $api } from "@/shared/config";
-import { Endpoints } from "@/shared/constants/const";
+import { classNames } from "@/shared/utils/utils";
 import styles from "./f.module.scss";
 
-interface UserOption{
-		id: string;
-		value: string;
-		title: string;
-		position?: string;
-		photo?: string;
-		department?: number;}
+interface UserOption {
+	id: string;
+	value?: string;
+	title: string;
+	position?: string;
+	photo?: string;
+	department?: number;
+}
 
 export const AsyncSelect = ({
 	name,
 	placeholder,
+	endpoint,
+	params,
 }: {
 	name: string;
 	placeholder: string;
+	endpoint: string;
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	params: any;
 }) => {
 	const { register } = useFormContext();
+	const [options, setOptions] = useState<UserOption[]>([
+		{
+			id: "sdjkjksdjksdsdjk",
+			title: "Загрузка...",
+		},
+	]);
 	const [loading, setLoading] = useState(false);
-	const [options, setOptions] = useState<UserOption[]>([]);
-
-
-	const [isLoaded, setIsLoaded] = useState(false);
 
 	const loadOptions = async () => {
-		if (options.length > 0 || loading) return;
+		if (loading) return;
+
+		if (options.length > 1) return;
 		setLoading(true);
+
+		// await new Promise((resolve) => setTimeout(resolve, 2000)); //Задержка
 		try {
-			const response = await $api.get(Endpoints.users, {
-				params: {
-					filter: {
-					"@UF_DEPARTMENT": [23, 25],
-					},
-					select: [
-					"NAME",
-					"ID",
-					"LAST_NAME",
-					"UF_DEPARTMENT",
-					"WORK_POSITION",
-					"PERSONAL_PHOTO",
-					],
-					},
-			});
+			const response = await $api.get(endpoint, params);
 
 			const items = response.data?.result;
 
-			if (!Array.isArray(items)) {
+			if (!Array.isArray(items) || items.length === 0) {
 				console.warn("Expected items to be an array, but got:", items);
-				setOptions([]);
+				setOptions([
+					{
+						id: "sdjkjksdjksdsdjk",
+						title: "Нет данных",
+					},
+				]);
 			} else {
 				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 				const formatted = items.map((item: any) => ({
@@ -59,53 +62,51 @@ export const AsyncSelect = ({
 					title: `${item.NAME} ${item.LAST_NAME}`,
 					position: item.WORK_POSITION,
 					photo: item.PERSONAL_PHOTO,
-					department: Array.isArray(item.UF_DEPARTMENT) ? item.UF_DEPARTMENT[0] : item.UF_DEPARTMENT,
+					department: Array.isArray(item.UF_DEPARTMENT)
+						? item.UF_DEPARTMENT[0]
+						: item.UF_DEPARTMENT,
 				}));
 
 				setOptions(formatted);
 			}
 		} catch (error) {
 			console.error("Failed to fetch developers", error);
-			setOptions([]);
+			setOptions([
+				{
+					id: "sdjkjksdjksdsdjk",
+					title: "Нет данных",
+				},
+			]);
 		} finally {
 			setLoading(false);
-			setIsLoaded(true);
 		}
 	};
 
 	const handleClick = () => {
-		if (!isLoaded && !loading) {
-			loadOptions();
-		}
+		loadOptions();
 	};
 
 	return (
 		<div className={styles.container}>
 			<select
 				{...register(name)}
-				onClick={handleClick}				
-				className={`${styles.select} ${loading ? styles.loadingSelect : ""}`}
-				disabled={loading}
-			
+				onClick={handleClick}
+				name={name}
+				className={classNames(styles.select, {
+					[styles.loadingselect]: loading,
+				})}
+				// disabled={loading}
 			>
-
 				<option value="" disabled selected>
 					{loading ? `${placeholder}...` : placeholder}
 				</option>
 
-				{loading ? null : options.length > 0 ? (
-					options.map((item) => (
-						<option value={item.id ?? item.id} key={item.id ?? item.id}>
-							{item.value ?? item.title}
-						</option>
-					))
-				) : isLoaded ? (
-					<option value="" disabled>
-						Нет данных
+				{options.map((item) => (
+					<option value={item.id ?? item.id} key={item.id ?? item.id}>
+						{item.value ?? item.title}
 					</option>
-				) : null}
+				))}
 			</select>
-
 			{loading && <div className={styles.spinner} />}
 		</div>
 	);
