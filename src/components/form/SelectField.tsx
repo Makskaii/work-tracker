@@ -83,20 +83,8 @@ export const AsyncSelect = ({
 		<div className={styles.container}>
 			<select
 				{...register(name)}
-				onClick={handleClick}
-				className={loading ? styles.loadingSelect : ""}
-				style={{
-					border: "none",
-					backgroundColor: "white",
-					boxShadow: "rgba(99, 99, 99, 0.2) 0px 2px 8px 0px",
-					borderRadius: "0.5rem",
-					padding: "0.5rem",
-					color: "black",
-					width: "200px",
-					opacity: loading ? 0.7 : 1,
-					cursor: loading ? "wait" : "pointer",
-					outline: "none",
-				}}
+				onClick={handleClick}				
+				className={`${styles.select} ${loading ? styles.loadingSelect : ""}`}
 				disabled={loading}
 			
 			>
@@ -107,8 +95,8 @@ export const AsyncSelect = ({
 
 				{loading ? null : options.length > 0 ? (
 					options.map((item) => (
-						<option value={item.ID ?? item.id} key={item.ID ?? item.id}>
-							{item.VALUE ?? item.title}
+						<option value={item.id ?? item.id} key={item.id ?? item.id}>
+							{item.value ?? item.title}
 						</option>
 					))
 				) : isLoaded ? (
@@ -119,14 +107,6 @@ export const AsyncSelect = ({
 			</select>
 
 			{loading && <div className={styles.spinner} />}
-			<style>{`
-				select option:first-child {
-					display: none;
-			}
-				select:disabled option[value=""][disabled]:not(:first-child) {
-					display: none;
-			}
-			`}</style>
 		</div>
 	);
 };

@@ -19,6 +19,36 @@
     vertical-align: middle;
 }
 
+.select {
+  border: none;
+  background-color: white;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  color: black;
+  width: 200px;
+  outline: none;
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+  				option:first-child {
+					display: none;
+			}
+				&:disabled option[value=""][disabled]:not(:first-child)  {
+					display: none;
+			}
+}
+
+.loadingselect{
+      opacity: 0.7;
+      cursor: wait;  
+}
+
+
+
+
 @keyframes spin {
   0% {
     transform: translateY(-50%) rotate(0deg);
