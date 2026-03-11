@@ -10,6 +10,7 @@ export interface ReportProps {
 	[dtoFieldsCodesDailyReports.timeSpent]: string;
 	[dtoFieldsCodesDailyReports.title]: string;
 	[dtoFieldsCodesDailyReports.activityType]: number;
+	[dtoFieldsCodesDailyReports.parentId]: number;
 	assignedById: string;
 	lastActivityTime: string;
 }

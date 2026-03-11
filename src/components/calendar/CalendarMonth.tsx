@@ -136,7 +136,7 @@ const CalendarMonth = ({
 										padding: "10px",
 									}}
 								>
-									{day.totalHours} ч.
+									{day.totalHours.toFixed(2)} ч.
 								</div>
 								<div
 									className={cls["worked-hours-bg"]}
@@ -153,7 +153,7 @@ const CalendarMonth = ({
 			<Modal
 				isOpen={open}
 				onClose={() => setOpen(false)}
-				size="small"
+				size="covered"
 				innerScroll
 			>
 				<div

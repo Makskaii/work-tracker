@@ -100,6 +100,7 @@ const ReportsCalendar = () => {
 
 							return (
 								<div
+									key={activityId}
 									style={{
 										textAlign: "left",
 									}}
@@ -119,7 +120,7 @@ const ReportsCalendar = () => {
 
 										return (
 											timeSpent !== 0 && (
-												<div>
+												<div key={projId}>
 													{
 														Context.projects.find(
 															(project) => project.ID === projId,

@@ -3,7 +3,13 @@ import type { TaskProps } from "@/shared/types/types";
 import { getStatsByEmplyee } from "@/shared/utils/statisticUtils/getStatsByEmplyee";
 import cls from "./Emplyee.module.scss";
 
-export const EmployeeStats = ({ tasks }: { tasks: TaskProps[] }) => {
+export const EmployeeStats = ({
+	tasks,
+	total,
+}: {
+	tasks: TaskProps[];
+	total: number;
+}) => {
 	const stats = getStatsByEmplyee(tasks, statsFields);
 
 	const estimateTime = stats.find(
@@ -15,6 +21,9 @@ export const EmployeeStats = ({ tasks }: { tasks: TaskProps[] }) => {
 			<div className={cls.headerContainer}>
 				<span> Загруженность {estimateTime}/40 ч.</span>
 				<span> {estimateTime && `Ререзв ${40 - estimateTime}ч.`}</span>
+				<span>
+					Факт: {total.toFixed(2)} / {estimateTime} ч.{" "}
+				</span>
 			</div>
 			<div className={cls.container}>
 				{stats.map((stat) => (

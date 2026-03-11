@@ -72,6 +72,7 @@ export enum dtoFieldsCodesDailyReports {
 	taskId = "ufCrm11_1770627808462",
 	project = "ufCrm11_1772012010",
 	activityType = "ufCrm11_1770804288638",
+	parentId = "parentId1072",
 }
 
 export enum dtoFieldsCodesUserReports {
