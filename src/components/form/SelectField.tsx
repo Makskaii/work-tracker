@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
+import uuid4 from "uuid4";
 import { $api } from "@/shared/config";
 import { classNames } from "@/shared/utils/utils";
+import { formatUserFields } from "../calendar/helpers/formatUserFilds";
 import styles from "./f.module.scss";
 
 interface UserOption {
@@ -10,7 +12,7 @@ interface UserOption {
 	title: string;
 	position?: string;
 	photo?: string;
-	department?: number;
+	department?: number | null;
 }
 
 export const AsyncSelect = ({
@@ -28,7 +30,7 @@ export const AsyncSelect = ({
 	const { register } = useFormContext();
 	const [options, setOptions] = useState<UserOption[]>([
 		{
-			id: "sdjkjksdjksdsdjk",
+			id: uuid4(),
 			title: "Загрузка...",
 		},
 	]);
@@ -50,22 +52,12 @@ export const AsyncSelect = ({
 				console.warn("Expected items to be an array, but got:", items);
 				setOptions([
 					{
-						id: "sdjkjksdjksdsdjk",
+						id: uuid4(),
 						title: "Нет данных",
 					},
 				]);
 			} else {
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				const formatted = items.map((item: any) => ({
-					id: item.ID,
-					value: `${item.NAME} ${item.LAST_NAME}`,
-					title: `${item.NAME} ${item.LAST_NAME}`,
-					position: item.WORK_POSITION,
-					photo: item.PERSONAL_PHOTO,
-					department: Array.isArray(item.UF_DEPARTMENT)
-						? item.UF_DEPARTMENT[0]
-						: item.UF_DEPARTMENT,
-				}));
+				const formatted = items.map(formatUserFields);
 
 				setOptions(formatted);
 			}
@@ -73,7 +65,7 @@ export const AsyncSelect = ({
 			console.error("Failed to fetch developers", error);
 			setOptions([
 				{
-					id: "sdjkjksdjksdsdjk",
+					id: uuid4(),
 					title: "Нет данных",
 				},
 			]);
@@ -95,7 +87,6 @@ export const AsyncSelect = ({
 				className={classNames(styles.select, {
 					[styles.loadingselect]: loading,
 				})}
-				// disabled={loading}
 			>
 				<option value="" disabled selected>
 					{loading ? `${placeholder}...` : placeholder}
