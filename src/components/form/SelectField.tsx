@@ -93,8 +93,15 @@ export const AsyncSelect = ({
 				</option>
 
 				{options.map((item) => (
-					<option value={item.id ?? item.id} key={item.id ?? item.id}>
-						{item.value ?? item.title}
+					<option
+						value={item.id ?? item.id}
+						key={item.id}
+						style={{
+							background:
+								item.department === 23 ? "rgb(76, 175, 80, 0.3)" : "#ff9800",
+						}}
+					>
+						{item.title}
 					</option>
 				))}
 			</select>
