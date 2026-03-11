@@ -49,8 +49,9 @@ export const ProjectsStats = ({
 		return new Set(tasks.map((task) => task.assignedById));
 	}, [tasks]);
 
-	const reportsFilters = useMemo(
-		() => ({
+	const { data, setFilters } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				select: [
@@ -73,12 +74,12 @@ export const ProjectsStats = ({
 					"<=begindate": endOfTheWeek,
 				},
 			},
-		}),
-		[project.ID, startOfTheWeek, endOfTheWeek],
-	);
+		},
+	});
 
-	const allReportsFilters = useMemo(
-		() => ({
+	const { data: allReports } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				select: [
@@ -99,19 +100,35 @@ export const ProjectsStats = ({
 					[dtoFieldsCodesDailyReports.project]: project.ID,
 				},
 			},
-		}),
-		[project.ID],
-	);
-
-	const { data } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: reportsFilters,
+		},
 	});
 
-	const { data: allReports } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: allReportsFilters,
-	});
+	useEffect(() => {
+		setFilters({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				select: [
+					"id",
+					"title",
+					"begindate",
+					dtoFieldsCodesDailyReports.title,
+					dtoFieldsCodesDailyReports.timeSpent,
+					dtoFieldsCodesDailyReports.project,
+					dtoFieldsCodesDailyReports.taskId,
+					dtoFieldsCodesDailyReports.activityType,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+					`parentId${EntityTypeIds.tasks}`,
+				],
+				filter: {
+					[dtoFieldsCodesDailyReports.project]: project.ID,
+					">=begindate": startOfTheWeek,
+					"<=begindate": endOfTheWeek,
+				},
+			},
+		});
+	}, [endOfTheWeek, project.ID, setFilters, startOfTheWeek]);
 
 	const totalSpentTime = allReports.reduce(
 		(acc, report) =>

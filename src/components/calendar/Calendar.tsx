@@ -9,7 +9,7 @@ import {
 	months,
 	selectFields,
 } from "./constants/const";
-import { generateMonthDays, getWeek } from "./helpers/generateMonthDays";
+import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { GroupedReportFields, ReportProps } from "./types/types";
 
 export const Calendar = ({
@@ -151,18 +151,18 @@ export const Calendar = ({
 		return months[selectedMonth];
 	};
 
-	const getWeekDays = () => {
-		const weekDays = getWeek();
+	// const getWeekDays = () => {
+	// 	const weekDays = getWeek();
 
-		const weekArr = monthDays
-			.filter((day) => !day.isEmpty)
-			.slice(
-				new Date(weekDays.startOfTheWeek).getDate() - 1,
-				new Date(weekDays.endOfTheWeek).getDate(),
-			);
+	// 	const weekArr = monthDays
+	// 		.filter((day) => !day.isEmpty)
+	// 		.slice(
+	// 			new Date(weekDays.startOfTheWeek).getDate() - 1,
+	// 			new Date(weekDays.endOfTheWeek).getDate(),
+	// 		);
 
-		return weekArr;
-	};
+	// 	return weekArr;
+	// };
 
 	return (
 		<>
@@ -180,7 +180,7 @@ export const Calendar = ({
 				/>
 			) : (
 				<>
-					<WeekCalendar week={getWeekDays()} />
+					<WeekCalendar userId={userId} />
 				</>
 			)}
 		</>
