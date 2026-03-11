@@ -6,6 +6,7 @@ import {
 	dtoFieldsCodesUserReports,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
+import { TaskView } from "@/components/taskItem/TaskView";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import type { TGroupedTasks } from "@/pages/ReportsPage/ui/ProgressReports/types";
 import { $api } from "@/shared/config";
@@ -31,6 +32,9 @@ export const StatsModal = ({ user }: { user: User }) => {
 	const [reports, setReports] = useState<{
 		[key: string]: ReportProps[];
 	}>({});
+	const [activeTask, setActiveTask] = useState<TaskProps | null>(null);
+
+	const [view, setView] = useState<"task" | "stats">("stats");
 
 	useEffect(() => {
 		const getTasks = async () => {
@@ -224,7 +228,12 @@ export const StatsModal = ({ user }: { user: User }) => {
 						<span> Задачи спринта:</span>
 						<span>Времени затрачено/Оценка</span>
 					</div>
-					<TasksList tasks={tasks} reports={reports} />
+					<TasksList
+						tasks={tasks}
+						reports={reports}
+						setActiveTask={setActiveTask}
+						setView={setView}
+					/>
 				</div>
 				<div
 					style={{
@@ -232,51 +241,61 @@ export const StatsModal = ({ user }: { user: User }) => {
 						padding: "0 1rem",
 					}}
 				>
-					<EmployeeStats tasks={tasks} total={totlaTimeSpent} />
-					{tasks.length !== 0 && (
-						<div>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									marginBottom: "1rem",
-								}}
-							>
-								<div> Список проектов:</div>
-								<div> Задач в проекте:</div>
-							</div>
-
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									overflowY: "auto",
-									height: "calc(100vh * 0.4)",
-									background: "#f9fafb",
-									padding: "1rem",
-									gap: "10px",
-									borderRadius: "24px",
-								}}
-							>
-								{Object.entries(grouped).map(([projectId, tasks]) => (
+					{view === "task" && activeTask ? (
+						<TaskView
+							taskId={activeTask?.id}
+							setActiveTask={setActiveTask}
+							setView={setView}
+						/>
+					) : (
+						<>
+							<EmployeeStats tasks={tasks} total={totlaTimeSpent} />
+							{tasks.length !== 0 && (
+								<div>
 									<div
-										key={projectId}
 										style={{
 											display: "flex",
 											justifyContent: "space-between",
+											marginBottom: "1rem",
 										}}
 									>
-										<div>
-											{
-												projects.find((project) => project.ID === projectId)
-													?.NAME
-											}
-										</div>
-										<div> {tasks?.length}</div>
+										<div> Список проектов:</div>
+										<div> Задач в проекте:</div>
 									</div>
-								))}
-							</div>
-						</div>
+
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+											overflowY: "auto",
+											height: "calc(100vh * 0.4)",
+											background: "#f9fafb",
+											padding: "1rem",
+											gap: "10px",
+											borderRadius: "24px",
+										}}
+									>
+										{Object.entries(grouped).map(([projectId, tasks]) => (
+											<div
+												key={projectId}
+												style={{
+													display: "flex",
+													justifyContent: "space-between",
+												}}
+											>
+												<div>
+													{
+														projects.find((project) => project.ID === projectId)
+															?.NAME
+													}
+												</div>
+												<div> {tasks?.length}</div>
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+						</>
 					)}
 				</div>
 			</div>

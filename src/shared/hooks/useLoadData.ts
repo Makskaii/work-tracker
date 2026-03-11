@@ -1,8 +1,8 @@
 // usePaginatedData.ts
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { commonDto } from "../../components/Table/types";
 import { $api } from "../config/axios/axios.config";
 import type { AnyObject } from "../types/types";
-import type { commonDto } from "../../components/Table/types";
 
 interface UsePaginatedDataResult {
 	data: commonDto;
