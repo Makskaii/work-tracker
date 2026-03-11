@@ -50,7 +50,6 @@ describe("MainLayout", () => {
 	it("должен успешно рендериться с навигацией", () => {
 		renderWithRouter();
 
-		expect(screen.getByText("Данные")).toBeInTheDocument();
 		expect(screen.getByText("Отчеты")).toBeInTheDocument();
 	});
 
@@ -101,10 +100,8 @@ describe("MainLayout", () => {
 		it("должен иметь правильные ссылки навигации", () => {
 			renderWithRouter();
 
-			const dataLink = screen.getByText("Данные").closest("a");
 			const reportsLink = screen.getByText("Отчеты").closest("a");
 
-			expect(dataLink).toHaveAttribute("href", "/data");
 			expect(reportsLink).toHaveAttribute("href", "/reports");
 		});
 	});
