@@ -23,6 +23,7 @@ export const Calendar = ({
 }) => {
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({

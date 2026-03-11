@@ -1,7 +1,11 @@
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { dtoFieldsCodesUserReports } from "@/components/calendar/constants/const";
+import {
+	dtoFieldsCodesDailyReports,
+	dtoFieldsCodesUserReports,
+} from "@/components/calendar/constants/const";
+import type { ReportProps } from "@/components/calendar/types/types";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import type { TGroupedTasks } from "@/pages/ReportsPage/ui/ProgressReports/types";
 import { $api } from "@/shared/config";
@@ -24,6 +28,9 @@ export const StatsModal = ({ user }: { user: User }) => {
 	const { setUser, projects } = useOutletContext<ReportsContext>();
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
+	const [reports, setReports] = useState<{
+		[key: string]: ReportProps[];
+	}>({});
 
 	useEffect(() => {
 		const getTasks = async () => {
@@ -50,8 +57,74 @@ export const StatsModal = ({ user }: { user: User }) => {
 			}
 		};
 
-		getTasks();
-	}, [user, borders]);
+		if (user.id) {
+			getTasks();
+		}
+	}, [user.id, borders]);
+
+	useEffect(() => {
+		const getReportsByTask = async () => {
+			try {
+				const reportsByTask = await Promise.all(
+					tasks.map((task) =>
+						$api.get(Endpoints.crmItems, {
+							params: {
+								entityTypeId: EntityTypeIds.reports,
+								select: [
+									"id",
+									"title",
+									"begindate",
+									dtoFieldsCodesDailyReports.title,
+									dtoFieldsCodesDailyReports.timeSpent,
+									dtoFieldsCodesDailyReports.project,
+									dtoFieldsCodesDailyReports.taskId,
+									dtoFieldsCodesDailyReports.activityType,
+									"assignedById",
+									"createdTime",
+									"lastActivityTime",
+									`parentId${EntityTypeIds.tasks}`,
+								],
+								filter: {
+									[dtoFieldsCodesDailyReports.parentId]: task.id,
+									assignedById: user.id,
+									">=begindate": borders.startOfTheWeek,
+									"<=begindate": borders.endOfTheWeek,
+								},
+							},
+						}),
+					),
+				);
+
+				reportsByTask.map((item) => {
+					const items = item.data.result.items;
+
+					if (items.length !== 0)
+						setReports((prev) => ({
+							...prev,
+							[items[0]?.[dtoFieldsCodesDailyReports.taskId]]: items,
+							[items[0]?.[dtoFieldsCodesDailyReports.parentId]]: items,
+						}));
+				});
+			} catch (error) {
+				console.log(error);
+			}
+		};
+
+		if (user) getReportsByTask();
+	}, [tasks, user, borders.endOfTheWeek, borders.startOfTheWeek]);
+
+	const totlaTimeSpent = tasks.reduce((acc, task) => {
+		const timespent = reports?.[task.id]?.reduce((acc, report) => {
+			return acc + Number(report[dtoFieldsCodesDailyReports.timeSpent]);
+		}, 0);
+
+		if (timespent) {
+			acc += timespent;
+			return acc;
+		}
+
+		return acc;
+	}, 0);
 
 	return (
 		<div
@@ -151,7 +224,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 						<span> Задачи спринта:</span>
 						<span>Времени затрачено/Оценка</span>
 					</div>
-					<TasksList tasks={tasks} userId={user.id} borders={borders} />
+					<TasksList tasks={tasks} reports={reports} />
 				</div>
 				<div
 					style={{
@@ -159,7 +232,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 						padding: "0 1rem",
 					}}
 				>
-					<EmployeeStats tasks={tasks} />
+					<EmployeeStats tasks={tasks} total={totlaTimeSpent} />
 					{tasks.length !== 0 && (
 						<div>
 							<div

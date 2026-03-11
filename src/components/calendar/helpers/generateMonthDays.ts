@@ -8,7 +8,7 @@ const getDayName = (date: Date) => {
 	return date.toLocaleDateString("ru-RU", { weekday: "short" });
 };
 
-const groupReportsByDate = (
+export const groupReportsByDate = (
 	reports: GroupedReportFields[],
 ): {
 	[key: string]: {
