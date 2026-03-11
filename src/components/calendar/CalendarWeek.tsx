@@ -330,7 +330,7 @@ const WeekCalendar = ({ userId }: { userId: string }) => {
 								padding: "1rem",
 							}}
 						>
-							{activeReport?.title}
+							{activeReport?.[dtoFieldsCodesDailyReports.title]}
 						</div>
 					</div>
 				)}
