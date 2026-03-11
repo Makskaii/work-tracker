@@ -6,6 +6,7 @@ import {
 	dtoFieldsCodesDailyReports,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
+import { Endpoints } from "@/shared/constants/const";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import { AsyncSelect } from "../../../../components/form/SelectField";
 import type { ReportsContext } from "../../../../shared/types/types";
@@ -58,8 +59,23 @@ const ReportsCalendar = () => {
 					<form onChange={handleChange}>
 						<AsyncSelect
 							name="userId"
-							options={Context?.users ?? []}
 							placeholder="Сотрудники"
+							endpoint={Endpoints.users}
+							params={{
+								params: {
+									filter: {
+										"@UF_DEPARTMENT": [23, 25],
+									},
+									select: [
+										"NAME",
+										"ID",
+										"LAST_NAME",
+										"UF_DEPARTMENT",
+										"WORK_POSITION",
+										"PERSONAL_PHOTO",
+									],
+								},
+							}}
 						/>
 					</form>
 				</FormProvider>

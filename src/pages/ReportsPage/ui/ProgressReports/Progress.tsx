@@ -6,7 +6,6 @@ import {
 	months,
 	dtoFieldsCodesUserReports as UserCodes,
 } from "@/components/calendar/constants/const";
-import { AsyncSelect } from "@/components/form/SelectField";
 import { StatucBadge } from "@/components/statusBadge/StatucBadge";
 import type { ReportsContext } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
@@ -28,7 +27,7 @@ const Progress = () => {
 	const [groupedTasks, setGroupedTasks] = useState<TGroupedTasks>({});
 	const [weeks, setWeekTasks] = useState<WeeklyTasks[]>([]);
 	const [tasksToShow, setTasksToShow] = useState<TasksWithProject>();
-	const { users, projects } = useOutletContext<ReportsContext>();
+	const { projects } = useOutletContext<ReportsContext>();
 
 	const methods = useForm<{
 		userId: string;
@@ -72,11 +71,11 @@ const Progress = () => {
 							}}
 						>
 							Сотрудник:
-							<AsyncSelect
+							{/* <AsyncSelect
 								name={"userId"}
 								options={users}
 								placeholder="Выберите сотрудника"
-							/>
+							/> */}
 						</div>
 					</form>
 				</FormProvider>
