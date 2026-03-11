@@ -11,9 +11,8 @@ import { UserCard } from "@/components/userCard/UserCard";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps } from "@/shared/types/types";
-import { getWeekArray } from "@/shared/utils";
+import { convertNumberFormat, getWeekArray } from "@/shared/utils";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
-import { getSrartEndMonthDate } from "@/shared/utils/utils";
 import { getTasks } from "../../api/getTasks";
 
 export const ProjectsStats = ({
@@ -24,31 +23,27 @@ export const ProjectsStats = ({
 		NAME: string;
 	};
 }) => {
-	const { month, year, users } = useOutletContext<ReportsContext>();
+	const { users } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [groupedByTaskReports, setGroupedReports] =
 		useState<Record<number, ReportProps[]>>();
-
+	const borders = getWeekBorders(dayjs());
 	const [groupedByActivityReports, setGroupedActivityReports] =
 		useState<Record<number, ReportProps[]>>();
-
-	const currMonth = month ?? dayjs().month();
-	const currYear = year ?? dayjs().year();
 
 	useEffect(() => {
 		const fetchTasks = async () => {
 			const response = await getTasks({
 				[dtoFieldsCodesUserReports.project]: project.ID,
-				">=createdTime": getSrartEndMonthDate("start", currMonth, currYear),
-				"<=createdTime": getSrartEndMonthDate("end", currMonth, currYear),
+				">=createdTime": borders.startOfTheWeek,
+				"<=createdTime": borders.endOfTheWeek,
 			});
 
 			setTasks(response);
 		};
 
 		fetchTasks();
-	}, [project.ID, currMonth, currYear]);
-	const borders = getWeekBorders(dayjs());
+	}, [project.ID, borders, borders]);
 
 	const devsIds = useMemo(() => {
 		return new Set(tasks.map((task) => task.assignedById));
@@ -81,6 +76,38 @@ export const ProjectsStats = ({
 			},
 		},
 	});
+
+	const { data: allReports } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+
+				select: [
+					"id",
+					"title",
+					"begindate",
+					dtoFieldsCodesDailyReports.title,
+					dtoFieldsCodesDailyReports.timeSpent,
+					dtoFieldsCodesDailyReports.project,
+					dtoFieldsCodesDailyReports.taskId,
+					dtoFieldsCodesDailyReports.activityType,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+				],
+				filter: {
+					[dtoFieldsCodesDailyReports.project]: project.ID,
+				},
+			},
+		},
+	});
+
+	const totalSpentTime = allReports.reduce(
+		(acc, report) =>
+			acc + convertNumberFormat(report[dtoFieldsCodesDailyReports.timeSpent]),
+		0,
+	);
 
 	useEffect(() => {
 		if (data) {
@@ -147,10 +174,11 @@ export const ProjectsStats = ({
 				>
 					<div
 						style={{
-							width: "60%",
+							width: "100%",
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "space-between",
+							padding: "0 1rem",
 						}}
 					>
 						<span
@@ -198,6 +226,14 @@ export const ProjectsStats = ({
 								след. спринт
 							</button>
 						</div>
+
+						<span
+							style={{
+								whiteSpace: "nowrap",
+							}}
+						>
+							Всего времени: {totalSpentTime} ч.
+						</span>
 					</div>
 					<div
 						style={{
@@ -293,7 +329,7 @@ export const ProjectsStats = ({
 								}}
 							>
 								<span>
-									Всего времени затрачено:{" "}
+									Всего затрачено за спринт:{" "}
 									{data.reduce((acc, report) => {
 										return (
 											acc +
@@ -306,12 +342,12 @@ export const ProjectsStats = ({
 								</span>
 
 								<span>
-									Первичная оценка:{" "}
+									План по часам:{" "}
 									{tasks.reduce((acc, report) => {
 										return (
 											acc +
-											parseFloat(
-												String(report[dtoFieldsCodesUserReports.estimateTime]),
+											convertNumberFormat(
+												report[dtoFieldsCodesUserReports.estimateTime],
 											)
 										);
 									}, 0)}

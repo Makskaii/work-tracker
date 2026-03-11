@@ -44,18 +44,7 @@ export type UserReports = {
 	setYear: Dispatch<SetStateAction<number>>;
 	month?: number;
 	year?: number;
-	statuses: {
-		ID: string;
-		ENTITY_ID: string;
-		STATUS_ID: string;
-		NAME: string;
-		NAME_INIT: string;
-		SORT: string;
-		SYSTEM: string;
-		COLOR: string;
-		SEMANTICS: string;
-		CATEGORY_ID: string;
-	}[];
+	statuses: Status[];
 };
 
 export interface Status {

@@ -174,7 +174,6 @@ const CalendarMonth = ({
 							</thead>
 							<tbody>
 								{activeReport.map((item) => {
-									console.log(activeReport);
 									return (
 										<tr key={item.id}>
 											{headers.map((rep) => (

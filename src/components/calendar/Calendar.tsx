@@ -15,9 +15,11 @@ import type { GroupedReportFields, ReportProps } from "./types/types";
 export const Calendar = ({
 	view,
 	userId,
+	setGroupByActivity,
 }: {
 	view: "month" | "week";
 	userId: string;
+	setGroupByActivity: (value: Record<string, ReportProps[]>) => void;
 }) => {
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -50,7 +52,7 @@ export const Calendar = ({
 				params: {
 					entityTypeId: EntityTypeIds.reports,
 
-					// select: selectFields,
+					select: selectFields,
 
 					filter: {
 						">=begindate": new Date(
@@ -70,7 +72,7 @@ export const Calendar = ({
 	}, [userId, selectedMonth, selectedYear, setFilters]);
 
 	useEffect(() => {
-		if (data)
+		if (data) {
 			setReports(
 				data.map((report) => ({
 					id: report.id,
@@ -83,7 +85,28 @@ export const Calendar = ({
 					assignedById: report.assignedById,
 				})),
 			);
-	}, [data]);
+
+			setGroupByActivity(
+				data.reduce(
+					(acc, report) => {
+						const activityType =
+							report[dtoFieldsCodesDailyReports.activityType];
+
+						if (activityType) {
+							if (!acc[activityType]) {
+								acc[activityType] = [report];
+							} else {
+								acc[activityType] = [...acc[activityType], report];
+							}
+						}
+
+						return acc;
+					},
+					{} as Record<string, ReportProps[]>,
+				),
+			);
+		}
+	}, [data, setGroupByActivity]);
 
 	const monthDays = generateMonthDays({
 		selectedYear,
