@@ -1,7 +1,8 @@
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router";
+import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import { ability } from "../../shared/config/ability/casl";
 
 const devMode =
@@ -10,11 +11,23 @@ const $logger = LoggerFactory.createForBrowser("MyApp", devMode);
 
 export const MainLayout = () => {
 	const b24Ref = useRef<B24Frame | null>(null);
+	const [b24, setB24] = useState<B24Frame | null>(null);
 
 	useEffect(() => {
 		let isMounted = true;
 
 		async function init() {
+			if (devMode) {
+				ability.update([
+					{
+						action: "read",
+						subject: "post",
+					},
+				]);
+
+				return;
+			}
+
 			try {
 				const b24 = await initializeB24Frame();
 				if (!isMounted) {
@@ -22,6 +35,8 @@ export const MainLayout = () => {
 					return;
 				}
 				b24Ref.current = b24;
+
+				setB24(b24);
 
 				if (b24.auth.isAdmin && ability && !devMode) {
 					ability.update([
@@ -38,15 +53,6 @@ export const MainLayout = () => {
 
 		init();
 
-		if (devMode) {
-			ability.update([
-				{
-					action: "read",
-					subject: "post",
-				},
-			]);
-		}
-
 		return () => {
 			isMounted = false;
 			b24Ref.current?.destroy();
@@ -54,37 +60,39 @@ export const MainLayout = () => {
 	}, []);
 
 	return (
-		<div style={{ display: "flex", height: "100%" }}>
-			<main
-				style={{
-					width: "100%",
-					display: "flex",
-					flexDirection: "column",
-					overflow: "hidden",
-				}}
-			>
-				<div
+		<B24Context value={b24}>
+			<div style={{ display: "flex", height: "100%" }}>
+				<main
 					style={{
+						width: "100%",
 						display: "flex",
-						gap: "1rem",
-						padding: "0 1rem",
-						boxShadow: "rgba(33, 35, 38, 0.1) 0px 17px 11px -5px",
-						paddingBottom: "0.5rem",
-						alignItems: "center",
+						flexDirection: "column",
+						overflow: "hidden",
 					}}
 				>
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="/reports"
-						end
+					<div
+						style={{
+							display: "flex",
+							gap: "1rem",
+							padding: "0 1rem",
+							boxShadow: "rgba(33, 35, 38, 0.1) 0px 17px 11px -5px",
+							paddingBottom: "0.5rem",
+							alignItems: "center",
+						}}
 					>
-						Отчеты
-					</NavLink>
-				</div>
-				<Outlet />
-			</main>
-		</div>
+						<NavLink
+							className={({ isActive, isPending }) =>
+								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+							}
+							to="/reports"
+							end
+						>
+							Отчеты
+						</NavLink>
+					</div>
+					<Outlet />
+				</main>
+			</div>
+		</B24Context>
 	);
 };
