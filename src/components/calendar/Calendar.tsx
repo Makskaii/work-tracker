@@ -180,7 +180,7 @@ export const Calendar = ({
 				/>
 			) : (
 				<>
-					<WeekCalendar userId={userId} />
+					<WeekCalendar />
 				</>
 			)}
 		</>

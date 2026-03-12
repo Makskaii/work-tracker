@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import {
@@ -35,12 +35,6 @@ const ReportsCalendar = () => {
 	const handleChange = handleSubmit((data) => {
 		Context?.setUser(data.userId);
 	});
-
-	useEffect(() => {
-		return () => {
-			Context?.setUser("");
-		};
-	}, [Context?.setUser]);
 
 	return (
 		<div
