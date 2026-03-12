@@ -39,7 +39,11 @@ export const StatsModal = ({ user }: { user: User }) => {
 	useEffect(() => {
 		const getTasks = async () => {
 			try {
-				const response = await $api.get(Endpoints.crmItems, {
+				const response = await $api.get<{
+					result: {
+						items: TaskProps[];
+					};
+				}>(Endpoints.crmItems, {
 					params: {
 						entityTypeId: EntityTypeIds.tasks,
 
@@ -54,7 +58,11 @@ export const StatsModal = ({ user }: { user: User }) => {
 					},
 				});
 
-				setTasks(response.data.result.items);
+				setTasks(
+					response.data.result.items.toSorted((a, b) =>
+						a.stageId.localeCompare(b.stageId),
+					),
+				);
 				setGrouped(groupTasksByProject(response.data.result.items));
 			} catch {
 				console.log("Ошибка при получении списка сотрудников");

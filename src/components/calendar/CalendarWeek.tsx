@@ -1,8 +1,10 @@
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import type { ReportsContext } from "@/shared/types/types";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
@@ -18,12 +20,13 @@ import cls from "./WeekCalendar.module.scss";
 
 const today = dayjs();
 
-const WeekCalendar = ({ userId }: { userId: string }) => {
+const WeekCalendar = () => {
 	const HOUR_HEIGHT = 800 / 8;
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReport, setActiveReport] = useState<ReportProps>();
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const { user } = useOutletContext<ReportsContext>();
 
 	const { startOfTheWeek, endOfTheWeek } = borders;
 
@@ -47,7 +50,7 @@ const WeekCalendar = ({ userId }: { userId: string }) => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					assignedById: userId,
+					assignedById: user,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
 				},
@@ -56,31 +59,32 @@ const WeekCalendar = ({ userId }: { userId: string }) => {
 	});
 
 	useEffect(() => {
-		setFilters({
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				select: [
-					"id",
-					"title",
-					"begindate",
-					dtoFieldsCodesDailyReports.title,
-					dtoFieldsCodesDailyReports.timeSpent,
-					dtoFieldsCodesDailyReports.project,
-					dtoFieldsCodesDailyReports.taskId,
-					dtoFieldsCodesDailyReports.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-				filter: {
-					assignedById: userId,
-					">=begindate": startOfTheWeek,
-					"<=begindate": endOfTheWeek,
+		if (day)
+			setFilters({
+				params: {
+					entityTypeId: EntityTypeIds.reports,
+					select: [
+						"id",
+						"title",
+						"begindate",
+						dtoFieldsCodesDailyReports.title,
+						dtoFieldsCodesDailyReports.timeSpent,
+						dtoFieldsCodesDailyReports.project,
+						dtoFieldsCodesDailyReports.taskId,
+						dtoFieldsCodesDailyReports.activityType,
+						"assignedById",
+						"createdTime",
+						"lastActivityTime",
+						`parentId${EntityTypeIds.tasks}`,
+					],
+					filter: {
+						assignedById: user,
+						">=begindate": startOfTheWeek,
+						"<=begindate": endOfTheWeek,
+					},
 				},
-			},
-		});
-	}, [endOfTheWeek, setFilters, startOfTheWeek, userId]);
+			});
+	}, [endOfTheWeek, setFilters, startOfTheWeek, user, day]);
 
 	const weekCalendar = useMemo(() => {
 		return buildWeekCalendarFromReports(
@@ -89,7 +93,7 @@ const WeekCalendar = ({ userId }: { userId: string }) => {
 			dtoFieldsCodesDailyReports.timeSpent,
 		);
 	}, [data, borders]);
-	console.log({ weekCalendar });
+	console.log({ user });
 	return (
 		<div
 			style={{
@@ -198,7 +202,7 @@ const WeekCalendar = ({ userId }: { userId: string }) => {
 					display: "flex",
 				}}
 			>
-				{weekCalendar.map((day) => (
+				{weekCalendar?.map((day) => (
 					<div
 						key={day.id}
 						style={{

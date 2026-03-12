@@ -36,10 +36,10 @@ export const ProjectsStats = ({
 		const fetchTasks = async () => {
 			const response = await getTasks({
 				[dtoFieldsCodesUserReports.project]: project.ID,
-				">=createdTime": startOfTheWeek,
-				"<=createdTime": endOfTheWeek,
+				[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
+				[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
 			});
-			setTasks(response);
+			setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
 		};
 
 		fetchTasks();
