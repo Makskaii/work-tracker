@@ -4,8 +4,7 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
-import type { AnyObject } from "../../../shared/types/types";
-import type { TaskProps } from "../ui/ProgressReports/types";
+import type { AnyObject, TaskProps } from "../../../shared/types/types";
 
 export const getTasks = async (filters: AnyObject): Promise<TaskProps[]> => {
 	try {
