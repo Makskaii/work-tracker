@@ -38,6 +38,7 @@ export const TASK_SELECT_FIELDS = [
 	"lastActivityTime",
 	"stageId",
 	"createdBy",
+	"movedTime",
 	UserCodes.project,
 	UserCodes.estimateTime,
 	UserCodes.description,

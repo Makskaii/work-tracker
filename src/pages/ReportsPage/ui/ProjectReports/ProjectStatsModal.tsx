@@ -14,6 +14,7 @@ import type { ReportsContext, TaskProps } from "@/shared/types/types";
 import { convertNumberFormat, getWeekArray } from "@/shared/utils";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getTasks } from "../../api/getTasks";
+import { DoneTasksList } from "./DoneTasksList";
 
 const today = dayjs();
 
@@ -29,6 +30,7 @@ export const ProjectsStats = ({
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const [view, setView] = useState<"task" | "stats">("stats");
 
 	const { startOfTheWeek, endOfTheWeek } = borders;
 
@@ -157,316 +159,345 @@ export const ProjectsStats = ({
 
 	const week = getWeekArray(borders.startOfTheWeek);
 
-	return (
-		tasks && (
+	return tasks && view === "stats" ? (
+		<div
+			style={{
+				display: "flex",
+				flexDirection: "column",
+				gap: "1rem",
+			}}
+		>
 			<div
 				style={{
 					display: "flex",
-					flexDirection: "column",
-					gap: "1rem",
+					justifyContent: "space-between",
+					borderBottom: "1px solid #ccc",
 				}}
 			>
 				<div
 					style={{
+						width: "100%",
 						display: "flex",
+						alignItems: "center",
 						justifyContent: "space-between",
-						borderBottom: "1px solid #ccc",
+						padding: "0 1rem",
 					}}
 				>
-					<div
+					<span
 						style={{
-							width: "100%",
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							padding: "0 1rem",
+							fontSize: "1.5rem",
+							fontWeight: "bold",
 						}}
 					>
-						<span
+						{project.NAME}
+					</span>
+
+					<button
+						onClick={() => setView("task")}
+						style={{
+							background: "green",
+						}}
+					>
+						Отчет за 2 недели
+					</button>
+
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: "1rem",
+						}}
+					>
+						<button
 							style={{
-								fontSize: "1.5rem",
-								fontWeight: "bold",
+								background: "white",
+								color: "#aeacac",
+							}}
+							onClick={() => {
+								setDay((prev) => prev.subtract(7, "day"));
 							}}
 						>
-							{project.NAME}
-						</span>
+							пред. спринт
+						</button>
 						<div
 							style={{
 								display: "flex",
+								flexDirection: "column",
 								alignItems: "center",
-								gap: "1rem",
 							}}
 						>
-							<button
-								style={{
-									background: "white",
-									color: "#aeacac",
-								}}
-								onClick={() => {
-									setDay((prev) => prev.subtract(7, "day"));
-								}}
-							>
-								пред. спринт
-							</button>
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									alignItems: "center",
-								}}
-							>
-								<span>Cпринт</span>
-								<div>
-									{dayjs(borders.startOfTheWeek).format("DD.MM")}-
-									{dayjs(borders.endOfTheWeek).format("DD.MM")}
-								</div>
+							<span>Cпринт</span>
+							<div>
+								{dayjs(borders.startOfTheWeek).format("DD.MM")}-
+								{dayjs(borders.endOfTheWeek).format("DD.MM")}
 							</div>
-							<button
-								style={{
-									background: "white",
-									color: "#aeacac",
-								}}
-								onClick={() => {
-									setDay((prev) => prev.add(7, "day"));
-								}}
-							>
-								след. спринт
-							</button>
 						</div>
+						<button
+							style={{
+								background: "white",
+								color: "#aeacac",
+							}}
+							onClick={() => {
+								setDay((prev) => prev.add(7, "day"));
+							}}
+						>
+							след. спринт
+						</button>
+					</div>
 
-						<span>Всего времени: {totalSpentTime.toFixed(2)} ч.</span>
-					</div>
-					<div
-						style={{
-							display: "flex",
-						}}
-					>
-						<span
-							style={{
-								background: "white",
-								color: "#aeacac",
-								padding: "1rem",
-								border: "1px solid #ccc",
-								borderRadius: "5px 0 0 0",
-								borderBottom: "none",
-								cursor: "pointer",
-							}}
-						>
-							Задачи
-						</span>
-						<span
-							style={{
-								padding: "1rem",
-								background: "white",
-								color: "#aeacac",
-								border: "1px solid #ccc",
-								borderRadius: "0 5px 0 0",
-								borderBottom: "none",
-								cursor: "pointer",
-							}}
-						>
-							Сотрудники
-						</span>
-					</div>
+					<span>Всего времени: {totalSpentTime.toFixed(2)} ч.</span>
 				</div>
 				<div
 					style={{
 						display: "flex",
 					}}
 				>
-					<div
+					<span
 						style={{
-							flex: 1.5,
-							minWidth: 0,
+							background: "white",
+							color: "#aeacac",
+							padding: "1rem",
+							border: "1px solid #ccc",
+							borderRadius: "5px 0 0 0",
+							borderBottom: "none",
+							cursor: "pointer",
 						}}
 					>
-						<div
-							style={{
-								marginBottom: "1rem",
-							}}
-						>
-							Задач в спринте: {tasks.length}
-						</div>
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								gap: "10px",
-								height: "100%",
-								maxHeight: "calc(100vh*0.75)",
-								overflowY: "auto",
-							}}
-						>
-							{tasks.map((task) => {
-								const timespent = groupedByTaskReports?.[
-									Number(task.id)
-								]?.reduce((acc, report) => {
-									return (
-										acc + Number(report[dtoFieldsCodesDailyReports.timeSpent])
-									);
-								}, 0);
-								return (
-									<TaskItemExtended
-										task={task}
-										estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
-										key={task.id}
-										timeSpent={timespent ?? 0}
-									/>
-								);
-							})}
-						</div>
+						Задачи
+					</span>
+					<span
+						style={{
+							padding: "1rem",
+							background: "white",
+							color: "#aeacac",
+							border: "1px solid #ccc",
+							borderRadius: "0 5px 0 0",
+							borderBottom: "none",
+							cursor: "pointer",
+						}}
+					>
+						Сотрудники
+					</span>
+				</div>
+			</div>
+			<div
+				style={{
+					display: "flex",
+				}}
+			>
+				<div
+					style={{
+						flex: 1.5,
+						minWidth: 0,
+					}}
+				>
+					<div
+						style={{
+							marginBottom: "1rem",
+						}}
+					>
+						Задач в спринте: {tasks.length}
 					</div>
 					<div
 						style={{
-							flex: 1,
-							minWidth: 0,
+							display: "flex",
+							flexDirection: "column",
+							gap: "10px",
+							height: "100%",
+							maxHeight: "calc(100vh*0.75)",
+							overflowY: "auto",
 						}}
 					>
-						<div>
-							<div
+						{tasks.map((task) => {
+							const timespent = groupedByTaskReports?.[Number(task.id)]?.reduce(
+								(acc, report) => {
+									return (
+										acc + Number(report[dtoFieldsCodesDailyReports.timeSpent])
+									);
+								},
+								0,
+							);
+							return (
+								<TaskItemExtended
+									task={task}
+									estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
+									key={task.id}
+									timeSpent={timespent ?? 0}
+								/>
+							);
+						})}
+					</div>
+				</div>
+				<div
+					style={{
+						flex: 1,
+						minWidth: 0,
+					}}
+				>
+					<div>
+						<div
+							style={{
+								display: "flex",
+								justifyContent: "space-between",
+								padding: "0 10px",
+								marginBottom: "10px",
+							}}
+						>
+							<span
 								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									padding: "0 10px",
-									marginBottom: "10px",
+									whiteSpace: "nowrap",
 								}}
 							>
-								<span
-									style={{
-										whiteSpace: "nowrap",
-									}}
-								>
-									Всего затрачено за спринт:{" "}
-									{data.reduce((acc, report) => {
-										return (
-											acc +
-											parseFloat(
-												String(report[dtoFieldsCodesDailyReports.timeSpent]),
-											)
-										);
-									}, 0)}
-									ч.
-								</span>
+								Всего затрачено за спринт:{" "}
+								{data.reduce((acc, report) => {
+									return (
+										acc +
+										parseFloat(
+											String(report[dtoFieldsCodesDailyReports.timeSpent]),
+										)
+									);
+								}, 0)}
+								ч.
+							</span>
 
-								<span
-									style={{
-										whiteSpace: "nowrap",
-									}}
-								>
-									План по часам:{" "}
-									{tasks.reduce((acc, report) => {
-										return (
-											acc +
-											convertNumberFormat(
-												report[dtoFieldsCodesUserReports.estimateTime],
-											)
-										);
-									}, 0)}
-									ч.
-								</span>
-							</div>
+							<span
+								style={{
+									whiteSpace: "nowrap",
+								}}
+							>
+								План по часам:{" "}
+								{tasks.reduce((acc, report) => {
+									return (
+										acc +
+										convertNumberFormat(
+											report[dtoFieldsCodesUserReports.estimateTime],
+										)
+									);
+								}, 0)}
+								ч.
+							</span>
+						</div>
+						<div
+							style={{
+								padding: "0 10px",
+							}}
+						>
 							<div
 								style={{
-									padding: "0 10px",
+									boxShadow:
+										"rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px",
+									padding: "1rem",
+									borderRadius: "12px",
 								}}
 							>
 								<div
 									style={{
-										boxShadow:
-											"rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px",
-										padding: "1rem",
-										borderRadius: "12px",
+										marginBottom: "10px",
 									}}
 								>
-									<div
-										style={{
-											marginBottom: "10px",
-										}}
-									>
-										Разработчики:
-									</div>
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											gap: "10px",
-										}}
-									>
-										{users.map((user) => {
-											if (devsIds.has(Number(user.id)))
-												return (
-													<div
-														style={{
-															display: "flex",
-														}}
-													>
-														<UserCard user={user} key={user.id} />
-														Задач в проекте:{" "}
-														{
-															tasks.filter(
-																(task) => String(task.assignedById) === user.id,
-															).length
-														}
-													</div>
-												);
-										})}
-									</div>
+									Разработчики:
 								</div>
-							</div>
-
-							<div
-								style={{
-									padding: "0 10px",
-									marginTop: "1rem",
-								}}
-							>
 								<div
 									style={{
-										boxShadow:
-											"rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px",
-										padding: "1rem",
-										borderRadius: "12px",
+										display: "flex",
+										flexDirection: "column",
+										gap: "10px",
 									}}
 								>
-									<span
-										style={{
-											marginBottom: "10px",
-										}}
-									>
-										Активность в проекте:
-									</span>
-									<div
-										style={{
-											borderLeft: "1px solid black",
-											borderBottom: "1px solid black",
-											display: "flex",
-											justifyContent: "space-between",
-											minHeight: "300px",
-										}}
-									>
-										{week.map((day) => {
+									{users.map((user) => {
+										if (devsIds.has(Number(user.id)))
 											return (
-												<div key={day.day}>
-													<div
-														style={{
-															display: "flex",
-															flexDirection: "column",
-															alignItems: "center",
-														}}
-													>
-														<div>{day.name}</div>
-														<div> {dayjs(day.day).format("DD.MM")}</div>
-													</div>
+												<div
+													style={{
+														display: "flex",
+													}}
+												>
+													<UserCard user={user} key={user.id} />
+													Задач в проекте:{" "}
+													{
+														tasks.filter(
+															(task) => String(task.assignedById) === user.id,
+														).length
+													}
 												</div>
 											);
-										})}
-									</div>
+									})}
+								</div>
+							</div>
+						</div>
+
+						<div
+							style={{
+								padding: "0 10px",
+								marginTop: "1rem",
+							}}
+						>
+							<div
+								style={{
+									boxShadow:
+										"rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px",
+									padding: "1rem",
+									borderRadius: "12px",
+								}}
+							>
+								<span
+									style={{
+										marginBottom: "10px",
+									}}
+								>
+									Активность в проекте:
+								</span>
+								<div
+									style={{
+										borderLeft: "1px solid black",
+										borderBottom: "1px solid black",
+										display: "flex",
+										justifyContent: "space-between",
+										minHeight: "300px",
+									}}
+								>
+									{week.map((day) => {
+										return (
+											<div key={day.day}>
+												<div
+													style={{
+														display: "flex",
+														flexDirection: "column",
+														alignItems: "center",
+													}}
+												>
+													<div>{day.name}</div>
+													<div> {dayjs(day.day).format("DD.MM")}</div>
+												</div>
+											</div>
+										);
+									})}
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		)
+		</div>
+	) : (
+		<div
+			style={{
+				position: "relative",
+			}}
+		>
+			<div
+				style={{
+					width: "100%",
+					position: "sticky",
+					top: 0,
+					display: "flex",
+					justifyContent: "flex-end",
+				}}
+			>
+				<button onClick={() => setView("stats")}>Назад</button>
+			</div>
+
+			<DoneTasksList projectId={project.ID} />
+		</div>
 	);
 };

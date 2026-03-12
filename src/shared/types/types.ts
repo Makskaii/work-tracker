@@ -13,6 +13,7 @@ export interface TaskProps {
 	createdTime: string;
 	lastActivityTime: string;
 	stageId: string;
+	movedTime: string;
 	[UserCodes.project]: number;
 	[UserCodes.estimateTime]: string;
 	[UserCodes.description]: string;

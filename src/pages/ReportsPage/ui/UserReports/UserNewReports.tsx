@@ -13,9 +13,8 @@ import {
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
-import type { ReportsContext, User } from "@/shared/types/types";
+import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { getSrartEndMonthDate } from "@/shared/utils/utils";
-import type { TaskProps } from "../ProgressReports/types";
 import cls from "./UserReports.module.scss";
 
 export const NewUserReports = () => {

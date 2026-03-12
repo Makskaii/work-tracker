@@ -9,7 +9,10 @@ import type {
 	TaskProps,
 	User,
 } from "@/shared/types/types";
-import { getProjectsFromList } from "../../shared/api/getCrmFields";
+import {
+	getActivities,
+	getProjectsFromList,
+} from "../../shared/api/getCrmFields";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
@@ -86,6 +89,16 @@ const ReportsPage = () => {
 		};
 
 		fetchStatuses();
+	}, []);
+
+	useEffect(() => {
+		const fetchProjects = async () => {
+			const response = await getActivities();
+
+			console.log({ response });
+		};
+
+		fetchProjects();
 	}, []);
 
 	useEffect(() => {
