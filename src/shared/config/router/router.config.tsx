@@ -4,7 +4,6 @@ import ErrorElement from "@/components/errorElement/ErrorElement";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Spinner } from "@/components/spinner/Spinner";
 import {
-	DataPage,
 	Progress,
 	ProjectsReports,
 	ReportsCalendar,
@@ -20,7 +19,6 @@ export const router = createBrowserRouter(
 			errorElement: <ErrorElement />,
 
 			children: [
-				{ path: "/data", element: <DataPage /> },
 				{
 					path: "/reports",
 					element: (

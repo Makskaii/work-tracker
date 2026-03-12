@@ -77,15 +77,6 @@ export const MainLayout = () => {
 						className={({ isActive, isPending }) =>
 							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
 						}
-						to="/data"
-						end
-					>
-						Данные
-					</NavLink>
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
 						to="/reports"
 						end
 					>
