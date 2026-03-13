@@ -6,6 +6,7 @@ import {
 	dtoFieldsCodesUserReports,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
+import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
@@ -31,6 +32,7 @@ export const ProjectsStats = ({
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
 	const [view, setView] = useState<"task" | "stats">("stats");
+	const [loading, setLoading] = useState(false);
 
 	const { startOfTheWeek, endOfTheWeek } = borders;
 
@@ -159,6 +161,38 @@ export const ProjectsStats = ({
 
 	const week = getWeekArray(borders.startOfTheWeek);
 
+	const getReportPdf = async (
+		projectId: string,
+		startOfThePeriod: string,
+		endOfThePeriod: string,
+	) => {
+		try {
+			setLoading(true);
+			const response = await fetch("http://localhost:3001/doc-records/report", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					projectId,
+					startOfThePeriod,
+					endOfThePeriod,
+				}),
+			});
+
+			const data = (await response.json()) as {
+				downloadUrl: string;
+				reportId: string;
+			};
+
+			window.open(`http://localhost:3001${data.downloadUrl}`, "_blank");
+		} catch (error) {
+			console.log(error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	return tasks && view === "stats" ? (
 		<div
 			style={{
@@ -193,12 +227,26 @@ export const ProjectsStats = ({
 					</span>
 
 					<button
-						onClick={() => setView("task")}
+						onClick={async () => {
+							await getReportPdf(project.ID, startOfTheWeek, endOfTheWeek);
+							setView("task");
+						}}
 						style={{
 							background: "green",
+							display: "flex",
+							gap: "1rem",
 						}}
 					>
 						Отчет за 2 недели
+						{loading && (
+							<Spinner
+								onlySpin
+								additionalStyles={{
+									width: "20px",
+									height: "20px",
+								}}
+							/>
+						)}
 					</button>
 
 					<div
