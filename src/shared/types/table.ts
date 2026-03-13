@@ -1,0 +1,30 @@
+import type { AnyObject } from "./types";
+
+type HeaderItem<T, K extends keyof T> = {
+	key: K;
+	title: string;
+	convertFn?: (value: T[K], additionalData?: AnyObject) => string;
+};
+
+export type Header<T> = {
+	[K in keyof T]: HeaderItem<T, K>;
+}[keyof T];
+
+export type UniversalTableProps<T extends { id: string }> = {
+	headers: Header<T>[];
+	activeItems: T[];
+	additionalData?: AnyObject;
+	totalRow?: React.ReactNode;
+};
+
+export interface GroupedReportFields {
+	id: string;
+	title: string;
+	timeSpent: string;
+
+	taskId: string;
+	day: string;
+	project: number;
+	assignedById: string;
+	activity?: number;
+}

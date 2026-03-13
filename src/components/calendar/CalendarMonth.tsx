@@ -1,12 +1,14 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
 import { useOutletContext } from "react-router";
+import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
 import { Modal } from "../modal";
+import { UniversalTable } from "../Table/universalTable/UniversalTable";
 import cls from "./Calendar.module.scss";
 import { headers, months, years } from "./constants/const";
-import type { GroupedReportFields, MonthDays } from "./types/types";
+import type { MonthDays } from "./types/types";
 
 const CalendarMonth = ({
 	monthDays,
@@ -156,51 +158,11 @@ const CalendarMonth = ({
 				size="covered"
 				innerScroll
 			>
-				<div
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						padding: "1rem",
-					}}
-				>
-					<div className={cls.container}>
-						<table>
-							<thead>
-								<tr>
-									{headers.map((rep) => (
-										<th key={rep.title}>{rep.title}</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{activeReport.map((item) => {
-									return (
-										<tr key={item.id}>
-											{headers.map((rep) => (
-												<td key={rep.key}>
-													{rep.convertFn
-														? rep.convertFn(item[rep.key] as number, projects)
-														: String(item[rep.key])}
-												</td>
-											))}
-										</tr>
-									);
-								})}
-								<tr>
-									<td></td>
-									<td></td>
-									<td>
-										всего часов:{" "}
-										{activeReport.reduce(
-											(acc, item) => acc + Number(item.timeSpent),
-											0,
-										)}
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
+				<UniversalTable<GroupedReportFields>
+					activeItems={activeReport}
+					headers={headers}
+					additionalData={projects}
+				/>
 			</Modal>
 		</div>
 	);
