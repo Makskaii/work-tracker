@@ -9,6 +9,7 @@ import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
+import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps } from "@/shared/types/types";
@@ -168,24 +169,16 @@ export const ProjectsStats = ({
 	) => {
 		try {
 			setLoading(true);
-			const response = await fetch("http://localhost:3001/doc-records/report", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					projectId,
-					startOfThePeriod,
-					endOfThePeriod,
-				}),
+			const response = await $api.post("api/doc-records/report", {
+				projectId,
+				startOfThePeriod,
+				endOfThePeriod,
 			});
 
-			const data = (await response.json()) as {
-				downloadUrl: string;
-				reportId: string;
-			};
-
-			window.open(`http://localhost:3001${data.downloadUrl}`, "_blank");
+			window.open(
+				`http://localhost:3001${response.data.downloadUrl}`,
+				"_blank",
+			);
 		} catch (error) {
 			console.log(error);
 		} finally {
