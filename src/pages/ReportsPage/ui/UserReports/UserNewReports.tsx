@@ -174,7 +174,9 @@ export const NewUserReports = () => {
 			setEffectivity(fetchvalues);
 		};
 
-		fetch();
+		if (showWorkingTable) {
+			fetch();
+		}
 	}, [borders.endOfTheWeek, borders.startOfTheWeek, users]);
 
 	return (
@@ -260,7 +262,7 @@ export const NewUserReports = () => {
 			{showWorkingTable && (
 				<Modal
 					isOpen={showWorkingTable}
-					onClose={() => setOpen(false)}
+					onClose={() => setShowWorkingTable(false)}
 					size="covered"
 					innerScroll
 				>
