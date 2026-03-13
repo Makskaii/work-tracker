@@ -1,9 +1,8 @@
-import type { AnyObject } from "@/shared/types/types";
+import type { GroupedReportFields, Header } from "@/shared/types/table";
 import {
 	convertToDate,
 	convertToMinutesOrHours,
 } from "../../../shared/utils/utils";
-import type { GroupedReportFields } from "../types/types";
 
 export const months = [
 	"Январь",
@@ -22,11 +21,7 @@ export const months = [
 
 export const years = Array.from({ length: 10 }, (_, i) => 2020 + i);
 
-export const headers: {
-	key: keyof GroupedReportFields;
-	title: string;
-	convertFn?: (value: number, additionalData?: AnyObject) => string;
-}[] = [
+export const headers: Header<GroupedReportFields>[] = [
 	{
 		title: "Описание",
 		key: "title",

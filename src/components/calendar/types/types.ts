@@ -1,3 +1,4 @@
+import type { GroupedReportFields } from "@/shared/types/table";
 import type { dtoFieldsCodesDailyReports } from "../constants/const";
 
 export interface ReportProps {
@@ -13,18 +14,6 @@ export interface ReportProps {
 	[dtoFieldsCodesDailyReports.parentId]: number;
 	assignedById: string;
 	lastActivityTime: string;
-}
-
-export interface GroupedReportFields {
-	id: string;
-	title: string;
-	timeSpent: string;
-
-	taskId: string;
-	day: string;
-	project: number;
-	assignedById: string;
-	activity?: number;
 }
 
 export interface MonthDays {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import type { GroupedReportFields } from "@/shared/types/table";
 import { CalendarMonth, WeekCalendar } from ".";
 import {
 	dtoFieldsCodesDailyReports,
@@ -10,7 +11,7 @@ import {
 	selectFields,
 } from "./constants/const";
 import { generateMonthDays } from "./helpers/generateMonthDays";
-import type { GroupedReportFields, ReportProps } from "./types/types";
+import type { ReportProps } from "./types/types";
 
 export const Calendar = ({
 	view,

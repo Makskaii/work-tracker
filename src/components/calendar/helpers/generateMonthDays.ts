@@ -1,4 +1,4 @@
-import type { GroupedReportFields } from "../types/types";
+import type { GroupedReportFields } from "@/shared/types/table";
 
 const getDaysInMonth = (year: number, month: number) => {
 	return new Date(year, month + 1, 0).getDate();
