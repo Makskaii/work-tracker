@@ -177,7 +177,7 @@ export const NewUserReports = () => {
 		if (showWorkingTable) {
 			fetch();
 		}
-	}, [borders.endOfTheWeek, borders.startOfTheWeek, users]);
+	}, [borders.endOfTheWeek, borders.startOfTheWeek, users, showWorkingTable]);
 
 	return (
 		<div className={cls.container}>
