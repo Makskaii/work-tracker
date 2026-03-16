@@ -46,6 +46,7 @@ export const TASK_SELECT_FIELDS = [
 	UserCodes.comment,
 	UserCodes.reportDate,
 	UserCodes.timeSpent,
+	UserCodes.sprintDateStart,
 ] as const;
 
 export const statsFields: {
