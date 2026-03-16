@@ -20,10 +20,13 @@ export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 				entityTypeId: EntityTypeIds.tasks,
 				select: TASK_SELECT_FIELDS,
 				filter: {
-					">=movedTime": dayjs(borders.startOfTheWeek)
+					[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: dayjs(
+						borders.startOfTheWeek,
+					)
 						.subtract(7, "day")
 						.format("YYYY-MM-DD"),
-					"<=movedTime": borders.endOfTheWeek,
+					[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]:
+						borders.endOfTheWeek,
 					stageId: "DT1072_18:UC_6JNSDG",
 					[dtoFieldsCodesUserReports.project]: projectId,
 				},
