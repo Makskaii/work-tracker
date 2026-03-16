@@ -1,15 +1,10 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import {
-	dtoFieldsCodesDailyReports,
-	dtoFieldsCodesUserReports,
-} from "@/components/calendar/constants/const";
 import { Modal } from "@/components/modal";
 import { StatsModal } from "@/components/statistics/EmployeeStats/StatsModal";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { ListItem } from "@/components/userListItem/UserListItem";
-import { $api } from "@/shared/config";
 import {
 	Endpoints,
 	EntityTypeIds,
@@ -19,114 +14,10 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getSrartEndMonthDate } from "@/shared/utils/utils";
-import { getTasks } from "../../api/getTasks";
-import { headersForDevs } from "../../constants/titleMap";
+import { headersForDevs } from "../../constants/UsersTitleMap";
+import { getUsersTableData } from "../../helpers/devsStatsBySprint";
 import type { GroupedFields } from "../../types/types";
 import cls from "./UserReports.module.scss";
-
-const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
-	if (!availableTime) return 0;
-
-	return Math.round((timeSpent / availableTime) * 100);
-};
-
-const getCommentByEffectivity = (effectivity: number) => {
-	if (effectivity > 100) return "Перегрузка";
-	if (effectivity < 80) return "Недогрузка";
-	if (effectivity >= 90) return "Норма";
-
-	return "";
-};
-
-export const getUsersTableData = async ({
-	users,
-	startOfTheWeek,
-	endOfTheWeek,
-}: {
-	users: User[];
-	startOfTheWeek: string;
-	endOfTheWeek: string;
-}): Promise<GroupedFields[]> => {
-	const result = await Promise.all(
-		users.map(async (user) => {
-			const tasksResponse = await getTasks({
-				assignedById: user.id,
-				[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
-				[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
-			});
-
-			const tasks = tasksResponse ?? [];
-
-			if (!tasks.length) {
-				return {
-					id: String(user.id),
-					title: user.title,
-					availableTime: 30,
-					timeSpent: 0,
-					effectivity: "0",
-					comment: "",
-				};
-			}
-
-			const reportsResponses = await Promise.all(
-				tasks.map((task: { id: string | number }) =>
-					$api.get(Endpoints.crmItems, {
-						params: {
-							entityTypeId: EntityTypeIds.reports,
-							select: [
-								"id",
-								"title",
-								"begindate",
-								dtoFieldsCodesDailyReports.title,
-								dtoFieldsCodesDailyReports.timeSpent,
-								dtoFieldsCodesDailyReports.project,
-								dtoFieldsCodesDailyReports.taskId,
-								dtoFieldsCodesDailyReports.activityType,
-								"assignedById",
-								"createdTime",
-								"lastActivityTime",
-								`parentId${EntityTypeIds.tasks}`,
-							],
-							filter: {
-								[dtoFieldsCodesDailyReports.parentId]: task.id,
-								assignedById: user.id,
-								">=begindate": startOfTheWeek,
-								"<=begindate": endOfTheWeek,
-							},
-						},
-					}),
-				),
-			);
-
-			const totalTimeSpent = reportsResponses.reduce((userAcc, response) => {
-				const reports = response?.data?.result?.items ?? [];
-
-				return (
-					userAcc +
-					reports.reduce(
-						(reportAcc: number, report: Record<string, unknown>) =>
-							reportAcc +
-							Number(report[dtoFieldsCodesDailyReports.timeSpent] ?? 0),
-						0,
-					)
-				);
-			}, 0);
-
-			const effectivity = getEffectivityPercent(30, totalTimeSpent);
-
-			return {
-				id: String(user.id),
-				title: user.title,
-				availableTime: 30,
-				timeSpent: totalTimeSpent,
-				effectivity: `${effectivity}%`,
-				comment: getCommentByEffectivity(effectivity),
-			};
-		}),
-	);
-
-	return result;
-};
 
 const today = dayjs();
 
@@ -156,7 +47,7 @@ export const NewUserReports = () => {
 			},
 		},
 	});
-
+	console.log({ effectivity });
 	const filteredTasks = useMemo(() => {
 		return data.filter((task) => task.stageId === "DT1072_18:CLIENT");
 	}, [data]);

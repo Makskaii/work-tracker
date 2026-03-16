@@ -33,6 +33,7 @@ export const ProjectsStats = ({
 	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
 	const [view, setView] = useState<"task" | "stats">("stats");
 	const [loading, setLoading] = useState(false);
+	const [loadUrl, setLoadUrl] = useState("");
 
 	const { startOfTheWeek, endOfTheWeek } = borders;
 
@@ -143,7 +144,7 @@ export const ProjectsStats = ({
 	const groupedByTaskReports = useMemo(() => {
 		return data.reduce(
 			(acc, report) => {
-				const parentId = Number(report[dtoFieldsCodesDailyReports.taskId]);
+				const parentId = Number(report[dtoFieldsCodesDailyReports.parentId]);
 
 				if (!parentId) return acc;
 
@@ -188,9 +189,8 @@ export const ProjectsStats = ({
 				reportId: string;
 			};
 
-			window.open(
+			setLoadUrl(
 				`https://crm.evolution-soft.ru/devapps/work-tracker/api${data.downloadUrl}`,
-				"_blank",
 			);
 		} catch (error) {
 			console.log(error);
@@ -545,10 +545,24 @@ export const ProjectsStats = ({
 					position: "sticky",
 					top: 0,
 					display: "flex",
-					justifyContent: "flex-end",
+					justifyContent: "space-between",
 				}}
 			>
-				<button onClick={() => setView("stats")}>Назад</button>
+				<button
+					onClick={() => {
+						loadUrl !== "" && window.open(loadUrl, "_blank");
+					}}
+				>
+					Скачать отчет
+				</button>
+				<button
+					onClick={() => {
+						setLoadUrl("");
+						setView("stats");
+					}}
+				>
+					Назад
+				</button>
 			</div>
 
 			<DoneTasksList projectId={project.ID} />

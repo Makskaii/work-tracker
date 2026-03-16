@@ -53,11 +53,13 @@
   border: 1px solid #ccc;
   border-radius: 10px;
   padding: 1rem;
+  min-width: 0;
 }
 
 .noTasksMessage {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   height: 100%;
 }

@@ -1,7 +1,7 @@
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
 import { useEffect, useRef } from "react";
-import { NavLink, Outlet } from "react-router";
+import { Outlet } from "react-router";
 import { ability } from "../../shared/config/ability/casl";
 
 const devMode =
@@ -63,26 +63,6 @@ export const MainLayout = () => {
 					overflow: "hidden",
 				}}
 			>
-				<div
-					style={{
-						display: "flex",
-						gap: "1rem",
-						padding: "0 1rem",
-						boxShadow: "rgba(33, 35, 38, 0.1) 0px 17px 11px -5px",
-						paddingBottom: "0.5rem",
-						alignItems: "center",
-					}}
-				>
-					<NavLink
-						className={({ isActive, isPending }) =>
-							[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-						}
-						to="/reports"
-						end
-					>
-						Отчеты
-					</NavLink>
-				</div>
 				<Outlet />
 			</main>
 		</div>

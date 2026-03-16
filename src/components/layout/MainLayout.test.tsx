@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <for correct mocks> */
 
 import { initializeB24Frame } from "@bitrix24/b24jssdk";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ability } from "../../shared/config/ability/casl";
@@ -47,12 +47,6 @@ describe("MainLayout", () => {
 		);
 	};
 
-	it("должен успешно рендериться с навигацией", () => {
-		renderWithRouter();
-
-		expect(screen.getByText("Отчеты")).toBeInTheDocument();
-	});
-
 	describe("Инициализация Bitrix24", () => {
 		it("должен инициализировать B24Frame при монтировании", async () => {
 			vi.mocked(initializeB24Frame).mockResolvedValue(mockB24Instance as any);
@@ -93,16 +87,6 @@ describe("MainLayout", () => {
 				expect(initializeB24Frame).toHaveBeenCalled();
 			});
 			expect(ability.update).toHaveBeenCalledTimes(1);
-		});
-	});
-
-	describe("Роутинг", () => {
-		it("должен иметь правильные ссылки навигации", () => {
-			renderWithRouter();
-
-			const reportsLink = screen.getByText("Отчеты").closest("a");
-
-			expect(reportsLink).toHaveAttribute("href", "/reports");
 		});
 	});
 });

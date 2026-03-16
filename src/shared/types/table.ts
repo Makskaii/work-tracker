@@ -4,6 +4,7 @@ type HeaderItem<T, K extends keyof T> = {
 	key: K;
 	title: string;
 	convertFn?: (value: T[K], additionalData?: AnyObject) => string;
+	render?: (value: T[K], additionalData?: AnyObject) => React.ReactNode;
 };
 
 export type Header<T> = {
