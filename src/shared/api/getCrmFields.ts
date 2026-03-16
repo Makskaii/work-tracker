@@ -31,7 +31,7 @@ export const getProjectsFromList = async (): Promise<
 export const getActivities = async () => {
 	try {
 		const response = await $api.post(Endpoints.crmFeilds, {
-			entityTypeId: 1072,
+			entityTypeId: 1060,
 		});
 
 		const items = response.data.result;

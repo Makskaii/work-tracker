@@ -1,11 +1,19 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { dtoFieldsCodesUserReports } from "@/components/calendar/constants/const";
+import {
+	dtoFieldsCodesDailyReports,
+	dtoFieldsCodesUserReports,
+} from "@/components/calendar/constants/const";
+import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
+import { $api } from "@/shared/config";
+import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import type { Header } from "@/shared/types/table";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { Modal } from "../../../../components/modal";
-import type { ReportsContext } from "../../../../shared/types/types";
+import type { ReportsContext, TaskProps } from "../../../../shared/types/types";
 import { getTasks } from "../../api/getTasks";
+import type { ProjectTableRow } from "../../types/types";
 import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
 
@@ -23,6 +31,10 @@ const TASK_STAGE_IDS = {
 	WAITING: "DT1072_18:UC_A9IWFS",
 	DOCS: "DT1072_18:UC_K596F0",
 } as const;
+
+export const getRiskColor = (risk: string): string => {
+	return risk === "Перерасход" ? "#ef4444" : "#22c55e";
+};
 
 const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 	if (!tasks.length) {
@@ -52,6 +64,123 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 
 	return "нет задач";
 };
+
+const getProjectPlanHours = (tasks: TaskProps[]) => {
+	return tasks.reduce((acc, task) => {
+		return acc + parseFloat(task[dtoFieldsCodesUserReports.estimateTime] ?? 0);
+	}, 0);
+};
+
+const getReportsByProject = async ({ projectId }: { projectId: string }) => {
+	const response = await $api.get(Endpoints.crmItems, {
+		params: {
+			entityTypeId: EntityTypeIds.reports,
+			select: [
+				"id",
+				"title",
+				"begindate",
+				dtoFieldsCodesDailyReports.title,
+				dtoFieldsCodesDailyReports.timeSpent,
+				dtoFieldsCodesDailyReports.project,
+				dtoFieldsCodesDailyReports.taskId,
+				dtoFieldsCodesDailyReports.activityType,
+				"assignedById",
+				"createdTime",
+				"lastActivityTime",
+				`parentId${EntityTypeIds.tasks}`,
+			],
+			filter: {
+				[dtoFieldsCodesDailyReports.project]: projectId,
+			},
+		},
+	});
+
+	return response?.data?.result?.items ?? [];
+};
+
+const getSpentHoursByReports = (reports: Array<Record<string, unknown>>) => {
+	return reports.reduce((acc, report) => {
+		return acc + Number(report[dtoFieldsCodesDailyReports.timeSpent] ?? 0);
+	}, 0);
+};
+
+const getProjectRisk = (planHours: number, spentHours: number) => {
+	return spentHours > planHours ? "Перерасход" : "Нет риска";
+};
+
+export const getProjectsTableData = async ({
+	projects,
+}: {
+	projects: { ID: string; NAME: string }[];
+}): Promise<ProjectTableRow[]> => {
+	const result = await Promise.all(
+		projects.map(async (project) => {
+			const tasks = await getTasks({
+				[dtoFieldsCodesUserReports.project]: project.ID,
+			});
+
+			const reports = await getReportsByProject({
+				projectId: project.ID,
+			});
+
+			const planHours = getProjectPlanHours(tasks ?? []);
+			const spentHours = getSpentHoursByReports(reports);
+			const deviation = spentHours - planHours;
+			const risk = getProjectRisk(planHours, spentHours);
+			const purchasedHours = "-";
+
+			return {
+				id: project.ID,
+				title: project.NAME,
+				status: getProjectStatus(tasks ?? []),
+				planHours,
+				spentHours,
+				deviation,
+				risk,
+				purchasedHours,
+			};
+		}),
+	);
+
+	return result;
+};
+
+export const headersForProjects: Header<ProjectTableRow>[] = [
+	{
+		title: "Проект",
+		key: "title",
+	},
+	{
+		title: "Статус",
+		key: "status",
+	},
+	{
+		title: "План часов",
+		key: "planHours",
+		convertFn: (value) => String(value),
+	},
+	{
+		title: "Потрачено",
+		key: "spentHours",
+		convertFn: (value) => String(value),
+	},
+	{
+		title: "Отклонение",
+		key: "deviation",
+		convertFn: (value) => (value > 0 ? `+${value}` : String(value)),
+	},
+	{
+		title: "Риск",
+		key: "risk",
+		render: (value) => (
+			<span style={{ color: getRiskColor(value) }}>{value}</span>
+		),
+	},
+	{
+		title: "Купленные часы на разработку",
+		key: "purchasedHours",
+	},
+];
 
 export const getProjectsWithStatuses = async ({
 	projects,
@@ -87,16 +216,16 @@ const today = dayjs();
 
 const ProjectsReports = () => {
 	const [open, setOpen] = useState<boolean>(false);
+	const [showStatuses, setShowStatuses] = useState<boolean>(false);
 	const [activeProject, setActiveProject] = useState<{
 		ID: string;
 		NAME: string;
 	}>();
 
 	const { projects } = useOutletContext<ReportsContext>();
-
 	const borders = useMemo(() => getWeekBorders(dayjs(today)), []);
-
 	const [projWithStatus, setProjWithStatus] = useState<ProjectWithStatus[]>([]);
+	const [tableData, setTableData] = useState<ProjectTableRow[]>([]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -113,6 +242,20 @@ const ProjectsReports = () => {
 			fetchData();
 		}
 	}, [borders.endOfTheWeek, borders.startOfTheWeek, projects]);
+
+	useEffect(() => {
+		const fetchData = async () => {
+			const result = await getProjectsTableData({
+				projects: projects,
+			});
+
+			setTableData(result);
+		};
+
+		if (projects) {
+			fetchData();
+		}
+	}, [projects]);
 
 	return (
 		<>
@@ -148,6 +291,9 @@ const ProjectsReports = () => {
 				<div className={styles.statisticsContainer}>
 					<div className={styles.noTasksMessage}>
 						Количество проектов: {projects.length}
+						<button onClick={() => setShowStatuses(true)}>
+							Статус проектов
+						</button>
 					</div>
 				</div>
 			</div>
@@ -160,6 +306,22 @@ const ProjectsReports = () => {
 					size="covered"
 				>
 					<ProjectsStats project={activeProject} />
+				</Modal>
+			)}
+
+			{showStatuses && (
+				<Modal
+					isOpen={showStatuses}
+					onClose={() => setShowStatuses(false)}
+					innerScroll
+					size="covered"
+				>
+					<UniversalTable<ProjectTableRow>
+						headers={headersForProjects}
+						activeItems={tableData.toSorted((a, b) =>
+							a.status.localeCompare(b.status),
+						)}
+					/>
 				</Modal>
 			)}
 		</>

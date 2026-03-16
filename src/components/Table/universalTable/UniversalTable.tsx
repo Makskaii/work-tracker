@@ -34,9 +34,11 @@ export const UniversalTable = <T extends { id: string }>({
 
 									return (
 										<td key={String(header.key)}>
-											{header.convertFn
-												? header.convertFn(value, additionalData)
-												: String(value ?? "")}
+											{header.render
+												? header.render(value, additionalData)
+												: header.convertFn
+													? header.convertFn(value, additionalData)
+													: String(value ?? "")}
 										</td>
 									);
 								})}

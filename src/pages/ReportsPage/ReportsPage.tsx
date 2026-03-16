@@ -17,7 +17,7 @@ import { getSrartEndMonthDate } from "../../shared/utils/utils";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
 import { getTasks } from "./api/getTasks";
-import { Navigation } from "./constants/titleMap";
+import { Navigation } from "./constants/UsersTitleMap";
 
 const currentMonth = dayjs().month() + 1;
 const currentYear = dayjs().year();

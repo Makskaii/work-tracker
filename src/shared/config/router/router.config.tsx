@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import ErrorElement from "@/components/errorElement/ErrorElement";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Spinner } from "@/components/spinner/Spinner";
@@ -19,6 +19,10 @@ export const router = createBrowserRouter(
 			errorElement: <ErrorElement />,
 
 			children: [
+				{
+					index: true,
+					element: <Navigate to="/reports/employees" replace />,
+				},
 				{
 					path: "/reports",
 					element: (
