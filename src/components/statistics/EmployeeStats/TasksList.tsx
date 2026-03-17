@@ -5,6 +5,7 @@ import {
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { TaskItem } from "@/components/taskItem/TaskItemSimple";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { TaskProps } from "../../../shared/types/types";
 
 export const TasksList = ({
@@ -20,6 +21,8 @@ export const TasksList = ({
 	setActiveTask: Dispatch<SetStateAction<TaskProps | null>>;
 	setView: Dispatch<SetStateAction<"task" | "stats">>;
 }) => {
+	const { openTask } = useBitrixSlider();
+
 	return (
 		<div
 			style={{
@@ -39,6 +42,7 @@ export const TasksList = ({
 						onClick={() => {
 							setView("task");
 							setActiveTask(task);
+							openTask(task.id);
 						}}
 					>
 						<TaskItem
