@@ -1,6 +1,12 @@
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { createContext, useContext } from "react";
 
-export const B24Context = createContext<B24Frame | null>(null);
+type B24ContextValue = {
+	b24: B24Frame | null;
+};
 
-export const useB24Frame = () => useContext(B24Context);
+export const B24Context = createContext<B24ContextValue>({
+	b24: null,
+});
+
+export const useB24 = () => useContext(B24Context);
