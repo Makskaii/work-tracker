@@ -9,6 +9,7 @@ import {
 	ReportsCalendar,
 	UsersReports,
 } from "@/pages";
+import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 
 export const router = createBrowserRouter(
@@ -60,6 +61,15 @@ export const router = createBrowserRouter(
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<NewUserReports />
+								</Suspense>
+							),
+						},
+
+						{
+							path: "sales",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<SalesPage />
 								</Suspense>
 							),
 						},

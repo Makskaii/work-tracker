@@ -36,6 +36,10 @@ export const Navigation = [
 		title: "Календарь",
 		path: "employees",
 	},
+	{
+		title: "Продажи",
+		path: "sales",
+	},
 ];
 
 export const headersForDevs: Header<GroupedFields>[] = [

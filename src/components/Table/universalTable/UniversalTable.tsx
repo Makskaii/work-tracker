@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/spinner/Spinner";
 import type { UniversalTableProps } from "@/shared/types/table";
 import cls from "../Table.module.scss";
 
@@ -26,27 +27,31 @@ export const UniversalTable = <T extends { id: string }>({
 						</tr>
 					</thead>
 
-					<tbody>
-						{activeItems.map((item) => (
-							<tr key={item.id}>
-								{headers.map((header) => {
-									const value = item[header.key];
+					{activeItems.length !== 0 ? (
+						<tbody>
+							{activeItems.map((item) => (
+								<tr key={item.id}>
+									{headers.map((header) => {
+										const value = item[header.key];
 
-									return (
-										<td key={String(header.key)}>
-											{header.render
-												? header.render(value, additionalData)
-												: header.convertFn
-													? header.convertFn(value, additionalData)
-													: String(value ?? "")}
-										</td>
-									);
-								})}
-							</tr>
-						))}
+										return (
+											<td key={String(header.key)}>
+												{header.render
+													? header.render(value, additionalData)
+													: header.convertFn
+														? header.convertFn(value, additionalData)
+														: String(value ?? "")}
+											</td>
+										);
+									})}
+								</tr>
+							))}
 
-						{totalRow}
-					</tbody>
+							{totalRow}
+						</tbody>
+					) : (
+						<Spinner />
+					)}
 				</table>
 			</div>
 		</div>
