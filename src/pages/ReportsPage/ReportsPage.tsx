@@ -93,9 +93,9 @@ const ReportsPage = () => {
 
 	useEffect(() => {
 		const fetchProjects = async () => {
-			const response = await getActivities();
+			const fields = await getActivities();
 
-			console.log({ response });
+			console.log({ fields });
 		};
 
 		fetchProjects();

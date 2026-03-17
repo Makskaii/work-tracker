@@ -19,3 +19,23 @@ export interface ProjectTableRow {
 	risk: string;
 	purchasedHours?: string; // TODO поменять на number, когда будет добавлено поле. сейчас нужно для прочерка
 }
+
+export type SalesFields = {
+	id: string;
+	callCount: number;
+	bidCount: number;
+	ppoCount: number;
+	kpCount: number;
+	activeDeals: number;
+	totalSales: number;
+	salesCount: number;
+};
+
+export type SalesTableFields = {
+	id: string;
+	title: string;
+	plan: number;
+	fact: number;
+	deviation: number;
+	comment: string;
+};

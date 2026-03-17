@@ -47,7 +47,7 @@ export const NewUserReports = () => {
 			},
 		},
 	});
-	console.log({ effectivity });
+
 	const filteredTasks = useMemo(() => {
 		return data.filter((task) => task.stageId === "DT1072_18:CLIENT");
 	}, [data]);
@@ -58,8 +58,12 @@ export const NewUserReports = () => {
 
 			const fetchvalues = await getUsersTableData({
 				users: devs,
-				startOfTheWeek: borders.startOfTheWeek,
-				endOfTheWeek: borders.endOfTheWeek,
+				startOfTheWeek: dayjs(borders.startOfTheWeek)
+					.subtract(1, "day")
+					.format("YYYY-MM-DD"),
+				endOfTheWeek: dayjs(borders.endOfTheWeek)
+					.subtract(3, "day")
+					.format("YYYY-MM-DD"),
 			});
 
 			setEffectivity(fetchvalues);

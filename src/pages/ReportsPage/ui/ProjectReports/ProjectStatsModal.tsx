@@ -184,7 +184,7 @@ export const ProjectsStats = ({
 				},
 			);
 
-			const data = await response.json() as {
+			const data = (await response.json()) as {
 				downloadUrl: string;
 				reportId: string;
 			};
