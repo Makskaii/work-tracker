@@ -6,12 +6,15 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { TaskProps } from "@/shared/types/types";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 
 export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 	const borders = useMemo(() => getWeekBorders(dayjs()), []);
+
+	const { openTask } = useBitrixSlider();
 
 	const { data } = useLoadAllData<TaskProps>({
 		initialEndpoint: Endpoints.crmItems,
@@ -76,6 +79,7 @@ export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 								style={{
 									borderBottom: "1px solid #ccc",
 								}}
+								onClick={() => openTask(task.id)}
 							>
 								<b>{task.title}</b>
 

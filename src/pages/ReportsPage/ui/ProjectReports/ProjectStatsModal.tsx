@@ -10,6 +10,7 @@ import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps } from "@/shared/types/types";
 import { convertNumberFormat, getWeekArray } from "@/shared/utils";
@@ -34,6 +35,8 @@ export const ProjectsStats = ({
 	const [view, setView] = useState<"task" | "stats">("stats");
 	const [loading, setLoading] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
+
+	const { openTask } = useBitrixSlider();
 
 	const { startOfTheWeek, endOfTheWeek } = borders;
 
@@ -372,12 +375,14 @@ export const ProjectsStats = ({
 								0,
 							);
 							return (
-								<TaskItemExtended
-									task={task}
-									estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
-									key={task.id}
-									timeSpent={timespent ?? 0}
-								/>
+								<div onClick={() => openTask(task.id)}>
+									<TaskItemExtended
+										task={task}
+										estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
+										key={task.id}
+										timeSpent={timespent ?? 0}
+									/>
+								</div>
 							);
 						})}
 					</div>
