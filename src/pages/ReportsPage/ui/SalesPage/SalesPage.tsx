@@ -7,6 +7,8 @@ import { getDeals } from "../../api/getDeals";
 import { headersForSales } from "../../constants/SalesTitleMap";
 import type { SalesFields, SalesTableFields } from "../../types/types";
 
+//TODO убрать заглушки с прочерками по КП
+
 const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество звонков по отделу",
@@ -26,7 +28,7 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество защит КП",
 		id: "4",
-		plan: 5,
+		plan: "-",
 	},
 	{
 		title: "Количество активных карточек в работе",
@@ -82,8 +84,7 @@ export const SalesPage = () => {
 					ppoCount: items.filter(
 						(item) => item.stageId === "PREPAYMENT_INVOICE",
 					).length,
-					kpCount: items.filter((item) => item.stageId === "SOME_KP_STAGE")
-						.length,
+					kpCount: 0,
 					activeDeals: items.filter(
 						(item) => item.stageId !== "WON" && item.stageId !== "UC_HSP7T0",
 					).length,
@@ -97,7 +98,7 @@ export const SalesPage = () => {
 				};
 
 				const preparedData: SalesTableFields[] = rows.map((row) => {
-					let fact = 0;
+					let fact;
 
 					switch (row.id) {
 						case "1":
@@ -110,7 +111,7 @@ export const SalesPage = () => {
 							fact = stats.ppoCount;
 							break;
 						case "4":
-							fact = Number(stats.kpCount);
+							fact = "-";
 							break;
 						case "5":
 							fact = stats.activeDeals;
@@ -126,14 +127,13 @@ export const SalesPage = () => {
 					}
 
 					const plan = toNumber(row.plan);
-					const deviation = fact - plan;
+					const deviation =
+						row.id === "4" ? "-" : typeof fact === "number" ? fact - plan : 0;
 
 					return {
 						...row,
 						fact,
 						deviation,
-						comment:
-							deviation >= 0 ? "План выполнен" : `- ${Math.abs(deviation)}`,
 					};
 				});
 

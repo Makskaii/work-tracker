@@ -50,8 +50,4 @@ export const headersForSales: Header<SalesTableFields>[] = [
 		title: "Отклонение",
 		key: "deviation",
 	},
-	{
-		title: "Комментарий",
-		key: "comment",
-	},
 ];

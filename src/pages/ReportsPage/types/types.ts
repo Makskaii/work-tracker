@@ -34,8 +34,7 @@ export type SalesFields = {
 export type SalesTableFields = {
 	id: string;
 	title: string;
-	plan: number;
-	fact: number;
-	deviation: number;
-	comment: string;
+	plan: number | string;
+	fact: number | string;
+	deviation: number | string;
 };
