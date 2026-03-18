@@ -85,7 +85,11 @@ export const SalesPage = () => {
 							item.stageId !== "UC_9X7H19" && item.stageId !== "UC_B20EGT",
 					).length,
 					ppoCount: items.filter(
-						(item) => item.stageId === "PREPAYMENT_INVOICE",
+						(item) =>
+							item.stageId !== "UC_9X7H19" &&
+							item.stageId !== "UC_B20EGT" &&
+							item.stageId !== "NEW" &&
+							item.stageId !== "PREPARATION",
 					).length,
 					kpCount: 0,
 					activeDeals: items.filter(

@@ -9,7 +9,8 @@
 		"lint": "biome lint --write",
 		"preview": "vite preview",
 		"test": "vitest",
-		"deploy": "git pull && docker compose down && docker compose up -d --build prod && docker system prune -f"
+		"deploy": "git pull && docker compose down && docker compose up -d --build prod && docker system prune -f",
+		"prepare": "husky"
 	},
 	"dependencies": {
 		"@bitrix24/b24jssdk": "^1.0.1",
@@ -36,6 +37,7 @@
 		"@types/uuid4": "^2.0.3",
 		"@vitejs/plugin-react": "^5.1.1",
 		"globals": "^16.5.0",
+		"husky": "^9.1.7",
 		"jsdom": "^28.1.0",
 		"sass-embedded": "^1.97.3",
 		"typescript": "~5.9.3",
