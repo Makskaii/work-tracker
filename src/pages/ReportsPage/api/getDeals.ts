@@ -1,5 +1,6 @@
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
+import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
 	start: string,
@@ -13,6 +14,8 @@ export const getDeals = async (
 		isNew: string;
 		createdBy: string;
 		movedTime: string;
+		[SalesCodes.kpSuccess]: string;
+		[SalesCodes.ppoSuccess]: string;
 	}[]
 > => {
 	try {

@@ -38,3 +38,8 @@ export type SalesTableFields = {
 	fact: number | string;
 	deviation: number | string;
 };
+
+export const enum SalesCodes {
+	ppoSuccess = "ufCrm_1773845648828",
+	kpSuccess = "ufCrm_1773845725088",
+}
