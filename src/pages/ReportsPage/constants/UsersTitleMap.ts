@@ -30,11 +30,11 @@ export const Navigation = [
 	},
 	{
 		title: "Сотрудники",
-		path: "new-reports",
+		path: "developers",
 	},
 	{
 		title: "Календарь",
-		path: "employees",
+		path: "calendar",
 	},
 	{
 		title: "Продажи",

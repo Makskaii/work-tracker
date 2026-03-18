@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet } from "react-router";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import { ability } from "../../shared/config/ability/casl";
+import { Spinner } from "../spinner/Spinner";
 
 const devMode =
 	typeof import.meta !== "undefined" && (import.meta.env?.DEV ?? false);
@@ -12,6 +13,7 @@ const $logger = LoggerFactory.createForBrowser("MyApp", devMode);
 export const MainLayout = () => {
 	const b24Ref = useRef<B24Frame | null>(null);
 	const [b24, setB24] = useState<B24Frame | null>(null);
+	const [isReady, setIsReady] = useState(false);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -34,6 +36,7 @@ export const MainLayout = () => {
 							subject: "post",
 						},
 					]);
+					setIsReady(true);
 				}
 			} catch (error) {
 				$logger.error("Some problems", { error });
@@ -49,13 +52,20 @@ export const MainLayout = () => {
 					subject: "post",
 				},
 			]);
+
+			setIsReady(true);
 		}
 
 		return () => {
+			setIsReady(false);
 			isMounted = false;
 			b24Ref.current?.destroy();
 		};
 	}, []);
+
+	if (!isReady) {
+		return <Spinner />;
+	}
 
 	return (
 		<B24Context.Provider value={{ b24 }}>

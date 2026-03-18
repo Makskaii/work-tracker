@@ -32,7 +32,7 @@ export const getDeals = async (
 			],
 		});
 
-		const items = response.data?.result;
+		const items = response.data?.result.items;
 
 		if (!Array.isArray(items)) {
 			console.warn("Expected items to be an array, but got:", items);

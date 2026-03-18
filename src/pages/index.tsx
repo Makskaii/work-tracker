@@ -6,8 +6,8 @@ export const Progress = lazy(
 export const ProjectsReports = lazy(
 	() => import("./ReportsPage/ui/ProjectReports/ProjectsReports"),
 );
-export const UsersReports = lazy(
+export const ReportsCalendar = lazy(
 	() => import("./ReportsPage/ui/UserReports/ReportsCalendar"),
 );
-export const ReportsCalendar = lazy(() => import("./ReportsPage/ReportsPage"));
+export const ReportsPage = lazy(() => import("./ReportsPage/ReportsPage"));
 export const DataPage = lazy(() => import("./DataPage/TablePage"));

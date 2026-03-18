@@ -7,8 +7,9 @@ import {
 	Progress,
 	ProjectsReports,
 	ReportsCalendar,
-	UsersReports,
+	ReportsPage,
 } from "@/pages";
+import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 
@@ -22,13 +23,13 @@ export const router = createBrowserRouter(
 			children: [
 				{
 					index: true,
-					element: <Navigate to="/reports/employees" replace />,
+					element: <Navigate to="/reports/calendar" replace />,
 				},
 				{
 					path: "/reports",
 					element: (
 						<Suspense fallback={<Spinner />}>
-							<ReportsCalendar />
+							<ReportsPage />
 						</Suspense>
 					),
 					children: [
@@ -41,10 +42,10 @@ export const router = createBrowserRouter(
 							),
 						},
 						{
-							path: "employees",
+							path: "calendar",
 							element: (
 								<Suspense fallback={<Spinner />}>
-									<UsersReports />
+									<ReportsCalendar />
 								</Suspense>
 							),
 						},
@@ -57,14 +58,13 @@ export const router = createBrowserRouter(
 							),
 						},
 						{
-							path: "new-reports",
+							path: "developers",
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<NewUserReports />
 								</Suspense>
 							),
 						},
-
 						{
 							path: "sales",
 							element: (
@@ -74,6 +74,14 @@ export const router = createBrowserRouter(
 							),
 						},
 					],
+				},
+				{
+					path: "/create-client-form",
+					element: (
+						<Suspense fallback={<Spinner />}>
+							<ClientForm />
+						</Suspense>
+					),
 				},
 			],
 		},
