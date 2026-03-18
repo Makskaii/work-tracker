@@ -153,7 +153,7 @@ export const NewUserReports = () => {
 					<StatsModal user={activeUser} />
 				</Modal>
 			)}
-			общая Сумма
+
 			{showWorkingTable && (
 				<Modal
 					isOpen={showWorkingTable}

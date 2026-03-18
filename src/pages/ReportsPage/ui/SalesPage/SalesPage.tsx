@@ -5,7 +5,11 @@ import { $api } from "@/shared/config";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getDeals } from "../../api/getDeals";
 import { headersForSales } from "../../constants/SalesTitleMap";
-import type { SalesFields, SalesTableFields } from "../../types/types";
+import {
+	SalesCodes,
+	type SalesFields,
+	type SalesTableFields,
+} from "../../types/types";
 
 //TODO убрать заглушки с прочерками по КП
 
@@ -28,7 +32,7 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество защит КП",
 		id: "4",
-		plan: "-",
+		plan: 0,
 	},
 	{
 		title: "Количество активных карточек в работе",
@@ -87,14 +91,10 @@ export const SalesPage = () => {
 						(item) =>
 							item.stageId !== "UC_9X7H19" && item.stageId !== "UC_B20EGT",
 					).length,
-					ppoCount: items.filter(
-						(item) =>
-							item.stageId !== "UC_9X7H19" &&
-							item.stageId !== "UC_B20EGT" &&
-							item.stageId !== "NEW" &&
-							item.stageId !== "PREPARATION",
-					).length,
-					kpCount: 0,
+					ppoCount: items.filter((item) => item[SalesCodes.ppoSuccess] === "Да")
+						.length,
+					kpCount: items.filter((item) => item[SalesCodes.kpSuccess] === "Да")
+						.length,
 					activeDeals: items.filter(
 						(item) => item.stageId !== "WON" && item.stageId !== "UC_HSP7T0",
 					).length,
@@ -121,7 +121,7 @@ export const SalesPage = () => {
 							fact = stats.ppoCount;
 							break;
 						case "4":
-							fact = "-";
+							fact = stats.kpCount;
 							break;
 						case "5":
 							fact = stats.activeDeals;
@@ -137,8 +137,7 @@ export const SalesPage = () => {
 					}
 
 					const plan = toNumber(row.plan);
-					const deviation =
-						row.id === "4" ? "-" : typeof fact === "number" ? fact - plan : 0;
+					const deviation = fact - plan;
 
 					return {
 						...row,
