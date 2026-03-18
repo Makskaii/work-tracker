@@ -4,11 +4,13 @@ import { ability } from "../../shared/config/ability/casl";
 export const CheckPermission = ({
 	permission,
 	children,
+	subject,
 }: {
 	permission: string;
 	children: ReactNode;
+	subject: string;
 }) => {
-	if (ability && ability.can(permission, "post")) {
+	if (ability && ability.can(permission, subject)) {
 		return children;
 	}
 

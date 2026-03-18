@@ -58,21 +58,24 @@ export const SalesPage = () => {
 
 	const { endOfTheWeek, startOfTheWeek } = borders;
 
+	const start = dayjs(startOfTheWeek).subtract(1, "day").format("YYYY-MM-DD");
+	const end = dayjs(endOfTheWeek).subtract(3, "day").format("YYYY-MM-DD");
+
 	useEffect(() => {
 		const fetchProjects = async () => {
 			try {
 				const teleph = await $api.get("voximplant.statistic.get", {
 					params: {
 						filter: {
-							">=CALL_START_DATE": startOfTheWeek,
-							"<=CALL_START_DATE": endOfTheWeek,
+							">=CALL_START_DATE": start,
+							"<=CALL_START_DATE": end,
 						},
 					},
 				});
 
 				const totalCalls = teleph.data.total ?? 0;
 
-				const items = await getDeals(startOfTheWeek, endOfTheWeek);
+				const items = await getDeals(start, end);
 
 				const stats: SalesFields = {
 					id: "sales-stats",
@@ -144,7 +147,7 @@ export const SalesPage = () => {
 		};
 
 		fetchProjects();
-	}, [startOfTheWeek, endOfTheWeek]);
+	}, [start, end]);
 
 	return (
 		<div style={{ maxWidth: "1000px" }}>

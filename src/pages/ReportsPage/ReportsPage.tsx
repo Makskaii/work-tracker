@@ -112,7 +112,7 @@ const ReportsPage = () => {
 	}, []);
 
 	return (
-		<CheckPermission permission="read">
+		<CheckPermission permission="read" subject="post">
 			<div
 				style={{
 					display: "flex",
