@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import {
 	ActivityType,
 	dtoFieldsCodesDailyReports,
@@ -5,9 +6,8 @@ import {
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { User } from "@/shared/types/types";
+import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import type { GroupedFields } from "../types/types";
-
-const DEFAULT_AVAILABLE_TIME = 30;
 
 const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
 	if (!availableTime) return 0;
@@ -102,6 +102,18 @@ export const getUsersTableData = async ({
 	startOfTheWeek: string;
 	endOfTheWeek: string;
 }): Promise<GroupedFields[]> => {
+	const currWeekBorders = getWeekBorders(dayjs());
+
+	const currWeekStart = dayjs(currWeekBorders.startOfTheWeek)
+		.subtract(1, "day")
+		.format("YYYY-MM-DD");
+
+	const day = dayjs().day();
+
+	const availableTime = dayjs(startOfTheWeek).isBefore(dayjs(currWeekStart))
+		? 40
+		: (day + 1) * 6;
+
 	const result = await Promise.all(
 		users.map(async (user) => {
 			const reports = await getReportsByUser({
@@ -112,15 +124,12 @@ export const getUsersTableData = async ({
 
 			const activitiesMap = groupSpentTimeByActivity(reports);
 			const totalTimeSpent = getTotalTimeSpent(activitiesMap);
-			const effectivity = getEffectivityPercent(
-				DEFAULT_AVAILABLE_TIME,
-				totalTimeSpent,
-			);
+			const effectivity = getEffectivityPercent(availableTime, totalTimeSpent);
 
 			return {
 				id: String(user.id),
 				title: user.title,
-				availableTime: DEFAULT_AVAILABLE_TIME,
+				availableTime: availableTime,
 				...activitiesMap,
 				timeSpent: totalTimeSpent,
 				effectivity: `${effectivity}%`,

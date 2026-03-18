@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Modal } from "@/components/modal";
@@ -27,8 +27,9 @@ export const NewUserReports = () => {
 	const [activeUser, setActiveUser] = useState<User>();
 	const [showWorkingTable, setShowWorkingTable] = useState(false);
 	const [effectivity, setEffectivity] = useState<GroupedFields[]>([]);
+	const [day, setDay] = useState<Dayjs>(today);
 
-	const borders = useMemo(() => getWeekBorders(dayjs(today)), []);
+	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
 
 	const currMonth = month ?? dayjs().month();
 	const currYear = year ?? dayjs().year();
@@ -142,7 +143,6 @@ export const NewUserReports = () => {
 					Загрузка по сотрудникам
 				</button>
 			</div>
-
 			{activeUser && (
 				<Modal
 					isOpen={open}
@@ -153,7 +153,7 @@ export const NewUserReports = () => {
 					<StatsModal user={activeUser} />
 				</Modal>
 			)}
-
+			общая Сумма
 			{showWorkingTable && (
 				<Modal
 					isOpen={showWorkingTable}
@@ -161,6 +161,51 @@ export const NewUserReports = () => {
 					size="covered"
 					innerScroll
 				>
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: "1rem",
+						}}
+					>
+						<button
+							style={{
+								background: "white",
+								color: "#aeacac",
+							}}
+							onClick={() => {
+								setDay((prev) => prev.subtract(7, "day"));
+							}}
+						>
+							пред. неделя
+						</button>
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+							}}
+						>
+							<div>
+								{dayjs(borders.startOfTheWeek)
+									.subtract(1, "day")
+									.format("DD.MM")}
+								-
+								{dayjs(borders.endOfTheWeek).subtract(3, "day").format("DD.MM")}
+							</div>
+						</div>
+						<button
+							style={{
+								background: "white",
+								color: "#aeacac",
+							}}
+							onClick={() => {
+								setDay((prev) => prev.add(7, "day"));
+							}}
+						>
+							след. неделя
+						</button>
+					</div>
 					<UniversalTable<GroupedFields>
 						headers={headersForDevs}
 						activeItems={effectivity}
