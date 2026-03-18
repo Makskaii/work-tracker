@@ -14,6 +14,7 @@ vi.mock("../../shared/config/ability/casl", () => ({
 describe("CheckPermission", () => {
 	const mockChildren = <div data-testid="test-child">Дочерний контент</div>;
 	const permission = "read";
+	const subject = "post";
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -23,7 +24,9 @@ describe("CheckPermission", () => {
 		vi.mocked(ability.can).mockReturnValue(true);
 
 		render(
-			<CheckPermission permission={permission}>{mockChildren}</CheckPermission>,
+			<CheckPermission permission={permission} subject={subject}>
+				{mockChildren}
+			</CheckPermission>,
 		);
 
 		expect(screen.getByTestId("test-child")).toBeInTheDocument();
@@ -39,7 +42,9 @@ describe("CheckPermission", () => {
 		vi.mocked(ability.can).mockReturnValue(false);
 
 		render(
-			<CheckPermission permission={permission}>{mockChildren}</CheckPermission>,
+			<CheckPermission permission={permission} subject={subject}>
+				{mockChildren}
+			</CheckPermission>,
 		);
 
 		expect(
@@ -53,7 +58,9 @@ describe("CheckPermission", () => {
 
 	it("должен отображать сообщение об отсутствии прав, если ability не определен", () => {
 		render(
-			<CheckPermission permission={permission}>{mockChildren}</CheckPermission>,
+			<CheckPermission subject={subject} permission={permission}>
+				{mockChildren}
+			</CheckPermission>,
 		);
 
 		expect(
@@ -69,7 +76,7 @@ describe("CheckPermission", () => {
 			vi.mocked(ability.can).mockReturnValue(true);
 
 			render(
-				<CheckPermission permission={testPermission}>
+				<CheckPermission subject={subject} permission={testPermission}>
 					<div data-testid={`child-${testPermission}`}>
 						Контент для {testPermission}
 					</div>
@@ -87,7 +94,7 @@ describe("CheckPermission", () => {
 		vi.mocked(ability.can).mockReturnValue(true);
 
 		render(
-			<CheckPermission permission={permission}>
+			<CheckPermission subject={subject} permission={permission}>
 				<div data-testid="child-1">Первый элемент</div>
 				<div data-testid="child-2">Второй элемент</div>
 				<span data-testid="child-3">Третий элемент</span>
@@ -105,7 +112,11 @@ describe("CheckPermission", () => {
 	it("должен корректно работать с пустыми дочерними элементами", () => {
 		vi.mocked(ability.can).mockReturnValue(true);
 
-		render(<CheckPermission permission={permission}>{null}</CheckPermission>);
+		render(
+			<CheckPermission subject={subject} permission={permission}>
+				{null}
+			</CheckPermission>,
+		);
 
 		expect(
 			screen.queryByText("У вас нет прав на просмотр этой страницы"),
@@ -116,7 +127,9 @@ describe("CheckPermission", () => {
 		vi.mocked(ability.can).mockReturnValue(true);
 
 		const { rerender } = render(
-			<CheckPermission permission={permission}>{mockChildren}</CheckPermission>,
+			<CheckPermission subject={subject} permission={permission}>
+				{mockChildren}
+			</CheckPermission>,
 		);
 
 		expect(screen.getByTestId("test-child")).toBeInTheDocument();
@@ -124,7 +137,9 @@ describe("CheckPermission", () => {
 		vi.mocked(ability.can).mockReturnValue(false);
 
 		rerender(
-			<CheckPermission permission={permission}>{mockChildren}</CheckPermission>,
+			<CheckPermission subject={subject} permission={permission}>
+				{mockChildren}
+			</CheckPermission>,
 		);
 
 		expect(
