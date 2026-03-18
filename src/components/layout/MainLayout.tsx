@@ -86,7 +86,7 @@ export const MainLayout = () => {
 					});
 				}
 
-				if (currUser?.departmentIds.includes(23)) {
+				if (currUser?.departmentIds.includes(25)) {
 					addRuleIfMissing(nextRules, {
 						action: "create-client",
 						subject: "client",

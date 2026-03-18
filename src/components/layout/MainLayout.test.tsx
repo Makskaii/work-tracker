@@ -158,7 +158,7 @@ describe("MainLayout", () => {
 			expect(mockNavigate).not.toHaveBeenCalled();
 		});
 
-		it("должен выдать права сотруднику из департамента 23 и выполнить navigate", async () => {
+		it("должен выдать права сотруднику из департамента 25 и выполнить navigate", async () => {
 			vi.stubEnv("DEV", false);
 
 			mockInitializeB24Frame.mockResolvedValue({
@@ -166,7 +166,7 @@ describe("MainLayout", () => {
 				auth: { isAdmin: false },
 			});
 			mockGetCurrentUserDepartmentInfo.mockResolvedValue({
-				departmentIds: [23],
+				departmentIds: [25],
 			});
 
 			await renderComponent();

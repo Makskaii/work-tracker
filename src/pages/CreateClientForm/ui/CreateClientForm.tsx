@@ -42,6 +42,7 @@ export const ClientForm = () => {
 								}}
 							>
 								<form
+									id="client-form"
 									onChange={handleSubmit((data) => {
 										console.log(data);
 									})}
@@ -75,6 +76,9 @@ export const ClientForm = () => {
 											name="clientName"
 										/>
 										<button
+											type="submit"
+											disabled
+											form="client-form"
 											style={{
 												maxWidth: "200px",
 											}}
