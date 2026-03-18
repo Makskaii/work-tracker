@@ -125,20 +125,30 @@ const ReportsPage = () => {
 					style={{
 						display: "flex",
 						gap: "1rem",
+						justifyContent: "space-between",
 					}}
 				>
-					{Navigation.map((link) => (
-						<NavLink
-							key={link.path}
-							className={({ isActive, isPending }) =>
-								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-							}
-							to={link.path}
-							end
-						>
-							<div>{link.title}</div>
-						</NavLink>
-					))}
+					<div
+						style={{
+							display: "flex",
+							gap: "1rem",
+						}}
+					>
+						{Navigation.map((link) => (
+							<NavLink
+								key={link.path}
+								className={({ isActive, isPending }) =>
+									[isPending ? "pending" : "", isActive ? "active" : ""].join(
+										" ",
+									)
+								}
+								to={link.path}
+								end
+							>
+								<div>{link.title}</div>
+							</NavLink>
+						))}
+					</div>
 				</div>
 				<Outlet
 					context={

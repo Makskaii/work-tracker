@@ -1,14 +1,16 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <for correct mocks> */
+/** biome-ignore-all lint/suspicious/noExplicitAny: test mocks */
 
-import { initializeB24Frame } from "@bitrix24/b24jssdk";
-import { render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ability } from "../../shared/config/ability/casl";
-import { MainLayout } from "./MainLayout";
+
+const mockNavigate = vi.fn();
+const mockInitializeB24Frame = vi.fn();
+const mockAbilityUpdate = vi.fn();
+const mockGetCurrentUserDepartmentInfo = vi.fn();
 
 vi.mock("@bitrix24/b24jssdk", () => ({
-	initializeB24Frame: vi.fn(),
+	initializeB24Frame: mockInitializeB24Frame,
 	LoggerFactory: {
 		createForBrowser: vi.fn().mockReturnValue({
 			error: vi.fn(),
@@ -19,9 +21,25 @@ vi.mock("@bitrix24/b24jssdk", () => ({
 
 vi.mock("../../shared/config/ability/casl", () => ({
 	ability: {
-		update: vi.fn(),
+		update: mockAbilityUpdate,
 	},
 }));
+
+vi.mock("@/shared/hooks/useCurrentBitrixUser", () => ({
+	useCurrentBitrixUser: () => ({
+		getCurrentUserDepartmentInfo: mockGetCurrentUserDepartmentInfo,
+	}),
+}));
+
+vi.mock("react-router", async () => {
+	const actual =
+		await vi.importActual<typeof import("react-router")>("react-router");
+
+	return {
+		...actual,
+		useNavigate: () => mockNavigate,
+	};
+});
 
 describe("MainLayout", () => {
 	const mockB24Instance = {
@@ -33,60 +51,138 @@ describe("MainLayout", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.resetModules();
 	});
 
 	afterEach(() => {
-		vi.unstubAllGlobals();
+		cleanup();
+		vi.unstubAllEnvs();
 	});
 
-	const renderWithRouter = () => {
-		return render(
-			<MemoryRouter>
-				<MainLayout />
-			</MemoryRouter>,
+	const renderComponent = async () => {
+		const { MainLayout } = await import("./MainLayout");
+
+		return await act(async () =>
+			render(
+				<MemoryRouter>
+					<MainLayout />
+				</MemoryRouter>,
+			),
 		);
 	};
 
-	describe("Инициализация Bitrix24", () => {
-		it("должен инициализировать B24Frame при монтировании", async () => {
-			vi.mocked(initializeB24Frame).mockResolvedValue(mockB24Instance as any);
+	describe("dev mode", () => {
+		it("не должен обновлять ability дважды в devMode", async () => {
+			vi.stubEnv("DEV", true);
 
-			renderWithRouter();
+			await renderComponent();
 
 			await waitFor(() => {
-				expect(initializeB24Frame).toHaveBeenCalledTimes(1);
+				expect(mockAbilityUpdate).toHaveBeenCalledTimes(1);
+			});
+
+			expect(mockAbilityUpdate).toHaveBeenCalledWith([
+				{
+					action: "read",
+					subject: "post",
+				},
+			]);
+
+			expect(mockInitializeB24Frame).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("production mode", () => {
+		it("должен инициализировать B24Frame при монтировании", async () => {
+			vi.stubEnv("DEV", false);
+
+			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
+			mockGetCurrentUserDepartmentInfo.mockResolvedValue({
+				departmentIds: [],
+			});
+
+			await renderComponent();
+
+			await waitFor(() => {
+				expect(mockInitializeB24Frame).toHaveBeenCalledTimes(1);
 			});
 		});
 
 		it("должен вызывать destroy при размонтировании", async () => {
-			vi.mocked(initializeB24Frame).mockResolvedValue(mockB24Instance as any);
+			vi.stubEnv("DEV", false);
 
-			const { unmount } = renderWithRouter();
-
-			await waitFor(() => {
-				expect(initializeB24Frame).toHaveBeenCalled();
+			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
+			mockGetCurrentUserDepartmentInfo.mockResolvedValue({
+				departmentIds: [],
 			});
 
-			unmount();
+			const view = await renderComponent();
+
+			await waitFor(() => {
+				expect(mockInitializeB24Frame).toHaveBeenCalledTimes(1);
+			});
+
+			await act(async () => {
+				view.unmount();
+			});
+
 			expect(mockB24Instance.destroy).toHaveBeenCalledTimes(1);
 		});
-	});
 
-	describe("Обновление прав доступа (ability)", () => {
-		it("не должен обновлять ability дважды в devMode", async () => {
-			vi.mocked(initializeB24Frame).mockResolvedValue({
+		it("должен выдать права админу", async () => {
+			vi.stubEnv("DEV", false);
+
+			mockInitializeB24Frame.mockResolvedValue({
 				...mockB24Instance,
 				auth: { isAdmin: true },
-			} as any);
+			});
+			mockGetCurrentUserDepartmentInfo.mockResolvedValue({
+				departmentIds: [],
+			});
 
-			renderWithRouter();
-
-			expect(ability.update).toHaveBeenCalledTimes(1);
+			await renderComponent();
 
 			await waitFor(() => {
-				expect(initializeB24Frame).toHaveBeenCalled();
+				expect(mockAbilityUpdate).toHaveBeenCalledWith([
+					{
+						action: "read",
+						subject: "post",
+					},
+					{
+						action: "create-client",
+						subject: "client",
+					},
+				]);
 			});
-			expect(ability.update).toHaveBeenCalledTimes(1);
+
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
+
+		it("должен выдать права сотруднику из департамента 23 и выполнить navigate", async () => {
+			vi.stubEnv("DEV", false);
+
+			mockInitializeB24Frame.mockResolvedValue({
+				...mockB24Instance,
+				auth: { isAdmin: false },
+			});
+			mockGetCurrentUserDepartmentInfo.mockResolvedValue({
+				departmentIds: [23],
+			});
+
+			await renderComponent();
+
+			await waitFor(() => {
+				expect(mockAbilityUpdate).toHaveBeenCalledWith([
+					{
+						action: "create-client",
+						subject: "client",
+					},
+				]);
+			});
+
+			expect(mockNavigate).toHaveBeenCalledWith("/create-client-form", {
+				replace: true,
+			});
 		});
 	});
 });
