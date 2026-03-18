@@ -3,7 +3,7 @@ import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
-import { useCurrentBitrixUser } from "@/shared/hooks/useCurrentBitrixUser";
+import { type CurrentUserDepartmentInfo } from "@/shared/hooks/useCurrentBitrixUser";
 import { ability } from "../../shared/config/ability/casl";
 import { Spinner } from "../spinner/Spinner";
 
@@ -31,12 +31,30 @@ export const MainLayout = () => {
 	const b24Ref = useRef<B24Frame | null>(null);
 	const [b24, setB24] = useState<B24Frame | null>(null);
 	const [isReady, setIsReady] = useState(false);
-
-	const { getCurrentUserDepartmentInfo } = useCurrentBitrixUser();
 	const navigate = useNavigate();
 
 	useEffect(() => {
 		let isMounted = true;
+
+		const getCurrentUserDepartmentInfo = async (
+			frame: B24Frame,
+		): Promise<CurrentUserDepartmentInfo | null> => {
+			if (!frame) return null;
+
+			const response = await frame.actions.v2.call.make({
+				method: "user.current",
+			});
+			const user = response?.getData?.()?.result;
+
+			if (!user) return null;
+
+			return {
+				userId: Number(user.ID) || null,
+				departmentIds: Array.isArray(user.UF_DEPARTMENT)
+					? user.UF_DEPARTMENT.map((id: string | number) => Number(id))
+					: [],
+			};
+		};
 
 		const init = async () => {
 			try {
@@ -60,6 +78,8 @@ export const MainLayout = () => {
 
 				const frame = await initializeB24Frame();
 
+				const currUser = await getCurrentUserDepartmentInfo(frame);
+
 				if (!isMounted) {
 					frame.destroy();
 					return;
@@ -67,8 +87,6 @@ export const MainLayout = () => {
 
 				b24Ref.current = frame;
 				setB24(frame);
-
-				const currUser = await getCurrentUserDepartmentInfo();
 
 				if (!isMounted) {
 					frame.destroy();
@@ -100,6 +118,7 @@ export const MainLayout = () => {
 					setIsReady(true);
 
 					if (redirectTo) {
+						console.log("redirecting");
 						navigate(redirectTo, { replace: true });
 					}
 				}
@@ -119,7 +138,7 @@ export const MainLayout = () => {
 			isMounted = false;
 			b24Ref.current?.destroy();
 		};
-	}, [getCurrentUserDepartmentInfo, navigate]);
+	}, [navigate]);
 
 	if (!isReady) {
 		return <Spinner />;
