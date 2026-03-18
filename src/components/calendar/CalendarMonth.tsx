@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
 import { useOutletContext } from "react-router";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
@@ -34,6 +35,7 @@ const CalendarMonth = ({
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const { projects } = useOutletContext<ReportsContext>();
+	const { openTask } = useBitrixSlider();
 
 	return (
 		<div className={cls.calendar}>
@@ -162,6 +164,7 @@ const CalendarMonth = ({
 					activeItems={activeReport}
 					headers={headers}
 					additionalData={projects}
+					onRowClick={openTask}
 				/>
 			</Modal>
 		</div>

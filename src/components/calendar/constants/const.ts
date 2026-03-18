@@ -28,7 +28,7 @@ export const headers: Header<GroupedReportFields>[] = [
 	},
 	{
 		title: "Задача",
-		key: "taskId",
+		key: "parentId",
 	},
 	{
 		title: "Проект",
@@ -106,6 +106,7 @@ export const selectFields = [
 	dtoFieldsCodesDailyReports.project,
 	dtoFieldsCodesDailyReports.taskId,
 	dtoFieldsCodesDailyReports.activityType,
+	dtoFieldsCodesDailyReports.parentId,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",

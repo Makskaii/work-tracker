@@ -81,6 +81,7 @@ export const Calendar = ({
 					title: report[dtoFieldsCodesDailyReports.title],
 					timeSpent: report[dtoFieldsCodesDailyReports.timeSpent],
 					taskId: report[dtoFieldsCodesDailyReports.taskId],
+					parentId: report[dtoFieldsCodesDailyReports.parentId],
 					day: report.begindate,
 					project: report[dtoFieldsCodesDailyReports.project],
 					activity: report[dtoFieldsCodesDailyReports.activityType],

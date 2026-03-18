@@ -1,6 +1,6 @@
 import { useB24 } from "../config/bitrixProvider/bitrixContext";
 
-type CurrentUserDepartmentInfo = {
+export type CurrentUserDepartmentInfo = {
 	userId: number | null;
 	departmentIds: number[];
 };

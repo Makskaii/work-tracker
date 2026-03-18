@@ -16,6 +16,7 @@ export type UniversalTableProps<T extends { id: string }> = {
 	activeItems: T[];
 	additionalData?: AnyObject;
 	totalRow?: React.ReactNode;
+	onRowClick?: (id: string) => void;
 };
 
 export interface GroupedReportFields {
@@ -24,6 +25,7 @@ export interface GroupedReportFields {
 	timeSpent: string;
 
 	taskId: string;
+	parentId: number;
 	day: string;
 	project: number;
 	assignedById: string;

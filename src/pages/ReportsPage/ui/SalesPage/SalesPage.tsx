@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
@@ -52,8 +52,11 @@ const toNumber = (value: string | number) => {
 	return Number(String(value).replace(/\s/g, "")) || 0;
 };
 
+const today = dayjs();
+
 export const SalesPage = () => {
-	const borders = useMemo(() => getWeekBorders(dayjs()), []);
+	const [day, setDay] = useState<Dayjs>(today);
+	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
 	const [data, setData] = useState<SalesTableFields[]>([]);
 
 	const { endOfTheWeek, startOfTheWeek } = borders;
@@ -155,6 +158,48 @@ export const SalesPage = () => {
 
 	return (
 		<div style={{ maxWidth: "1000px" }}>
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					gap: "1rem",
+				}}
+			>
+				<button
+					style={{
+						background: "white",
+						color: "#aeacac",
+					}}
+					onClick={() => {
+						setDay((prev) => prev.subtract(7, "day"));
+					}}
+				>
+					пред. неделя
+				</button>
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+					}}
+				>
+					<div>
+						{dayjs(borders.startOfTheWeek).subtract(1, "day").format("DD.MM")}-
+						{dayjs(borders.endOfTheWeek).subtract(3, "day").format("DD.MM")}
+					</div>
+				</div>
+				<button
+					style={{
+						background: "white",
+						color: "#aeacac",
+					}}
+					onClick={() => {
+						setDay((prev) => prev.add(7, "day"));
+					}}
+				>
+					след. неделя
+				</button>
+			</div>
 			<UniversalTable<SalesTableFields>
 				headers={headersForSales}
 				activeItems={data}
