@@ -16,11 +16,11 @@ const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
 };
 
 const getCommentByEffectivity = (effectivity: number) => {
+	console.log(effectivity);
 	if (effectivity > 100) return "Перегрузка";
-	if (effectivity < 80) return "Недогрузка";
 	if (effectivity >= 90) return "Норма";
 
-	return "";
+	return "Недогрузка";
 };
 
 const createEmptyActivitiesMap = (): Record<ActivityType, number> => ({
@@ -112,7 +112,7 @@ export const getUsersTableData = async ({
 
 	const availableTime = dayjs(startOfTheWeek).isBefore(dayjs(currWeekStart))
 		? 40
-		: (day + 1) * 6;
+		: day * 6;
 
 	const result = await Promise.all(
 		users.map(async (user) => {
