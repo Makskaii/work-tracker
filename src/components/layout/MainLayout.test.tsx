@@ -106,7 +106,7 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([101, 202]);
+			mockGetDepartmentsHeads.mockResolvedValue(["101", "202"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -134,7 +134,7 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([101]);
+			mockGetDepartmentsHeads.mockResolvedValue(["101"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -161,12 +161,12 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([16, 20]);
+			mockGetDepartmentsHeads.mockResolvedValue(["16", "20"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
 					result: {
-						ID: "16",
+						ID: 16,
 						UF_DEPARTMENT: [],
 					},
 				}),
@@ -195,12 +195,12 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([99, 100]);
+			mockGetDepartmentsHeads.mockResolvedValue(["99", "100"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
 					result: {
-						ID: "25",
+						ID: 25,
 						UF_DEPARTMENT: [25],
 					},
 				}),
@@ -227,7 +227,7 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([99, 100]);
+			mockGetDepartmentsHeads.mockResolvedValue(["99", "100"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -252,12 +252,12 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([25, 100]);
+			mockGetDepartmentsHeads.mockResolvedValue(["25", "100"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
 					result: {
-						ID: "25",
+						ID: 25,
 						UF_DEPARTMENT: [25],
 					},
 				}),
@@ -288,12 +288,12 @@ describe("MainLayout", () => {
 
 			const mockB24Instance = createMockB24Instance();
 
-			mockGetDepartmentsHeads.mockResolvedValue([null, undefined, 16, 0]);
+			mockGetDepartmentsHeads.mockResolvedValue([null, undefined, "16", "0"]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
 					result: {
-						ID: "16",
+						ID: 16,
 						UF_DEPARTMENT: [],
 					},
 				}),
