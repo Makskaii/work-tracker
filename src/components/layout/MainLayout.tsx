@@ -96,7 +96,7 @@ export const MainLayout = () => {
 					return;
 				}
 
-				if (currUser?.userId && data.has(currUser.userId)) {
+				if (currUser?.userId && data.has(String(currUser.userId))) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
 						subject: "post",
