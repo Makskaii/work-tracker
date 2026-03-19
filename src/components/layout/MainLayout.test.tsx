@@ -1,13 +1,16 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: test mocks */
 
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockNavigate = vi.fn();
 const mockInitializeB24Frame = vi.fn();
 const mockAbilityUpdate = vi.fn();
 const mockCallMake = vi.fn();
+const mockGetDepartmentsHeads = vi.fn();
 
 vi.mock("@bitrix24/b24jssdk", () => ({
 	initializeB24Frame: mockInitializeB24Frame,
@@ -25,6 +28,10 @@ vi.mock("../../shared/config/ability/casl", () => ({
 	},
 }));
 
+vi.mock("@/shared/api/getDepartments", () => ({
+	getDepartmentsHeads: mockGetDepartmentsHeads,
+}));
+
 vi.mock("react-router", async () => {
 	const actual =
 		await vi.importActual<typeof import("react-router")>("react-router");
@@ -36,10 +43,10 @@ vi.mock("react-router", async () => {
 });
 
 describe("MainLayout", () => {
-	const createMockB24Instance = (isAdmin = true) => ({
+	const createMockB24Instance = () => ({
 		destroy: vi.fn(),
 		auth: {
-			isAdmin,
+			isAdmin: false,
 		},
 		actions: {
 			v2: {
@@ -53,6 +60,7 @@ describe("MainLayout", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetModules();
+		mockGetDepartmentsHeads.mockResolvedValue([]);
 	});
 
 	afterEach(() => {
@@ -63,17 +71,11 @@ describe("MainLayout", () => {
 	const renderComponent = async () => {
 		const { MainLayout } = await import("./MainLayout");
 
-		let view!: ReturnType<typeof render>;
-
-		await act(async () => {
-			view = render(
-				<MemoryRouter>
-					<MainLayout />
-				</MemoryRouter>,
-			);
-		});
-
-		return view;
+		return render(
+			<MemoryRouter>
+				<MainLayout />
+			</MemoryRouter>,
+		);
 	};
 
 	describe("dev mode", () => {
@@ -102,8 +104,9 @@ describe("MainLayout", () => {
 		it("должен инициализировать B24Frame при монтировании", async () => {
 			vi.stubEnv("DEV", false);
 
-			const mockB24Instance = createMockB24Instance(true);
+			const mockB24Instance = createMockB24Instance();
 
+			mockGetDepartmentsHeads.mockResolvedValue([101, 202]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -120,6 +123,7 @@ describe("MainLayout", () => {
 				expect(mockInitializeB24Frame).toHaveBeenCalledTimes(1);
 			});
 
+			expect(mockGetDepartmentsHeads).toHaveBeenCalledTimes(1);
 			expect(mockCallMake).toHaveBeenCalledWith({
 				method: "user.current",
 			});
@@ -128,8 +132,9 @@ describe("MainLayout", () => {
 		it("должен вызывать destroy при размонтировании", async () => {
 			vi.stubEnv("DEV", false);
 
-			const mockB24Instance = createMockB24Instance(true);
+			const mockB24Instance = createMockB24Instance();
 
+			mockGetDepartmentsHeads.mockResolvedValue([101]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -146,18 +151,17 @@ describe("MainLayout", () => {
 				expect(mockInitializeB24Frame).toHaveBeenCalledTimes(1);
 			});
 
-			await act(async () => {
-				view.unmount();
-			});
+			view.unmount();
 
 			expect(mockB24Instance.destroy).toHaveBeenCalledTimes(1);
 		});
 
-		it("должен выдать права админу", async () => {
+		it("должен выдать права руководителю отдела", async () => {
 			vi.stubEnv("DEV", false);
 
-			const mockB24Instance = createMockB24Instance(true);
+			const mockB24Instance = createMockB24Instance();
 
+			mockGetDepartmentsHeads.mockResolvedValue([16, 20]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -189,8 +193,9 @@ describe("MainLayout", () => {
 		it("должен выдать права сотруднику из департамента 25 и выполнить navigate", async () => {
 			vi.stubEnv("DEV", false);
 
-			const mockB24Instance = createMockB24Instance(false);
+			const mockB24Instance = createMockB24Instance();
 
+			mockGetDepartmentsHeads.mockResolvedValue([99, 100]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -217,11 +222,12 @@ describe("MainLayout", () => {
 			});
 		});
 
-		it("не должен выдавать права, если пользователь не админ и не из департамента 25", async () => {
+		it("не должен выдавать права, если пользователь не руководитель и не из департамента 25", async () => {
 			vi.stubEnv("DEV", false);
 
-			const mockB24Instance = createMockB24Instance(false);
+			const mockB24Instance = createMockB24Instance();
 
+			mockGetDepartmentsHeads.mockResolvedValue([99, 100]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -241,11 +247,12 @@ describe("MainLayout", () => {
 			expect(mockNavigate).not.toHaveBeenCalled();
 		});
 
-		it("не должен дублировать правило create-client, если пользователь и админ, и из департамента 25", async () => {
+		it("не должен дублировать правило create-client, если пользователь и руководитель, и из департамента 25", async () => {
 			vi.stubEnv("DEV", false);
 
-			const mockB24Instance = createMockB24Instance(true);
+			const mockB24Instance = createMockB24Instance();
 
+			mockGetDepartmentsHeads.mockResolvedValue([25, 100]);
 			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
 			mockCallMake.mockResolvedValue({
 				getData: () => ({
@@ -273,6 +280,38 @@ describe("MainLayout", () => {
 
 			expect(mockNavigate).toHaveBeenCalledWith("/create-client-form", {
 				replace: true,
+			});
+		});
+
+		it("должен игнорировать пустые значения из getDepartmentsHeads", async () => {
+			vi.stubEnv("DEV", false);
+
+			const mockB24Instance = createMockB24Instance();
+
+			mockGetDepartmentsHeads.mockResolvedValue([null, undefined, 16, 0]);
+			mockInitializeB24Frame.mockResolvedValue(mockB24Instance);
+			mockCallMake.mockResolvedValue({
+				getData: () => ({
+					result: {
+						ID: "16",
+						UF_DEPARTMENT: [],
+					},
+				}),
+			});
+
+			await renderComponent();
+
+			await waitFor(() => {
+				expect(mockAbilityUpdate).toHaveBeenCalledWith([
+					{
+						action: "read",
+						subject: "post",
+					},
+					{
+						action: "create-client",
+						subject: "client",
+					},
+				]);
 			});
 		});
 	});

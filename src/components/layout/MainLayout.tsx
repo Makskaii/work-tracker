@@ -2,6 +2,7 @@ import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
+import { getDepartmentsHeads } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import { type CurrentUserDepartmentInfo } from "@/shared/hooks/useCurrentBitrixUser";
 import { ability } from "../../shared/config/ability/casl";
@@ -58,6 +59,8 @@ export const MainLayout = () => {
 
 		const init = async () => {
 			try {
+				const data = new Set((await getDepartmentsHeads()).filter(Boolean));
+
 				const nextRules: AbilityRule[] = [];
 				let redirectTo: string | null = null;
 
@@ -93,7 +96,7 @@ export const MainLayout = () => {
 					return;
 				}
 
-				if (frame.auth.isAdmin) {
+				if (currUser?.userId && data.has(currUser.userId)) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
 						subject: "post",
