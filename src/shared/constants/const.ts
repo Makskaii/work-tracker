@@ -23,6 +23,7 @@ export const Endpoints = {
 	status: "crm.status.list",
 	lists: "lists.element.get",
 	item: "crm.item.get",
+	department: "department.get",
 };
 
 export const EntityTypeIds = {
