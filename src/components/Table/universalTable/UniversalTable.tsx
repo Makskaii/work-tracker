@@ -19,16 +19,15 @@ export const UniversalTable = <T extends { id: string; taskId?: string }>({
 			}}
 		>
 			<div className={cls.container}>
-				<table>
-					<thead>
-						<tr>
-							{headers.map((header) => (
-								<th key={String(header.key)}>{header.title}</th>
-							))}
-						</tr>
-					</thead>
-
-					{activeItems.length !== 0 ? (
+				{activeItems.length !== 0 ? (
+					<table>
+						<thead>
+							<tr>
+								{headers.map((header) => (
+									<th key={String(header.key)}>{header.title}</th>
+								))}
+							</tr>
+						</thead>
 						<tbody>
 							{activeItems.map((item) => (
 								<tr
@@ -53,10 +52,12 @@ export const UniversalTable = <T extends { id: string; taskId?: string }>({
 
 							{totalRow}
 						</tbody>
-					) : (
+					</table>
+				) : (
+					<>
 						<Spinner />
-					)}
-				</table>
+					</>
+				)}
 			</div>
 		</div>
 	);
