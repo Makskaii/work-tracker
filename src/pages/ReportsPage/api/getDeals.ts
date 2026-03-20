@@ -3,8 +3,8 @@ import { Endpoints } from "@/shared/constants/const";
 import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
-	start: string,
-	end: string,
+	start?: string,
+	end?: string,
 ): Promise<
 	{
 		id: string;

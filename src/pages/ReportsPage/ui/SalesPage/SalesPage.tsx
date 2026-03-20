@@ -84,6 +84,9 @@ export const SalesPage = () => {
 				const totalCalls = teleph.data.total ?? 0;
 
 				const items = await getDeals(start, end);
+
+				const totlaItems = await getDeals();
+
 				console.log({ items });
 				const stats: SalesFields = {
 					id: "sales-stats",
@@ -96,7 +99,7 @@ export const SalesPage = () => {
 						.length,
 					kpCount: items.filter((item) => item[SalesCodes.kpSuccess] === 388)
 						.length,
-					activeDeals: items.filter(
+					activeDeals: totlaItems.filter(
 						(item) =>
 							item.stageId !== "WON" &&
 							item.stageId !== "UC_HSP7T0" &&
@@ -141,7 +144,7 @@ export const SalesPage = () => {
 					}
 
 					const plan = toNumber(row.plan);
-					const deviation = fact - plan;
+					const deviation = `${fact - plan > 0 ? "+" : ""} ${fact - plan}`;
 
 					return {
 						...row,
