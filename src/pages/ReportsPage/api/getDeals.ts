@@ -14,8 +14,8 @@ export const getDeals = async (
 		isNew: string;
 		createdBy: string;
 		movedTime: string;
-		[SalesCodes.kpSuccess]: string;
-		[SalesCodes.ppoSuccess]: string;
+		[SalesCodes.kpSuccess]: number;
+		[SalesCodes.ppoSuccess]: number;
 	}[]
 > => {
 	try {
@@ -32,6 +32,8 @@ export const getDeals = async (
 				"isNew",
 				"createdBy",
 				"movedTime",
+				SalesCodes.kpSuccess,
+				SalesCodes.ppoSuccess,
 			],
 		});
 

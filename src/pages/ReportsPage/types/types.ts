@@ -40,6 +40,6 @@ export type SalesTableFields = {
 };
 
 export const enum SalesCodes {
-	ppoSuccess = "ufCrm_1773845648828",
-	kpSuccess = "ufCrm_1773845725088",
+	ppoSuccess = "ufCrm_1773845725088",
+	kpSuccess = "ufCrm_1773845648828",
 }
