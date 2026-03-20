@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { $api } from "@/shared/config";
 
 export const getCalls = async (start: string, end: string): Promise<number> => {
@@ -6,7 +7,7 @@ export const getCalls = async (start: string, end: string): Promise<number> => {
 			params: {
 				filter: {
 					">=CALL_START_DATE": start,
-					"<=CALL_START_DATE": end,
+					"<=CALL_START_DATE": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
 					"!PORTAL_USER_ID": 11,
 				},
 			},

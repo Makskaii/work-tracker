@@ -32,6 +32,8 @@ export const getDeals = async (
 				"movedTime",
 				SalesCodes.kpSuccess,
 				SalesCodes.ppoSuccess,
+				SalesCodes.kpday,
+				SalesCodes.ppoDay,
 			],
 		});
 

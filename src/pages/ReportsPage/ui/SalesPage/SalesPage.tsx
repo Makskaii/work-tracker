@@ -101,7 +101,7 @@ export const SalesPage = () => {
 			try {
 				const totalCalls = await getCalls(start, end);
 
-				const [items, itemsByMonth, activeDealsCount] = await Promise.all([
+				const [items, ppoItems, kpItems, activeDealsCount] = await Promise.all([
 					getDeals({
 						categoryId: 0,
 					}),
@@ -111,6 +111,19 @@ export const SalesPage = () => {
 							.format("YYYY-MM-DD"),
 						"<=createdTime": end,
 						categoryId: 0,
+						[`>=${SalesCodes.ppoDay}`]: start,
+						[`<=${SalesCodes.ppoDay}`]: end,
+						[SalesCodes.ppoSuccess]: 390,
+					}),
+					getDeals({
+						">=createdTime": dayjs(start)
+							.subtract(30, "day")
+							.format("YYYY-MM-DD"),
+						"<=createdTime": end,
+						categoryId: 0,
+						[`>=${SalesCodes.kpday}`]: start,
+						[`<=${SalesCodes.kpday}`]: end,
+						[SalesCodes.kpSuccess]: 388,
 					}),
 					getDealsCountByStages({
 						start: dayjs(start).subtract(17, "day").format("YYYY-MM-DD"),
@@ -127,12 +140,8 @@ export const SalesPage = () => {
 						end,
 						categoryId: 0,
 					}),
-					ppoCount: itemsByMonth.filter(
-						(item) => item[SalesCodes.ppoSuccess] === 390,
-					).length,
-					kpCount: itemsByMonth.filter(
-						(item) => item[SalesCodes.kpSuccess] === 388,
-					).length,
+					ppoCount: ppoItems.length,
+					kpCount: kpItems.length,
 					activeDeals: activeDealsCount,
 					salesCount: items.filter((item) => item.stageId === "WON").length,
 					totalSales: items.reduce((acc: number, item) => {
