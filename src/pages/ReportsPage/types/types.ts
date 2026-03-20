@@ -1,13 +1,12 @@
-import { ActivityType } from "@/components/calendar/constants/const";
-
-export type GroupedFields = {
+export interface GroupedFields {
 	id: string;
 	title: string;
-	timeSpent: number;
 	availableTime: number;
+	timeSpent: number;
 	effectivity: string;
 	comment: string;
-} & Record<ActivityType, number>;
+	[key: string]: string | number;
+}
 
 export interface ProjectTableRow {
 	id: string;

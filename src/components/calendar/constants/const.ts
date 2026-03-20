@@ -33,9 +33,9 @@ export const headers: Header<GroupedReportFields>[] = [
 	{
 		title: "Проект",
 		key: "project",
-		convertFn: (value, projects) => {
+		convertFn: (value, additionalData) => {
 			return (
-				projects?.find(
+				additionalData?.projects?.find(
 					(project: { ID: string; NAME: string }) =>
 						Number(project.ID) === value,
 				)?.NAME || ""
@@ -45,8 +45,12 @@ export const headers: Header<GroupedReportFields>[] = [
 	{
 		title: "Активность",
 		key: "activity",
-		convertFn: (value) => {
-			return ActivityTitle[Number(value)];
+		convertFn: (value, additionalData) => {
+			return additionalData?.activities.map(
+				(activity: { ID: string; VALUE: string }) => {
+					return Number(activity.ID) === value ? activity.VALUE : "";
+				},
+			);
 		},
 	},
 	{

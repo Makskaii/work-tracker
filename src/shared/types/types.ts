@@ -46,6 +46,10 @@ export type UserReports = {
 	month?: number;
 	year?: number;
 	statuses: Status[];
+	activities: {
+		ID: string;
+		VALUE: string;
+	}[];
 };
 
 export interface Status {

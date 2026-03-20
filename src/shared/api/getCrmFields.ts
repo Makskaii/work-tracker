@@ -28,22 +28,19 @@ export const getProjectsFromList = async (): Promise<
 	}
 };
 
-export const getActivities = async () => {
+export const getActivities = async (): Promise<{
+	[key: string]: { items: { ID: string; VALUE: string }[] };
+}> => {
 	try {
 		const response = await $api.post(Endpoints.crmFeilds, {
-			entityTypeId: 2,
+			entityTypeId: 1060,
 		});
 
-		const items = response.data.result;
-
-		if (!Array.isArray(items)) {
-			console.warn("Expected items to be an array, but got:", items);
-			return [];
-		}
+		const items = response.data.result.fields;
 
 		return items;
 	} catch (error) {
 		console.error(`Failed to fetch fields`, error);
-		return [];
+		return {};
 	}
 };

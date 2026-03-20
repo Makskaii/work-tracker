@@ -17,6 +17,7 @@ export type UniversalTableProps<T extends { id: string }> = {
 	additionalData?: AnyObject;
 	totalRow?: React.ReactNode;
 	onRowClick?: (id: string) => void;
+	fallbackText?: string;
 };
 
 export interface GroupedReportFields {

@@ -34,7 +34,7 @@ const CalendarMonth = ({
 }) => {
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
-	const { projects } = useOutletContext<ReportsContext>();
+	const { projects, activities } = useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 
 	return (
@@ -163,7 +163,7 @@ const CalendarMonth = ({
 				<UniversalTable<GroupedReportFields>
 					activeItems={activeReport}
 					headers={headers}
-					additionalData={projects}
+					additionalData={{ projects, activities }}
 					onRowClick={openTask}
 				/>
 			</Modal>

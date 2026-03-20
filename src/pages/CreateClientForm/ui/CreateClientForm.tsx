@@ -53,8 +53,6 @@ export const ClientForm = () => {
 				setClients(data ?? []);
 			} catch {
 				setClients([]);
-			} finally {
-				setClients([]);
 			}
 		};
 
@@ -79,6 +77,8 @@ export const ClientForm = () => {
 			console.log(res);
 		} catch (error) {
 			console.log(error);
+		} finally {
+			setClientForm(false);
 		}
 	});
 
