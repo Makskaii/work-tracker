@@ -30,7 +30,7 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество защит КП",
 		id: "4",
-		plan: 0,
+		plan: 5,
 	},
 	{
 		title: "Количество активных карточек в работе",
