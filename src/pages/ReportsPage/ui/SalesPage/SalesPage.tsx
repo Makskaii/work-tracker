@@ -11,8 +11,6 @@ import {
 	type SalesTableFields,
 } from "../../types/types";
 
-//TODO убрать заглушки с прочерками по КП
-
 const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество звонков по отделу",
