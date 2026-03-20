@@ -1,8 +1,8 @@
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
-import { $api } from "@/shared/config";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getCalls } from "../../api/getCalls";
 import { getDeals } from "../../api/getDeals";
 import { headersForSales } from "../../constants/SalesTitleMap";
 import {
@@ -30,7 +30,7 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество защит КП",
 		id: "4",
-		plan: 0,
+		plan: 5,
 	},
 	{
 		title: "Количество активных карточек в работе",
@@ -48,6 +48,36 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 		plan: 250000,
 	},
 ];
+
+const TARGET_STAGE_IDS = [
+	"NEW",
+	"PREPARATION",
+	"PREPAYMENT_INVOICE",
+	"EXECUTING",
+	"FINAL_INVOICE",
+	"UC_HDHLH5",
+	"UC_ZLNOOX",
+	"UC_EEZLOG",
+] as const;
+
+const getDealsCountByStages = async ({
+	categoryId = 0,
+}: {
+	start: string;
+	end: string;
+	categoryId?: number;
+}) => {
+	const responses = await Promise.all(
+		TARGET_STAGE_IDS.map((stageId) =>
+			getDeals({
+				categoryId,
+				stageId,
+			}),
+		),
+	);
+
+	return responses.reduce((acc, items) => acc + items.length, 0);
+};
 
 const toNumber = (value: string | number) => {
 	if (typeof value === "number") return value;
@@ -67,42 +97,52 @@ export const SalesPage = () => {
 	const end = dayjs(endOfTheWeek).subtract(3, "day").format("YYYY-MM-DD");
 
 	useEffect(() => {
-		const fetchProjects = async () => {
+		const fetchCallsAmount = async () => {
 			try {
-				const teleph = await $api.get("voximplant.statistic.get", {
-					params: {
-						filter: {
-							">=CALL_START_DATE": start,
-							"<=CALL_START_DATE": end,
-							"!PORTAL_USER_ID": 11,
-						},
-					},
-				});
+				const totalCalls = await getCalls(start, end);
 
-				const totalCalls = teleph.data.total ?? 0;
+				const [items, ppoItems, kpItems, activeDealsCount] = await Promise.all([
+					getDeals({
+						categoryId: 0,
+					}),
+					getDeals({
+						">=createdTime": dayjs(start)
+							.subtract(30, "day")
+							.format("YYYY-MM-DD"),
+						"<=createdTime": end,
+						categoryId: 0,
+						[`>=${SalesCodes.ppoDay}`]: start,
+						[`<=${SalesCodes.ppoDay}`]: end,
+						[SalesCodes.ppoSuccess]: 390,
+					}),
+					getDeals({
+						">=createdTime": dayjs(start)
+							.subtract(30, "day")
+							.format("YYYY-MM-DD"),
+						"<=createdTime": end,
+						categoryId: 0,
+						[`>=${SalesCodes.kpday}`]: start,
+						[`<=${SalesCodes.kpday}`]: end,
+						[SalesCodes.kpSuccess]: 388,
+					}),
+					getDealsCountByStages({
+						start: dayjs(start).subtract(17, "day").format("YYYY-MM-DD"),
+						end,
+						categoryId: 0,
+					}),
+				]);
 
-				const items = await getDeals(start, end);
-
-				const totlaItems = await getDeals();
-
-				console.log({ items });
 				const stats: SalesFields = {
 					id: "sales-stats",
 					callCount: totalCalls,
-					bidCount: items.filter(
-						(item) =>
-							item.stageId !== "UC_9X7H19" && item.stageId !== "UC_B20EGT",
-					).length,
-					ppoCount: items.filter((item) => item[SalesCodes.ppoSuccess] === 390)
-						.length,
-					kpCount: items.filter((item) => item[SalesCodes.kpSuccess] === 388)
-						.length,
-					activeDeals: totlaItems.filter(
-						(item) =>
-							item.stageId !== "WON" &&
-							item.stageId !== "UC_HSP7T0" &&
-							item.stageId !== "UC_EEZLOG",
-					).length,
+					bidCount: await getDealsCountByStages({
+						start,
+						end,
+						categoryId: 0,
+					}),
+					ppoCount: ppoItems.length,
+					kpCount: kpItems.length,
+					activeDeals: activeDealsCount,
 					salesCount: items.filter((item) => item.stageId === "WON").length,
 					totalSales: items.reduce((acc: number, item) => {
 						if (item.stageId === "WON") {
@@ -113,7 +153,7 @@ export const SalesPage = () => {
 				};
 
 				const preparedData: SalesTableFields[] = rows.map((row) => {
-					let fact;
+					let fact = 0;
 
 					switch (row.id) {
 						case "1":
@@ -137,8 +177,6 @@ export const SalesPage = () => {
 						case "7":
 							fact = stats.totalSales;
 							break;
-						default:
-							fact = 0;
 					}
 
 					const plan = toNumber(row.plan);
@@ -157,7 +195,7 @@ export const SalesPage = () => {
 			}
 		};
 
-		fetchProjects();
+		fetchCallsAmount();
 	}, [start, end]);
 
 	return (
@@ -180,6 +218,7 @@ export const SalesPage = () => {
 				>
 					пред. неделя
 				</button>
+
 				<div
 					style={{
 						display: "flex",
@@ -192,6 +231,7 @@ export const SalesPage = () => {
 						{dayjs(borders.endOfTheWeek).subtract(3, "day").format("DD.MM")}
 					</div>
 				</div>
+
 				<button
 					style={{
 						background: "white",
@@ -204,9 +244,11 @@ export const SalesPage = () => {
 					след. неделя
 				</button>
 			</div>
+
 			<UniversalTable<SalesTableFields>
 				headers={headersForSales}
 				activeItems={data}
+				fallbackText="Загружаем сделки..."
 			/>
 		</div>
 	);

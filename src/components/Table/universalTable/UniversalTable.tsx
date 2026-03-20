@@ -8,6 +8,7 @@ export const UniversalTable = <T extends { id: string; taskId?: string }>({
 	additionalData,
 	totalRow,
 	onRowClick,
+	fallbackText = "Загрузка...",
 }: UniversalTableProps<T>) => {
 	return (
 		<div
@@ -55,7 +56,7 @@ export const UniversalTable = <T extends { id: string; taskId?: string }>({
 					</table>
 				) : (
 					<>
-						<Spinner />
+						<Spinner text={fallbackText} />
 					</>
 				)}
 			</div>

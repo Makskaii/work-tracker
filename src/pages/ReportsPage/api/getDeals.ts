@@ -3,8 +3,7 @@ import { Endpoints } from "@/shared/constants/const";
 import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
-	start?: string,
-	end?: string,
+	filters?: Record<string, string | number>,
 ): Promise<
 	{
 		id: string;
@@ -22,8 +21,7 @@ export const getDeals = async (
 		const response = await $api.post(Endpoints.crmItems, {
 			entityTypeId: 2,
 			filter: {
-				">=createdTime": start,
-				"<=createdTime": end,
+				...filters,
 			},
 			select: [
 				"createdTime",
@@ -34,6 +32,8 @@ export const getDeals = async (
 				"movedTime",
 				SalesCodes.kpSuccess,
 				SalesCodes.ppoSuccess,
+				SalesCodes.kpday,
+				SalesCodes.ppoDay,
 			],
 		});
 

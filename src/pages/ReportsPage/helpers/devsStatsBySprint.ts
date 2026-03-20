@@ -1,12 +1,10 @@
 import dayjs from "dayjs";
-import {
-	ActivityType,
-	dtoFieldsCodesDailyReports,
-} from "@/components/calendar/constants/const";
+import { dtoFieldsCodesDailyReports } from "@/components/calendar/constants/const";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { User } from "@/shared/types/types";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import type { Activity } from "../ReportsPage";
 import type { GroupedFields } from "../types/types";
 
 const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
@@ -16,30 +14,31 @@ const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
 };
 
 const getCommentByEffectivity = (effectivity: number) => {
-	console.log(effectivity);
 	if (effectivity > 100) return "Перегрузка";
 	if (effectivity >= 90) return "Норма";
 
 	return "Недогрузка";
 };
 
-const createEmptyActivitiesMap = (): Record<ActivityType, number> => ({
-	[ActivityType.development]: 0,
-	[ActivityType.analitycsCall]: 0,
-	[ActivityType.devsCall]: 0,
-	[ActivityType.clientCall]: 0,
-	[ActivityType.dash]: 0,
-});
+const createEmptyActivitiesMap = (
+	activities: Activity[],
+): Record<string, number> => {
+	return activities.reduce<Record<string, number>>((acc, activity) => {
+		acc[String(activity.ID)] = 0;
+		return acc;
+	}, {});
+};
 
 const groupSpentTimeByActivity = (
 	reports: Record<string, unknown>[],
-): Record<ActivityType, number> => {
-	const activityMap = createEmptyActivitiesMap();
+	activities: Activity[],
+): Record<string, number> => {
+	const activityMap = createEmptyActivitiesMap(activities);
 
 	for (const report of reports) {
-		const activityType = report[dtoFieldsCodesDailyReports.activityType] as
-			| ActivityType
-			| undefined;
+		const activityType = String(
+			report[dtoFieldsCodesDailyReports.activityType] ?? "",
+		);
 
 		const timeSpent = Number(report[dtoFieldsCodesDailyReports.timeSpent] ?? 0);
 
@@ -52,7 +51,7 @@ const groupSpentTimeByActivity = (
 	return activityMap;
 };
 
-const getTotalTimeSpent = (activitiesMap: Record<ActivityType, number>) => {
+const getTotalTimeSpent = (activitiesMap: Record<string, number>) => {
 	return Object.values(activitiesMap).reduce((acc, value) => acc + value, 0);
 };
 
@@ -95,10 +94,12 @@ const getReportsByUser = async ({
 
 export const getUsersTableData = async ({
 	users,
+	activities,
 	startOfTheWeek,
 	endOfTheWeek,
 }: {
 	users: User[];
+	activities: Activity[];
 	startOfTheWeek: string;
 	endOfTheWeek: string;
 }): Promise<GroupedFields[]> => {
@@ -122,14 +123,14 @@ export const getUsersTableData = async ({
 				endOfTheWeek,
 			});
 
-			const activitiesMap = groupSpentTimeByActivity(reports);
+			const activitiesMap = groupSpentTimeByActivity(reports, activities);
 			const totalTimeSpent = getTotalTimeSpent(activitiesMap);
 			const effectivity = getEffectivityPercent(availableTime, totalTimeSpent);
 
 			return {
 				id: String(user.id),
 				title: user.title,
-				availableTime: availableTime,
+				availableTime,
 				...activitiesMap,
 				timeSpent: totalTimeSpent,
 				effectivity: `${effectivity}%`,

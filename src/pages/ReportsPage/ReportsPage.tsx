@@ -22,6 +22,11 @@ import { Navigation } from "./constants/UsersTitleMap";
 const currentMonth = dayjs().month() + 1;
 const currentYear = dayjs().year();
 
+export type Activity = {
+	ID: string;
+	VALUE: string;
+};
+
 const ReportsPage = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [projects, setProjects] = useState<
@@ -37,6 +42,7 @@ const ReportsPage = () => {
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
 	const [statuses, setStatuses] = useState<Status[]>([]);
+	const [activities, setActivities] = useState<Activity[]>([]);
 
 	const userIds = useMemo(() => {
 		if (!users) return [];
@@ -95,7 +101,8 @@ const ReportsPage = () => {
 		const fetchProjects = async () => {
 			const fields = await getActivities();
 
-			console.log({ fields });
+			setActivities(fields["ufCrm11_1770804288638"].items);
+			console.log(fields["ufCrm11_1770804288638"].items);
 		};
 
 		fetchProjects();
@@ -168,6 +175,7 @@ const ReportsPage = () => {
 							setYear,
 							year,
 							statuses,
+							activities,
 						} satisfies ReportsContext
 					}
 				/>

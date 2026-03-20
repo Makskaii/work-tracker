@@ -14,20 +14,25 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getSrartEndMonthDate } from "@/shared/utils/utils";
-import { headersForDevs } from "../../constants/UsersTitleMap";
 import { getUsersTableData } from "../../helpers/devsStatsBySprint";
+import { getHeadersForDevs } from "../../helpers/getHeadersForDevs";
 import type { GroupedFields } from "../../types/types";
 import cls from "./UserReports.module.scss";
 
 const today = dayjs();
 
 export const NewUserReports = () => {
-	const { users, projects, month, year } = useOutletContext<ReportsContext>();
+	const { users, projects, month, year, activities } =
+		useOutletContext<ReportsContext>();
 	const [open, setOpen] = useState(false);
 	const [activeUser, setActiveUser] = useState<User>();
 	const [showWorkingTable, setShowWorkingTable] = useState(false);
 	const [effectivity, setEffectivity] = useState<GroupedFields[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
+
+	const tableHeaders = useMemo(() => {
+		return getHeadersForDevs(activities ?? []);
+	}, [activities]);
 
 	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
 
@@ -59,6 +64,7 @@ export const NewUserReports = () => {
 
 			const fetchvalues = await getUsersTableData({
 				users: devs,
+				activities,
 				startOfTheWeek: dayjs(borders.startOfTheWeek)
 					.subtract(1, "day")
 					.format("YYYY-MM-DD"),
@@ -73,7 +79,13 @@ export const NewUserReports = () => {
 		if (showWorkingTable) {
 			fetch();
 		}
-	}, [borders.endOfTheWeek, borders.startOfTheWeek, users, showWorkingTable]);
+	}, [
+		borders.endOfTheWeek,
+		borders.startOfTheWeek,
+		users,
+		showWorkingTable,
+		activities,
+	]);
 
 	return (
 		<div className={cls.container}>
@@ -207,8 +219,11 @@ export const NewUserReports = () => {
 						</button>
 					</div>
 					<UniversalTable<GroupedFields>
-						headers={headersForDevs}
+						headers={tableHeaders}
 						activeItems={effectivity}
+						additionalData={{
+							day: dayjs().day() - 1,
+						}}
 					/>
 				</Modal>
 			)}
