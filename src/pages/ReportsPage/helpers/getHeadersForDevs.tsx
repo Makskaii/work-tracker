@@ -12,24 +12,49 @@ export const getHeadersForDevs = (
 		}),
 	);
 
+	activityHeaders.forEach((item) => {
+		if (item.title === "Разработка") {
+			item.render = (value, additionalData) => (
+				<span
+					style={{
+						color: Number(value) < additionalData?.day * 6 ? "red" : "",
+					}}
+				>
+					{value}
+				</span>
+			);
+		}
+	});
+
 	return [
 		{
 			title: "Cотрудник",
 			key: "title",
 		},
+
 		{
-			title: "План часов",
+			title: "План часов  \n (разработка)",
 			key: "availableTime",
+		},
+		{
+			title: "Загрузка \n (разработка)",
+			key: "effectivity",
 		},
 		...activityHeaders,
 		{
 			title: "Факт часов",
 			key: "timeSpent",
+			render: (value, additionalData) => (
+				<span
+					style={{
+						color: Number(value) < additionalData?.day * 8 ? "red" : "",
+					}}
+				>
+					{value}
+				</span>
+			),
 		},
-		{
-			title: "Загрузка",
-			key: "effectivity",
-		},
+
 		{
 			title: "Комментарий",
 			key: "comment",

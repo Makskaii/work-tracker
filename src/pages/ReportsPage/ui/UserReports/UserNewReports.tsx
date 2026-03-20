@@ -221,6 +221,9 @@ export const NewUserReports = () => {
 					<UniversalTable<GroupedFields>
 						headers={tableHeaders}
 						activeItems={effectivity}
+						additionalData={{
+							day: dayjs().day() - 1,
+						}}
 					/>
 				</Modal>
 			)}
