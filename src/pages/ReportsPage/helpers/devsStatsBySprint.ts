@@ -112,7 +112,7 @@ export const getUsersTableData = async ({
 
 	const availableTime = dayjs(startOfTheWeek).isBefore(dayjs(currWeekStart))
 		? 40
-		: day * 6;
+		: day * 8;
 
 	const result = await Promise.all(
 		users.map(async (user) => {

@@ -76,6 +76,7 @@ export const SalesPage = () => {
 						filter: {
 							">=CALL_START_DATE": start,
 							"<=CALL_START_DATE": end,
+							"!PORTAL_USER_ID": 11,
 						},
 					},
 				});
@@ -83,7 +84,7 @@ export const SalesPage = () => {
 				const totalCalls = teleph.data.total ?? 0;
 
 				const items = await getDeals(start, end);
-
+				console.log({ items });
 				const stats: SalesFields = {
 					id: "sales-stats",
 					callCount: totalCalls,
@@ -91,12 +92,15 @@ export const SalesPage = () => {
 						(item) =>
 							item.stageId !== "UC_9X7H19" && item.stageId !== "UC_B20EGT",
 					).length,
-					ppoCount: items.filter((item) => item[SalesCodes.ppoSuccess] === "Да")
+					ppoCount: items.filter((item) => item[SalesCodes.ppoSuccess] === 390)
 						.length,
-					kpCount: items.filter((item) => item[SalesCodes.kpSuccess] === "Да")
+					kpCount: items.filter((item) => item[SalesCodes.kpSuccess] === 388)
 						.length,
 					activeDeals: items.filter(
-						(item) => item.stageId !== "WON" && item.stageId !== "UC_HSP7T0",
+						(item) =>
+							item.stageId !== "WON" &&
+							item.stageId !== "UC_HSP7T0" &&
+							item.stageId !== "UC_EEZLOG",
 					).length,
 					salesCount: items.filter((item) => item.stageId === "WON").length,
 					totalSales: items.reduce((acc: number, item) => {

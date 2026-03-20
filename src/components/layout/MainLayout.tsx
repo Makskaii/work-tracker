@@ -70,6 +70,11 @@ export const MainLayout = () => {
 						subject: "post",
 					});
 
+					addRuleIfMissing(nextRules, {
+						action: "create-client",
+						subject: "client",
+					});
+
 					ability.update(nextRules);
 
 					if (isMounted) {

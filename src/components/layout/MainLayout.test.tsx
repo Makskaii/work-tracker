@@ -93,6 +93,10 @@ describe("MainLayout", () => {
 					action: "read",
 					subject: "post",
 				},
+				{
+					action: "create-client",
+					subject: "client",
+				},
 			]);
 
 			expect(mockInitializeB24Frame).not.toHaveBeenCalled();
