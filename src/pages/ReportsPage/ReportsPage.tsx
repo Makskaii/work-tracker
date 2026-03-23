@@ -3,7 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
+import { $api } from "@/shared/config";
+import {
+	ClientsCodes,
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "@/shared/constants/const";
 import type {
+	ClientListItems,
+	ClientProjectProps,
 	ReportsContext,
 	Status,
 	TaskProps,
@@ -16,7 +25,7 @@ import {
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
-import { getTasks } from "./api/getTasks";
+import { getItems } from "./api/getTasks";
 import { Navigation } from "./constants/UsersTitleMap";
 
 const currentMonth = dayjs().month() + 1;
@@ -29,11 +38,8 @@ export type Activity = {
 
 const ReportsPage = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
-	const [projects, setProjects] = useState<
-		{
-			ID: string;
-			NAME: string;
-		}[]
+	const [clientsList, setClietnsList] = useState<
+		(ClientListItems & { projects: ClientProjectProps[] })[]
 	>([]);
 	const [users, setUsers] = useState<User[]>([]);
 	const [currProject, setCurrProject] = useState("");
@@ -75,17 +81,38 @@ const ReportsPage = () => {
 
 	useEffect(() => {
 		const fetchTasks = async () => {
-			const response = await getTasks({
-				[UserCodes.project]: currProject === "" ? null : currProject,
-				">=createdTime": getSrartEndMonthDate("start", month, year),
-				"<=createdTime": getSrartEndMonthDate("end", month, year),
-			});
+			const response = await getItems<TaskProps>(
+				EntityTypeIds.tasks,
+				{
+					[UserCodes.project]: currProject === "" ? null : currProject,
+
+					">=createdTime": getSrartEndMonthDate("start", month, year),
+					"<=createdTime": getSrartEndMonthDate("end", month, year),
+				},
+				TASK_SELECT_FIELDS,
+			);
 
 			setTasks(response);
 		};
 
 		fetchTasks();
 	}, [currProject, month, year]);
+
+	useEffect(() => {
+		const fetchTasks = async () => {
+			const response = await $api.get(Endpoints.crmItems, {
+				params: {
+					entityTypeId: EntityTypeIds.projects,
+				},
+			});
+
+			const res = await $api.post(Endpoints.crmFeilds, {
+				entityTypeId: 1092,
+			});
+			console.log({ response, res });
+		};
+		fetchTasks();
+	}, []);
 
 	useEffect(() => {
 		const fetchStatuses = async () => {
@@ -109,14 +136,48 @@ const ReportsPage = () => {
 	}, []);
 
 	useEffect(() => {
-		const fetchProjects = async () => {
-			const response = await getProjectsFromList();
+		const fetchProjectsByClient = async (clients: ClientListItems[]) => {
+			if (!clients) return;
 
-			setProjects(response);
+			try {
+				const response = await Promise.all(
+					clients.map(async (client) => {
+						const projects = await getItems<ClientProjectProps>(
+							EntityTypeIds.projects,
+							{
+								[ClientsCodes.client]: client.ID,
+							},
+						);
+						console.log({ projects });
+						return {
+							...client,
+							projects,
+						};
+					}),
+				);
+				console.log({ response });
+				return response;
+			} catch (error) {
+				console.log(error);
+			}
 		};
 
-		fetchProjects();
+		const fetchClients = async () => {
+			try {
+				const response = await getProjectsFromList();
+
+				const data = await fetchProjectsByClient(response);
+
+				setClietnsList(data ?? []);
+			} catch (error) {
+				console.log(error);
+			}
+		};
+
+		fetchClients();
 	}, []);
+
+	console.log({ clientsList });
 
 	return (
 		<CheckPermission permission="read" subject="post">
@@ -161,7 +222,7 @@ const ReportsPage = () => {
 					context={
 						{
 							tasks,
-							projects,
+							projects: clientsList,
 							setCurrProject,
 							setTitle,
 							title,

@@ -7,19 +7,34 @@ import {
 } from "@/components/calendar/constants/const";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
-import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import {
+	ClientsCodes,
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "@/shared/constants/const";
 import type { Header } from "@/shared/types/table";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { Modal } from "../../../../components/modal";
-import type { ReportsContext, TaskProps } from "../../../../shared/types/types";
-import { getTasks } from "../../api/getTasks";
+import type {
+	ClientListItems,
+	ClientProjectProps,
+	ReportsContext,
+	TaskProps,
+} from "../../../../shared/types/types";
+import { getItems } from "../../api/getTasks";
 import type { ProjectTableRow } from "../../types/types";
-import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
 
-type ProjectWithStatus = { ID: string; NAME: string } & {
+type ClientWithProjects = ClientListItems & {
+	projects?: ClientProjectProps[];
+};
+
+type ProjectWithStatus = Partial<ClientProjectProps> & {
 	status: string;
 	tasksCount: number;
+	clientId: string;
+	clientName: string;
 };
 
 const TASK_STAGE_IDS = {
@@ -71,7 +86,7 @@ const getProjectPlanHours = (tasks: TaskProps[]) => {
 	}, 0);
 };
 
-const getReportsByProject = async ({ projectId }: { projectId: string }) => {
+const getReportsByProject = async ({ projectId }: { projectId: number }) => {
 	const response = await $api.get(Endpoints.crmItems, {
 		params: {
 			entityTypeId: EntityTypeIds.reports,
@@ -109,18 +124,24 @@ const getProjectRisk = (planHours: number, spentHours: number) => {
 };
 
 export const getProjectsTableData = async ({
-	projects,
+	clients,
 }: {
-	projects: { ID: string; NAME: string }[];
+	clients: ClientWithProjects[];
 }): Promise<ProjectTableRow[]> => {
+	const allProjects = clients.flatMap((client) => client.projects ?? []);
+
 	const result = await Promise.all(
-		projects.map(async (project) => {
-			const tasks = await getTasks({
-				[dtoFieldsCodesUserReports.project]: project.ID,
-			});
+		allProjects.map(async (project) => {
+			const tasks = await getItems<TaskProps>(
+				EntityTypeIds.tasks,
+				{
+					[dtoFieldsCodesUserReports.project]: project.id,
+				},
+				TASK_SELECT_FIELDS,
+			);
 
 			const reports = await getReportsByProject({
-				projectId: project.ID,
+				projectId: project.id,
 			});
 
 			const planHours = getProjectPlanHours(tasks ?? []);
@@ -130,8 +151,8 @@ export const getProjectsTableData = async ({
 			const purchasedHours = "-";
 
 			return {
-				id: project.ID,
-				title: project.NAME,
+				id: String(project.id),
+				title: project[ClientsCodes.title],
 				status: getProjectStatus(tasks ?? []),
 				planHours,
 				spentHours,
@@ -183,26 +204,41 @@ export const headersForProjects: Header<ProjectTableRow>[] = [
 ];
 
 export const getProjectsWithStatuses = async ({
-	projects,
+	clients,
 	startOfTheWeek,
 	endOfTheWeek,
 }: {
-	projects: { ID: string; NAME: string }[];
+	clients: ClientWithProjects[];
 	startOfTheWeek: string;
 	endOfTheWeek: string;
 }): Promise<ProjectWithStatus[]> => {
+	const allProjectsWithClient = clients.flatMap((client) =>
+		(client.projects ?? []).map((project) => ({
+			...project,
+			clientId: client.ID,
+			clientName: client.NAME,
+		})),
+	);
+
 	const result = await Promise.all(
-		projects.map(async (project) => {
-			const response = await getTasks({
-				[dtoFieldsCodesUserReports.project]: project.ID,
-				[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
-				[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
-			});
+		allProjectsWithClient.map(async (project) => {
+			const response = await getItems<TaskProps>(
+				EntityTypeIds.tasks,
+				{
+					[dtoFieldsCodesUserReports.project]: project.id,
+					[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
+					[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
+				},
+				TASK_SELECT_FIELDS,
+			);
 
 			const tasks = response ?? [];
 
 			return {
-				...project,
+				ID: String(project.id),
+				NAME: project[ClientsCodes.title],
+				clientId: project.clientId,
+				clientName: project.clientName,
 				tasksCount: tasks.length,
 				status: getProjectStatus(tasks),
 			};
@@ -215,82 +251,132 @@ export const getProjectsWithStatuses = async ({
 const today = dayjs();
 
 const ProjectsReports = () => {
-	const [open, setOpen] = useState<boolean>(false);
-	const [showStatuses, setShowStatuses] = useState<boolean>(false);
-	const [activeProject, setActiveProject] = useState<{
-		ID: string;
-		NAME: string;
-	}>();
+	const [_open, setOpen] = useState(false);
+	const [showStatuses, setShowStatuses] = useState(false);
+	const [_activeProject, setActiveProject] =
+		useState<ClientProjectProps | null>(null);
+	const [expandedClients, setExpandedClients] = useState<
+		Record<string, boolean>
+	>({});
 
 	const { projects } = useOutletContext<ReportsContext>();
+	const clients = (projects ?? []) as ClientWithProjects[];
+
 	const borders = useMemo(() => getWeekBorders(dayjs(today)), []);
-	const [projWithStatus, setProjWithStatus] = useState<ProjectWithStatus[]>([]);
+	const [projectsWithStatus, setProjectsWithStatus] = useState<
+		ProjectWithStatus[]
+	>([]);
 	const [tableData, setTableData] = useState<ProjectTableRow[]>([]);
 
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await getProjectsWithStatuses({
-				projects,
+				clients,
 				startOfTheWeek: borders.startOfTheWeek,
 				endOfTheWeek: borders.endOfTheWeek,
 			});
 
-			setProjWithStatus(result);
+			setProjectsWithStatus(result);
 		};
 
-		if (projects) {
+		if (clients.length) {
 			fetchData();
 		}
-	}, [borders.endOfTheWeek, borders.startOfTheWeek, projects]);
+	}, [borders.endOfTheWeek, borders.startOfTheWeek, clients]);
 
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await getProjectsTableData({
-				projects: projects,
+				clients,
 			});
 
 			setTableData(result);
 		};
 
-		if (projects) {
+		if (clients.length) {
 			fetchData();
 		}
-	}, [projects]);
+	}, [clients]);
+
+	const toggleClient = (clientId: string) => {
+		setExpandedClients((prev) => ({
+			...prev,
+			[clientId]: !prev[clientId],
+		}));
+	};
+
+	const getProjectMeta = (projectId: string) => {
+		return projectsWithStatus.find((item) => item.id === Number(projectId));
+	};
+
+	const totalProjectsCount = clients.reduce((acc, client) => {
+		return acc + (client.projects?.length ?? 0);
+	}, 0);
 
 	return (
 		<>
-			<div className={styles.header}>Проекты</div>
+			<div className={styles.header}>Клиенты:</div>
+
 			<div className={styles.contentContainer}>
 				<div className={styles.itemsContainer}>
-					{projWithStatus
-						.toSorted((a, b) => a.status.localeCompare(b.status))
-						.map((proj) => (
-							<div
-								key={proj.ID}
-								className={styles.projectItem}
-								onClick={() => {
-									setActiveProject(proj);
-									setOpen(true);
-								}}
-							>
+					{clients.map((client) => {
+						const isExpanded = expandedClients[client.ID];
+						const clientProjects = client.projects ?? [];
+
+						return (
+							<div key={client.ID} className={styles.clientBlock}>
 								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										width: "100%",
-									}}
+									className={styles.clientItem}
+									onClick={() => toggleClient(client.ID)}
 								>
-									<div className={styles.projectTitle}> {proj.NAME}</div>
-									<div>
-										<div>{proj.status}</div>
+									<div className={styles.clientTitle}>{client.NAME}</div>
+									<div className={styles.clientMeta}>
+										<span>{clientProjects.length} проектов</span>
+										<span className={styles.arrow}>
+											{isExpanded ? "▲" : "▼"}
+										</span>
 									</div>
 								</div>
+
+								{isExpanded && (
+									<div className={styles.projectsList}>
+										{clientProjects.map((project) => {
+											const meta = getProjectMeta(String(project.id));
+
+											return (
+												<div
+													key={project.id}
+													className={styles.projectItem}
+													onClick={() => {
+														setActiveProject(project);
+														setOpen(true);
+													}}
+												>
+													<div className={styles.projectTitle}>
+														{project.title}
+													</div>
+
+													<div className={styles.projectInfo}>
+														<div>{meta?.status ?? "нет задач"}</div>
+														<div className={styles.tasksCount}>
+															Задач: {meta?.tasksCount ?? 0}
+														</div>
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								)}
 							</div>
-						))}
+						);
+					})}
 				</div>
+
 				<div className={styles.statisticsContainer}>
 					<div className={styles.noTasksMessage}>
-						Количество проектов: {projects.length}
+						<div>Количество клиентов: {clients.length}</div>
+						<div>Количество проектов: {totalProjectsCount}</div>
+
 						<button onClick={() => setShowStatuses(true)}>
 							Статус проектов
 						</button>
@@ -298,7 +384,7 @@ const ProjectsReports = () => {
 				</div>
 			</div>
 
-			{activeProject && (
+			{/* {activeProject && (
 				<Modal
 					isOpen={open}
 					onClose={() => setOpen(false)}
@@ -307,7 +393,7 @@ const ProjectsReports = () => {
 				>
 					<ProjectsStats project={activeProject} />
 				</Modal>
-			)}
+			)} */}
 
 			{showStatuses && (
 				<Modal

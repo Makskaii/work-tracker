@@ -1,5 +1,9 @@
 import { memo } from "react";
-import type { TaskProps, User } from "../../shared/types/types";
+import type {
+	ClientListItems,
+	TaskProps,
+	User,
+} from "../../shared/types/types";
 import { dtoFieldsCodesUserReports as UserCodes } from "../calendar/constants/const";
 import { UserCard } from "../userCard/UserCard";
 import cls from "./UserItem.module.scss";
@@ -12,10 +16,7 @@ export const ListItem = memo(function ListIten({
 }: {
 	user: User;
 	task?: TaskProps;
-	projects: {
-		ID: string;
-		NAME: string;
-	}[];
+	projects: ClientListItems[];
 	onClick: () => void;
 }) {
 	return (

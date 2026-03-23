@@ -7,9 +7,10 @@ import {
 	dtoFieldsCodesUserReports as UserCodes,
 } from "@/components/calendar/constants/const";
 import { StatucBadge } from "@/components/statusBadge/StatucBadge";
-import type { ReportsContext } from "@/shared/types/types";
+import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
+import type { ReportsContext, TaskProps } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
-import { getTasks } from "../../api/getTasks";
+import { getItems } from "../../api/getTasks";
 import { getTasksByWeek } from "../../api/getTasksByWeek";
 import {
 	groupTasksByProject,
@@ -40,9 +41,13 @@ const Progress = () => {
 	const handleChange = handleSubmit(async (data) => {
 		try {
 			const res = await getTasksByWeek(data.userId);
-			const tasks = await getTasks({
-				assygnedById: data.userId,
-			});
+			const tasks = await getItems<TaskProps>(
+				EntityTypeIds.tasks,
+				{
+					assygnedById: data.userId,
+				},
+				TASK_SELECT_FIELDS,
+			);
 
 			setGroupedTasks(groupTasksByProject(tasks));
 

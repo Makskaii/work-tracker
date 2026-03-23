@@ -1,4 +1,5 @@
 import type { GroupedReportFields, Header } from "@/shared/types/table";
+import type { ClientListItems } from "@/shared/types/types";
 import {
 	convertToDate,
 	convertToMinutesOrHours,
@@ -36,8 +37,7 @@ export const headers: Header<GroupedReportFields>[] = [
 		convertFn: (value, additionalData) => {
 			return (
 				additionalData?.projects?.find(
-					(project: { ID: string; NAME: string }) =>
-						Number(project.ID) === value,
+					(project: ClientListItems) => Number(project.ID) === value,
 				)?.NAME || ""
 			);
 		},

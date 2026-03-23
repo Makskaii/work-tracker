@@ -9,25 +9,26 @@ import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
-import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
-import type { ReportsContext, TaskProps } from "@/shared/types/types";
+import type {
+	ClientListItems,
+	ReportsContext,
+	TaskProps,
+} from "@/shared/types/types";
 import { convertNumberFormat, getWeekArray } from "@/shared/utils";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
-import { getTasks } from "../../api/getTasks";
+import { getItems } from "../../api/getTasks";
 import { DoneTasksList } from "./DoneTasksList";
 
 const today = dayjs();
 
-export const ProjectsStats = ({
-	project,
-}: {
-	project: {
-		ID: string;
-		NAME: string;
-	};
-}) => {
+export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 	const { users } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
@@ -42,11 +43,15 @@ export const ProjectsStats = ({
 
 	useEffect(() => {
 		const fetchTasks = async () => {
-			const response = await getTasks({
-				[dtoFieldsCodesUserReports.project]: project.ID,
-				[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
-				[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
-			});
+			const response = await getItems<TaskProps>(
+				EntityTypeIds.tasks,
+				{
+					[dtoFieldsCodesUserReports.project]: project.ID,
+					[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
+					[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
+				},
+				TASK_SELECT_FIELDS,
+			);
 			setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
 		};
 
