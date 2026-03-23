@@ -4,7 +4,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import {
 	months,
-	dtoFieldsCodesUserReports as UserCodes,
+	TaskCodes as UserCodes,
 } from "@/components/calendar/constants/const";
 import { StatucBadge } from "@/components/statusBadge/StatucBadge";
 import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";

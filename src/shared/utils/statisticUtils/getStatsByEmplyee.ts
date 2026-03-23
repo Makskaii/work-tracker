@@ -1,4 +1,4 @@
-import { dtoFieldsCodesUserReports } from "../../../components/calendar/constants/const";
+import { TaskCodes } from "../../../components/calendar/constants/const";
 import type { TaskProps } from "../../types/types";
 import { convertNumberFormat } from "../numberUtils";
 
@@ -16,23 +16,17 @@ export const getStatsByEmplyee = (
 			value: stat?.filterFn ? tasks.filter(stat?.filterFn) : tasks,
 			estimateTime: stat?.filterFn
 				? tasks.filter(stat?.filterFn).reduce((acc, task) => {
-						return (
-							acc +
-							+convertNumberFormat(task[dtoFieldsCodesUserReports.estimateTime])
-						);
+						return acc + +convertNumberFormat(task[TaskCodes.estimateTime]);
 					}, 0)
 				: tasks.reduce((acc, task) => {
-						return (
-							acc +
-							+convertNumberFormat(task[dtoFieldsCodesUserReports.estimateTime])
-						);
+						return acc + +convertNumberFormat(task[TaskCodes.estimateTime]);
 					}, 0),
 			timeSpent: stat?.filterFn
 				? tasks.filter(stat?.filterFn).reduce((acc, task) => {
-						return acc + +task[dtoFieldsCodesUserReports.timeSpent];
+						return acc + +task[TaskCodes.timeSpent];
 					}, 0)
 				: tasks.reduce((acc, task) => {
-						return acc + +task[dtoFieldsCodesUserReports.timeSpent];
+						return acc + +task[TaskCodes.timeSpent];
 					}, 0),
 		};
 	});

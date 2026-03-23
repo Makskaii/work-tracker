@@ -4,7 +4,7 @@ import type {
 	TaskProps,
 	User,
 } from "../../shared/types/types";
-import { dtoFieldsCodesUserReports as UserCodes } from "../calendar/constants/const";
+import { TaskCodes as UserCodes } from "../calendar/constants/const";
 import { UserCard } from "../userCard/UserCard";
 import cls from "./UserItem.module.scss";
 

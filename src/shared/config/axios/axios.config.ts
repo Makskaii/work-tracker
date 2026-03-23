@@ -1,6 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <to avoid biome errors> */
 import axios from "axios";
-import { tasks } from "../../../mock/mockData";
 
 export const $api = axios.create({
 	baseURL: import.meta.env.VITE_API_URL,
@@ -10,11 +9,3 @@ export const $api = axios.create({
 		Accept: "application/json",
 	},
 });
-
-export const fakeApiCall = (): Promise<any> => {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			resolve(tasks);
-		}, 2000);
-	});
-};

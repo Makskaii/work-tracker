@@ -126,7 +126,6 @@ export const MainLayout = () => {
 					setIsReady(true);
 
 					if (redirectTo) {
-						console.log("redirecting");
 						navigate(redirectTo, { replace: true });
 					}
 				}

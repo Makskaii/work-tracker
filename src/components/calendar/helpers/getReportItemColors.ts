@@ -1,8 +1,8 @@
-import { ActivityType, dtoFieldsCodesDailyReports } from "../constants/const";
+import { ActivityType, ReportCodes } from "../constants/const";
 import type { ReportProps } from "../types/types";
 
 export const getColorAdnBorder = (report: ReportProps) => {
-	switch (report[dtoFieldsCodesDailyReports.activityType]) {
+	switch (report[ReportCodes.activityType]) {
 		case ActivityType.development:
 			return {
 				background: "rgba(76, 175, 80, 0.2)",

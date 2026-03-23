@@ -8,11 +8,7 @@ import type { ReportsContext } from "@/shared/types/types";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
-import {
-	ActivityTitle,
-	ActivityType,
-	dtoFieldsCodesDailyReports,
-} from "./constants/const";
+import { ActivityTitle, ActivityType, ReportCodes } from "./constants/const";
 import { buildWeekCalendarFromReports } from "./helpers/generateWeek";
 import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import type { ReportProps } from "./types/types";
@@ -39,11 +35,11 @@ const WeekCalendar = () => {
 					"id",
 					"title",
 					"begindate",
-					dtoFieldsCodesDailyReports.title,
-					dtoFieldsCodesDailyReports.timeSpent,
-					dtoFieldsCodesDailyReports.project,
-					dtoFieldsCodesDailyReports.taskId,
-					dtoFieldsCodesDailyReports.activityType,
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
 					"assignedById",
 					"createdTime",
 					"lastActivityTime",
@@ -67,11 +63,11 @@ const WeekCalendar = () => {
 						"id",
 						"title",
 						"begindate",
-						dtoFieldsCodesDailyReports.title,
-						dtoFieldsCodesDailyReports.timeSpent,
-						dtoFieldsCodesDailyReports.project,
-						dtoFieldsCodesDailyReports.taskId,
-						dtoFieldsCodesDailyReports.activityType,
+						ReportCodes.title,
+						ReportCodes.timeSpent,
+						ReportCodes.project,
+						ReportCodes.taskId,
+						ReportCodes.activityType,
 						"assignedById",
 						"createdTime",
 						"lastActivityTime",
@@ -87,11 +83,7 @@ const WeekCalendar = () => {
 	}, [endOfTheWeek, setFilters, startOfTheWeek, user, day]);
 
 	const weekCalendar = useMemo(() => {
-		return buildWeekCalendarFromReports(
-			data,
-			borders,
-			dtoFieldsCodesDailyReports.timeSpent,
-		);
+		return buildWeekCalendarFromReports(data, borders, ReportCodes.timeSpent);
 	}, [data, borders]);
 	console.log({ user });
 	return (
@@ -246,17 +238,11 @@ const WeekCalendar = () => {
 								{day.reports?.map((report) => (
 									<div
 										key={report.id}
-										title={report[dtoFieldsCodesDailyReports.title]}
+										title={report[ReportCodes.title]}
 										style={{
-											minHeight:
-												HOUR_HEIGHT *
-												+report[dtoFieldsCodesDailyReports.timeSpent],
-											maxHeight:
-												HOUR_HEIGHT *
-												+report[dtoFieldsCodesDailyReports.timeSpent],
-											height:
-												HOUR_HEIGHT *
-												+report[dtoFieldsCodesDailyReports.timeSpent],
+											minHeight: HOUR_HEIGHT * +report[ReportCodes.timeSpent],
+											maxHeight: HOUR_HEIGHT * +report[ReportCodes.timeSpent],
+											height: HOUR_HEIGHT * +report[ReportCodes.timeSpent],
 											maxWidth: "200px",
 											...getColorAdnBorder(report),
 											display: "flex",
@@ -274,16 +260,14 @@ const WeekCalendar = () => {
 												textAlign: "left",
 											}}
 										>
-											{report[dtoFieldsCodesDailyReports.title]}
+											{report[ReportCodes.title]}
 										</span>
 										<span
 											style={{
 												whiteSpace: "nowrap",
 											}}
 										>
-											{convertToMinutesOrHours(
-												report[dtoFieldsCodesDailyReports.timeSpent],
-											)}
+											{convertToMinutesOrHours(report[ReportCodes.timeSpent])}
 										</span>
 									</div>
 								))}
@@ -314,19 +298,13 @@ const WeekCalendar = () => {
 								justifyContent: "space-between",
 							}}
 						>
-							{
-								ActivityTitle[
-									activeReport?.[dtoFieldsCodesDailyReports.activityType]
-								]
-							}
+							{ActivityTitle[activeReport?.[ReportCodes.activityType]]}
 							<div
 								style={{
 									padding: "0 0.5rem",
 								}}
 							>
-								{convertToMinutesOrHours(
-									+activeReport[dtoFieldsCodesDailyReports.timeSpent],
-								)}
+								{convertToMinutesOrHours(+activeReport[ReportCodes.timeSpent])}
 							</div>
 						</div>
 						<div
@@ -334,7 +312,7 @@ const WeekCalendar = () => {
 								padding: "1rem",
 							}}
 						>
-							{activeReport?.[dtoFieldsCodesDailyReports.title]}
+							{activeReport?.[ReportCodes.title]}
 						</div>
 					</div>
 				)}

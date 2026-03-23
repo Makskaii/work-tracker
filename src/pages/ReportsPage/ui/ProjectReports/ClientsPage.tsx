@@ -1,14 +1,9 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import {
-	dtoFieldsCodesDailyReports,
-	dtoFieldsCodesUserReports,
-} from "@/components/calendar/constants/const";
-import { $api } from "@/shared/config";
+import { TaskCodes } from "@/components/calendar/constants/const";
 import {
 	ClientsCodes,
-	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
@@ -31,8 +26,6 @@ type ClientWithProjects = ClientListItems & {
 type ProjectWithStatus = Partial<ClientProjectProps> & {
 	status: string;
 	tasksCount: number;
-	clientId: string;
-	clientName: string;
 };
 
 const TASK_STAGE_IDS = {
@@ -50,7 +43,7 @@ export const getRiskColor = (risk: string): string => {
 };
 
 const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
-	if (!tasks.length) {
+	if (tasks.length === 0) {
 		return "нет задач";
 	}
 
@@ -75,93 +68,17 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 		return "в бэклоге";
 	}
 
-	return "нет задач";
-};
+	if (
+		tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length !== 0
+	) {
+		return `сделано задач:${tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length}`;
+	}
 
-const getProjectPlanHours = (tasks: TaskProps[]) => {
-	return tasks.reduce((acc, task) => {
-		return acc + parseFloat(task[dtoFieldsCodesUserReports.estimateTime] ?? 0);
-	}, 0);
-};
-
-const getReportsByProject = async ({ projectId }: { projectId: number }) => {
-	const response = await $api.get(Endpoints.crmItems, {
-		params: {
-			entityTypeId: EntityTypeIds.reports,
-			select: [
-				"id",
-				"title",
-				"begindate",
-				dtoFieldsCodesDailyReports.title,
-				dtoFieldsCodesDailyReports.timeSpent,
-				dtoFieldsCodesDailyReports.project,
-				dtoFieldsCodesDailyReports.taskId,
-				dtoFieldsCodesDailyReports.activityType,
-				"assignedById",
-				"createdTime",
-				"lastActivityTime",
-				`parentId${EntityTypeIds.tasks}`,
-			],
-			filter: {
-				[dtoFieldsCodesDailyReports.project]: projectId,
-			},
-		},
-	});
-
-	return response?.data?.result?.items ?? [];
-};
-
-const getSpentHoursByReports = (reports: Array<Record<string, unknown>>) => {
-	return reports.reduce((acc, report) => {
-		return acc + Number(report[dtoFieldsCodesDailyReports.timeSpent] ?? 0);
-	}, 0);
-};
-
-const getProjectRisk = (planHours: number, spentHours: number) => {
-	return spentHours > planHours ? "Перерасход" : "Нет риска";
-};
-
-export const getProjectsTableData = async ({
-	clients,
-}: {
-	clients: ClientWithProjects[];
-}): Promise<ProjectTableRow[]> => {
-	const allProjects = clients.flatMap((client) => client.projects ?? []);
-
-	const result = await Promise.all(
-		allProjects.map(async (project) => {
-			const tasks = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
-					[dtoFieldsCodesUserReports.project]: project.id,
-				},
-				TASK_SELECT_FIELDS,
-			);
-
-			const reports = await getReportsByProject({
-				projectId: project.id,
-			});
-
-			const planHours = getProjectPlanHours(tasks ?? []);
-			const spentHours = getSpentHoursByReports(reports);
-			const deviation = spentHours - planHours;
-			const risk = getProjectRisk(planHours, spentHours);
-			const purchasedHours = "-";
-
-			return {
-				id: String(project.id),
-				title: project[ClientsCodes.title],
-				status: getProjectStatus(tasks ?? []),
-				planHours,
-				spentHours,
-				deviation,
-				risk,
-				purchasedHours,
-			};
-		}),
+	console.log(
+		tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length,
 	);
 
-	return result;
+	return "нет задач";
 };
 
 export const headersForProjects: Header<ProjectTableRow>[] = [
@@ -219,28 +136,28 @@ export const getProjectsWithStatuses = async ({
 	);
 
 	const result = await Promise.all(
-		allProjectsWithClient.map(async (project) => {
-			const response = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
-					[dtoFieldsCodesUserReports.project]: project.id,
-					[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
-					[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
-				},
-				TASK_SELECT_FIELDS,
-			);
+		allProjectsWithClient
+			.filter((item) => item.projectId)
+			.map(async (project) => {
+				const response = await getItems<TaskProps>(
+					EntityTypeIds.tasks,
+					{
+						[TaskCodes.project]: project.projectId,
+						[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
+						[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
+					},
+					TASK_SELECT_FIELDS,
+				);
 
-			const tasks = response ?? [];
+				const tasks = response ?? [];
 
-			return {
-				ID: String(project.id),
-				NAME: project[ClientsCodes.title],
-				clientId: project.clientId,
-				clientName: project.clientName,
-				tasksCount: tasks.length,
-				status: getProjectStatus(tasks),
-			};
-		}),
+				return {
+					id: project.id,
+					title: project[ClientsCodes.title],
+					tasksCount: tasks.length,
+					status: getProjectStatus(tasks),
+				};
+			}),
 	);
 
 	return result;
@@ -268,7 +185,7 @@ const ProjectsReports = () => {
 				startOfTheWeek: borders.startOfTheWeek,
 				endOfTheWeek: borders.endOfTheWeek,
 			});
-
+			console.log("result", { result });
 			setProjectsWithStatus(result);
 		};
 
@@ -285,6 +202,7 @@ const ProjectsReports = () => {
 	};
 
 	const getProjectMeta = (projectId: string) => {
+		console.log(projectsWithStatus, projectId);
 		return projectsWithStatus.find((item) => item.id === Number(projectId));
 	};
 
@@ -317,7 +235,7 @@ const ProjectsReports = () => {
 									<div className={styles.projectsList}>
 										{clientProjects.map((project) => {
 											const meta = getProjectMeta(String(project.id));
-
+											console.log({ meta });
 											return (
 												<div key={project.id} className={styles.projectItem}>
 													<div className={styles.projectTitle}>

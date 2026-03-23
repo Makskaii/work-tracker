@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import Modal from "@/components/modal/Modal";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { getProjectsFromList } from "@/shared/api/getCrmFields";
+import { getClientsFromList } from "@/shared/api/getCrmFields";
 
 export const ClientForm = () => {
 	const { handleSubmit, register } = useForm<{
@@ -19,14 +19,12 @@ export const ClientForm = () => {
 			name: string;
 		}[]
 	>([]);
-	const [clients, setClients] = useState<
-		{ id: string; name: string; crmClientId: string }[]
-	>([]);
+
 	const [clientForm, setClientForm] = useState<boolean>(false);
 
 	useEffect(() => {
 		const fetchProjects = async () => {
-			const response = await getProjectsFromList();
+			const response = await getClientsFromList();
 
 			setProjects(
 				response.map((proj) => {
@@ -36,24 +34,6 @@ export const ClientForm = () => {
 					};
 				}),
 			);
-		};
-
-		fetchProjects();
-	}, []);
-
-	useEffect(() => {
-		const fetchProjects = async () => {
-			try {
-				const clients = await fetch(
-					"https://crm.evolution-soft.ru/devapps/work-tracker/api/clients",
-				);
-
-				const data = await clients.json();
-
-				setClients(data ?? []);
-			} catch {
-				setClients([]);
-			}
 		};
 
 		fetchProjects();
@@ -81,8 +61,6 @@ export const ClientForm = () => {
 			setClientForm(false);
 		}
 	});
-
-	console.log(clients);
 
 	return (
 		<CheckPermission permission="create-client" subject="client">

@@ -1,17 +1,17 @@
 import type { GroupedReportFields } from "@/shared/types/table";
-import type { dtoFieldsCodesDailyReports } from "../constants/const";
+import type { ReportCodes } from "../constants/const";
 
 export interface ReportProps {
 	id: string;
 	title: string;
 	createdTime: string;
 	begindate: string;
-	[dtoFieldsCodesDailyReports.project]: number;
-	[dtoFieldsCodesDailyReports.taskId]: string;
-	[dtoFieldsCodesDailyReports.timeSpent]: string;
-	[dtoFieldsCodesDailyReports.title]: string;
-	[dtoFieldsCodesDailyReports.activityType]: number;
-	[dtoFieldsCodesDailyReports.parentId]: number;
+	[ReportCodes.project]: number;
+	[ReportCodes.taskId]: string;
+	[ReportCodes.timeSpent]: string;
+	[ReportCodes.title]: string;
+	[ReportCodes.activityType]: number;
+	[ReportCodes.parentId]: number;
 	assignedById: string;
 	lastActivityTime: string;
 }

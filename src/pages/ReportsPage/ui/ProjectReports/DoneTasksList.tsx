@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { useMemo } from "react";
-import { dtoFieldsCodesUserReports } from "@/components/calendar/constants/const";
+import { TaskCodes } from "@/components/calendar/constants/const";
 import {
 	Endpoints,
 	EntityTypeIds,
@@ -23,15 +23,12 @@ export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 				entityTypeId: EntityTypeIds.tasks,
 				select: TASK_SELECT_FIELDS,
 				filter: {
-					[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: dayjs(
-						borders.startOfTheWeek,
-					)
+					[`>=${TaskCodes.sprintDateStart}`]: dayjs(borders.startOfTheWeek)
 						.subtract(7, "day")
 						.format("YYYY-MM-DD"),
-					[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]:
-						borders.endOfTheWeek,
+					[`<=${TaskCodes.sprintDateStart}`]: borders.endOfTheWeek,
 					stageId: "DT1072_18:UC_6JNSDG",
-					[dtoFieldsCodesUserReports.project]: projectId,
+					[TaskCodes.project]: projectId,
 				},
 			},
 		},
@@ -83,7 +80,7 @@ export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 							>
 								<b>{task.title}</b>
 
-								<div>{task[dtoFieldsCodesUserReports.description]}</div>
+								<div>{task[TaskCodes.description]}</div>
 							</div>
 						))}
 					</div>

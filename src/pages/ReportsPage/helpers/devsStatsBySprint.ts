@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { dtoFieldsCodesDailyReports } from "@/components/calendar/constants/const";
+import { ReportCodes } from "@/components/calendar/constants/const";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { User } from "@/shared/types/types";
@@ -36,11 +36,9 @@ const groupSpentTimeByActivity = (
 	const activityMap = createEmptyActivitiesMap(activities);
 
 	for (const report of reports) {
-		const activityType = String(
-			report[dtoFieldsCodesDailyReports.activityType] ?? "",
-		);
+		const activityType = String(report[ReportCodes.activityType] ?? "");
 
-		const timeSpent = Number(report[dtoFieldsCodesDailyReports.timeSpent] ?? 0);
+		const timeSpent = Number(report[ReportCodes.timeSpent] ?? 0);
 
 		if (!activityType) continue;
 		if (!(activityType in activityMap)) continue;
@@ -71,11 +69,11 @@ const getReportsByUser = async ({
 				"id",
 				"title",
 				"begindate",
-				dtoFieldsCodesDailyReports.title,
-				dtoFieldsCodesDailyReports.timeSpent,
-				dtoFieldsCodesDailyReports.project,
-				dtoFieldsCodesDailyReports.taskId,
-				dtoFieldsCodesDailyReports.activityType,
+				ReportCodes.title,
+				ReportCodes.timeSpent,
+				ReportCodes.project,
+				ReportCodes.taskId,
+				ReportCodes.activityType,
 				"assignedById",
 				"createdTime",
 				"lastActivityTime",

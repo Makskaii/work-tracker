@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
-import { dtoFieldsCodesUserReports as UserCodes } from "@/components/calendar/constants/const";
+import { TaskCodes as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { $api } from "@/shared/config";
 import {
@@ -11,6 +11,7 @@ import {
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import type {
+	AnyObject,
 	ClientListItems,
 	ClientProjectProps,
 	ReportsContext,
@@ -20,6 +21,7 @@ import type {
 } from "@/shared/types/types";
 import {
 	getActivities,
+	getClientsFromList,
 	getProjectsFromList,
 } from "../../shared/api/getCrmFields";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
@@ -36,11 +38,38 @@ export type Activity = {
 	VALUE: string;
 };
 
+type ProjectFromList = {
+	id: string;
+	name: string;
+	projectId: string;
+};
+
+const getSinglePropertyValue = (
+	property?: Record<string, string> | null,
+): string => {
+	if (!property) return "";
+
+	const value = Object.values(property)[0];
+
+	return value ? String(value) : "";
+};
+
+const mapProjectsFromList = (items: AnyObject[]): ProjectFromList[] => {
+	return items
+		.map((element) => ({
+			id: String(element.ID),
+			name: String(element.NAME ?? ""),
+			projectId: getSinglePropertyValue(element.PROPERTY_87),
+		}))
+		.filter((item) => item.projectId);
+};
+
 const ReportsPage = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [clientsList, setClietnsList] = useState<
 		(ClientListItems & { projects: ClientProjectProps[] })[]
 	>([]);
+
 	const [users, setUsers] = useState<User[]>([]);
 	const [currProject, setCurrProject] = useState("");
 	const [title, setTitle] = useState("");
@@ -125,19 +154,21 @@ const ReportsPage = () => {
 	}, []);
 
 	useEffect(() => {
-		const fetchProjects = async () => {
+		const fetchActivities = async () => {
 			const fields = await getActivities();
 
-			setActivities(fields["ufCrm11_1770804288638"].items);
-			console.log(fields["ufCrm11_1770804288638"].items);
+			setActivities(fields["ufCrm11_1770804288638"]?.items);
 		};
 
-		fetchProjects();
+		fetchActivities();
 	}, []);
 
 	useEffect(() => {
-		const fetchProjectsByClient = async (clients: ClientListItems[]) => {
-			if (!clients) return;
+		const fetchProjectsByClient = async (
+			clients: ClientListItems[],
+			projectsFromList: ProjectFromList[],
+		) => {
+			if (!clients) return [];
 
 			try {
 				const response = await Promise.all(
@@ -149,24 +180,49 @@ const ReportsPage = () => {
 							},
 						);
 						console.log({ projects });
+						const projectsWithRealId = (projects ?? []).map((project) => {
+							const projectTitle = String(project.title ?? "")
+								.trim()
+								.toLowerCase();
+
+							const matchedProject = projectsFromList.find(
+								(listProject) =>
+									listProject.name.trim().toLowerCase() === projectTitle,
+							);
+
+							return {
+								...project,
+								projectId: matchedProject?.id ?? "",
+							};
+						});
+
 						return {
 							...client,
-							projects,
+							projects: projectsWithRealId,
 						};
 					}),
 				);
-				console.log({ response });
+
 				return response;
 			} catch (error) {
 				console.log(error);
+				return [];
 			}
 		};
 
 		const fetchClients = async () => {
 			try {
-				const response = await getProjectsFromList();
+				const [clientsResponse, projectsListResponse] = await Promise.all([
+					getClientsFromList(),
+					getProjectsFromList(),
+				]);
 
-				const data = await fetchProjectsByClient(response);
+				const normalizedProjects = mapProjectsFromList(projectsListResponse);
+				console.log({ normalizedProjects });
+				const data = await fetchProjectsByClient(
+					clientsResponse,
+					normalizedProjects,
+				);
 
 				setClietnsList(data ?? []);
 			} catch (error) {
@@ -176,8 +232,6 @@ const ReportsPage = () => {
 
 		fetchClients();
 	}, []);
-
-	console.log({ clientsList });
 
 	return (
 		<CheckPermission permission="read" subject="post">

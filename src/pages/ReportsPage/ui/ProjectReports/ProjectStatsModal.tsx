@@ -1,10 +1,7 @@
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import {
-	dtoFieldsCodesDailyReports,
-	dtoFieldsCodesUserReports,
-} from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
@@ -46,9 +43,9 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 			const response = await getItems<TaskProps>(
 				EntityTypeIds.tasks,
 				{
-					[dtoFieldsCodesUserReports.project]: project.ID,
-					[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
-					[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
+					[TaskCodes.project]: project.ID,
+					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
+					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 				},
 				TASK_SELECT_FIELDS,
 			);
@@ -71,18 +68,18 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					"id",
 					"title",
 					"begindate",
-					dtoFieldsCodesDailyReports.title,
-					dtoFieldsCodesDailyReports.timeSpent,
-					dtoFieldsCodesDailyReports.project,
-					dtoFieldsCodesDailyReports.taskId,
-					dtoFieldsCodesDailyReports.activityType,
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
 					"assignedById",
 					"createdTime",
 					"lastActivityTime",
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[dtoFieldsCodesDailyReports.project]: project.ID,
+					[ReportCodes.project]: project.ID,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
 				},
@@ -99,18 +96,18 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					"id",
 					"title",
 					"begindate",
-					dtoFieldsCodesDailyReports.title,
-					dtoFieldsCodesDailyReports.timeSpent,
-					dtoFieldsCodesDailyReports.project,
-					dtoFieldsCodesDailyReports.taskId,
-					dtoFieldsCodesDailyReports.activityType,
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
 					"assignedById",
 					"createdTime",
 					"lastActivityTime",
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[dtoFieldsCodesDailyReports.project]: project.ID,
+					[ReportCodes.project]: project.ID,
 				},
 			},
 		},
@@ -124,18 +121,18 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					"id",
 					"title",
 					"begindate",
-					dtoFieldsCodesDailyReports.title,
-					dtoFieldsCodesDailyReports.timeSpent,
-					dtoFieldsCodesDailyReports.project,
-					dtoFieldsCodesDailyReports.taskId,
-					dtoFieldsCodesDailyReports.activityType,
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
 					"assignedById",
 					"createdTime",
 					"lastActivityTime",
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[dtoFieldsCodesDailyReports.project]: project.ID,
+					[ReportCodes.project]: project.ID,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
 				},
@@ -144,15 +141,14 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 	}, [endOfTheWeek, project.ID, setFilters, startOfTheWeek]);
 
 	const totalSpentTime = allReports.reduce(
-		(acc, report) =>
-			acc + convertNumberFormat(report[dtoFieldsCodesDailyReports.timeSpent]),
+		(acc, report) => acc + convertNumberFormat(report[ReportCodes.timeSpent]),
 		0,
 	);
 
 	const groupedByTaskReports = useMemo(() => {
 		return data.reduce(
 			(acc, report) => {
-				const parentId = Number(report[dtoFieldsCodesDailyReports.parentId]);
+				const parentId = Number(report[ReportCodes.parentId]);
 
 				if (!parentId) return acc;
 
@@ -373,9 +369,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 						{tasks.map((task) => {
 							const timespent = groupedByTaskReports?.[Number(task.id)]?.reduce(
 								(acc, report) => {
-									return (
-										acc + Number(report[dtoFieldsCodesDailyReports.timeSpent])
-									);
+									return acc + Number(report[ReportCodes.timeSpent]);
 								},
 								0,
 							);
@@ -383,7 +377,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 								<div onClick={() => openTask(task.id)}>
 									<TaskItemExtended
 										task={task}
-										estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
+										estimateTime={task[TaskCodes.estimateTime]}
 										key={task.id}
 										timeSpent={timespent ?? 0}
 									/>
@@ -415,10 +409,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 								Всего затрачено за спринт:{" "}
 								{data.reduce((acc, report) => {
 									return (
-										acc +
-										parseFloat(
-											String(report[dtoFieldsCodesDailyReports.timeSpent]),
-										)
+										acc + parseFloat(String(report[ReportCodes.timeSpent]))
 									);
 								}, 0)}
 								ч.
@@ -432,10 +423,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 								План по часам:{" "}
 								{tasks.reduce((acc, report) => {
 									return (
-										acc +
-										convertNumberFormat(
-											report[dtoFieldsCodesUserReports.estimateTime],
-										)
+										acc + convertNumberFormat(report[TaskCodes.estimateTime])
 									);
 								}, 0)}
 								ч.

@@ -102,7 +102,9 @@ export const SalesPage = () => {
 				const totalCalls = await getCalls(start, end);
 
 				const [items, ppoItems, kpItems, activeDealsCount] = await Promise.all([
-					getDeals({
+					await getDeals({
+						">=createdTime": start,
+						"<=createdTime": end,
 						categoryId: 0,
 					}),
 					getDeals({
@@ -135,11 +137,12 @@ export const SalesPage = () => {
 				const stats: SalesFields = {
 					id: "sales-stats",
 					callCount: totalCalls,
-					bidCount: await getDealsCountByStages({
-						start,
-						end,
-						categoryId: 0,
-					}),
+					bidCount: items.filter(
+						(item) =>
+							item.stageId !== "WON" &&
+							item.stageId !== "UC_9X7H19" &&
+							item.stageId !== "UC_B20EGT",
+					).length,
 					ppoCount: ppoItems.length,
 					kpCount: kpItems.length,
 					activeDeals: activeDealsCount,

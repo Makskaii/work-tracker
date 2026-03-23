@@ -1,10 +1,7 @@
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import {
-	dtoFieldsCodesDailyReports,
-	dtoFieldsCodesUserReports,
-} from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { TaskView } from "@/components/taskItem/TaskView";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
@@ -49,10 +46,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 
 						select: TASK_SELECT_FIELDS,
 						filter: {
-							[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]:
-								borders.endOfTheWeek,
-							[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]:
-								borders.startOfTheWeek,
+							[`<=${TaskCodes.sprintDateStart}`]: borders.endOfTheWeek,
+							[`>=${TaskCodes.sprintDateStart}`]: borders.startOfTheWeek,
 							assignedById: user.id,
 						},
 					},
@@ -86,18 +81,18 @@ export const StatsModal = ({ user }: { user: User }) => {
 									"id",
 									"title",
 									"begindate",
-									dtoFieldsCodesDailyReports.title,
-									dtoFieldsCodesDailyReports.timeSpent,
-									dtoFieldsCodesDailyReports.project,
-									dtoFieldsCodesDailyReports.taskId,
-									dtoFieldsCodesDailyReports.activityType,
+									ReportCodes.title,
+									ReportCodes.timeSpent,
+									ReportCodes.project,
+									ReportCodes.taskId,
+									ReportCodes.activityType,
 									"assignedById",
 									"createdTime",
 									"lastActivityTime",
 									`parentId${EntityTypeIds.tasks}`,
 								],
 								filter: {
-									[dtoFieldsCodesDailyReports.parentId]: task.id,
+									[ReportCodes.parentId]: task.id,
 									assignedById: user.id,
 									">=begindate": borders.startOfTheWeek,
 									"<=begindate": borders.endOfTheWeek,
@@ -113,8 +108,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 					if (items.length !== 0)
 						setReports((prev) => ({
 							...prev,
-							[items[0]?.[dtoFieldsCodesDailyReports.taskId]]: items,
-							[items[0]?.[dtoFieldsCodesDailyReports.parentId]]: items,
+							[items[0]?.[ReportCodes.taskId]]: items,
+							[items[0]?.[ReportCodes.parentId]]: items,
 						}));
 				});
 			} catch (error) {
@@ -127,7 +122,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 
 	const totlaTimeSpent = tasks.reduce((acc, task) => {
 		const timespent = reports?.[task.id]?.reduce((acc, report) => {
-			return acc + Number(report[dtoFieldsCodesDailyReports.timeSpent]);
+			return acc + Number(report[ReportCodes.timeSpent]);
 		}, 0);
 
 		if (timespent) {

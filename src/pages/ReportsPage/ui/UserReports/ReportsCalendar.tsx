@@ -3,7 +3,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 import {
 	ActivityTitle,
-	dtoFieldsCodesDailyReports,
+	ReportCodes,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Endpoints } from "@/shared/constants/const";
@@ -79,7 +79,7 @@ const ReportsCalendar = () => {
 						{Object.entries(groupedByActivity).map(([activityId, reports]) => {
 							const groupByProjects = reports.reduce(
 								(acc, report) => {
-									const project = report[dtoFieldsCodesDailyReports.project];
+									const project = report[ReportCodes.project];
 
 									if (!acc[project]) {
 										acc[project] = [report];
@@ -103,11 +103,8 @@ const ReportsCalendar = () => {
 
 									{Object.entries(groupByProjects).map(([projId, reports]) => {
 										const timeSpent = reports.reduce((acc, report) => {
-											if (report[dtoFieldsCodesDailyReports.timeSpent]) {
-												acc +=
-													Number(
-														report[dtoFieldsCodesDailyReports.timeSpent],
-													) ?? 0;
+											if (report[ReportCodes.timeSpent]) {
+												acc += Number(report[ReportCodes.timeSpent]) ?? 0;
 											}
 											return acc;
 										}, 0);
