@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import Modal from "@/components/modal/Modal";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { getProjectsFromList } from "@/shared/api/getCrmFields";
 
 export const ClientForm = () => {
@@ -190,7 +189,6 @@ export const ClientForm = () => {
 						</Modal>
 					)}
 				</div>
-				<ClientList />
 			</div>
 		</CheckPermission>
 	);
