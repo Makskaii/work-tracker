@@ -2,7 +2,7 @@ import { Spinner } from "@/components/spinner/Spinner";
 import type { UniversalTableProps } from "@/shared/types/table";
 import cls from "../Table.module.scss";
 
-export const UniversalTable = <T extends { id: string; taskId?: string }>({
+export const UniversalTable = <T extends { id: string; parentId?: number }>({
 	headers,
 	activeItems,
 	additionalData,
@@ -33,7 +33,7 @@ export const UniversalTable = <T extends { id: string; taskId?: string }>({
 							{activeItems.map((item) => (
 								<tr
 									key={item.id}
-									onClick={() => onRowClick?.(item.taskId ?? "")}
+									onClick={() => onRowClick?.(String(item.parentId) ?? "")}
 								>
 									{headers.map((header) => {
 										const value = item[header.key];
