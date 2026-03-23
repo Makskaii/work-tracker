@@ -1,9 +1,8 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { ReportCodes } from "@/components/calendar/constants/const";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { User } from "@/shared/types/types";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import type { Activity } from "../ReportsPage";
 import type { GroupedFields } from "../types/types";
 
@@ -11,6 +10,20 @@ const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
 	if (!availableTime) return 0;
 
 	return Math.round((timeSpent / availableTime) * 100);
+};
+
+export const getWorkWeekBorders = (date: Dayjs) => {
+	const day = date.day();
+
+	const diffToMonday = day === 0 ? 6 : day - 1;
+
+	const startOfWeek = date.startOf("day").subtract(diffToMonday, "day");
+	const endOfWeek = startOfWeek.add(4, "day").endOf("day");
+
+	return {
+		startOfWeek: startOfWeek.format("YYYY-MM-DD"),
+		endOfWeek: endOfWeek.format("YYYY-MM-DD"),
+	};
 };
 
 const getCommentByEffectivity = (effectivity: number) => {
@@ -101,15 +114,13 @@ export const getUsersTableData = async ({
 	startOfTheWeek: string;
 	endOfTheWeek: string;
 }): Promise<GroupedFields[]> => {
-	const currWeekBorders = getWeekBorders(dayjs());
-
-	const currWeekStart = dayjs(currWeekBorders.startOfTheWeek)
-		.subtract(1, "day")
-		.format("YYYY-MM-DD");
+	const currWeekBorders = getWorkWeekBorders(dayjs());
 
 	const day = dayjs().day();
 
-	const availableTime = dayjs(startOfTheWeek).isBefore(dayjs(currWeekStart))
+	const availableTime = dayjs(startOfTheWeek).isBefore(
+		dayjs(currWeekBorders.startOfWeek),
+	)
 		? 40
 		: day * 8;
 

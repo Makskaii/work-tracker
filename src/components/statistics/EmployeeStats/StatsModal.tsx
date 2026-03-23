@@ -13,7 +13,7 @@ import {
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { UserCard } from "../../userCard/UserCard";
 import { EmployeeStats } from "./EmployeeStats";
 import { TasksList } from "./TasksList";
@@ -22,7 +22,7 @@ const today = dayjs();
 
 export const StatsModal = ({ user }: { user: User }) => {
 	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const { setUser, projects } = useOutletContext<ReportsContext>();
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);

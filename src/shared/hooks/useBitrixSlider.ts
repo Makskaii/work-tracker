@@ -4,8 +4,6 @@ import { EntityTypeIds } from "../constants/const";
 export const useBitrixSlider = () => {
 	const { b24 } = useB24();
 
-	console.log("current context is:", { b24 });
-
 	const openTask = async (taskId: number | string) => {
 		if (!b24) return null;
 

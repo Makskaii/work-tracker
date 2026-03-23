@@ -9,10 +9,10 @@ import {
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { TaskProps } from "@/shared/types/types";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 
 export const DoneTasksList = ({ projectId }: { projectId: string }) => {
-	const borders = useMemo(() => getWeekBorders(dayjs()), []);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs()), []);
 
 	const { openTask } = useBitrixSlider();
 

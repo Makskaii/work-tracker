@@ -1,7 +1,7 @@
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getCalls } from "../../api/getCalls";
 import { getDeals } from "../../api/getDeals";
 import { headersForSales } from "../../constants/SalesTitleMap";
@@ -88,7 +88,7 @@ const today = dayjs();
 
 export const SalesPage = () => {
 	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const [data, setData] = useState<SalesTableFields[]>([]);
 
 	const { endOfTheWeek, startOfTheWeek } = borders;

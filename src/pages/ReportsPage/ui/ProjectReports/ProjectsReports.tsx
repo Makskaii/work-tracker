@@ -6,7 +6,7 @@ import { UniversalTable } from "@/components/Table/universalTable/UniversalTable
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { Header } from "@/shared/types/table";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { Modal } from "../../../../components/modal";
 import type {
 	ClientListItems,
@@ -224,7 +224,7 @@ const ProjectsReports = () => {
 	}>();
 
 	const { projects } = useOutletContext<ReportsContext>();
-	const borders = useMemo(() => getWeekBorders(dayjs(today)), []);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
 	const [projWithStatus, setProjWithStatus] = useState<ProjectWithStatus[]>([]);
 	const [tableData, setTableData] = useState<ProjectTableRow[]>([]);
 

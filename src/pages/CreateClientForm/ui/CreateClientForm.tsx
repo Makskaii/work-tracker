@@ -41,7 +41,7 @@ export const ClientForm = () => {
 
 	const onSubmit = handleSubmit(async (data) => {
 		try {
-			const response = await fetch(
+			await fetch(
 				"https://crm.evolution-soft.ru/devapps/work-tracker/api/clients",
 				{
 					method: "POST",
@@ -51,10 +51,6 @@ export const ClientForm = () => {
 					},
 				},
 			);
-
-			const res = await response.json();
-
-			console.log(res);
 		} catch (error) {
 			console.log(error);
 		} finally {
