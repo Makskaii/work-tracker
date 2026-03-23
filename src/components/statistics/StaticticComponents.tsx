@@ -1,7 +1,7 @@
 import { useOutletContext } from "react-router";
 import type { ReportsContext } from "../../shared/types/types";
 import { convertNumberFormat } from "../../shared/utils";
-import { dtoFieldsCodesUserReports as UserCodes } from "../calendar/constants/const";
+import { TaskCodes as UserCodes } from "../calendar/constants/const";
 
 export const Statistics = () => {
 	const { tasks, users } = useOutletContext<ReportsContext>();

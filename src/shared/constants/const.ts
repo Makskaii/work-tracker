@@ -1,6 +1,6 @@
 import {
-	dtoFieldsCodesUserReports,
-	dtoFieldsCodesUserReports as UserCodes,
+	TaskCodes,
+	TaskCodes as UserCodes,
 } from "../../components/calendar/constants/const";
 import type { TaskProps } from "../types/types";
 
@@ -58,14 +58,10 @@ export const statsFields: {
 		title: "Просрочено задач",
 		key: "expired",
 		filterFn: (task) => {
-			if (task[dtoFieldsCodesUserReports.estimateTime] === "0") return;
+			if (task[TaskCodes.estimateTime] === "0") return;
 
-			const estimate = parseFloat(
-				String(task[dtoFieldsCodesUserReports.estimateTime]) || "0",
-			);
-			const spent = parseFloat(
-				String(task[dtoFieldsCodesUserReports.timeSpent]) || "0",
-			);
+			const estimate = parseFloat(String(task[TaskCodes.estimateTime]) || "0");
+			const spent = parseFloat(String(task[TaskCodes.timeSpent]) || "0");
 			return spent > estimate;
 		},
 	},

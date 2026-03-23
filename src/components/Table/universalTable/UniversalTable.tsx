@@ -33,7 +33,7 @@ export const UniversalTable = <T extends { id: string; taskId?: string }>({
 							{activeItems.map((item) => (
 								<tr
 									key={item.id}
-									onDoubleClick={() => onRowClick?.(item.taskId ?? "")}
+									onClick={() => onRowClick?.(item.taskId ?? "")}
 								>
 									{headers.map((header) => {
 										const value = item[header.key];

@@ -4,7 +4,7 @@ import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { ReportsContext, TaskProps } from "@/shared/types/types";
 import { convertNumberFormat, convertToDate } from "@/shared/utils";
-import { dtoFieldsCodesUserReports } from "../calendar/constants/const";
+import { TaskCodes } from "../calendar/constants/const";
 import { Spinner } from "../spinner/Spinner";
 import { InfoCard } from "./TaskInfoCard";
 
@@ -154,10 +154,8 @@ export const TaskView = ({
 				<InfoCard
 					label="План по часам"
 					value={
-						task[dtoFieldsCodesUserReports.estimateTime]
-							? `${convertNumberFormat(
-									task[dtoFieldsCodesUserReports.estimateTime],
-								)} ч.`
+						task[TaskCodes.estimateTime]
+							? `${convertNumberFormat(task[TaskCodes.estimateTime])} ч.`
 							: "—"
 					}
 				/>
@@ -166,8 +164,7 @@ export const TaskView = ({
 					label="Проект"
 					value={
 						projects.find(
-							(project) =>
-								project.ID === String(task[dtoFieldsCodesUserReports.project]),
+							(project) => project.ID === String(task[TaskCodes.project]),
 						)?.NAME ?? ""
 					}
 				/>
@@ -203,8 +200,8 @@ export const TaskView = ({
 						wordBreak: "break-word",
 					}}
 				>
-					{task[dtoFieldsCodesUserReports.description]
-						? String(task[dtoFieldsCodesUserReports.description])
+					{task[TaskCodes.description]
+						? String(task[TaskCodes.description])
 						: "Описание отсутствует"}
 				</div>
 			</div>

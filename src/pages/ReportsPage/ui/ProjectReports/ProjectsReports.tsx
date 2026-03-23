@@ -1,23 +1,24 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import {
-	dtoFieldsCodesDailyReports,
-	dtoFieldsCodesUserReports,
-} from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { Header } from "@/shared/types/table";
 import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { Modal } from "../../../../components/modal";
-import type { ReportsContext, TaskProps } from "../../../../shared/types/types";
+import type {
+	ClientListItems,
+	ReportsContext,
+	TaskProps,
+} from "../../../../shared/types/types";
 import { getItems } from "../../api/getTasks";
 import type { ProjectTableRow } from "../../types/types";
 import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
 
-type ProjectWithStatus = { ID: string; NAME: string } & {
+type ProjectWithStatus = ClientListItems & {
 	status: string;
 	tasksCount: number;
 };
@@ -67,7 +68,7 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 
 const getProjectPlanHours = (tasks: TaskProps[]) => {
 	return tasks.reduce((acc, task) => {
-		return acc + parseFloat(task[dtoFieldsCodesUserReports.estimateTime] ?? 0);
+		return acc + parseFloat(task[TaskCodes.estimateTime] ?? 0);
 	}, 0);
 };
 
@@ -79,18 +80,18 @@ const getReportsByProject = async ({ projectId }: { projectId: string }) => {
 				"id",
 				"title",
 				"begindate",
-				dtoFieldsCodesDailyReports.title,
-				dtoFieldsCodesDailyReports.timeSpent,
-				dtoFieldsCodesDailyReports.project,
-				dtoFieldsCodesDailyReports.taskId,
-				dtoFieldsCodesDailyReports.activityType,
+				ReportCodes.title,
+				ReportCodes.timeSpent,
+				ReportCodes.project,
+				ReportCodes.taskId,
+				ReportCodes.activityType,
 				"assignedById",
 				"createdTime",
 				"lastActivityTime",
 				`parentId${EntityTypeIds.tasks}`,
 			],
 			filter: {
-				[dtoFieldsCodesDailyReports.project]: projectId,
+				[ReportCodes.project]: projectId,
 			},
 		},
 	});
@@ -100,7 +101,7 @@ const getReportsByProject = async ({ projectId }: { projectId: string }) => {
 
 const getSpentHoursByReports = (reports: Array<Record<string, unknown>>) => {
 	return reports.reduce((acc, report) => {
-		return acc + Number(report[dtoFieldsCodesDailyReports.timeSpent] ?? 0);
+		return acc + Number(report[ReportCodes.timeSpent] ?? 0);
 	}, 0);
 };
 
@@ -111,12 +112,12 @@ const getProjectRisk = (planHours: number, spentHours: number) => {
 export const getProjectsTableData = async ({
 	projects,
 }: {
-	projects: { ID: string; NAME: string }[];
+	projects: ClientListItems[];
 }): Promise<ProjectTableRow[]> => {
 	const result = await Promise.all(
 		projects.map(async (project) => {
 			const tasks = await getItems<TaskProps>(EntityTypeIds.tasks, {
-				[dtoFieldsCodesUserReports.project]: project.ID,
+				[TaskCodes.project]: project.ID,
 			});
 
 			const reports = await getReportsByProject({
@@ -187,16 +188,16 @@ export const getProjectsWithStatuses = async ({
 	startOfTheWeek,
 	endOfTheWeek,
 }: {
-	projects: { ID: string; NAME: string }[];
+	projects: ClientListItems[];
 	startOfTheWeek: string;
 	endOfTheWeek: string;
 }): Promise<ProjectWithStatus[]> => {
 	const result = await Promise.all(
 		projects.map(async (project) => {
 			const response = await getItems<TaskProps>(EntityTypeIds.tasks, {
-				[dtoFieldsCodesUserReports.project]: project.ID,
-				[`<=${dtoFieldsCodesUserReports.sprintDateStart}`]: endOfTheWeek,
-				[`>=${dtoFieldsCodesUserReports.sprintDateStart}`]: startOfTheWeek,
+				[TaskCodes.project]: project.ID,
+				[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
+				[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 			});
 
 			const tasks = response ?? [];

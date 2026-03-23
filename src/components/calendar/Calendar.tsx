@@ -5,11 +5,7 @@ import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { GroupedReportFields } from "@/shared/types/table";
 import { CalendarMonth, WeekCalendar } from ".";
-import {
-	dtoFieldsCodesDailyReports,
-	months,
-	selectFields,
-} from "./constants/const";
+import { months, ReportCodes, selectFields } from "./constants/const";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
 
@@ -78,13 +74,13 @@ export const Calendar = ({
 			setReports(
 				data.map((report) => ({
 					id: report.id,
-					title: report[dtoFieldsCodesDailyReports.title],
-					timeSpent: report[dtoFieldsCodesDailyReports.timeSpent],
-					taskId: report[dtoFieldsCodesDailyReports.taskId],
-					parentId: report[dtoFieldsCodesDailyReports.parentId],
+					title: report[ReportCodes.title],
+					timeSpent: report[ReportCodes.timeSpent],
+					taskId: report[ReportCodes.taskId],
+					parentId: report[ReportCodes.parentId],
 					day: report.begindate,
-					project: report[dtoFieldsCodesDailyReports.project],
-					activity: report[dtoFieldsCodesDailyReports.activityType],
+					project: report[ReportCodes.project],
+					activity: report[ReportCodes.activityType],
 					assignedById: report.assignedById,
 				})),
 			);
@@ -92,8 +88,7 @@ export const Calendar = ({
 			setGroupByActivity(
 				data.reduce(
 					(acc, report) => {
-						const activityType =
-							report[dtoFieldsCodesDailyReports.activityType];
+						const activityType = report[ReportCodes.activityType];
 
 						if (activityType) {
 							if (!acc[activityType]) {

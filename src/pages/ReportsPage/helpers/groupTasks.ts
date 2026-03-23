@@ -1,4 +1,4 @@
-import { dtoFieldsCodesUserReports as UserCodes } from "../../../components/calendar/constants/const";
+import { TaskCodes as UserCodes } from "../../../components/calendar/constants/const";
 import type { AnyObject, TaskProps } from "../../../shared/types/types";
 
 export const groupTasksByWeek = (res: AnyObject[]) => {

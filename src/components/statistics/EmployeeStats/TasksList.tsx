@@ -1,8 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import {
-	dtoFieldsCodesDailyReports,
-	dtoFieldsCodesUserReports,
-} from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { TaskItem } from "@/components/taskItem/TaskItemSimple";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
@@ -33,7 +30,7 @@ export const TasksList = ({
 		>
 			{tasks.map((task) => {
 				const timespent = reports?.[task.id]?.reduce((acc, report) => {
-					return acc + Number(report[dtoFieldsCodesDailyReports.timeSpent]);
+					return acc + Number(report[ReportCodes.timeSpent]);
 				}, 0);
 
 				return (
@@ -47,7 +44,7 @@ export const TasksList = ({
 					>
 						<TaskItem
 							task={task}
-							estimateTime={task[dtoFieldsCodesUserReports.estimateTime]}
+							estimateTime={task[TaskCodes.estimateTime]}
 							timeSpent={timespent}
 							key={task.id}
 						/>

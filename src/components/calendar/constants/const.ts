@@ -65,7 +65,7 @@ export const headers: Header<GroupedReportFields>[] = [
 	},
 ];
 
-export enum dtoFieldsCodesDailyReports {
+export enum ReportCodes {
 	title = "ufCrm11_1770627903531",
 	timeSpent = "ufCrm11_1770627880479",
 	taskId = "ufCrm11_1770627808462",
@@ -74,11 +74,11 @@ export enum dtoFieldsCodesDailyReports {
 	parentId = "parentId1072",
 }
 
-export enum dtoFieldsCodesUserReports {
+export enum TaskCodes {
 	description = "ufCrm14_1770731622242",
 	stage = "ufCrm14_1770890673468",
 	estimateTime = "ufCrm14_1770731674952",
-	project = "ufCrm14_1772011269",
+	project = "ufCrm14_1772011269", // TODO сменить на актуальынй код поля проекта из 1092
 	reportDate = "ufCrm14_1771314375250",
 	timeSpent = "ufCrm14_1771314387497",
 	comment = "ufCrm14_1771314401297",
@@ -105,12 +105,12 @@ export const selectFields = [
 	"id",
 	"title",
 	"begindate",
-	dtoFieldsCodesDailyReports.title,
-	dtoFieldsCodesDailyReports.timeSpent,
-	dtoFieldsCodesDailyReports.project,
-	dtoFieldsCodesDailyReports.taskId,
-	dtoFieldsCodesDailyReports.activityType,
-	dtoFieldsCodesDailyReports.parentId,
+	ReportCodes.title,
+	ReportCodes.timeSpent,
+	ReportCodes.project,
+	ReportCodes.taskId,
+	ReportCodes.activityType,
+	ReportCodes.parentId,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",
