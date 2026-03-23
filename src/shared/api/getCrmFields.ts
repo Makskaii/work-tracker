@@ -32,7 +32,7 @@ export const getProjectsFromList = async (): Promise<ClientListItems[]> => {
 		});
 
 		const items = response.data.result;
-		console.log({ list: items });
+
 		if (!Array.isArray(items)) {
 			console.warn("Expected items to be an array, but got:", items);
 			return [];

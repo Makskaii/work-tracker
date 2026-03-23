@@ -6,7 +6,7 @@ import dayjs from "dayjs";
  * @param date - Дата в формате dayjs() или new Date
  * @returns Объект с началом и концом спринта в формате строки 'YYYY-MM-DD'
  */
-export const getWeekBorders = (
+export const getSprintWeekBorders = (
 	date: dayjs.Dayjs | Date,
 ): { startOfTheWeek: string; endOfTheWeek: string } => {
 	const dayjsDate = dayjs.isDayjs(date) ? date : dayjs(date);

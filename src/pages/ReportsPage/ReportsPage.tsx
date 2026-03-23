@@ -3,10 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { TaskCodes as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { $api } from "@/shared/config";
 import {
 	ClientsCodes,
-	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
@@ -128,22 +126,6 @@ const ReportsPage = () => {
 	}, [currProject, month, year]);
 
 	useEffect(() => {
-		const fetchTasks = async () => {
-			const response = await $api.get(Endpoints.crmItems, {
-				params: {
-					entityTypeId: EntityTypeIds.projects,
-				},
-			});
-
-			const res = await $api.post(Endpoints.crmFeilds, {
-				entityTypeId: 1092,
-			});
-			console.log({ response, res });
-		};
-		fetchTasks();
-	}, []);
-
-	useEffect(() => {
 		const fetchStatuses = async () => {
 			const response = await getStatuses();
 
@@ -179,7 +161,7 @@ const ReportsPage = () => {
 								[ClientsCodes.client]: client.ID,
 							},
 						);
-						console.log({ projects });
+
 						const projectsWithRealId = (projects ?? []).map((project) => {
 							const projectTitle = String(project.title ?? "")
 								.trim()
@@ -218,7 +200,7 @@ const ReportsPage = () => {
 				]);
 
 				const normalizedProjects = mapProjectsFromList(projectsListResponse);
-				console.log({ normalizedProjects });
+
 				const data = await fetchProjectsByClient(
 					clientsResponse,
 					normalizedProjects,

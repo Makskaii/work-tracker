@@ -5,7 +5,7 @@ import { useOutletContext } from "react-router";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext } from "@/shared/types/types";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import { ActivityTitle, ActivityType, ReportCodes } from "./constants/const";
@@ -21,7 +21,7 @@ const WeekCalendar = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReport, setActiveReport] = useState<ReportProps>();
 	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const { user } = useOutletContext<ReportsContext>();
 
 	const { startOfTheWeek, endOfTheWeek } = borders;
@@ -85,7 +85,7 @@ const WeekCalendar = () => {
 	const weekCalendar = useMemo(() => {
 		return buildWeekCalendarFromReports(data, borders, ReportCodes.timeSpent);
 	}, [data, borders]);
-	console.log({ user });
+
 	return (
 		<div
 			style={{

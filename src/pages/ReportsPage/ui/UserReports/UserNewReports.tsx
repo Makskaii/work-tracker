@@ -12,9 +12,12 @@ import {
 } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getSrartEndMonthDate } from "@/shared/utils/utils";
-import { getUsersTableData } from "../../helpers/devsStatsBySprint";
+import {
+	getUsersTableData,
+	getWorkWeekBorders,
+} from "../../helpers/devsStatsBySprint";
 import { getHeadersForDevs } from "../../helpers/getHeadersForDevs";
 import type { GroupedFields } from "../../types/types";
 import cls from "./UserReports.module.scss";
@@ -34,7 +37,8 @@ export const NewUserReports = () => {
 		return getHeadersForDevs(activities ?? []);
 	}, [activities]);
 
-	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const sprintBorders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
+	const weekBorders = useMemo(() => getWorkWeekBorders(dayjs(day)), [day]);
 
 	const currMonth = month ?? dayjs().month();
 	const currYear = year ?? dayjs().year();
@@ -65,12 +69,8 @@ export const NewUserReports = () => {
 			const fetchvalues = await getUsersTableData({
 				users: devs,
 				activities,
-				startOfTheWeek: dayjs(borders.startOfTheWeek)
-					.subtract(1, "day")
-					.format("YYYY-MM-DD"),
-				endOfTheWeek: dayjs(borders.endOfTheWeek)
-					.subtract(3, "day")
-					.format("YYYY-MM-DD"),
+				startOfTheWeek: weekBorders.startOfWeek,
+				endOfTheWeek: weekBorders.endOfWeek,
 			});
 
 			setEffectivity(fetchvalues);
@@ -80,8 +80,8 @@ export const NewUserReports = () => {
 			fetch();
 		}
 	}, [
-		borders.endOfTheWeek,
-		borders.startOfTheWeek,
+		sprintBorders.endOfTheWeek,
+		sprintBorders.startOfTheWeek,
 		users,
 		showWorkingTable,
 		activities,
@@ -199,11 +199,8 @@ export const NewUserReports = () => {
 							}}
 						>
 							<div>
-								{dayjs(borders.startOfTheWeek)
-									.subtract(1, "day")
-									.format("DD.MM")}
-								-
-								{dayjs(borders.endOfTheWeek).subtract(3, "day").format("DD.MM")}
+								{dayjs(weekBorders.startOfWeek).format("DD.MM")}-
+								{dayjs(weekBorders.endOfWeek).format("DD.MM")}
 							</div>
 						</div>
 						<button

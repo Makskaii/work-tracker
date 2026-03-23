@@ -19,7 +19,7 @@ import type {
 	TaskProps,
 } from "@/shared/types/types";
 import { convertNumberFormat, getWeekArray } from "@/shared/utils";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getItems } from "../../api/getTasks";
 import { DoneTasksList } from "./DoneTasksList";
 
@@ -29,7 +29,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 	const { users } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getWeekBorders(dayjs(day)), [day]);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const [view, setView] = useState<"task" | "stats">("stats");
 	const [loading, setLoading] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");

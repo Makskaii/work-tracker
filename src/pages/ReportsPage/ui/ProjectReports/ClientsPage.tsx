@@ -8,7 +8,7 @@ import {
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import type { Header } from "@/shared/types/table";
-import { getWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import type {
 	ClientListItems,
 	ClientProjectProps,
@@ -73,10 +73,6 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 	) {
 		return `сделано задач:${tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length}`;
 	}
-
-	console.log(
-		tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length,
-	);
 
 	return "нет задач";
 };
@@ -173,7 +169,7 @@ const ProjectsReports = () => {
 	const { projects } = useOutletContext<ReportsContext>();
 	const clients = (projects ?? []) as ClientWithProjects[];
 
-	const borders = useMemo(() => getWeekBorders(dayjs(today)), []);
+	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
 	const [projectsWithStatus, setProjectsWithStatus] = useState<
 		ProjectWithStatus[]
 	>([]);
@@ -185,7 +181,7 @@ const ProjectsReports = () => {
 				startOfTheWeek: borders.startOfTheWeek,
 				endOfTheWeek: borders.endOfTheWeek,
 			});
-			console.log("result", { result });
+
 			setProjectsWithStatus(result);
 		};
 
@@ -202,7 +198,6 @@ const ProjectsReports = () => {
 	};
 
 	const getProjectMeta = (projectId: string) => {
-		console.log(projectsWithStatus, projectId);
 		return projectsWithStatus.find((item) => item.id === Number(projectId));
 	};
 
@@ -235,7 +230,7 @@ const ProjectsReports = () => {
 									<div className={styles.projectsList}>
 										{clientProjects.map((project) => {
 											const meta = getProjectMeta(String(project.id));
-											console.log({ meta });
+
 											return (
 												<div key={project.id} className={styles.projectItem}>
 													<div className={styles.projectTitle}>
