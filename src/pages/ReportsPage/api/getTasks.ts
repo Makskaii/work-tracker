@@ -1,17 +1,17 @@
 import { $api } from "@/shared/config";
-import {
-	Endpoints,
-	EntityTypeIds,
-	TASK_SELECT_FIELDS,
-} from "@/shared/constants/const";
-import type { AnyObject, TaskProps } from "../../../shared/types/types";
+import { Endpoints } from "@/shared/constants/const";
+import type { AnyObject } from "../../../shared/types/types";
 
-export const getTasks = async (filters: AnyObject): Promise<TaskProps[]> => {
+export const getItems = async <T>(
+	typeId: number,
+	filters?: AnyObject,
+	select?: readonly string[],
+): Promise<T[]> => {
 	try {
 		const response = await $api.get(Endpoints.crmItems, {
 			params: {
-				entityTypeId: EntityTypeIds.tasks,
-				select: TASK_SELECT_FIELDS,
+				entityTypeId: typeId,
+				select,
 				filter: {
 					...filters,
 				},
@@ -27,11 +27,7 @@ export const getTasks = async (filters: AnyObject): Promise<TaskProps[]> => {
 
 		return items;
 	} catch (error) {
-		console.error(
-			"Failed to fetch tasks for user:",
-			filters.filter.assignedById,
-			error,
-		);
+		console.error("Failed to fetch tasks", error);
 		return [];
 	}
 };

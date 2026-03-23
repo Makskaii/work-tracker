@@ -4,14 +4,6 @@ import {
 } from "../../components/calendar/constants/const";
 import type { TaskProps } from "../types/types";
 
-// const statuses =
-// 	2: "ждет выполнения",
-// 	3: "выполняется",
-// 	4: "ожидает контроля",
-// 	5: "завершена",
-// 	6: "отложена",
-// };
-
 export const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 export const Endpoints = {
@@ -29,6 +21,7 @@ export const Endpoints = {
 export const EntityTypeIds = {
 	reports: 1060,
 	tasks: 1072,
+	projects: 1092,
 };
 
 export const TASK_SELECT_FIELDS = [
@@ -82,3 +75,8 @@ export const statsFields: {
 		filterFn: (task) => task.stageId === "DT1072_18:CLIENT",
 	},
 ];
+
+export enum ClientsCodes {
+	client = "ufCrm20_1773412189",
+	title = "ufCrm20_1771940818371",
+}

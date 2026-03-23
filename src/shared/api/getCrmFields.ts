@@ -1,12 +1,8 @@
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
+import type { ClientListItems } from "../types/types";
 
-export const getProjectsFromList = async (): Promise<
-	{
-		ID: string;
-		NAME: string;
-	}[]
-> => {
+export const getProjectsFromList = async (): Promise<ClientListItems[]> => {
 	try {
 		const response = await $api.post(Endpoints.lists, {
 			IBLOCK_TYPE_ID: "lists",

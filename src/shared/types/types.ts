@@ -1,9 +1,32 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <Для объектов с разными полями> */
 import type { Dispatch, SetStateAction } from "react";
 import { dtoFieldsCodesUserReports as UserCodes } from "../../components/calendar/constants/const";
+import type { ClientsCodes } from "../constants/const";
 export type AnyObject = {
 	[key: string]: any;
 };
+
+export type ClientListItems = {
+	ID: string;
+	NAME: string;
+};
+
+export interface ClientProjectProps {
+	id: number;
+	createdBy: number;
+	updatedBy: number;
+	title: string;
+	movedBy: number;
+	createdTime: string;
+	updatedTime: string;
+	movedTime: string;
+	categoryId: number;
+	assignedById: number;
+	lastActivityBy: number;
+	lastActivityTime: string;
+	[ClientsCodes.title]: string;
+	[ClientsCodes.client]: number;
+}
 
 export interface TaskProps {
 	id: string;
