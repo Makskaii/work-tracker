@@ -36,4 +36,8 @@ export const Navigation = [
 		title: "Продажи",
 		path: "sales",
 	},
+	{
+		title: "Клиенты(новый список)",
+		path: "clients",
+	},
 ];

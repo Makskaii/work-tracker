@@ -189,27 +189,6 @@ export const ClientForm = () => {
 						</Modal>
 					)}
 				</div>
-				<div
-					style={{
-						flex: 1,
-						minWidth: 0,
-					}}
-				>
-					<h3>Список клиентов:</h3>
-
-					{clients.length !== 0
-						? clients.map((client) => (
-								<div
-									style={{
-										textAlign: "left",
-									}}
-									key={client.id}
-								>
-									{client.name}
-								</div>
-							))
-						: "Нет данных"}
-				</div>
 			</div>
 		</CheckPermission>
 	);
