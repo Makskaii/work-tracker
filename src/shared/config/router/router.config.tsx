@@ -10,6 +10,7 @@ import {
 	ReportsPage,
 } from "@/pages";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
+import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 
@@ -70,6 +71,14 @@ export const router = createBrowserRouter(
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<SalesPage />
+								</Suspense>
+							),
+						},
+						{
+							path: "clients",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<ClientList />
 								</Suspense>
 							),
 						},

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import Modal from "@/components/modal/Modal";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
+import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { getProjectsFromList } from "@/shared/api/getCrmFields";
 
 export const ClientForm = () => {
@@ -189,27 +190,7 @@ export const ClientForm = () => {
 						</Modal>
 					)}
 				</div>
-				<div
-					style={{
-						flex: 1,
-						minWidth: 0,
-					}}
-				>
-					<h3>Список клиентов:</h3>
-
-					{clients.length !== 0
-						? clients.map((client) => (
-								<div
-									style={{
-										textAlign: "left",
-									}}
-									key={client.id}
-								>
-									{client.name}
-								</div>
-							))
-						: "Нет данных"}
-				</div>
+				<ClientList />
 			</div>
 		</CheckPermission>
 	);
