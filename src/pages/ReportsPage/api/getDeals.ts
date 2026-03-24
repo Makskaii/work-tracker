@@ -34,6 +34,7 @@ export const getDeals = async (
 				SalesCodes.ppoSuccess,
 				SalesCodes.kpday,
 				SalesCodes.ppoDay,
+				"title",
 			],
 		});
 

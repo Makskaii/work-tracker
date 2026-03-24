@@ -9,6 +9,8 @@ import {
 	ReportsCalendar,
 	ReportsPage,
 } from "@/pages";
+import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage";
+import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
@@ -89,6 +91,24 @@ export const router = createBrowserRouter(
 					element: (
 						<Suspense fallback={<Spinner />}>
 							<ClientForm />
+						</Suspense>
+					),
+				},
+			],
+		},
+		{
+			path: "/client-profile",
+			element: (
+				<Suspense fallback={<Spinner />}>
+					<ClientLoginPage />
+				</Suspense>
+			),
+			children: [
+				{
+					path: ":clientId",
+					element: (
+						<Suspense fallback={<Spinner />}>
+							<ClientProfile />
 						</Suspense>
 					),
 				},

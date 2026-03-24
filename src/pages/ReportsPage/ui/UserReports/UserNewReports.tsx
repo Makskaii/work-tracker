@@ -12,7 +12,6 @@ import {
 } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { getSrartEndMonthDate } from "@/shared/utils/utils";
 import {
 	getUsersTableData,
@@ -37,8 +36,10 @@ export const NewUserReports = () => {
 		return getHeadersForDevs(activities ?? []);
 	}, [activities]);
 
-	const sprintBorders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
-	const weekBorders = useMemo(() => getWorkWeekBorders(dayjs(day)), [day]);
+	const { endOfWeek, startOfWeek } = useMemo(
+		() => getWorkWeekBorders(dayjs(day)),
+		[day],
+	);
 
 	const currMonth = month ?? dayjs().month();
 	const currYear = year ?? dayjs().year();
@@ -69,8 +70,8 @@ export const NewUserReports = () => {
 			const fetchvalues = await getUsersTableData({
 				users: devs,
 				activities,
-				startOfTheWeek: weekBorders.startOfWeek,
-				endOfTheWeek: weekBorders.endOfWeek,
+				startOfTheWeek: startOfWeek,
+				endOfTheWeek: endOfWeek,
 			});
 
 			setEffectivity(fetchvalues);
@@ -79,13 +80,7 @@ export const NewUserReports = () => {
 		if (showWorkingTable) {
 			fetch();
 		}
-	}, [
-		sprintBorders.endOfTheWeek,
-		sprintBorders.startOfTheWeek,
-		users,
-		showWorkingTable,
-		activities,
-	]);
+	}, [users, showWorkingTable, activities, endOfWeek, startOfWeek]);
 
 	return (
 		<div className={cls.container}>
@@ -199,8 +194,8 @@ export const NewUserReports = () => {
 							}}
 						>
 							<div>
-								{dayjs(weekBorders.startOfWeek).format("DD.MM")}-
-								{dayjs(weekBorders.endOfWeek).format("DD.MM")}
+								{dayjs(startOfWeek).format("DD.MM")}-
+								{dayjs(endOfWeek).format("DD.MM")}
 							</div>
 						</div>
 						<button
