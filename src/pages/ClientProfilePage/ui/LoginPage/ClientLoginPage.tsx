@@ -1,7 +1,7 @@
-import brandLogo from "public/evolution/logo.jpg";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { $backendApi } from "@/shared/config/axios/axios.config";
+import brandLogo from "/evolution/logo.jpg";
 import styles from "./ClientLogin.module.scss";
 
 type ClientLoginProps = {

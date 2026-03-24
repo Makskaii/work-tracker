@@ -103,16 +103,14 @@ export const router = createBrowserRouter(
 					<ClientLoginPage />
 				</Suspense>
 			),
-			children: [
-				{
-					path: ":clientId",
-					element: (
-						<Suspense fallback={<Spinner />}>
-							<ClientProfile />
-						</Suspense>
-					),
-				},
-			],
+		},
+		{
+			path: "/client-profile/:clientId",
+			element: (
+				<Suspense fallback={<Spinner />}>
+					<ClientProfile />
+				</Suspense>
+			),
 		},
 	],
 	{
