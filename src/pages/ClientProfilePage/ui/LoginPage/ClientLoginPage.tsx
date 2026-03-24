@@ -96,7 +96,11 @@ export const ClientLoginPage = () => {
 							</div>
 						</div>
 
-						<form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
+						<form
+							onSubmit={handleSubmit(onSubmit)}
+							className={styles.form}
+							autoComplete="off"
+						>
 							<div className={styles.field}>
 								<label htmlFor="email" className={styles.label}>
 									Логин
@@ -105,6 +109,7 @@ export const ClientLoginPage = () => {
 									id="email"
 									type="text"
 									placeholder="Введите логин"
+									autoComplete="off"
 									className={`${styles.input} ${
 										errors.email ? styles.inputError : ""
 									}`}
@@ -125,6 +130,7 @@ export const ClientLoginPage = () => {
 								</label>
 								<input
 									id="password"
+									autoComplete="off"
 									type="password"
 									placeholder="Введите пароль"
 									className={`${styles.input} ${
