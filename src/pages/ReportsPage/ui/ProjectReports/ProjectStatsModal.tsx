@@ -6,6 +6,7 @@ import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	Endpoints,
 	EntityTypeIds,
@@ -173,28 +174,16 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 	) => {
 		try {
 			setLoading(true);
-			const response = await fetch(
-				"https://crm.evolution-soft.ru/devapps/work-tracker/api/doc-records/report",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						projectId,
-						startOfThePeriod,
-						endOfThePeriod,
-					}),
-				},
-			);
+			const response = await $backendApi.post("doc-records/report", {
+				projectId,
+				startOfThePeriod,
+				endOfThePeriod,
+			});
 
-			const data = (await response.json()) as {
-				downloadUrl: string;
-				reportId: string;
-			};
+			const downloadUrl = response.data.downloadUrl;
 
 			setLoadUrl(
-				`https://crm.evolution-soft.ru/devapps/work-tracker/api${data.downloadUrl}`,
+				`https://crm.evolution-soft.ru/devapps/work-tracker/api${downloadUrl}`,
 			);
 		} catch (error) {
 			console.log(error);

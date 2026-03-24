@@ -1,9 +1,11 @@
 import brandLogo from "public/evolution/logo.jpg";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import styles from "./ClientLogin.module.scss";
 
 type ClientLoginProps = {
-	name: string;
+	email: string;
 	password: string;
 };
 
@@ -16,16 +18,21 @@ export const ClientLoginPage = () => {
 		mode: "onChange",
 		reValidateMode: "onChange",
 		defaultValues: {
-			name: "",
+			email: "",
 			password: "",
 		},
 	});
 
+	const navigate = useNavigate();
+
 	const onSubmit = async (data: ClientLoginProps) => {
 		console.log("login data", data);
 
-		// сюда потом можно подключить api логина
-		// await loginClient(data)
+		const res = await $backendApi.post("auth/client", data);
+
+		const clientId = res.data.client.crmClientId;
+
+		navigate(`/client/profile/${clientId}`);
 	};
 
 	return (
@@ -91,27 +98,23 @@ export const ClientLoginPage = () => {
 
 						<form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
 							<div className={styles.field}>
-								<label htmlFor="name" className={styles.label}>
+								<label htmlFor="email" className={styles.label}>
 									Логин
 								</label>
 								<input
-									id="name"
+									id="email"
 									type="text"
 									placeholder="Введите логин"
 									className={`${styles.input} ${
-										errors.name ? styles.inputError : ""
+										errors.email ? styles.inputError : ""
 									}`}
-									{...register("name", {
-										required: "Введите логин",
-										minLength: {
-											value: 3,
-											message: "Логин должен содержать минимум 3 символа",
-										},
+									{...register("email", {
+										required: "Введите email",
 									})}
 								/>
-								{errors.name && (
+								{errors.email && (
 									<span className={styles.errorText}>
-										{errors.name.message}
+										{errors.email.message}
 									</span>
 								)}
 							</div>
