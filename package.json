@@ -9,7 +9,7 @@
 		"lint": "biome lint --write",
 		"preview": "vite preview",
 		"test": "vitest",
-		"deploy": "git pull && docker compose down && docker compose up -d --build prod && docker system prune -f",
+		"deploy": "git pull && docker compose up -d --build prod && docker system prune -f",
 		"prepare": "husky"
 	},
 	"dependencies": {
