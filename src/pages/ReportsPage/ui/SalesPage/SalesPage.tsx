@@ -18,7 +18,7 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 		plan: 300,
 	},
 	{
-		title: "Количество взятых заявок с кабинетов",
+		title: "Количество созданных сделок",
 		id: "2",
 		plan: 15,
 	},
@@ -101,52 +101,57 @@ export const SalesPage = () => {
 			try {
 				const totalCalls = await getCalls(start, end);
 
-				const [items, ppoItems, kpItems, activeDealsCount] = await Promise.all([
-					await getDeals({
-						">=createdTime": start,
-						"<=createdTime": end,
-						categoryId: 0,
-					}),
-					getDeals({
-						">=createdTime": dayjs(start)
-							.subtract(30, "day")
-							.format("YYYY-MM-DD"),
-						"<=createdTime": end,
-						categoryId: 0,
-						[`>=${SalesCodes.ppoDay}`]: start,
-						[`<=${SalesCodes.ppoDay}`]: end,
-						[SalesCodes.ppoSuccess]: 390,
-					}),
-					getDeals({
-						">=createdTime": dayjs(start)
-							.subtract(30, "day")
-							.format("YYYY-MM-DD"),
-						"<=createdTime": end,
-						categoryId: 0,
-						[`>=${SalesCodes.kpday}`]: start,
-						[`<=${SalesCodes.kpday}`]: end,
-						[SalesCodes.kpSuccess]: 388,
-					}),
-					getDealsCountByStages({
-						start: dayjs(start).subtract(17, "day").format("YYYY-MM-DD"),
-						end,
-						categoryId: 0,
-					}),
-				]);
+				const [items, ppoItems, kpItems, activeDealsCount, wonItems] =
+					await Promise.all([
+						await getDeals({
+							">=createdTime": start,
+							"<=createdTime": end,
+							categoryId: 0,
+						}),
+						getDeals({
+							">=createdTime": dayjs(start)
+								.subtract(30, "day")
+								.format("YYYY-MM-DD"),
+							"<=createdTime": end,
+							categoryId: 0,
+							[`>=${SalesCodes.ppoDay}`]: start,
+							[`<=${SalesCodes.ppoDay}`]: end,
+							[SalesCodes.ppoSuccess]: 390,
+						}),
+						getDeals({
+							">=createdTime": dayjs(start)
+								.subtract(30, "day")
+								.format("YYYY-MM-DD"),
+							"<=createdTime": end,
+							categoryId: 0,
+							[`>=${SalesCodes.kpday}`]: start,
+							[`<=${SalesCodes.kpday}`]: end,
+							[SalesCodes.kpSuccess]: 388,
+						}),
+						getDealsCountByStages({
+							start: dayjs(start).subtract(17, "day").format("YYYY-MM-DD"),
+							end,
+							categoryId: 0,
+						}),
+						await getDeals({
+							">=movedTime": start,
+							"<=movedTime": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
+							categoryId: 0,
+							stageId: "WON",
+						}),
+					]);
 
 				const stats: SalesFields = {
 					id: "sales-stats",
 					callCount: totalCalls,
 					bidCount: items.filter(
 						(item) =>
-							item.stageId !== "WON" &&
-							item.stageId !== "UC_9X7H19" &&
-							item.stageId !== "UC_B20EGT",
+							item.stageId !== "UC_9X7H19" && item.stageId !== "UC_B20EGT",
 					).length,
 					ppoCount: ppoItems.length,
 					kpCount: kpItems.length,
 					activeDeals: activeDealsCount,
-					salesCount: items.filter((item) => item.stageId === "WON").length,
+					salesCount: wonItems.length,
 					totalSales: items.reduce((acc: number, item) => {
 						if (item.stageId === "WON") {
 							return acc + Number(item.opportunity || 0);

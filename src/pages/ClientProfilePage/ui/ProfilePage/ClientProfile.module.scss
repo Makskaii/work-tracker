@@ -1,0 +1,478 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
+.headerCard {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+
+    @media (max-width: 900px) {
+        flex-direction: column;
+    }
+}
+
+.headerInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.badge {
+    width: fit-content;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.pageTitle {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.pageSubtitle {
+    margin: 0;
+    max-width: 700px;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.headerStats {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+
+    @media (max-width: 900px) {
+        width: 100%;
+    }
+}
+
+.statCard {
+    min-width: 160px;
+    padding: 1rem 1.2rem;
+    border-radius: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.statValue {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.statLabel {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.content {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 0.95fr);
+    gap: 1.5rem;
+    align-items: start;
+
+    @media (max-width: 1100px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mainColumn,
+.sideColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.sectionCard {
+    padding: 1.25rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+
+    @media (max-width: 700px) {
+        flex-direction: column;
+    }
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sectionSubtitle {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.projectsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.projectCard {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.1rem;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #e2e8f0;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+        border-color: #bfdbfe;
+    }
+}
+
+.projectTop {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    @media (max-width: 900px) {
+        flex-direction: column;
+    }
+}
+
+.projectMainInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.projectTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.projectTitle {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.projectMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    flex-direction: column;
+    text-align: left;
+}
+
+.projectDates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 220px;
+}
+
+.dateItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.dateLabel {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.dateValue {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.projectBody {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.projectInfoGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+
+    @media (max-width: 1100px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.infoTile {
+    padding: 0.9rem;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.infoTileLabel {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+}
+
+.infoTileValue {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+.projectActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.primaryButton,
+.secondaryButton,
+.ghostButton {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    border-radius: 14px;
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+.primaryButton {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+}
+
+.secondaryButton {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+
+    &:hover {
+        background: #dbeafe;
+    }
+}
+
+.ghostButton {
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+
+    &:hover {
+        background: #f8fafc;
+    }
+}
+
+.activityBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.activityActive {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.activityWarning {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.activityIdle {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.quickActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.activityList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.activityItem {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+}
+
+.activityDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #3b82f6;
+    margin-top: 0.45rem;
+    flex-shrink: 0;
+}
+
+.activityContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.activityProjectTitle {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.activityProjectText {
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.meetingsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin-top: 1rem;
+}
+
+.meetingCard {
+    padding: 1rem;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.meetingTitle {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.meetingProject {
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.meetingMeta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.meetingLink {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+    width: fit-content;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.stateBox,
+.stateBoxError {
+    padding: 1.25rem;
+    border-radius: 18px;
+    text-align: center;
+}
+
+.stateBox {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.stateBoxError {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.stateTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.stateText {
+    margin-top: 0.35rem;
+    color: #64748b;
+}
+
+.mutedText {
+    color: #64748b;
+    font-size: 0.95rem;
+}

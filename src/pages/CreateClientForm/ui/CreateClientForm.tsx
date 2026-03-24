@@ -4,11 +4,19 @@ import Modal from "@/components/modal/Modal";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { getClientsFromList } from "@/shared/api/getCrmFields";
 
+type ClientFormProps = {
+	name: string;
+	crmId: string;
+	password: string;
+	email: string;
+};
+
 export const ClientForm = () => {
-	const { handleSubmit, register } = useForm<{
-		name: string;
-		crmId: string;
-	}>({
+	const {
+		handleSubmit,
+		register,
+		formState: { errors },
+	} = useForm<ClientFormProps>({
 		mode: "onChange",
 		reValidateMode: "onChange",
 	});
@@ -57,7 +65,7 @@ export const ClientForm = () => {
 			setClientForm(false);
 		}
 	});
-
+	console.log({ errors });
 	return (
 		<CheckPermission permission="create-client" subject="client">
 			<div
@@ -87,15 +95,6 @@ export const ClientForm = () => {
 								}}
 							>
 								<form id="client-form" onSubmit={onSubmit}>
-									<h3
-										style={{
-											textAlign: "left",
-											margin: 0,
-										}}
-									>
-										Имя клиента
-									</h3>
-
 									<div
 										style={{
 											display: "flex",
@@ -105,47 +104,133 @@ export const ClientForm = () => {
 										}}
 									>
 										<div>
-											<input
-												{...register("name", {
-													required: "Обязательное поле",
-												})}
-												style={{
-													border: "none",
-													borderRadius: "0.5rem",
-													minWidth: "20rem",
-													padding: "0.5rem",
-													height: "2rem",
-												}}
-												type="text"
-												placeholder="Клиент"
-												name="name"
-											/>
+											<div>
+												<h5
+													style={{
+														textAlign: "left",
+														margin: 0,
+													}}
+												>
+													Имя клиента
+												</h5>
+												<input
+													{...register("name", {
+														required: "Обязательное поле",
+													})}
+													style={{
+														border: "none",
+														borderRadius: "0.5rem",
+														minWidth: "20rem",
+														padding: "0.5rem",
+														height: "2rem",
+													}}
+													type="text"
+													placeholder="Клиент"
+													autoComplete="off"
+												/>
+											</div>
+											<div>
+												<div
+													style={{
+														display: "flex",
+														justifyContent: "space-between",
+													}}
+												>
+													<p
+														style={{
+															textAlign: "left",
+															margin: 0,
+														}}
+													>
+														Эл. почта
+													</p>
+													{errors.email && errors.email.type === "validate" && (
+														<span
+															style={{
+																color: "red",
+															}}
+														>
+															{errors.email?.message}
+														</span>
+													)}
+												</div>
 
-											<h3
-												style={{
-													textAlign: "left",
-													margin: 0,
-												}}
-											>
-												Выбрите клиента для привязки
-											</h3>
-											<select
-												{...register("crmId", {
-													required: "Обязательное поле",
-												})}
-												style={{
-													width: "100%",
-													padding: "1rem",
-													borderRadius: "10px",
-												}}
-												name="crmId"
-											>
-												{projects.map((item) => (
-													<option value={item.id ?? item.id} key={item.id}>
-														{item.name}
-													</option>
-												))}
-											</select>
+												<input
+													{...register("email", {
+														required: "Обязательное поле",
+														validate: (value) => {
+															const regExp = /^\S+@\S+\.\S+$/;
+
+															if (!regExp.test(value)) {
+																return "Неверный формат email";
+															}
+														},
+													})}
+													style={{
+														border: "none",
+														borderRadius: "0.5rem",
+														minWidth: "20rem",
+														padding: "0.5rem",
+														height: "2rem",
+													}}
+													type="text"
+													placeholder="Почта клиента"
+													autoComplete="off"
+												/>
+											</div>
+
+											<div>
+												<h5
+													style={{
+														textAlign: "left",
+														margin: 0,
+													}}
+												>
+													Пароль
+												</h5>
+												<input
+													{...register("password", {
+														required: "Обязательное поле",
+													})}
+													style={{
+														border: "none",
+														borderRadius: "0.5rem",
+														minWidth: "20rem",
+														padding: "0.5rem",
+														height: "2rem",
+													}}
+													type="text"
+													placeholder="Введите пароль"
+													autoComplete="off"
+												/>
+											</div>
+
+											<div>
+												<h5
+													style={{
+														textAlign: "left",
+														margin: 0,
+													}}
+												>
+													Выбрите клиента для привязки
+												</h5>
+												<select
+													{...register("crmId", {
+														required: "Обязательное поле",
+													})}
+													style={{
+														width: "100%",
+														padding: "1rem",
+														borderRadius: "10px",
+													}}
+												>
+													{projects.map((item) => (
+														<option value={item.id ?? item.id} key={item.id}>
+															{item.name}
+														</option>
+													))}
+												</select>
+											</div>
 										</div>
 
 										<button
