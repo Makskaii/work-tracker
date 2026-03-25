@@ -1,9 +1,9 @@
 import dayjs, { Dayjs } from "dayjs";
 import { ReportCodes } from "@/components/calendar/constants/const";
+import type { ActivityListItem } from "@/components/calendar/types/types";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import type { User } from "@/shared/types/types";
-import type { Activity } from "../ReportsPage";
 import type { GroupedFields } from "../types/types";
 
 const getEffectivityPercent = (availableTime: number, timeSpent: number) => {
@@ -34,7 +34,7 @@ const getCommentByEffectivity = (effectivity: number) => {
 };
 
 const createEmptyActivitiesMap = (
-	activities: Activity[],
+	activities: ActivityListItem[],
 ): Record<string, number> => {
 	return activities.reduce<Record<string, number>>((acc, activity) => {
 		acc[String(activity.ID)] = 0;
@@ -44,7 +44,7 @@ const createEmptyActivitiesMap = (
 
 const groupSpentTimeByActivity = (
 	reports: Record<string, unknown>[],
-	activities: Activity[],
+	activities: ActivityListItem[],
 ): Record<string, number> => {
 	const activityMap = createEmptyActivitiesMap(activities);
 
@@ -110,7 +110,7 @@ export const getUsersTableData = async ({
 	endOfTheWeek,
 }: {
 	users: User[];
-	activities: Activity[];
+	activities: ActivityListItem[];
 	startOfTheWeek: string;
 	endOfTheWeek: string;
 }): Promise<GroupedFields[]> => {

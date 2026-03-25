@@ -1,13 +1,14 @@
+import type { ActivityListItem } from "@/components/calendar/types/types";
+import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
 import type { Header } from "@/shared/types/table";
-import type { Activity } from "../ReportsPage";
 import type { GroupedFields } from "../types/types";
 
 export const getHeadersForDevs = (
-	activities: Activity[],
+	activities: ActivityListItem[],
 ): Header<GroupedFields>[] => {
 	const activityHeaders: Header<GroupedFields>[] = activities.map(
 		(activity) => ({
-			title: activity.VALUE,
+			title: activity.NAME,
 			key: String(activity.ID),
 		}),
 	);
@@ -15,13 +16,12 @@ export const getHeadersForDevs = (
 	activityHeaders.forEach((item) => {
 		if (item.title === "Разработка") {
 			item.render = (value, additionalData) => (
-				<span
-					style={{
+				<TableCell
+					value={value}
+					styles={{
 						color: Number(value) < additionalData?.day * 6 ? "red" : "",
 					}}
-				>
-					{value}
-				</span>
+				/>
 			);
 		}
 	});
@@ -45,13 +45,12 @@ export const getHeadersForDevs = (
 			title: "Факт часов",
 			key: "timeSpent",
 			render: (value, additionalData) => (
-				<span
-					style={{
+				<TableCell
+					value={value}
+					styles={{
 						color: Number(value) < additionalData?.day * 8 ? "red" : "",
 					}}
-				>
-					{value}
-				</span>
+				/>
 			),
 		},
 

@@ -164,8 +164,8 @@ export const TaskView = ({
 					label="Проект"
 					value={
 						projects.find(
-							(project) => project.ID === String(task[TaskCodes.project]),
-						)?.NAME ?? ""
+							(project) => project.id === String(task[TaskCodes.project]),
+						)?.name ?? ""
 					}
 				/>
 			</div>

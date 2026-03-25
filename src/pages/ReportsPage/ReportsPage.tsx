@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { TaskCodes as UserCodes } from "@/components/calendar/constants/const";
+import type { ActivityListItem } from "@/components/calendar/types/types";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import {
 	ClientsCodes,
@@ -9,16 +10,16 @@ import {
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import type {
-	AnyObject,
 	ClientListItems,
 	ClientProjectProps,
+	ProjectListDto,
 	ReportsContext,
 	Status,
 	TaskProps,
 	User,
 } from "@/shared/types/types";
 import {
-	getActivities,
+	getActivitiesList,
 	getClientsFromList,
 	getProjectsFromList,
 } from "../../shared/api/getCrmFields";
@@ -36,7 +37,7 @@ export type Activity = {
 	VALUE: string;
 };
 
-type ProjectFromList = {
+export type ProjectFromList = {
 	id: string;
 	name: string;
 	projectId: string;
@@ -52,7 +53,7 @@ const getSinglePropertyValue = (
 	return value ? String(value) : "";
 };
 
-const mapProjectsFromList = (items: AnyObject[]): ProjectFromList[] => {
+const mapProjectsFromList = (items: ProjectListDto[]): ProjectFromList[] => {
 	return items
 		.map((element) => ({
 			id: String(element.ID),
@@ -70,12 +71,13 @@ const ReportsPage = () => {
 
 	const [users, setUsers] = useState<User[]>([]);
 	const [currProject, setCurrProject] = useState("");
+	const [projects, setProjects] = useState<ProjectFromList[]>([]);
 	const [title, setTitle] = useState("");
 	const [user, setUser] = useState("");
 	const [month, setMonth] = useState<number>(currentMonth);
 	const [year, setYear] = useState<number>(currentYear);
 	const [statuses, setStatuses] = useState<Status[]>([]);
-	const [activities, setActivities] = useState<Activity[]>([]);
+	const [activities, setActivities] = useState<ActivityListItem[]>([]);
 
 	const userIds = useMemo(() => {
 		if (!users) return [];
@@ -137,9 +139,19 @@ const ReportsPage = () => {
 
 	useEffect(() => {
 		const fetchActivities = async () => {
-			const fields = await getActivities();
+			const fields = await getActivitiesList();
 
-			setActivities(fields["ufCrm11_1770804288638"]?.items);
+			console.log({ fields });
+		};
+
+		fetchActivities();
+	}, []);
+
+	useEffect(() => {
+		const fetchActivities = async () => {
+			const fields = await getActivitiesList();
+
+			setActivities(fields);
 		};
 
 		fetchActivities();
@@ -201,6 +213,8 @@ const ReportsPage = () => {
 
 				const normalizedProjects = mapProjectsFromList(projectsListResponse);
 
+				setProjects(normalizedProjects);
+
 				const data = await fetchProjectsByClient(
 					clientsResponse,
 					normalizedProjects,
@@ -257,8 +271,9 @@ const ReportsPage = () => {
 				<Outlet
 					context={
 						{
+							projects,
 							tasks,
-							projects: clientsList,
+							clientsList,
 							setCurrProject,
 							setTitle,
 							title,

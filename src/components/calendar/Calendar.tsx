@@ -16,7 +16,7 @@ export const Calendar = ({
 }: {
 	view: "month" | "week";
 	userId: string;
-	setGroupByActivity: (value: Record<string, ReportProps[]>) => void;
+	setGroupByActivity: (value: GroupedReportFields[]) => void;
 }) => {
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -86,22 +86,17 @@ export const Calendar = ({
 			);
 
 			setGroupByActivity(
-				data.reduce(
-					(acc, report) => {
-						const activityType = report[ReportCodes.activityType];
-
-						if (activityType) {
-							if (!acc[activityType]) {
-								acc[activityType] = [report];
-							} else {
-								acc[activityType] = [...acc[activityType], report];
-							}
-						}
-
-						return acc;
-					},
-					{} as Record<string, ReportProps[]>,
-				),
+				data.map((report) => ({
+					id: report.id,
+					title: report[ReportCodes.title],
+					timeSpent: report[ReportCodes.timeSpent],
+					taskId: report[ReportCodes.taskId],
+					parentId: report[ReportCodes.parentId],
+					day: report.begindate,
+					project: report[ReportCodes.project],
+					activity: report[ReportCodes.activityType],
+					assignedById: report.assignedById,
+				})),
 			);
 		}
 	}, [data, setGroupByActivity]);
@@ -147,19 +142,6 @@ export const Calendar = ({
 	const getCurrentMonthName = () => {
 		return months[selectedMonth];
 	};
-
-	// const getWeekDays = () => {
-	// 	const weekDays = getWeek();
-
-	// 	const weekArr = monthDays
-	// 		.filter((day) => !day.isEmpty)
-	// 		.slice(
-	// 			new Date(weekDays.startOfTheWeek).getDate() - 1,
-	// 			new Date(weekDays.endOfTheWeek).getDate(),
-	// 		);
-
-	// 	return weekArr;
-	// };
 
 	return (
 		<>
