@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import Modal from "@/components/modal/Modal";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { getClientsFromList } from "@/shared/api/getCrmFields";
+import { $backendApi } from "@/shared/config/axios/axios.config";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 
 type ClientFormProps = {
 	name: string;
@@ -49,23 +51,25 @@ export const ClientForm = () => {
 
 	const onSubmit = handleSubmit(async (data) => {
 		try {
-			await fetch(
-				"https://crm.evolution-soft.ru/devapps/work-tracker/api/clients",
-				{
-					method: "POST",
-					body: JSON.stringify(data),
-					headers: {
-						"Content-Type": "application/json",
-					},
-				},
-			);
+			await $backendApi.post("clients", data);
+
+			notify({
+				message: "Клиент успешно добавлен",
+				type: "success",
+			});
 		} catch (error) {
-			console.log(error);
+			const err = error as Error;
+			const message = err.message;
+
+			notify({
+				message: message ?? "Ошибка при создании клиента",
+				type: "error",
+			});
 		} finally {
 			setClientForm(false);
 		}
 	});
-	console.log({ errors });
+
 	return (
 		<CheckPermission permission="create-client" subject="client">
 			<div
@@ -180,17 +184,39 @@ export const ClientForm = () => {
 											</div>
 
 											<div>
-												<h5
+												<div
 													style={{
-														textAlign: "left",
-														margin: 0,
+														display: "flex",
+														justifyContent: "space-between",
 													}}
 												>
-													Пароль
-												</h5>
+													<p
+														style={{
+															textAlign: "left",
+															margin: 0,
+														}}
+													>
+														Пароль
+													</p>
+													{errors.password &&
+														errors.password.type === "minLength" && (
+															<span
+																style={{
+																	color: "red",
+																}}
+															>
+																{errors.password?.message}
+															</span>
+														)}
+												</div>
+
 												<input
 													{...register("password", {
 														required: "Обязательное поле",
+														minLength: {
+															message: "Минимум 8 символов",
+															value: 8,
+														},
 													})}
 													style={{
 														border: "none",
