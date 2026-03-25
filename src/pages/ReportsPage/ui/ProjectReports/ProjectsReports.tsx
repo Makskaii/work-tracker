@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
@@ -174,7 +175,12 @@ export const headersForProjects: Header<ProjectTableRow>[] = [
 		title: "Риск",
 		key: "risk",
 		render: (value) => (
-			<span style={{ color: getRiskColor(value) }}>{value}</span>
+			<TableCell
+				value={value}
+				styles={{
+					color: getRiskColor(value),
+				}}
+			/>
 		),
 	},
 	{
@@ -223,7 +229,7 @@ const ProjectsReports = () => {
 		NAME: string;
 	}>();
 
-	const { projects } = useOutletContext<ReportsContext>();
+	const { clientsList } = useOutletContext<ReportsContext>();
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
 	const [projWithStatus, setProjWithStatus] = useState<ProjectWithStatus[]>([]);
 	const [tableData, setTableData] = useState<ProjectTableRow[]>([]);
@@ -231,7 +237,7 @@ const ProjectsReports = () => {
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await getProjectsWithStatuses({
-				projects,
+				projects: clientsList,
 				startOfTheWeek: borders.startOfTheWeek,
 				endOfTheWeek: borders.endOfTheWeek,
 			});
@@ -239,24 +245,24 @@ const ProjectsReports = () => {
 			setProjWithStatus(result);
 		};
 
-		if (projects) {
+		if (clientsList) {
 			fetchData();
 		}
-	}, [borders.endOfTheWeek, borders.startOfTheWeek, projects]);
+	}, [borders.endOfTheWeek, borders.startOfTheWeek, clientsList]);
 
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await getProjectsTableData({
-				projects: projects,
+				projects: clientsList,
 			});
 
 			setTableData(result);
 		};
 
-		if (projects) {
+		if (clientsList) {
 			fetchData();
 		}
-	}, [projects]);
+	}, [clientsList]);
 
 	return (
 		<>
@@ -291,7 +297,7 @@ const ProjectsReports = () => {
 				</div>
 				<div className={styles.statisticsContainer}>
 					<div className={styles.noTasksMessage}>
-						Количество проектов: {projects.length}
+						Количество проектов: {clientsList.length}
 						<button onClick={() => setShowStatuses(true)}>
 							Статус проектов
 						</button>

@@ -24,7 +24,7 @@ import cls from "./UserReports.module.scss";
 const today = dayjs();
 
 export const NewUserReports = () => {
-	const { users, projects, month, year, activities } =
+	const { users, clientsList, month, year, activities } =
 		useOutletContext<ReportsContext>();
 	const [open, setOpen] = useState(false);
 	const [activeUser, setActiveUser] = useState<User>();
@@ -129,7 +129,7 @@ export const NewUserReports = () => {
 									task={filteredTasks.find(
 										(task) => task.assignedById === Number(user.id),
 									)}
-									projects={projects}
+									projects={clientsList}
 									onClick={() => setActiveUser(user)}
 								/>
 							))}

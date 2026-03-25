@@ -1,6 +1,7 @@
+import type { ActivityListItem } from "@/components/calendar/types/types";
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
-import type { ClientListItems } from "../types/types";
+import type { ClientListItems, ProjectListDto } from "../types/types";
 
 export const getClientsFromList = async (): Promise<ClientListItems[]> => {
 	try {
@@ -24,7 +25,28 @@ export const getClientsFromList = async (): Promise<ClientListItems[]> => {
 	}
 };
 
-export const getProjectsFromList = async (): Promise<ClientListItems[]> => {
+export const getActivitiesList = async (): Promise<ActivityListItem[]> => {
+	try {
+		const response = await $api.post(Endpoints.lists, {
+			IBLOCK_TYPE_ID: "lists",
+			IBLOCK_ID: "25",
+		});
+
+		const items = response.data.result;
+
+		if (!Array.isArray(items)) {
+			console.warn("Expected items to be an array, but got:", items);
+			return [];
+		}
+
+		return items;
+	} catch (error) {
+		console.error(`Failed to fetch fields`, error);
+		return [];
+	}
+};
+
+export const getProjectsFromList = async (): Promise<ProjectListDto[]> => {
 	try {
 		const response = await $api.post(Endpoints.lists, {
 			IBLOCK_TYPE_ID: "lists",

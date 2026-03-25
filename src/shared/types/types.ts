@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <Для объектов с разными полями> */
 import type { Dispatch, SetStateAction } from "react";
+import type { ActivityListItem } from "@/components/calendar/types/types";
+import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import { TaskCodes as UserCodes } from "../../components/calendar/constants/const";
 import type { ClientsCodes } from "../constants/const";
 export type AnyObject = {
@@ -9,6 +11,14 @@ export type AnyObject = {
 export type ClientListItems = {
 	ID: string;
 	NAME: string;
+};
+
+export type ProjectListDto = {
+	ID: string;
+	NAME: string;
+	PROPERTY_87: {
+		[key: string]: string;
+	};
 };
 
 export interface ClientProjectProps {
@@ -57,7 +67,9 @@ export interface User {
 export type UserReports = {
 	setUser: (id: string) => void;
 	tasks: TaskProps[];
-	projects: { ID: string; NAME: string }[];
+	clientsList: (ClientListItems & {
+		projects: ClientProjectProps[];
+	})[];
 	setCurrProject: (id: string) => void;
 	setTitle: (id: string) => void;
 	title: string;
@@ -70,10 +82,8 @@ export type UserReports = {
 	month?: number;
 	year?: number;
 	statuses: Status[];
-	activities: {
-		ID: string;
-		VALUE: string;
-	}[];
+	activities: ActivityListItem[];
+	projects: ProjectFromList[];
 };
 
 export interface Status {

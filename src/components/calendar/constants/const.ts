@@ -1,9 +1,10 @@
+import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { GroupedReportFields, Header } from "@/shared/types/table";
-import type { ClientListItems } from "@/shared/types/types";
 import {
 	convertToDate,
 	convertToMinutesOrHours,
 } from "../../../shared/utils/utils";
+import type { ActivityListItem } from "../types/types";
 
 export const months = [
 	"Январь",
@@ -35,10 +36,11 @@ export const headers: Header<GroupedReportFields>[] = [
 		title: "Проект",
 		key: "project",
 		convertFn: (value, additionalData) => {
+			console.log({ additionalData, value });
 			return (
 				additionalData?.projects?.find(
-					(project: ClientListItems) => Number(project.ID) === value,
-				)?.NAME || ""
+					(project: ProjectFromList) => Number(project.id) === value,
+				)?.name || ""
 			);
 		},
 	},
@@ -46,10 +48,10 @@ export const headers: Header<GroupedReportFields>[] = [
 		title: "Активность",
 		key: "activity",
 		convertFn: (value, additionalData) => {
-			return additionalData?.activities.map(
-				(activity: { ID: string; VALUE: string }) => {
-					return Number(activity.ID) === value ? activity.VALUE : "";
-				},
+			return (
+				additionalData?.activities?.find(
+					(activity: ActivityListItem) => Number(activity.ID) === value,
+				)?.NAME || ""
 			);
 		},
 	},
@@ -69,8 +71,8 @@ export enum ReportCodes {
 	title = "ufCrm11_1770627903531",
 	timeSpent = "ufCrm11_1770627880479",
 	taskId = "ufCrm11_1770627808462",
-	project = "ufCrm11_1772012010",
-	activityType = "ufCrm11_1770804288638",
+	project = "ufCrm11_1774018669",
+	activityType = "ufCrm11_1774427281",
 	parentId = "parentId1072",
 }
 

@@ -161,7 +161,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 						}}
 						onClick={() => setUser(user.id)}
 					>
-						<Link to="/reports/employees"> Календарь отчетов</Link>
+						<Link to="/reports/calendar"> Календарь отчетов</Link>
 					</div>
 				</div>
 
@@ -288,8 +288,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 											>
 												<div>
 													{
-														projects.find((project) => project.ID === projectId)
-															?.NAME
+														projects.find((project) => project.id === projectId)
+															?.name
 													}
 												</div>
 												<div> {tasks?.length}</div>

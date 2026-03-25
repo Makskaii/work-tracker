@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
+import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
 import {
 	ClientsCodes,
 	EntityTypeIds,
@@ -105,7 +106,12 @@ export const headersForProjects: Header<ProjectTableRow>[] = [
 		title: "Риск",
 		key: "risk",
 		render: (value) => (
-			<span style={{ color: getRiskColor(value) }}>{value}</span>
+			<TableCell
+				value={value}
+				styles={{
+					color: getRiskColor(value),
+				}}
+			/>
 		),
 	},
 	{
@@ -166,8 +172,8 @@ const ProjectsReports = () => {
 		Record<string, boolean>
 	>({});
 
-	const { projects } = useOutletContext<ReportsContext>();
-	const clients = (projects ?? []) as ClientWithProjects[];
+	const { clientsList } = useOutletContext<ReportsContext>();
+	const clients = (clientsList ?? []) as ClientWithProjects[];
 
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
 	const [projectsWithStatus, setProjectsWithStatus] = useState<

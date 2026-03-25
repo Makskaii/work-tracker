@@ -36,7 +36,7 @@ const CalendarMonth = ({
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const { projects, activities } = useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
-
+	console.log({ activities, activeReport });
 	return (
 		<div className={cls.calendar}>
 			<div className={cls["calendar-controls"]}>
