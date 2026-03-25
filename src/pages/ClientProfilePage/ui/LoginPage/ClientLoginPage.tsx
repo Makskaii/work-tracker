@@ -38,7 +38,7 @@ export const ClientLoginPage = () => {
 			ability.update([
 				{
 					action: "read",
-					subject: "client-profile",
+					subject: `client-profile-${clientId}`,
 				},
 			]);
 

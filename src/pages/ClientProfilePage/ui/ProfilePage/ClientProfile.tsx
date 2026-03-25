@@ -152,7 +152,7 @@ const ClientProfile = () => {
 	}).length;
 
 	return (
-		<CheckPermission permission="read" subject="client-profile">
+		<CheckPermission permission="read" subject={`client-profile-${clientId}`}>
 			<div className={styles.page}>
 				<div className={styles.headerCard}>
 					<div className={styles.headerInfo}>
