@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
+import { ability } from "@/shared/config/ability/casl";
 import { $backendApi } from "@/shared/config/axios/axios.config";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 import brandLogo from "/evolution/logo.jpg";
 import styles from "./ClientLogin.module.scss";
 
@@ -26,13 +28,29 @@ export const ClientLoginPage = () => {
 	const navigate = useNavigate();
 
 	const onSubmit = async (data: ClientLoginProps) => {
-		console.log("login data", data);
+		try {
+			console.log("login data", data);
 
-		const res = await $backendApi.post("auth/client", data);
+			const res = await $backendApi.post("auth/client", data);
 
-		const clientId = res.data.client.crmClientId;
+			const clientId = res.data.client.crmClientId;
 
-		navigate(`/client/profile/${clientId}`);
+			ability.update([
+				{
+					action: "read",
+					subject: "client-profile",
+				},
+			]);
+
+			navigate(`/client/profile/${clientId}`);
+		} catch (error) {
+			if (error instanceof Error) {
+				notify({
+					message: error.message,
+					type: "error",
+				});
+			}
+		}
 	};
 
 	return (
