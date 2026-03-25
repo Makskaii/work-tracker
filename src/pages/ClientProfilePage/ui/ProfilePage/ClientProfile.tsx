@@ -323,7 +323,7 @@ const ClientProfile = () => {
 														type="button"
 														className={styles.secondaryButton}
 														onClick={() =>
-															navigate(`/client/projects/${project.id}`)
+															navigate(`/client-projects/${project.id}`)
 														}
 													>
 														Открыть карточку проекта
