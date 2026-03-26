@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <Для объектов с разными полями> */
 import type { Dispatch, SetStateAction } from "react";
-import type { ActivityListItem } from "@/components/calendar/types/types";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
+import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
 import { TaskCodes as UserCodes } from "../../components/calendar/constants/const";
 import type { ClientsCodes } from "../constants/const";
 export type AnyObject = {

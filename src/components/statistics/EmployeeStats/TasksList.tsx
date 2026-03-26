@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { TaskItem } from "@/components/taskItem/TaskItemSimple";
+import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { TaskProps } from "../../../shared/types/types";
 
@@ -39,7 +40,7 @@ export const TasksList = ({
 						onClick={() => {
 							setView("task");
 							setActiveTask(task);
-							openTask(task.id);
+							openTask(task.id, EntityTypeIds.tasks);
 						}}
 					>
 						<TaskItem

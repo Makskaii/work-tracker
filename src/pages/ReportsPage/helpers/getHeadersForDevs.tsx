@@ -1,7 +1,6 @@
-import type { ActivityListItem } from "@/components/calendar/types/types";
 import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
 import type { Header } from "@/shared/types/table";
-import type { GroupedFields } from "../types/types";
+import type { ActivityListItem, GroupedFields } from "../types/types";
 
 export const getHeadersForDevs = (
 	activities: ActivityListItem[],

@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
-import type {
-	ActivityListItem,
-	ActivitySort,
-	ProjectActivitiesGroup,
-} from "@/components/calendar/types/types";
+
 import { getActivitiesList } from "@/shared/api/getCrmFields";
 import { Endpoints } from "@/shared/constants/const";
 import type { GroupedReportFields } from "@/shared/types/table";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import { AsyncSelect } from "../../../../components/form/SelectField";
-import type { ReportsContext } from "../../../../shared/types/types";
+import type {
+	ClientListItems,
+	ClientProjectProps,
+	ReportsContext,
+} from "../../../../shared/types/types";
 import type { ProjectFromList } from "../../ReportsPage";
+import type {
+	ActivityListItem,
+	ActivitySort,
+	GroupedClientItem,
+} from "../../types/types";
+import { ProjectActivitiesTree } from "./ui/ProjectActivitiesTree/ProjectActivitiesTree";
 
 const ACTIVITY_SORT_TITLES: Record<ActivitySort, string> = {
 	0: "Clients paid",
@@ -29,18 +35,25 @@ const parseTimeSpent = (value: string | number | null | undefined): number => {
 	return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-export const groupReportsByProjectsAndActivities = ({
+export const groupReportsByClientsProjectsAndActivities = ({
 	reports,
 	projects,
 	activities,
+	clients,
 }: {
 	reports: GroupedReportFields[];
 	projects: ProjectFromList[];
 	activities: ActivityListItem[];
-}): ProjectActivitiesGroup[] => {
+	clients: (ClientListItems & { projects: ClientProjectProps[] })[];
+}): GroupedClientItem[] => {
 	const projectsMap = new Map<number, ProjectFromList>();
 	for (const project of projects) {
 		projectsMap.set(Number(project.id), project);
+	}
+
+	const clientsMap = new Map<number, ClientListItems>();
+	for (const client of clients) {
+		clientsMap.set(Number(client.ID), client);
 	}
 
 	const activitiesMap = new Map<
@@ -60,123 +73,159 @@ export const groupReportsByProjectsAndActivities = ({
 		}
 	}
 
-	const resultMap = new Map<number, ProjectActivitiesGroup>();
+	const resultMap = new Map<number, GroupedClientItem>();
 
 	for (const report of reports) {
+		const clientId = Number(report.client);
 		const projectId = Number(report.project);
 		const activityId = Number(report.activity);
 
-		if (!projectId || !activityId) continue;
+		if (!clientId || !projectId || !activityId) continue;
 
+		const client = clientsMap.get(clientId);
 		const project = projectsMap.get(projectId);
 		const activity = activitiesMap.get(activityId);
 
-		if (!project || !activity) continue;
+		if (!client || !project || !activity) continue;
 
 		const timeSpent = parseTimeSpent(report.timeSpent);
 
-		if (!resultMap.has(projectId)) {
-			resultMap.set(projectId, {
+		if (!resultMap.has(clientId)) {
+			resultMap.set(clientId, {
+				clientId,
+				clientTitle: client.NAME,
+				timeSpent: 0,
+				projects: [],
+			});
+		}
+
+		const clientGroup = resultMap.get(clientId)!;
+
+		let projectGroup = clientGroup.projects.find(
+			(item) => item.projectId === projectId,
+		);
+
+		if (!projectGroup) {
+			projectGroup = {
 				projectId,
 				projectTitle: project.name,
+				timeSpent: 0,
 				categories: {
 					0: {
 						sort: 0,
 						title: ACTIVITY_SORT_TITLES[0],
+						timeSpent: 0,
 						activities: [],
-						totalTimeSpent: 0,
 					},
 					1: {
 						sort: 1,
 						title: ACTIVITY_SORT_TITLES[1],
+						timeSpent: 0,
 						activities: [],
-						totalTimeSpent: 0,
 					},
 					2: {
 						sort: 2,
 						title: ACTIVITY_SORT_TITLES[2],
+						timeSpent: 0,
 						activities: [],
-						totalTimeSpent: 0,
 					},
 				},
-				totalTimeSpent: 0,
-			});
+			};
+
+			clientGroup.projects.push(projectGroup);
 		}
 
-		const projectGroup = resultMap.get(projectId)!;
 		const category = projectGroup.categories[activity.sort];
 
-		const existingActivity = category.activities.find(
+		let activityGroup = category.activities.find(
 			(item) => item.activityId === activityId,
 		);
 
-		if (existingActivity) {
-			existingActivity.timeSpent += timeSpent;
-			existingActivity.reports.push(report);
-		} else {
-			category.activities.push({
+		if (!activityGroup) {
+			activityGroup = {
 				activityId,
 				activityTitle: activity.title,
 				sort: activity.sort,
-				timeSpent,
-				reports: [report],
-			});
+				timeSpent: 0,
+				reports: [],
+			};
+
+			category.activities.push(activityGroup);
 		}
 
-		category.totalTimeSpent += timeSpent;
-		projectGroup.totalTimeSpent += timeSpent;
+		activityGroup.timeSpent += timeSpent;
+		activityGroup.reports.push({
+			id: report.id,
+			title: report.title,
+			begindate: report.day,
+			timeSpent,
+			rawTimeSpent: report.timeSpent,
+			taskId: report.taskId,
+			parentId: report.parentId,
+		});
+
+		category.timeSpent += timeSpent;
+		projectGroup.timeSpent += timeSpent;
+		clientGroup.timeSpent += timeSpent;
 	}
 
 	return Array.from(resultMap.values())
-		.map((projectGroup) => ({
-			...projectGroup,
-			categories: {
-				0: {
-					...projectGroup.categories[0],
-					activities: [...projectGroup.categories[0].activities].sort(
-						(a, b) => b.timeSpent - a.timeSpent,
-					),
-				},
-				1: {
-					...projectGroup.categories[1],
-					activities: [...projectGroup.categories[1].activities].sort(
-						(a, b) => b.timeSpent - a.timeSpent,
-					),
-				},
-				2: {
-					...projectGroup.categories[2],
-					activities: [...projectGroup.categories[2].activities].sort(
-						(a, b) => b.timeSpent - a.timeSpent,
-					),
-				},
-			},
+		.map((client) => ({
+			...client,
+			projects: client.projects
+				.map((project) => ({
+					...project,
+					categories: {
+						0: {
+							...project.categories[0],
+							activities: [...project.categories[0].activities]
+								.map((activity) => ({
+									...activity,
+									reports: [...activity.reports].sort(
+										(a, b) =>
+											new Date(b.begindate).getTime() -
+											new Date(a.begindate).getTime(),
+									),
+								}))
+								.sort((a, b) => b.timeSpent - a.timeSpent),
+						},
+						1: {
+							...project.categories[1],
+							activities: [...project.categories[1].activities]
+								.map((activity) => ({
+									...activity,
+									reports: [...activity.reports].sort(
+										(a, b) =>
+											new Date(b.begindate).getTime() -
+											new Date(a.begindate).getTime(),
+									),
+								}))
+								.sort((a, b) => b.timeSpent - a.timeSpent),
+						},
+						2: {
+							...project.categories[2],
+							activities: [...project.categories[2].activities]
+								.map((activity) => ({
+									...activity,
+									reports: [...activity.reports].sort(
+										(a, b) =>
+											new Date(b.begindate).getTime() -
+											new Date(a.begindate).getTime(),
+									),
+								}))
+								.sort((a, b) => b.timeSpent - a.timeSpent),
+						},
+					},
+				}))
+				.sort((a, b) => b.timeSpent - a.timeSpent),
 		}))
-		.sort((a, b) => b.totalTimeSpent - a.totalTimeSpent);
+		.sort((a, b) => b.timeSpent - a.timeSpent);
 };
-
 type ViewCalendar = "month" | "week";
 
 const ReportsCalendar = () => {
 	const Context = useOutletContext<ReportsContext>();
 	const [view, setView] = useState<ViewCalendar>("month");
-
-	const [expandedProjects, setExpandedProjects] = useState<Set<number>>(
-		() => new Set(),
-	);
-
-	const toggleProject = (projectId: number) => {
-		setExpandedProjects((prev) => {
-			const next = new Set(prev);
-
-			if (next.has(projectId)) {
-				next.delete(projectId);
-			} else {
-				next.add(projectId);
-			}
-
-			return next;
-		});
-	};
 
 	const [groupedByActivity, setGroupByActivity] = useState<
 		GroupedReportFields[]
@@ -209,13 +258,14 @@ const ReportsCalendar = () => {
 		fetchActivities();
 	}, []);
 
-	const groupedProjectActivities = useMemo(() => {
-		return groupReportsByProjectsAndActivities({
+	const groupedClientActivities = useMemo(() => {
+		return groupReportsByClientsProjectsAndActivities({
 			reports: groupedByActivity,
 			projects: Context.projects,
 			activities: activities,
+			clients: Context.clientsList,
 		});
-	}, [activities, Context.projects, groupedByActivity]);
+	}, [activities, Context.projects, groupedByActivity, Context.clientsList]);
 
 	return (
 		<div
@@ -259,215 +309,7 @@ const ReportsCalendar = () => {
 					</form>
 				</FormProvider>
 
-				{groupedProjectActivities.length > 0 && (
-					<div
-						style={{
-							marginTop: "1rem",
-							display: "flex",
-							flexDirection: "column",
-							gap: "0.75rem",
-							maxHeight: "calc(100vh - 180px)",
-							overflowY: "auto",
-							paddingRight: "0.5rem",
-						}}
-					>
-						{groupedProjectActivities.map((project) => {
-							const isExpanded = expandedProjects.has(project.projectId);
-
-							return (
-								<div
-									key={project.projectId}
-									style={{
-										border: "1px solid #e5e7eb",
-										borderRadius: "14px",
-										background: "#fff",
-										boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-										overflow: "hidden",
-									}}
-								>
-									<button
-										type="button"
-										onClick={() => toggleProject(project.projectId)}
-										style={{
-											width: "100%",
-											border: "none",
-											background: "transparent",
-											cursor: "pointer",
-											padding: "1rem",
-											display: "flex",
-											alignItems: "center",
-											justifyContent: "space-between",
-											gap: "0.75rem",
-											textAlign: "left",
-										}}
-									>
-										<div
-											style={{
-												display: "flex",
-												alignItems: "center",
-												gap: "0.75rem",
-												minWidth: 0,
-											}}
-										>
-											<div
-												style={{
-													fontSize: "0.9rem",
-													color: "#6b7280",
-													transform: isExpanded
-														? "rotate(90deg)"
-														: "rotate(0deg)",
-													transition: "transform 0.2s ease",
-												}}
-											>
-												▶
-											</div>
-
-											<div
-												style={{
-													fontSize: "1rem",
-													fontWeight: 700,
-													color: "#111827",
-													lineHeight: 1.3,
-													wordBreak: "break-word",
-												}}
-											>
-												{project.projectTitle}
-											</div>
-										</div>
-
-										<div
-											style={{
-												whiteSpace: "nowrap",
-												padding: "0.3rem 0.65rem",
-												borderRadius: "999px",
-												background: "#f3f4f6",
-												fontWeight: 600,
-												fontSize: "0.9rem",
-												color: "#374151",
-												flexShrink: 0,
-											}}
-										>
-											{project.totalTimeSpent} ч.
-										</div>
-									</button>
-
-									{isExpanded && (
-										<div
-											style={{
-												padding: "0 1rem 1rem",
-												borderTop: "1px solid #f3f4f6",
-											}}
-										>
-											{([0, 1, 2] as ActivitySort[]).map((sort) => {
-												const category = project.categories[sort];
-
-												if (!category.activities.length) return null;
-
-												return (
-													<div
-														key={sort}
-														style={{
-															marginTop: "0.85rem",
-														}}
-													>
-														<div
-															style={{
-																display: "flex",
-																justifyContent: "space-between",
-																alignItems: "center",
-																marginBottom: "0.5rem",
-															}}
-														>
-															<div
-																style={{
-																	fontSize: "0.92rem",
-																	fontWeight: 600,
-																	color: "#1f2937",
-																}}
-															>
-																{category.title}
-															</div>
-
-															<div
-																style={{
-																	fontSize: "0.85rem",
-																	color: "#6b7280",
-																	fontWeight: 600,
-																}}
-															>
-																{category.totalTimeSpent} ч.
-															</div>
-														</div>
-
-														<div
-															style={{
-																display: "flex",
-																flexDirection: "column",
-																gap: "0.35rem",
-															}}
-														>
-															{category.activities.map((activity) => (
-																<div
-																	key={activity.activityId}
-																	style={{
-																		display: "flex",
-																		justifyContent: "space-between",
-																		alignItems: "center",
-																		gap: "0.75rem",
-																		padding: "0.55rem 0.75rem",
-																		borderRadius: "10px",
-																		background: "#f9fafb",
-																	}}
-																>
-																	<div
-																		style={{
-																			fontSize: "0.9rem",
-																			color: "#374151",
-																			wordBreak: "break-word",
-																		}}
-																	>
-																		{activity.activityTitle}
-																	</div>
-
-																	<div
-																		style={{
-																			fontSize: "0.9rem",
-																			fontWeight: 600,
-																			color: "#111827",
-																			whiteSpace: "nowrap",
-																			flexShrink: 0,
-																		}}
-																	>
-																		{activity.timeSpent} ч.
-																	</div>
-																</div>
-															))}
-														</div>
-													</div>
-												);
-											})}
-										</div>
-									)}
-								</div>
-							);
-						})}
-					</div>
-				)}
-
-				{groupedProjectActivities.length === 0 && (
-					<div
-						style={{
-							marginTop: "1rem",
-							padding: "1rem",
-							border: "1px dashed #d1d5db",
-							borderRadius: "12px",
-							color: "#6b7280",
-							background: "#fafafa",
-						}}
-					>
-						Нет данных по активностям за выбранный период
-					</div>
-				)}
+				<ProjectActivitiesTree data={groupedClientActivities} />
 			</div>
 			<div
 				style={{
