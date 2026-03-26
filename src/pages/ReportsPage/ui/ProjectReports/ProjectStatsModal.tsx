@@ -71,7 +71,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					"begindate",
 					ReportCodes.title,
 					ReportCodes.timeSpent,
-					ReportCodes.project,
+					ReportCodes.client,
 					ReportCodes.taskId,
 					ReportCodes.activityType,
 					"assignedById",
@@ -80,7 +80,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[ReportCodes.project]: project.ID,
+					[ReportCodes.client]: project.ID,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
 				},
@@ -99,7 +99,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					"begindate",
 					ReportCodes.title,
 					ReportCodes.timeSpent,
-					ReportCodes.project,
+					ReportCodes.client,
 					ReportCodes.taskId,
 					ReportCodes.activityType,
 					"assignedById",
@@ -108,7 +108,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[ReportCodes.project]: project.ID,
+					[ReportCodes.client]: project.ID,
 				},
 			},
 		},
@@ -124,7 +124,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					"begindate",
 					ReportCodes.title,
 					ReportCodes.timeSpent,
-					ReportCodes.project,
+					ReportCodes.client,
 					ReportCodes.taskId,
 					ReportCodes.activityType,
 					"assignedById",
@@ -133,7 +133,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[ReportCodes.project]: project.ID,
+					[ReportCodes.client]: project.ID,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
 				},
@@ -164,7 +164,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 			{} as Record<number, ReportProps[]>,
 		);
 	}, [data]);
-
+	console.log({ groupedByTaskReports, data });
 	const week = getWeekArray(borders.startOfTheWeek);
 
 	const getReportPdf = async (
