@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { treeColors } from "@/pages/ReportsPage/constants/colorTree";
 import type { GroupedActivityItem } from "@/pages/ReportsPage/types/types";
 import { ReportRow } from "./ReportRow";
 import { TreeNode } from "./TreeNode";
@@ -26,6 +27,7 @@ export const ActivityNode = ({ activity }: ActivityNodeProps) => {
 			value={`${activity.timeSpent} ч.`}
 			isExpanded={isExpanded}
 			onToggle={() => setIsExpanded((prev) => !prev)}
+			styles={treeColors.activity}
 		>
 			<div
 				style={{

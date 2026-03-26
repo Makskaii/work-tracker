@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type TreeNodeProps = {
 	title: ReactNode;
@@ -7,6 +7,7 @@ type TreeNodeProps = {
 	onToggle?: () => void;
 	children?: ReactNode;
 	level?: 0 | 1 | 2 | 3;
+	styles?: CSSProperties;
 };
 
 export const TreeNode = ({
@@ -16,6 +17,7 @@ export const TreeNode = ({
 	onToggle,
 	children,
 	level = 0,
+	styles,
 }: TreeNodeProps) => {
 	const paddingLeftMap = {
 		0: "1rem",
@@ -33,6 +35,7 @@ export const TreeNode = ({
 				borderRadius: "12px",
 				background: "#fff",
 				overflow: "hidden",
+				...styles,
 			}}
 		>
 			<div

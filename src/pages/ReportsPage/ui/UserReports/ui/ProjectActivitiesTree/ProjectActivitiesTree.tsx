@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { treeColors } from "@/pages/ReportsPage/constants/colorTree";
 import type {
 	ActivitySort,
 	GroupedClientItem,
@@ -85,6 +86,7 @@ export const ProjectActivitiesTree = ({
 					<TreeNode
 						key={client.clientId}
 						level={0}
+						styles={treeColors.client}
 						title={
 							<div
 								style={{
@@ -108,6 +110,7 @@ export const ProjectActivitiesTree = ({
 								<TreeNode
 									key={project.projectId}
 									level={1}
+									styles={treeColors.project}
 									title={
 										<div
 											style={{
@@ -139,6 +142,7 @@ export const ProjectActivitiesTree = ({
 													flexDirection: "column",
 													gap: "0.4rem",
 													paddingLeft: "0.75rem",
+													...treeColors.sort[sort],
 												}}
 											>
 												<div
