@@ -24,11 +24,11 @@ export interface GroupedReportFields {
 	id: string;
 	title: string;
 	timeSpent: string;
-
 	taskId: string;
 	parentId: number;
 	day: string;
 	project: number;
+	client: number;
+	activity: number;
 	assignedById: string;
-	activity?: number;
 }

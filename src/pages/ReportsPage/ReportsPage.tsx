@@ -2,7 +2,6 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { TaskCodes as UserCodes } from "@/components/calendar/constants/const";
-import type { ActivityListItem } from "@/components/calendar/types/types";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import {
 	ClientsCodes,
@@ -19,6 +18,7 @@ import type {
 	User,
 } from "@/shared/types/types";
 import {
+	getActivities,
 	getActivitiesList,
 	getClientsFromList,
 	getProjectsFromList,
@@ -28,6 +28,7 @@ import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
 import { getItems } from "./api/getTasks";
 import { Navigation } from "./constants/UsersTitleMap";
+import type { ActivityListItem } from "./types/types";
 
 const currentMonth = dayjs().month() + 1;
 const currentYear = dayjs().year();
@@ -141,7 +142,7 @@ const ReportsPage = () => {
 		const fetchActivities = async () => {
 			const fields = await getActivitiesList();
 
-			console.log({ fields });
+			setActivities(fields);
 		};
 
 		fetchActivities();
@@ -149,9 +150,9 @@ const ReportsPage = () => {
 
 	useEffect(() => {
 		const fetchActivities = async () => {
-			const fields = await getActivitiesList();
+			const fields = await getActivities();
 
-			setActivities(fields);
+			console.log({ fields });
 		};
 
 		fetchActivities();

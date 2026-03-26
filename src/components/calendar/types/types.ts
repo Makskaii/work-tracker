@@ -12,6 +12,7 @@ export interface ReportProps {
 	[ReportCodes.title]: string;
 	[ReportCodes.activityType]: number;
 	[ReportCodes.parentId]: number;
+	[ReportCodes.client]: number;
 	assignedById: string;
 	lastActivityTime: string;
 }
@@ -43,38 +44,3 @@ export interface DayProps {
 	totalHours?: number | null;
 	reports?: GroupedReportFields[] | null;
 }
-
-export type ActivitySort = 0 | 1 | 2;
-
-export type ActivityListItem = {
-	ID: string;
-	IBLOCK_ID: string;
-	NAME: string;
-	IBLOCK_SECTION_ID: string | null;
-	CREATED_BY: string;
-	BP_PUBLISHED: string;
-	CODE: string | null;
-	SORT: string;
-};
-
-export type ProjectActivityItem = {
-	activityId: number;
-	activityTitle: string;
-	sort: ActivitySort;
-	timeSpent: number;
-	reports: GroupedReportFields[];
-};
-
-export type ProjectActivityCategory = {
-	sort: ActivitySort;
-	title: string;
-	activities: ProjectActivityItem[];
-	totalTimeSpent: number;
-};
-
-export type ProjectActivitiesGroup = {
-	projectId: number;
-	projectTitle: string;
-	categories: Record<ActivitySort, ProjectActivityCategory>;
-	totalTimeSpent: number;
-};

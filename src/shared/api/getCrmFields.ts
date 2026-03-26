@@ -1,4 +1,4 @@
-import type { ActivityListItem } from "@/components/calendar/types/types";
+import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
 import type { ClientListItems, ProjectListDto } from "../types/types";

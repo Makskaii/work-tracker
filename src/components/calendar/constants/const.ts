@@ -1,10 +1,10 @@
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
+import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
 import type { GroupedReportFields, Header } from "@/shared/types/table";
 import {
 	convertToDate,
 	convertToMinutesOrHours,
 } from "../../../shared/utils/utils";
-import type { ActivityListItem } from "../types/types";
 
 export const months = [
 	"Январь",
@@ -72,6 +72,7 @@ export enum ReportCodes {
 	timeSpent = "ufCrm11_1770627880479",
 	taskId = "ufCrm11_1770627808462",
 	project = "ufCrm11_1774018669",
+	client = "ufCrm11_1772012010",
 	activityType = "ufCrm11_1774427281",
 	parentId = "parentId1072",
 }
@@ -113,6 +114,7 @@ export const selectFields = [
 	ReportCodes.taskId,
 	ReportCodes.activityType,
 	ReportCodes.parentId,
+	ReportCodes.client,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",

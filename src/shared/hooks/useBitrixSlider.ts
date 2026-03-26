@@ -4,17 +4,18 @@ import { EntityTypeIds } from "../constants/const";
 export const useBitrixSlider = () => {
 	const { b24 } = useB24();
 
-	const openTask = async (taskId: number | string) => {
+	const openCrmItem = async (
+		itemId: number | string,
+		entityId: number = EntityTypeIds.tasks,
+	) => {
 		if (!b24) return null;
 
-		const url = b24.slider.getUrl(
-			`/crm/type/${EntityTypeIds.tasks}/details/${taskId}/`,
-		);
+		const url = b24.slider.getUrl(`/crm/type/${entityId}/details/${itemId}/`);
 		return b24.slider.openPath(url, 1100);
 	};
 
 	return {
 		b24,
-		openTask,
+		openTask: openCrmItem,
 	};
 };
