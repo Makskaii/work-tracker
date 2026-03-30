@@ -7,7 +7,6 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 	activeItems,
 	additionalData,
 	totalRow,
-	onRowClick,
 	fallbackText = "Загрузка...",
 }: UniversalTableProps<T>) => {
 	return (
@@ -30,26 +29,29 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 							</tr>
 						</thead>
 						<tbody>
-							{activeItems.map((item) => (
-								<tr
-									key={item.id}
-									onClick={() => onRowClick?.(String(item.parentId) ?? "")}
-								>
-									{headers.map((header) => {
-										const value = item[header.key];
+							{activeItems.map((item) => {
+								const preparedAdditionalData = {
+									...additionalData,
+									row: item,
+								};
+								return (
+									<tr key={item.id}>
+										{headers.map((header) => {
+											const value = item[header.key];
 
-										return (
-											<td key={String(header.key)}>
-												{header.render
-													? header.render(value, additionalData)
-													: header.convertFn
-														? header.convertFn(value, additionalData)
-														: String(value ?? "")}
-											</td>
-										);
-									})}
-								</tr>
-							))}
+											return (
+												<td key={String(header.key)}>
+													{header.render
+														? header.render(value, preparedAdditionalData)
+														: header.convertFn
+															? header.convertFn(value, preparedAdditionalData)
+															: String(value ?? "")}
+												</td>
+											);
+										})}
+									</tr>
+								);
+							})}
 
 							{totalRow}
 						</tbody>
