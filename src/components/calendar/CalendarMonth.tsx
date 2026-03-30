@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useOutletContext } from "react-router";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
-import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { GroupedReportFields, Header } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
@@ -13,6 +12,8 @@ import {
 	convertToMinutesOrHours,
 } from "@/shared/utils/utils";
 import { Modal } from "../modal";
+import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
+// import { ReportsActivitySection } from "../Table/reportsTable/TableMonthModal";
 import { UniversalTable } from "../Table/universalTable/UniversalTable";
 import cls from "./Calendar.module.scss";
 import { months, years } from "./constants/const";
@@ -22,24 +23,8 @@ export const headers: Header<GroupedReportFields>[] = [
 	{
 		title: "Отчёт",
 		key: "id",
-		render: (value, additionalData) => {
-			console.log(additionalData);
-
-			return (
-				<>
-					<div>Отчет № {value}</div>
-					<button
-						style={{
-							background: "#ccc",
-						}}
-						onClick={() =>
-							additionalData?.openTask(value, EntityTypeIds.reports)
-						}
-					>
-						Открыть отчёт
-					</button>
-				</>
-			);
+		render: (value) => {
+			return <div>Отчёт № {value}</div>;
 		},
 	},
 	{
@@ -49,34 +34,14 @@ export const headers: Header<GroupedReportFields>[] = [
 	{
 		title: "Задача",
 		key: "parentId",
-		render: (value, additionalData) => {
-			console.log(additionalData);
-
-			return (
-				<>
-					<div>{value}</div>
-					{value && (
-						<button
-							style={{
-								background: "rgb(130, 237, 136)",
-								alignSelf: "flex-start",
-							}}
-							onClick={() =>
-								additionalData?.openTask(value, EntityTypeIds.tasks)
-							}
-						>
-							Открыть задачу
-						</button>
-					)}
-				</>
-			);
+		render: (value) => {
+			return value ? <div>№ {value}</div> : <div>—</div>;
 		},
 	},
 	{
 		title: "Проект",
 		key: "project",
 		convertFn: (value, additionalData) => {
-			console.log({ additionalData, value });
 			return (
 				additionalData?.projects?.find(
 					(project: ProjectFromList) => Number(project.id) === value,
@@ -104,6 +69,21 @@ export const headers: Header<GroupedReportFields>[] = [
 		title: "Дата",
 		key: "day",
 		convertFn: convertToDate,
+	},
+	{
+		title: "Действия",
+		key: "id",
+		render: (value, additionalData) => {
+			const row = additionalData?.row as GroupedReportFields | undefined;
+
+			return (
+				<ReportRowActions
+					reportId={String(value)}
+					taskId={row?.parentId}
+					openTask={additionalData?.openTask}
+				/>
+			);
+		},
 	},
 ];
 
@@ -133,6 +113,21 @@ const CalendarMonth = ({
 	const { projects, activities } = useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 
+	// const groupedByActivity = activeReport.reduce(
+	// 	(acc, report) => {
+	// 		if (report.activity) {
+	// 			if (!acc[report.activity]) {
+	// 				acc[report.activity] = [];
+	// 			}
+	// 			acc[report.activity].push(report);
+	// 		}
+
+	// 		return acc;
+	// 	},
+	// 	{} as {
+	// 		[key: number]: GroupedReportFields[];
+	// 	},
+	// );
 	return (
 		<div className={cls.calendar}>
 			<div className={cls["calendar-controls"]}>
@@ -256,6 +251,18 @@ const CalendarMonth = ({
 				size="covered"
 				innerScroll
 			>
+				{/* {Object.entries(groupedByActivity).map(
+					([activityId, reports], index) => {
+						return (
+							<ReportsActivitySection
+								reports={reports}
+								key={activityId}
+								type={activityId}
+								index={index}
+							/>
+						);
+					},
+				)} */}
 				<UniversalTable<GroupedReportFields>
 					activeItems={activeReport.toSorted((a, b) => a.activity - b.activity)}
 					headers={headers}
