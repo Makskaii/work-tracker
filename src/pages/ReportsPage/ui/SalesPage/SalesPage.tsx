@@ -15,32 +15,32 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество звонков по отделу",
 		id: "1",
-		plan: 300,
+		plan: 700,
 	},
 	{
 		title: "Количество созданных сделок",
 		id: "2",
-		plan: 15,
+		plan: 22,
 	},
 	{
 		title: "Количество проведенных ППО",
 		id: "3",
-		plan: 8,
+		plan: 10,
 	},
 	{
 		title: "Количество защит КП",
 		id: "4",
-		plan: 5,
+		plan: 7,
 	},
 	{
 		title: "Количество активных карточек в работе",
 		id: "5",
-		plan: 25,
+		plan: 40,
 	},
 	{
 		title: "Количество продаж",
 		id: "6",
-		plan: 1,
+		plan: 2,
 	},
 	{
 		title: "Сумма продаж",
