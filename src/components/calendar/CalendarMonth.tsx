@@ -1,15 +1,107 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 import { useState } from "react";
 import { useOutletContext } from "react-router";
+import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
+import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
+import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
-import type { GroupedReportFields } from "@/shared/types/table";
+import type { GroupedReportFields, Header } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
-import { classNames } from "@/shared/utils/utils";
+import {
+	classNames,
+	convertToDate,
+	convertToMinutesOrHours,
+} from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import { UniversalTable } from "../Table/universalTable/UniversalTable";
 import cls from "./Calendar.module.scss";
-import { headers, months, years } from "./constants/const";
+import { months, years } from "./constants/const";
 import type { MonthDays } from "./types/types";
+
+export const headers: Header<GroupedReportFields>[] = [
+	{
+		title: "Отчёт",
+		key: "id",
+		render: (value, additionalData) => {
+			console.log(additionalData);
+
+			return (
+				<>
+					<div>Отчет № {value}</div>
+					<button
+						style={{
+							background: "#ccc",
+						}}
+						onClick={additionalData?.openTask(value, EntityTypeIds.reports)}
+					>
+						Открыть отчёт
+					</button>
+				</>
+			);
+		},
+	},
+	{
+		title: "Описание",
+		key: "title",
+	},
+	{
+		title: "Задача",
+		key: "parentId",
+		render: (value, additionalData) => {
+			console.log(additionalData);
+
+			return (
+				<>
+					<div>{value}</div>
+					{value && (
+						<button
+							style={{
+								background: "rgb(130, 237, 136)",
+								alignSelf: "flex-start",
+							}}
+							onClick={additionalData?.openTask(value, EntityTypeIds.tasks)}
+						>
+							Открыть задачу
+						</button>
+					)}
+				</>
+			);
+		},
+	},
+	{
+		title: "Проект",
+		key: "project",
+		convertFn: (value, additionalData) => {
+			console.log({ additionalData, value });
+			return (
+				additionalData?.projects?.find(
+					(project: ProjectFromList) => Number(project.id) === value,
+				)?.name || ""
+			);
+		},
+	},
+	{
+		title: "Активность",
+		key: "activity",
+		convertFn: (value, additionalData) => {
+			return (
+				additionalData?.activities?.find(
+					(activity: ActivityListItem) => Number(activity.ID) === value,
+				)?.NAME || ""
+			);
+		},
+	},
+	{
+		title: "Время",
+		key: "timeSpent",
+		convertFn: convertToMinutesOrHours,
+	},
+	{
+		title: "Дата",
+		key: "day",
+		convertFn: convertToDate,
+	},
+];
 
 const CalendarMonth = ({
 	monthDays,
@@ -163,8 +255,12 @@ const CalendarMonth = ({
 				<UniversalTable<GroupedReportFields>
 					activeItems={activeReport}
 					headers={headers}
-					additionalData={{ projects, activities }}
-					onRowClick={openTask}
+					additionalData={{
+						projects,
+						activities,
+						report: activeReport,
+						openTask,
+					}}
 				/>
 			</Modal>
 		</div>

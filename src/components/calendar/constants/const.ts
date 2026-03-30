@@ -1,10 +1,3 @@
-import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
-import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
-import type { GroupedReportFields, Header } from "@/shared/types/table";
-import {
-	convertToDate,
-	convertToMinutesOrHours,
-} from "../../../shared/utils/utils";
 
 export const months = [
 	"Январь",
@@ -23,49 +16,6 @@ export const months = [
 
 export const years = Array.from({ length: 10 }, (_, i) => 2020 + i);
 
-export const headers: Header<GroupedReportFields>[] = [
-	{
-		title: "Описание",
-		key: "title",
-	},
-	{
-		title: "Задача",
-		key: "parentId",
-	},
-	{
-		title: "Проект",
-		key: "project",
-		convertFn: (value, additionalData) => {
-			console.log({ additionalData, value });
-			return (
-				additionalData?.projects?.find(
-					(project: ProjectFromList) => Number(project.id) === value,
-				)?.name || ""
-			);
-		},
-	},
-	{
-		title: "Активность",
-		key: "activity",
-		convertFn: (value, additionalData) => {
-			return (
-				additionalData?.activities?.find(
-					(activity: ActivityListItem) => Number(activity.ID) === value,
-				)?.NAME || ""
-			);
-		},
-	},
-	{
-		title: "Время",
-		key: "timeSpent",
-		convertFn: convertToMinutesOrHours,
-	},
-	{
-		title: "Дата",
-		key: "day",
-		convertFn: convertToDate,
-	},
-];
 
 export enum ReportCodes {
 	title = "ufCrm11_1770627903531",
