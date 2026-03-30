@@ -32,7 +32,9 @@ export const headers: Header<GroupedReportFields>[] = [
 						style={{
 							background: "#ccc",
 						}}
-						onClick={additionalData?.openTask(value, EntityTypeIds.reports)}
+						onClick={() =>
+							additionalData?.openTask(value, EntityTypeIds.reports)
+						}
 					>
 						Открыть отчёт
 					</button>
@@ -59,7 +61,9 @@ export const headers: Header<GroupedReportFields>[] = [
 								background: "rgb(130, 237, 136)",
 								alignSelf: "flex-start",
 							}}
-							onClick={additionalData?.openTask(value, EntityTypeIds.tasks)}
+							onClick={() =>
+								additionalData?.openTask(value, EntityTypeIds.tasks)
+							}
 						>
 							Открыть задачу
 						</button>
@@ -253,7 +257,7 @@ const CalendarMonth = ({
 				innerScroll
 			>
 				<UniversalTable<GroupedReportFields>
-					activeItems={activeReport}
+					activeItems={activeReport.toSorted((a, b) => a.activity - b.activity)}
 					headers={headers}
 					additionalData={{
 						projects,
