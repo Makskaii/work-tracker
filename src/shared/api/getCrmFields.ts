@@ -72,7 +72,7 @@ export const getActivities = async (): Promise<{
 }> => {
 	try {
 		const response = await $api.post(Endpoints.crmFeilds, {
-			entityTypeId: 1060,
+			entityTypeId: 1072,
 		});
 
 		const items = response.data.result.fields;
