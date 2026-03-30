@@ -64,12 +64,14 @@ export interface User {
 	department: number;
 }
 
+export type ClientsWithPropjects = ClientListItems & {
+	projects: ClientProjectProps[];
+};
+
 export type UserReports = {
 	setUser: (id: string) => void;
 	tasks: TaskProps[];
-	clientsList: (ClientListItems & {
-		projects: ClientProjectProps[];
-	})[];
+	clientsList: ClientsWithPropjects[];
 	setCurrProject: (id: string) => void;
 	setTitle: (id: string) => void;
 	title: string;

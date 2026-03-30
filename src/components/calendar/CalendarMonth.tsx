@@ -5,7 +5,10 @@ import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { GroupedReportFields, Header } from "@/shared/types/table";
-import type { ReportsContext } from "@/shared/types/types";
+import type {
+	ClientsWithPropjects,
+	ReportsContext,
+} from "@/shared/types/types";
 import {
 	classNames,
 	convertToDate,
@@ -32,10 +35,14 @@ export const headers: Header<GroupedReportFields>[] = [
 		key: "title",
 	},
 	{
-		title: "Задача",
-		key: "parentId",
-		render: (value) => {
-			return value ? <div>№ {value}</div> : <div>—</div>;
+		title: "Клиент",
+		key: "client",
+		convertFn: (value, additionalData) => {
+			return (
+				additionalData?.clients?.find(
+					(clients: ClientsWithPropjects) => Number(clients.ID) === value,
+				)?.NAME || ""
+			);
 		},
 	},
 	{
@@ -110,7 +117,8 @@ const CalendarMonth = ({
 }) => {
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
-	const { projects, activities } = useOutletContext<ReportsContext>();
+	const { projects, activities, clientsList } =
+		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 
 	// const groupedByActivity = activeReport.reduce(
@@ -264,14 +272,27 @@ const CalendarMonth = ({
 					},
 				)} */}
 				<UniversalTable<GroupedReportFields>
-					activeItems={activeReport.toSorted((a, b) => a.activity - b.activity)}
+					activeItems={activeReport.toSorted((a, b) => a.client - b.client)}
 					headers={headers}
 					additionalData={{
 						projects,
 						activities,
 						report: activeReport,
+						clients: clientsList,
 						openTask,
 					}}
+					totalRow={
+						<div>
+							Часов за день:{" "}
+							{activeReport.reduce((acc, report) => {
+								if (report.timeSpent) {
+									acc += +report.timeSpent;
+									return acc;
+								}
+								return acc;
+							}, 0)}
+						</div>
+					}
 				/>
 			</Modal>
 		</div>
