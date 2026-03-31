@@ -144,7 +144,7 @@ export const getProjectsWithStatuses = async ({
 				const response = await getItems<TaskProps>(
 					EntityTypeIds.tasks,
 					{
-						[TaskCodes.project]: project.projectId,
+						[TaskCodes.client]: project.projectId,
 						[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 						[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 					},

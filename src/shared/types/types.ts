@@ -48,11 +48,12 @@ export interface TaskProps {
 	lastActivityTime: string;
 	stageId: string;
 	movedTime: string;
-	[UserCodes.project]: number;
+	[UserCodes.client]: number;
 	[UserCodes.estimateTime]: string;
 	[UserCodes.description]: string;
 	[UserCodes.stage]: string;
 	[UserCodes.timeSpent]: string;
+	[UserCodes.project]: string;
 }
 
 export interface User {

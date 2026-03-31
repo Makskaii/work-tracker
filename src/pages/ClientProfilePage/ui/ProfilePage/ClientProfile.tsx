@@ -5,6 +5,11 @@ import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { UserCard } from "@/components/userCard/UserCard";
 import { getDevelopers } from "@/pages/ReportsPage/api/getDevelopers";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
+import {
+	mapProjectsFromList,
+	type ProjectFromList,
+} from "@/pages/ReportsPage/ReportsPage";
+import { getProjectsFromList } from "@/shared/api/getCrmFields";
 import { ClientsCodes, EntityTypeIds } from "@/shared/constants/const";
 import type { ClientProjectProps, User } from "@/shared/types/types";
 import styles from "./ClientProfile.module.scss";
@@ -79,6 +84,9 @@ const getActivityLabel = (lastActivityTime?: string) => {
 
 const ClientProfile = () => {
 	const [projects, setProjects] = useState<ClientProjectProps[]>([]);
+	const [normalizedProjects, setNormalizedProjects] = useState<
+		ProjectFromList[]
+	>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [users, setUsers] = useState<User[]>([]);
@@ -121,6 +129,12 @@ const ClientProfile = () => {
 						[ClientsCodes.client]: clientId,
 					},
 				);
+
+				const projectsList = await getProjectsFromList();
+
+				const normalizedProjects = mapProjectsFromList(projectsList);
+
+				setNormalizedProjects(normalizedProjects);
 
 				setProjects(response ?? []);
 			} catch (err) {
@@ -238,6 +252,10 @@ const ClientProfile = () => {
 											(user) => user.id === String(project.lastActivityBy),
 										);
 
+										const actualId = normalizedProjects.find(
+											(p) => Number(p.projectId) === project.id,
+										)?.id;
+
 										return (
 											<div key={project.id} className={styles.projectCard}>
 												<div className={styles.projectTop}>
@@ -325,7 +343,12 @@ const ClientProfile = () => {
 															type="button"
 															className={styles.secondaryButton}
 															onClick={() =>
-																navigate(`/client-projects/${project.id}`)
+																navigate(
+																	`/client-projects/${clientId}/project/${actualId}`,
+																	{
+																		state: project,
+																	},
+																)
 															}
 														>
 															Открыть карточку проекта

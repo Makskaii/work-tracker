@@ -24,13 +24,6 @@ import type { MonthDays } from "./types/types";
 
 export const headers: Header<GroupedReportFields>[] = [
 	{
-		title: "Отчёт",
-		key: "id",
-		render: (value) => {
-			return <div>Отчёт № {value}</div>;
-		},
-	},
-	{
 		title: "Описание",
 		key: "title",
 	},
@@ -256,7 +249,7 @@ const CalendarMonth = ({
 			<Modal
 				isOpen={open}
 				onClose={() => setOpen(false)}
-				size="covered"
+				size="full"
 				innerScroll
 			>
 				{/* {Object.entries(groupedByActivity).map(

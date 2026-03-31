@@ -80,6 +80,16 @@ export default function Modal({
 				}}
 				onClick={(e) => e.stopPropagation()}
 			>
+				{size === "full" && (
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "flex-end",
+						}}
+					>
+						<button onClick={() => onClose?.()}>Назад</button>
+					</div>
+				)}
 				{children}
 			</dialog>
 		</div>,

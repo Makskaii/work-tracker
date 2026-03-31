@@ -53,7 +53,9 @@ const getSinglePropertyValue = (
 	return value ? String(value) : "";
 };
 
-const mapProjectsFromList = (items: ProjectListDto[]): ProjectFromList[] => {
+export const mapProjectsFromList = (
+	items: ProjectListDto[],
+): ProjectFromList[] => {
 	return items
 		.map((element) => ({
 			id: String(element.ID),
@@ -113,7 +115,7 @@ const ReportsPage = () => {
 			const response = await getItems<TaskProps>(
 				EntityTypeIds.tasks,
 				{
-					[UserCodes.project]: currProject === "" ? null : currProject,
+					[UserCodes.client]: currProject === "" ? null : currProject,
 
 					">=createdTime": getSrartEndMonthDate("start", month, year),
 					"<=createdTime": getSrartEndMonthDate("end", month, year),

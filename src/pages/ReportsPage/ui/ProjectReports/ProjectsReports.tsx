@@ -92,7 +92,7 @@ const getReportsByProject = async ({ projectId }: { projectId: string }) => {
 				`parentId${EntityTypeIds.tasks}`,
 			],
 			filter: {
-				[ReportCodes.project]: projectId,
+				[ReportCodes.client]: projectId,
 			},
 		},
 	});
@@ -118,7 +118,7 @@ export const getProjectsTableData = async ({
 	const result = await Promise.all(
 		projects.map(async (project) => {
 			const tasks = await getItems<TaskProps>(EntityTypeIds.tasks, {
-				[TaskCodes.project]: project.ID,
+				[TaskCodes.client]: project.ID,
 			});
 
 			const reports = await getReportsByProject({
@@ -201,7 +201,7 @@ export const getProjectsWithStatuses = async ({
 	const result = await Promise.all(
 		projects.map(async (project) => {
 			const response = await getItems<TaskProps>(EntityTypeIds.tasks, {
-				[TaskCodes.project]: project.ID,
+				[TaskCodes.client]: project.ID,
 				[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 				[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 			});

@@ -4,13 +4,14 @@ import type { ReportProps } from "@/components/calendar/types/types";
 import { TaskItem } from "@/components/taskItem/TaskItemSimple";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
-import type { TaskProps } from "../../../shared/types/types";
+import type { Status, TaskProps } from "../../../shared/types/types";
 
 export const TasksList = ({
 	tasks,
 	reports,
 	setActiveTask,
 	setView,
+	statuses,
 }: {
 	tasks: TaskProps[];
 	reports: {
@@ -18,6 +19,7 @@ export const TasksList = ({
 	};
 	setActiveTask: Dispatch<SetStateAction<TaskProps | null>>;
 	setView: Dispatch<SetStateAction<"task" | "stats">>;
+	statuses: Status[];
 }) => {
 	const { openTask } = useBitrixSlider();
 
@@ -48,6 +50,7 @@ export const TasksList = ({
 							estimateTime={task[TaskCodes.estimateTime]}
 							timeSpent={timespent}
 							key={task.id}
+							statuses={statuses}
 						/>
 					</div>
 				);

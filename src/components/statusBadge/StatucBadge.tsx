@@ -1,14 +1,12 @@
-import { useOutletContext } from "react-router";
-import type { ReportsContext } from "@/shared/types/types";
+import type { Status } from "@/shared/types/types";
 import { Badge } from "../buttons/Badge";
 
 interface StatucBadgeProps {
 	status: string;
+	statuses: Status[];
 }
 
-export const StatucBadge = ({ status }: StatucBadgeProps) => {
-	const { statuses } = useOutletContext<ReportsContext>();
-
+export const StatucBadge = ({ status, statuses }: StatucBadgeProps) => {
 	const getStatucColor = (status: string) => {
 		return statuses.find((st) => status === st.STATUS_ID)?.COLOR;
 	};

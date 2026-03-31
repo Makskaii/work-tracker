@@ -1,5 +1,4 @@
-import { useOutletContext } from "react-router";
-import type { ReportsContext, TaskProps } from "@/shared/types/types";
+import type { Status, TaskProps, User } from "@/shared/types/types";
 import { calcTimeDifference } from "@/shared/utils/calcTimeDifference";
 import { StatucBadge } from "../statusBadge/StatucBadge";
 
@@ -7,12 +6,15 @@ export const TaskItemExtended = ({
 	task,
 	estimateTime,
 	timeSpent,
+	users,
+	statuses,
 }: {
 	task: TaskProps;
 	timeSpent: number;
 	estimateTime: string;
+	statuses: Status[];
+	users: User[];
 }) => {
-	const { users, statuses } = useOutletContext<ReportsContext>();
 	const user = users.find((user) => user.id === String(task.assignedById));
 
 	const getStatucColor = (status: string) => {
@@ -75,7 +77,7 @@ export const TaskItemExtended = ({
 					justifyContent: "space-between",
 				}}
 			>
-				<StatucBadge status={task.stageId} />
+				<StatucBadge status={task.stageId} statuses={statuses} />
 				<span>
 					{timeSpent ?? 0}/{estimateTime} ч
 				</span>

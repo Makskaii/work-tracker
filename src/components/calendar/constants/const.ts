@@ -31,8 +31,9 @@ export enum TaskCodes {
 	description = "ufCrm14_1770731622242",
 	stage = "ufCrm14_1770890673468",
 	estimateTime = "ufCrm14_1770731674952",
-	project = "ufCrm14_1772011269", // TODO сменить на актуальынй код поля проекта из 1092
+	client = "ufCrm14_1772011269", // TODO сменить на актуальынй код поля проекта из 1092
 	reportDate = "ufCrm14_1771314375250",
+	project = "ufCrm14_1774264018",
 	timeSpent = "ufCrm14_1771314387497",
 	comment = "ufCrm14_1771314401297",
 	sprintDateStart = "ufCrm14_1771510367281",
