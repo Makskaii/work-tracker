@@ -64,10 +64,7 @@ export const ListItem = memo(function ListIten({
 					textAlign: "end",
 				}}
 			>
-				{
-					projects.find((proj) => Number(proj.ID) === task?.[UserCodes.project])
-						?.NAME
-				}
+				{projects.find((proj) => proj.ID === task?.[UserCodes.project])?.NAME}
 			</div>
 		</div>
 	);

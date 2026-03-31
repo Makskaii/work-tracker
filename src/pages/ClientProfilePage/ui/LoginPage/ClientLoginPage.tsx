@@ -42,7 +42,7 @@ export const ClientLoginPage = () => {
 				},
 			]);
 
-			navigate(`/client/profile/${clientId}`);
+			navigate(`/client-profile/${clientId}`);
 		} catch (error) {
 			if (error instanceof Error) {
 				notify({

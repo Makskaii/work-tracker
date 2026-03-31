@@ -1,0 +1,406 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+    min-height: 100%;
+}
+
+.heroCard {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border-radius: 28px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #0f172a 100%);
+    color: #fff;
+    box-shadow: 0 24px 50px rgba(37, 99, 235, 0.18);
+
+    @media (max-width: 1100px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.heroMain {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.heroAside {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.badge {
+    width: fit-content;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.projectTitle {
+    margin: 0;
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.05;
+}
+
+.projectSubtitle {
+    margin: 0;
+    max-width: 720px;
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.6;
+}
+
+.periodControls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.periodCard {
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    min-width: 180px;
+}
+
+.periodLabel {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.periodValue {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+}
+
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.kpiCard {
+    padding: 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(8px);
+}
+
+.kpiValue {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.kpiLabel {
+    margin-top: 0.3rem;
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.content {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+    gap: 1.5rem;
+    align-items: start;
+
+    @media (max-width: 1100px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mainColumn,
+.sideColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.sectionCard {
+    padding: 1.25rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.sectionSubtitle {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.94rem;
+}
+
+.chart {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: end;
+    min-height: 320px;
+    padding-top: 1rem;
+}
+
+.chartColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.chartBarArea {
+    position: relative;
+    height: 240px;
+    width: 100%;
+    max-width: 64px;
+    border-radius: 18px 18px 14px 14px;
+    background: linear-gradient(180deg, #f8fbff 0%, #edf3ff 100%);
+    border: 1px solid #dbeafe;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.chartSegment {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    min-height: 10px;
+}
+
+
+.chartMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    text-align: center;
+}
+
+.chartDay {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.chartDate {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.chartTotal {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.legendItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.legendDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legendLabel {
+    color: #334155;
+    font-size: 0.9rem;
+}
+
+.legendValue {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.tasksList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    max-height: 720px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.taskRow {
+    border-radius: 18px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.08);
+    }
+}
+
+.teamList,
+.summaryList,
+.actionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.teamItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.teamInfo {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.teamMeta {
+    font-weight: 600;
+    color: #334155;
+}
+
+.summaryRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.primaryButton,
+.secondaryButton,
+.ghostButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    font-weight: 700;
+    font-size: 0.94rem;
+    transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.primaryButton {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: #fff;
+    box-shadow: 0 12px 22px rgba(37, 99, 235, 0.2);
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+}
+
+.secondaryButton {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+
+    &:hover {
+        background: #dbeafe;
+    }
+}
+
+.ghostButton {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.14);
+    }
+}
+
+.reportView {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.reportToolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(248, 251, 255, 0.92);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+}
+
+
+
+.activityColor1 {
+    background: linear-gradient(180deg, #2563eb 0%, #3b82f6 100%);
+}
+
+.activityColor2 {
+    background: linear-gradient(180deg, #f97316 0%, #fb923c 100%);
+}
+
+.activityColor3 {
+    background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.activityColor4 {
+    background: linear-gradient(180deg, #14b8a6 0%, #2dd4bf 100%);
+}
+
+.activityColor5 {
+    background: linear-gradient(180deg, #64748b 0%, #94a3b8 100%);
+}
+
+.activityColor6 {
+    background: linear-gradient(180deg, #ec4899 0%, #f472b6 100%);
+}

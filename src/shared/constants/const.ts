@@ -33,7 +33,7 @@ export const TASK_SELECT_FIELDS = [
 	"stageId",
 	"createdBy",
 	"movedTime",
-	UserCodes.project,
+	UserCodes.client,
 	UserCodes.estimateTime,
 	UserCodes.description,
 	UserCodes.stage,

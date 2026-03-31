@@ -23,7 +23,7 @@ const today = dayjs();
 export const StatsModal = ({ user }: { user: User }) => {
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
-	const { setUser, projects } = useOutletContext<ReportsContext>();
+	const { setUser, projects, statuses } = useOutletContext<ReportsContext>();
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [reports, setReports] = useState<{
@@ -236,6 +236,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 						reports={reports}
 						setActiveTask={setActiveTask}
 						setView={setView}
+						statuses={statuses}
 					/>
 				</div>
 				<div

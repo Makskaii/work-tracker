@@ -22,7 +22,7 @@ export const getTasksByWeek = async (userId: string) => {
 						"createdTime",
 						"lastActivityTime",
 						"stageId",
-						UserCodes.project,
+						UserCodes.client,
 						UserCodes.estimateTime,
 						UserCodes.description,
 						UserCodes.stage,

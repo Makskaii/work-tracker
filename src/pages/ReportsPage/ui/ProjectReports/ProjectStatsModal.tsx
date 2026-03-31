@@ -27,7 +27,7 @@ import { DoneTasksList } from "./DoneTasksList";
 const today = dayjs();
 
 export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
-	const { users } = useOutletContext<ReportsContext>();
+	const { users, statuses } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
@@ -44,7 +44,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 			const response = await getItems<TaskProps>(
 				EntityTypeIds.tasks,
 				{
-					[TaskCodes.project]: project.ID,
+					[TaskCodes.client]: project.ID,
 					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 				},
@@ -369,6 +369,8 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 										estimateTime={task[TaskCodes.estimateTime]}
 										key={task.id}
 										timeSpent={timespent ?? 0}
+										statuses={statuses}
+										users={users}
 									/>
 								</div>
 							);

@@ -28,7 +28,7 @@ export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 						.format("YYYY-MM-DD"),
 					[`<=${TaskCodes.sprintDateStart}`]: borders.endOfTheWeek,
 					stageId: "DT1072_18:UC_6JNSDG",
-					[TaskCodes.project]: projectId,
+					[TaskCodes.client]: projectId,
 				},
 			},
 		},

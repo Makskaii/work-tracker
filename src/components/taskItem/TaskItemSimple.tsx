@@ -1,4 +1,4 @@
-import type { TaskProps } from "@/shared/types/types";
+import type { Status, TaskProps } from "@/shared/types/types";
 import { calcTimeDifference } from "@/shared/utils/calcTimeDifference";
 import { StatucBadge } from "../statusBadge/StatucBadge";
 
@@ -6,10 +6,12 @@ export const TaskItem = ({
 	task,
 	estimateTime,
 	timeSpent,
+	statuses,
 }: {
 	task: TaskProps;
 	timeSpent: number;
 	estimateTime: string;
+	statuses: Status[];
 }) => {
 	return (
 		<div
@@ -55,7 +57,7 @@ export const TaskItem = ({
 					textAlign: "right",
 				}}
 			>
-				<StatucBadge status={task.stageId} />{" "}
+				<StatucBadge statuses={statuses} status={task.stageId} />
 				<span>
 					{timeSpent ?? 0}/{estimateTime} ч
 				</span>

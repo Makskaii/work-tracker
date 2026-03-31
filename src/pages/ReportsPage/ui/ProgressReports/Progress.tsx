@@ -28,7 +28,7 @@ const Progress = () => {
 	const [groupedTasks, setGroupedTasks] = useState<TGroupedTasks>({});
 	const [weeks, setWeekTasks] = useState<WeeklyTasks[]>([]);
 	const [tasksToShow, setTasksToShow] = useState<TasksWithProject>();
-	const { projects } = useOutletContext<ReportsContext>();
+	const { projects, statuses } = useOutletContext<ReportsContext>();
 
 	const methods = useForm<{
 		userId: string;
@@ -151,7 +151,7 @@ const Progress = () => {
 								{
 									const weekTasksInProject =
 										week.tasks?.filter(
-											(task) => task[UserCodes.project] === Number(projectId),
+											(task) => task[UserCodes.client] === Number(projectId),
 										) || [];
 
 									if (weekTasksInProject.length > 0) {
@@ -229,7 +229,8 @@ const Progress = () => {
 							>
 								{tasksToShow.tasks?.map((task) => (
 									<li key={task.id}>
-										<StatucBadge status={task.stageId} /> {task.title}
+										<StatucBadge statuses={statuses} status={task.stageId} />{" "}
+										{task.title}
 									</li>
 								))}
 							</ul>
