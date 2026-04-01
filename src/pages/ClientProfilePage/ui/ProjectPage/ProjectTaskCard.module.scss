@@ -1,0 +1,114 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1rem;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    border-left: 5px solid #cbd5e1;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    cursor: pointer;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(37, 99, 235, 0.08);
+        border-color: #bfdbfe;
+    }
+}
+
+.topRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.titleBlock {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.taskId {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.assignee {
+    flex-shrink: 0;
+}
+
+.avatar,
+.emptyAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.avatar {
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+.emptyAvatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #94a3b8;
+    font-weight: 700;
+}
+
+.middleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.metaPill {
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.bottomRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 0.25rem;
+    border-top: 1px solid #edf2f7;
+}
+
+.updatedText {
+    font-size: 0.84rem;
+    color: #64748b;
+}
+
+.assigneeName {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #334155;
+}

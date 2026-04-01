@@ -23,10 +23,13 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { Status, TaskProps, User } from "@/shared/types/types";
 import { convertNumberFormat, getWeekArray } from "@/shared/utils";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
 import styles from "./ProjectPage.module.scss";
 import { ProjectReportsTimelineModal } from "./ProjectReportsTimelineModal";
 
 const today = dayjs();
+
+const { VITE_BFF_API_URL } = import.meta.env;
 
 export const ProjectsStats = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -39,6 +42,7 @@ export const ProjectsStats = () => {
 	const { projId } = useParams<{ projId: string }>();
 	const [statuses, setStatuses] = useState<Status[]>([]);
 	const [reportsOpen, setReportsOpen] = useState(false);
+	const [allTasksOpen, setAllTasksOpen] = useState(false);
 
 	const { state } = useLocation();
 
@@ -330,10 +334,8 @@ export const ProjectsStats = () => {
 			});
 
 			const downloadUrl = response.data.downloadUrl;
-
-			setLoadUrl(
-				`https://crm.evolution-soft.ru/devapps/work-tracker/api${downloadUrl}`,
-			);
+			console.log({ response });
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
 
 			setView("task");
 		} catch (error) {
@@ -658,7 +660,11 @@ export const ProjectsStats = () => {
 						<h2 className={styles.sectionTitle}>Быстрые действия</h2>
 
 						<div className={styles.actionsList}>
-							<button type="button" className={styles.secondaryButton}>
+							<button
+								onClick={() => setAllTasksOpen(true)}
+								type="button"
+								className={styles.secondaryButton}
+							>
 								Открыть все задачи
 							</button>
 							<button
@@ -672,7 +678,7 @@ export const ProjectsStats = () => {
 								type="button"
 								className={styles.secondaryButton}
 								onClick={() =>
-									getReportPdf(projId, startOfTheWeek, endOfTheWeek)
+									!loading && getReportPdf(projId, startOfTheWeek, endOfTheWeek)
 								}
 							>
 								Сформировать отчёт
@@ -690,6 +696,16 @@ export const ProjectsStats = () => {
 				users={users}
 				activities={activities}
 				tasks={tasks}
+			/>
+
+			<ProjectAllTasksModal
+				open={allTasksOpen}
+				onClose={() => setAllTasksOpen(false)}
+				projectId={projId}
+				projectName={state.title}
+				users={users}
+				statuses={statuses}
+				reports={allReports}
 			/>
 		</div>
 	);

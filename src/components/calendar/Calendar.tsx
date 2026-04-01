@@ -81,7 +81,7 @@ export const Calendar = ({
 					day: report.begindate,
 					project: report[ReportCodes.project],
 					activity: report[ReportCodes.activityType],
-					assignedById: report.assignedById,
+					assignedById: String(report.assignedById),
 					client: report[ReportCodes.client],
 				})),
 			);
@@ -96,7 +96,7 @@ export const Calendar = ({
 					day: report.begindate,
 					project: report[ReportCodes.project],
 					activity: report[ReportCodes.activityType],
-					assignedById: report.assignedById,
+					assignedById: String(report.assignedById),
 					client: report[ReportCodes.client],
 				})),
 			);
