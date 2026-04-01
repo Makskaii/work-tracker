@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ReportCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
+import { UserCard } from "@/components/userCard/UserCard";
 import type { TaskProps, User } from "@/shared/types/types";
 import styles from "./ReportsModal.module.scss";
 
@@ -15,12 +16,6 @@ type ActivityItem = {
 	BP_PUBLISHED: string;
 	CODE: string | null;
 	SORT: string;
-};
-
-type UserLike = {
-	id: string;
-	name?: string;
-	lastName?: string;
 };
 
 type Props = {
@@ -48,16 +43,6 @@ export const ProjectReportsTimelineModal = ({
 	const [taskMode, setTaskMode] = useState<"all" | "withTask" | "withoutTask">(
 		"all",
 	);
-
-	const userMap = useMemo(() => {
-		return users.reduce(
-			(acc, user) => {
-				acc[String(user.id)] = user as UserLike;
-				return acc;
-			},
-			{} as Record<string, UserLike>,
-		);
-	}, [users]);
 
 	const activityMap = useMemo(() => {
 		return activities.reduce(
@@ -107,15 +92,16 @@ export const ProjectReportsTimelineModal = ({
 				const taskTitle = hasTask ? taskMap[taskId]?.title || "" : "";
 				const activityName =
 					activityMap[String(report[ReportCodes.activityType])]?.NAME || "";
-				const user = userMap[String(report.assignedById)];
-				const userName = `${user?.name || ""} ${user?.lastName || ""}`.trim();
+				const user = users.find(
+					(user) => user.id === String(report.assignedById),
+				);
 
 				const haystack = [
 					report.title,
 					report[ReportCodes.title],
 					taskTitle,
 					activityName,
-					userName,
+					user?.title,
 				]
 					.filter(Boolean)
 					.join(" ")
@@ -134,7 +120,7 @@ export const ProjectReportsTimelineModal = ({
 		search,
 		taskMap,
 		activityMap,
-		userMap,
+		users.find,
 	]);
 
 	const groupedReports = useMemo(() => {
@@ -279,12 +265,17 @@ export const ProjectReportsTimelineModal = ({
 
 									<div className={styles.timeline}>
 										{dayReports.map((report) => {
-											const taskId = String(report[ReportCodes.taskId] ?? "");
+											const taskId = String(
+												report[ReportCodes.parentId] ??
+													report[ReportCodes.taskId],
+											);
 											const hasTask = Boolean(taskId);
 											const task = hasTask ? taskMap[taskId] : null;
 											const activity =
 												activityMap[String(report[ReportCodes.activityType])];
-											const user = userMap[String(report.assignedById)];
+											const user = users.find(
+												(user) => user.id === String(report.assignedById),
+											);
 
 											return (
 												<div key={report.id} className={styles.timelineItem}>
@@ -294,7 +285,7 @@ export const ProjectReportsTimelineModal = ({
 													<div className={styles.reportCard}>
 														<div className={styles.reportTop}>
 															<div className={styles.reportTime}>
-																{dayjs(report.begindate).format("HH:mm")}
+																{dayjs(report.createdTime).format("HH:mm")}
 															</div>
 
 															<div className={styles.reportBadges}>
@@ -322,11 +313,7 @@ export const ProjectReportsTimelineModal = ({
 																	Ответственный
 																</div>
 																<div className={styles.metaValue}>
-																	{user
-																		? `${user.name || ""} ${
-																				user.lastName || ""
-																			}`.trim()
-																		: report.assignedById}
+																	{user && <UserCard user={user} />}
 																</div>
 															</div>
 
