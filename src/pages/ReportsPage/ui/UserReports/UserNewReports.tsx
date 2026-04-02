@@ -12,7 +12,6 @@ import {
 } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
-import { getSrartEndMonthDate } from "@/shared/utils/utils";
 import {
 	getUsersTableData,
 	getWorkWeekBorders,
@@ -24,8 +23,7 @@ import cls from "./UserReports.module.scss";
 const today = dayjs();
 
 export const NewUserReports = () => {
-	const { users, clientsList, month, year, activities } =
-		useOutletContext<ReportsContext>();
+	const { users, projects, activities } = useOutletContext<ReportsContext>();
 	const [open, setOpen] = useState(false);
 	const [activeUser, setActiveUser] = useState<User>();
 	const [showWorkingTable, setShowWorkingTable] = useState(false);
@@ -41,9 +39,6 @@ export const NewUserReports = () => {
 		[day],
 	);
 
-	const currMonth = month ?? dayjs().month();
-	const currYear = year ?? dayjs().year();
-
 	const { data } = useLoadAllData<TaskProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
@@ -52,16 +47,11 @@ export const NewUserReports = () => {
 
 				select: TASK_SELECT_FIELDS,
 				filter: {
-					">=createdTime": getSrartEndMonthDate("start", currMonth, currYear),
-					"<=createdTime": getSrartEndMonthDate("end", currMonth, currYear),
+					stageId: "DT1072_18:CLIENT",
 				},
 			},
 		},
 	});
-
-	const filteredTasks = useMemo(() => {
-		return data.filter((task) => task.stageId === "DT1072_18:CLIENT");
-	}, [data]);
 
 	useEffect(() => {
 		const fetch = async () => {
@@ -126,10 +116,10 @@ export const NewUserReports = () => {
 								<ListItem
 									key={user.id}
 									user={user}
-									task={filteredTasks.find(
+									task={data.find(
 										(task) => task.assignedById === Number(user.id),
 									)}
-									projects={clientsList}
+									projects={projects}
 									onClick={() => setActiveUser(user)}
 								/>
 							))}
