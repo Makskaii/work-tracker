@@ -21,6 +21,6 @@ export const groupTasksByWeek = (res: AnyObject[]) => {
 
 export const groupTasksByProject = (tasks: TaskProps[]) => {
 	return Object.groupBy(tasks, (task) => {
-		return task[UserCodes.client] ?? "unknown";
+		return task[UserCodes.project] ?? "unknown";
 	});
 };

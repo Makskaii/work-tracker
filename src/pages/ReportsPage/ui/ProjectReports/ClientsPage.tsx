@@ -2,13 +2,9 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
-import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
-import {
-	ClientsCodes,
-	EntityTypeIds,
-	TASK_SELECT_FIELDS,
-} from "@/shared/constants/const";
-import type { Header } from "@/shared/types/table";
+import { Modal } from "@/components/modal";
+import { ClientProjectsStats } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectStats";
+import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import type {
 	ClientListItems,
@@ -17,15 +13,50 @@ import type {
 	TaskProps,
 } from "../../../../shared/types/types";
 import { getItems } from "../../api/getTasks";
-import type { ProjectTableRow } from "../../types/types";
 import styles from "./ProjectsReports.module.scss";
 
 type ClientWithProjects = ClientListItems & {
 	projects?: ClientProjectProps[];
 };
 
+const STATUS_META: Record<
+	ProjectStatus,
+	{ label: string; className: string; order: number }
+> = {
+	active: {
+		label: "Active",
+		className: "active",
+		order: 1,
+	},
+	backlog: {
+		label: "Backlog",
+		className: "backlog",
+		order: 2,
+	},
+	done: {
+		label: "Done",
+		className: "done",
+		order: 3,
+	},
+	empty: {
+		label: "Empty",
+		className: "empty",
+		order: 4,
+	},
+};
+
+export const ProjectStatusBadge = ({ status }: { status: ProjectStatus }) => {
+	const meta = STATUS_META[status];
+
+	return (
+		<span className={`${styles.statusBadge} ${styles[meta.className]}`}>
+			{meta.label}
+		</span>
+	);
+};
+
 type ProjectWithStatus = Partial<ClientProjectProps> & {
-	status: string;
+	status: ProjectStatus;
 	tasksCount: number;
 };
 
@@ -43,9 +74,13 @@ export const getRiskColor = (risk: string): string => {
 	return risk === "Перерасход" ? "#ef4444" : "#22c55e";
 };
 
-const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
+type ProjectStatus = "active" | "backlog" | "done" | "empty";
+
+const getProjectStatus = (
+	tasks: Array<{ stageId?: string }>,
+): ProjectStatus => {
 	if (tasks.length === 0) {
-		return "нет задач";
+		return "empty";
 	}
 
 	const hasInWorkTasks = tasks.some(
@@ -58,7 +93,7 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 	);
 
 	if (hasInWorkTasks) {
-		return "в работе";
+		return "active";
 	}
 
 	const hasBacklogTasks = tasks.some(
@@ -66,64 +101,22 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 	);
 
 	if (hasBacklogTasks) {
-		return "в бэклоге";
+		return "backlog";
 	}
 
-	if (
-		tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length !== 0
-	) {
-		return `сделано задач:${tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length}`;
+	const hasDoneTasks = tasks.some(
+		(task) => task.stageId === TASK_STAGE_IDS.DONE,
+	);
+
+	if (hasDoneTasks) {
+		return "done";
 	}
 
-	return "нет задач";
+	return "empty";
 };
-
-export const headersForProjects: Header<ProjectTableRow>[] = [
-	{
-		title: "Проект",
-		key: "title",
-	},
-	{
-		title: "Статус",
-		key: "status",
-	},
-	{
-		title: "План часов",
-		key: "planHours",
-		convertFn: (value) => String(value),
-	},
-	{
-		title: "Потрачено",
-		key: "spentHours",
-		convertFn: (value) => String(value),
-	},
-	{
-		title: "Отклонение",
-		key: "deviation",
-		convertFn: (value) => (value > 0 ? `+${value}` : String(value)),
-	},
-	{
-		title: "Риск",
-		key: "risk",
-		render: (value) => (
-			<TableCell
-				value={value}
-				styles={{
-					color: getRiskColor(value),
-				}}
-			/>
-		),
-	},
-	{
-		title: "Купленные часы на разработку",
-		key: "purchasedHours",
-	},
-];
 
 export const getProjectsWithStatuses = async ({
 	clients,
-	startOfTheWeek,
-	endOfTheWeek,
 }: {
 	clients: ClientWithProjects[];
 	startOfTheWeek: string;
@@ -144,24 +137,24 @@ export const getProjectsWithStatuses = async ({
 				const response = await getItems<TaskProps>(
 					EntityTypeIds.tasks,
 					{
-						[TaskCodes.client]: project.projectId,
-						[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
-						[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
+						[TaskCodes.project]: project.projectId,
 					},
 					TASK_SELECT_FIELDS,
 				);
 
 				const tasks = response ?? [];
 
+				console.log(getProjectStatus(tasks), project.title, tasks);
+
 				return {
 					id: project.id,
-					title: project[ClientsCodes.title],
+					title: project.title,
 					tasksCount: tasks.length,
 					status: getProjectStatus(tasks),
 				};
 			}),
 	);
-
+	console.log({ result });
 	return result;
 };
 
@@ -171,9 +164,11 @@ const ProjectsReports = () => {
 	const [expandedClients, setExpandedClients] = useState<
 		Record<string, boolean>
 	>({});
-
+	const [open, setOpen] = useState<boolean>(false);
 	const { clientsList } = useOutletContext<ReportsContext>();
 	const clients = (clientsList ?? []) as ClientWithProjects[];
+
+	const [activeProject, setActiveProject] = useState<ClientProjectProps>();
 
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
 	const [projectsWithStatus, setProjectsWithStatus] = useState<
@@ -213,51 +208,89 @@ const ProjectsReports = () => {
 
 			<div className={styles.contentContainer}>
 				<div className={styles.itemsContainer}>
-					{clients.map((client) => {
-						const isExpanded = expandedClients[client.ID];
-						const clientProjects = client.projects ?? [];
+					{clients
+						.toSorted((a, b) => {
+							if (a.projects && b.projects) {
+								return b.projects?.length - a.projects?.length;
+							}
+							return 0;
+						})
+						.map((client) => {
+							const isExpanded = expandedClients[client.ID];
+							const clientProjects = client.projects ?? [];
 
-						return (
-							<div key={client.ID} className={styles.clientBlock}>
-								<div
-									className={styles.clientItem}
-									onClick={() => toggleClient(client.ID)}
-								>
-									<div className={styles.clientTitle}>{client.NAME}</div>
-									<div className={styles.clientMeta}>
-										<span>{clientProjects.length} проектов</span>
-										<span className={styles.arrow}>
-											{isExpanded ? "▲" : "▼"}
-										</span>
+							return (
+								<div key={client.ID} className={styles.clientBlock}>
+									<div
+										className={styles.clientItem}
+										onClick={() => toggleClient(client.ID)}
+									>
+										<div className={styles.clientTitle}>{client.NAME}</div>
+										<div className={styles.clientMeta}>
+											<span>{clientProjects.length} проектов</span>
+											<span className={styles.arrow}>
+												{isExpanded ? "▲" : "▼"}
+											</span>
+										</div>
 									</div>
-								</div>
 
-								{isExpanded && (
-									<div className={styles.projectsList}>
-										{clientProjects.map((project) => {
-											const meta = getProjectMeta(String(project.id));
+									{isExpanded && (
+										<div className={styles.projectsList}>
+											{clientProjects
+												.toSorted((a, b) => {
+													const statusA =
+														getProjectMeta(String(a.id))?.status ?? "empty";
+													const statusB =
+														getProjectMeta(String(b.id))?.status ?? "empty";
 
-											return (
-												<div key={project.id} className={styles.projectItem}>
-													<div className={styles.projectTitle}>
-														{project.title}
-													</div>
+													return (
+														STATUS_META[statusA].order -
+														STATUS_META[statusB].order
+													);
+												})
+												.map((project) => {
+													const meta = getProjectMeta(String(project.id));
+													const status = meta?.status ?? "empty";
 
-													<div className={styles.projectInfo}>
-														<div>{meta?.status ?? "нет задач"}</div>
-														<div className={styles.tasksCount}>
-															Задач: {meta?.tasksCount ?? 0}
+													return (
+														<div
+															onClick={() => {
+																setOpen(true);
+																setActiveProject(project);
+															}}
+															key={project.id}
+															className={styles.projectItem}
+														>
+															<div className={styles.projectTitle}>
+																{project.title}
+															</div>
+
+															<div className={styles.projectInfo}>
+																<ProjectStatusBadge status={status} />
+
+																<div className={styles.tasksCount}>
+																	Задач: {meta?.tasksCount ?? 0}
+																</div>
+															</div>
 														</div>
-													</div>
-												</div>
-											);
-										})}
-									</div>
-								)}
-							</div>
-						);
-					})}
+													);
+												})}
+										</div>
+									)}
+								</div>
+							);
+						})}
 				</div>
+				{activeProject && (
+					<Modal
+						isOpen={open}
+						onClose={() => setOpen(false)}
+						innerScroll
+						size="covered"
+					>
+						<ClientProjectsStats project={activeProject} />
+					</Modal>
+				)}
 			</div>
 		</>
 	);

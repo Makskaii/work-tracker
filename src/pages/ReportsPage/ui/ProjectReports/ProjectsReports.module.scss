@@ -111,3 +111,135 @@
   height: 100%;
   gap: 10px;
 }
+
+
+
+.header {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1f2937;
+}
+
+.contentContainer {
+  height: 100%;
+  overflow: auto;
+}
+
+.clientBlock {
+  border: 1px solid #d9dee7;
+  background: #fff;
+}
+
+.clientItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #eef2f7;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.clientTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.clientMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.arrow {
+  font-size: 12px;
+}
+
+.projectsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.projectItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 10px 24px;
+  border-top: 1px solid #f1f5f9;
+  min-height: 48px;
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.projectMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.projectTitle {
+
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projectAside {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tasksCount {
+  font-size: 12px;
+  color: #6b7280;
+  min-width: 68px;
+  text-align: right;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.active {
+  background: #ecfdf3;
+  color: #027a48;
+  border-color: #abefc6;
+}
+
+.backlog {
+  background: #fffaeb;
+  color: #b54708;
+  border-color: #fedf89;
+}
+
+.done {
+  background: #f2f4f7;
+  color: #344054;
+  border-color: #d0d5dd;
+}
+
+.empty {
+  background: #f9fafb;
+  color: #667085;
+  border-color: #eaecf0;
+}

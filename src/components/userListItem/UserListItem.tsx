@@ -1,9 +1,6 @@
 import { memo } from "react";
-import type {
-	ClientListItems,
-	TaskProps,
-	User,
-} from "../../shared/types/types";
+import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
+import type { TaskProps, User } from "../../shared/types/types";
 import { TaskCodes as UserCodes } from "../calendar/constants/const";
 import { UserCard } from "../userCard/UserCard";
 import cls from "./UserItem.module.scss";
@@ -16,7 +13,7 @@ export const ListItem = memo(function ListIten({
 }: {
 	user: User;
 	task?: TaskProps;
-	projects: ClientListItems[];
+	projects: ProjectFromList[];
 	onClick: () => void;
 }) {
 	return (
@@ -64,7 +61,10 @@ export const ListItem = memo(function ListIten({
 					textAlign: "end",
 				}}
 			>
-				{projects.find((proj) => proj.ID === task?.[UserCodes.project])?.NAME}
+				{
+					projects.find((proj) => proj.id === String(task?.[UserCodes.project]))
+						?.name
+				}
 			</div>
 		</div>
 	);
