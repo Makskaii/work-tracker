@@ -7,6 +7,7 @@ import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
+import { ProjectActivityChart } from "@/pages/ReportsPage/ui/ProjectReports/ActivityChart";
 import { DoneTasksList } from "@/pages/ReportsPage/ui/ProjectReports/DoneTasksList";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
@@ -21,7 +22,7 @@ import type {
 	ReportsContext,
 	TaskProps,
 } from "@/shared/types/types";
-import { convertNumberFormat, getWeekArray } from "@/shared/utils";
+import { convertNumberFormat } from "@/shared/utils";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 
 const today = dayjs();
@@ -31,7 +32,7 @@ export const ClientProjectsStats = ({
 }: {
 	project: ClientProjectProps;
 }) => {
-	const { users, statuses } = useOutletContext<ReportsContext>();
+	const { users, statuses, activities } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
@@ -168,8 +169,6 @@ export const ClientProjectsStats = ({
 			{} as Record<number, ReportProps[]>,
 		);
 	}, [data]);
-
-	const week = getWeekArray(borders.startOfTheWeek);
 
 	const getReportPdf = async (
 		projectId: string,
@@ -493,37 +492,19 @@ export const ClientProjectsStats = ({
 								>
 									<span
 										style={{
+											display: "block",
 											marginBottom: "10px",
 										}}
 									>
 										Активность в проекте:
 									</span>
-									<div
-										style={{
-											borderLeft: "1px solid black",
-											borderBottom: "1px solid black",
-											display: "flex",
-											justifyContent: "space-between",
-											minHeight: "300px",
-										}}
-									>
-										{week.map((day) => {
-											return (
-												<div key={day.day}>
-													<div
-														style={{
-															display: "flex",
-															flexDirection: "column",
-															alignItems: "center",
-														}}
-													>
-														<div>{day.name}</div>
-														<div> {dayjs(day.day).format("DD.MM")}</div>
-													</div>
-												</div>
-											);
-										})}
-									</div>
+
+									<ProjectActivityChart
+										reports={data}
+										activities={activities}
+										users={users}
+										startOfWeek={startOfTheWeek}
+									/>
 								</div>
 							</div>
 						</div>

@@ -41,3 +41,9 @@ export const Navigation = [
 		path: "clients",
 	},
 ];
+
+export const ACTIVITY_GROUP_LABELS: Record<string, string> = {
+	"0": "Клиентские",
+	"1": "Внутренние",
+	"2": "Неоплачиваемые",
+};

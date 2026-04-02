@@ -1,3 +1,6 @@
+import type { ReportProps } from "@/components/calendar/types/types";
+import type { User } from "@/shared/types/types";
+
 export interface GroupedFields {
 	id: string;
 	title: string;
@@ -95,4 +98,40 @@ export type GroupedClientItem = {
 	clientTitle: string;
 	timeSpent: number;
 	projects: GroupedProjectItem[];
+};
+
+export type ChartReportItem = {
+	id: string;
+	title: string;
+	date: string;
+	hours: number;
+	activityId: string;
+	activityName: string;
+	activitySort: string;
+	assignedById: string | number;
+	taskId?: string | number;
+	raw: ReportProps;
+};
+
+export type ActivitySegment = {
+	activityId: string;
+	activityName: string;
+	activitySort: string;
+	totalHours: number;
+	percent: number;
+	reports: ChartReportItem[];
+};
+
+export type DayColumn = {
+	date: string;
+	dayName: string;
+	totalHours: number;
+	segments: ActivitySegment[];
+};
+
+export type ProjectActivityChartProps = {
+	reports: ReportProps[];
+	activities: ActivityListItem[];
+	users: User[];
+	startOfWeek: string;
 };
