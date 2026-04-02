@@ -222,7 +222,10 @@ export const ProjectActivityChart = ({
 											}}
 										>
 											<button
-												onClick={() => openTask(taskId, EntityTypeIds.tasks)}
+												onClick={(e) => {
+													e.stopPropagation();
+													openTask(taskId);
+												}}
 												type="button"
 												style={{
 													background: "#2196f3",
