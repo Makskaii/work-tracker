@@ -152,7 +152,7 @@ export const SalesPage = () => {
 					kpCount: kpItems.length,
 					activeDeals: activeDealsCount,
 					salesCount: wonItems.length,
-					totalSales: items.reduce((acc: number, item) => {
+					totalSales: wonItems.reduce((acc: number, item) => {
 						if (item.stageId === "WON") {
 							return acc + Number(item.opportunity || 0);
 						}
