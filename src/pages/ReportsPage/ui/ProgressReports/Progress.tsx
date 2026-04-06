@@ -41,13 +41,13 @@ const Progress = () => {
 	const handleChange = handleSubmit(async (data) => {
 		try {
 			const res = await getTasksByWeek(data.userId);
-			const tasks = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
+			const tasks = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
 					assygnedById: data.userId,
 				},
-				TASK_SELECT_FIELDS,
-			);
+				select: TASK_SELECT_FIELDS,
+			});
 
 			setGroupedTasks(groupTasksByProject(tasks));
 

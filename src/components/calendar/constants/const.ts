@@ -1,4 +1,3 @@
-
 export const months = [
 	"Январь",
 	"Февраль",
@@ -15,7 +14,6 @@ export const months = [
 ];
 
 export const years = Array.from({ length: 10 }, (_, i) => 2020 + i);
-
 
 export enum ReportCodes {
 	title = "ufCrm11_1770627903531",
@@ -37,6 +35,7 @@ export enum TaskCodes {
 	timeSpent = "ufCrm14_1771314387497",
 	comment = "ufCrm14_1771314401297",
 	sprintDateStart = "ufCrm14_1771510367281",
+	linkedTasks = "ufCrm14_1775462592",
 }
 
 export enum ActivityType {

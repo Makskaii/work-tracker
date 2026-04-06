@@ -54,6 +54,7 @@ export interface TaskProps {
 	[UserCodes.stage]: string;
 	[UserCodes.timeSpent]: string;
 	[UserCodes.project]: string;
+	[UserCodes.linkedTasks]?: number[];
 }
 
 export interface User {

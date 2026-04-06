@@ -27,6 +27,8 @@ import { DoneTasksList } from "./DoneTasksList";
 
 const today = dayjs();
 
+const { VITE_BFF_API_URL } = import.meta.env;
+
 export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 	const { users, statuses, activities } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -42,15 +44,15 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 
 	useEffect(() => {
 		const fetchTasks = async () => {
-			const response = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
+			const response = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
 					[TaskCodes.client]: project.ID,
 					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 				},
-				TASK_SELECT_FIELDS,
-			);
+				select: TASK_SELECT_FIELDS,
+			});
 			setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
 		};
 
@@ -182,9 +184,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 
 			const downloadUrl = response.data.downloadUrl;
 
-			setLoadUrl(
-				`https://crm.evolution-soft.ru/devapps/work-tracker/api${downloadUrl}`,
-			);
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
 		} catch (error) {
 			console.log(error);
 		} finally {

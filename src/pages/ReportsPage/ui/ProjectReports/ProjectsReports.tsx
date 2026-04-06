@@ -117,8 +117,11 @@ export const getProjectsTableData = async ({
 }): Promise<ProjectTableRow[]> => {
 	const result = await Promise.all(
 		projects.map(async (project) => {
-			const tasks = await getItems<TaskProps>(EntityTypeIds.tasks, {
-				[TaskCodes.client]: project.ID,
+			const tasks = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
+					[TaskCodes.client]: project.ID,
+				},
 			});
 
 			const reports = await getReportsByProject({
@@ -200,10 +203,13 @@ export const getProjectsWithStatuses = async ({
 }): Promise<ProjectWithStatus[]> => {
 	const result = await Promise.all(
 		projects.map(async (project) => {
-			const response = await getItems<TaskProps>(EntityTypeIds.tasks, {
-				[TaskCodes.client]: project.ID,
-				[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
-				[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
+			const response = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
+					[TaskCodes.client]: project.ID,
+					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
+					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
+				},
 			});
 
 			const tasks = response ?? [];

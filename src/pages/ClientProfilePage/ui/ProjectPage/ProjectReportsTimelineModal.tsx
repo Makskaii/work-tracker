@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { ReportCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
-import { UserCard } from "@/components/userCard/UserCard";
 import type { TaskProps, User } from "@/shared/types/types";
 import styles from "./ReportsModal.module.scss";
 
@@ -38,9 +37,9 @@ export const ProjectReportsTimelineModal = ({
 	tasks,
 }: Props) => {
 	const [search, setSearch] = useState("");
-	const [selectedUser, setSelectedUser] = useState("all");
-	const [selectedActivity, setSelectedActivity] = useState("all");
-	const [taskMode, setTaskMode] = useState<"all" | "withTask" | "withoutTask">(
+	const [selectedUser, _setSelectedUser] = useState("all");
+	const [selectedActivity, _setSelectedActivity] = useState("all");
+	const [taskMode, _setTaskMode] = useState<"all" | "withTask" | "withoutTask">(
 		"all",
 	);
 
@@ -195,7 +194,7 @@ export const ProjectReportsTimelineModal = ({
 						onChange={(e) => setSearch(e.target.value)}
 					/>
 
-					<select
+					{/* <select
 						className={styles.select}
 						value={selectedUser}
 						onChange={(e) => setSelectedUser(e.target.value)}
@@ -219,9 +218,9 @@ export const ProjectReportsTimelineModal = ({
 								{activity.NAME}
 							</option>
 						))}
-					</select>
+					</select> */}
 
-					<select
+					{/* <select
 						className={styles.select}
 						value={taskMode}
 						onChange={(e) =>
@@ -231,15 +230,15 @@ export const ProjectReportsTimelineModal = ({
 						<option value="all">Все отчёты</option>
 						<option value="withTask">Только с задачей</option>
 						<option value="withoutTask">Только без задачи</option>
-					</select>
+					</select> */}
 
-					<button
+					{/* <button
 						type="button"
 						className={styles.closeButton}
 						onClick={onClose}
 					>
 						Закрыть
-					</button>
+					</button> */}
 				</div>
 
 				<div className={styles.layout}>
@@ -273,9 +272,6 @@ export const ProjectReportsTimelineModal = ({
 											const task = hasTask ? taskMap[taskId] : null;
 											const activity =
 												activityMap[String(report[ReportCodes.activityType])];
-											const user = users.find(
-												(user) => user.id === String(report.assignedById),
-											);
 
 											return (
 												<div key={report.id} className={styles.timelineItem}>
@@ -284,9 +280,9 @@ export const ProjectReportsTimelineModal = ({
 
 													<div className={styles.reportCard}>
 														<div className={styles.reportTop}>
-															<div className={styles.reportTime}>
+															{/* <div className={styles.reportTime}>
 																{dayjs(report.createdTime).format("HH:mm")}
-															</div>
+															</div> */}
 
 															<div className={styles.reportBadges}>
 																<span className={styles.activityBadge}>
@@ -308,14 +304,14 @@ export const ProjectReportsTimelineModal = ({
 														</div>
 
 														<div className={styles.metaGrid}>
-															<div className={styles.metaCard}>
+															{/* <div className={styles.metaCard}>
 																<div className={styles.metaLabel}>
 																	Ответственный
 																</div>
 																<div className={styles.metaValue}>
 																	{user && <UserCard user={user} />}
 																</div>
-															</div>
+															</div> */}
 
 															<div className={styles.metaCard}>
 																<div className={styles.metaLabel}>Задача</div>
@@ -323,15 +319,6 @@ export const ProjectReportsTimelineModal = ({
 																	{hasTask
 																		? task?.title || `Задача #${taskId}`
 																		: "Без задачи"}
-																</div>
-															</div>
-
-															<div className={styles.metaCard}>
-																<div className={styles.metaLabel}>Создан</div>
-																<div className={styles.metaValue}>
-																	{dayjs(report.createdTime).format(
-																		"DD.MM.YYYY HH:mm",
-																	)}
 																</div>
 															</div>
 														</div>

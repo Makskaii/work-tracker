@@ -27,13 +27,13 @@ export const UserCard = ({ user }: { user: User }) => {
 				}}
 			>
 				<span>{user.title}</span>
-				<span
+				{/* <span
 					style={{
 						color: "#bdbbbb",
 					}}
 				>
 					{user.position}
-				</span>
+				</span> */}
 			</div>
 		</div>
 	);

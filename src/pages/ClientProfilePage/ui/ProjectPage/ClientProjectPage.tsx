@@ -5,14 +5,13 @@ import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
-import { UserCard } from "@/components/userCard/UserCard";
 import { getDevelopers } from "@/pages/ReportsPage/api/getDevelopers";
 import { getStatuses } from "@/pages/ReportsPage/api/getStatusFields";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
 import { DoneTasksList } from "@/pages/ReportsPage/ui/ProjectReports/DoneTasksList";
 import { getActivitiesList } from "@/shared/api/getCrmFields";
-import { $backendApi } from "@/shared/config/axios/axios.config";
+import { $api, $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	Endpoints,
 	EntityTypeIds,
@@ -23,15 +22,18 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { Status, TaskProps, User } from "@/shared/types/types";
 import { convertNumberFormat, getWeekArray } from "@/shared/utils";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { TaskBundleSection } from "../BundleSection/TaskBundleSection";
 import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
 import styles from "./ProjectPage.module.scss";
 import { ProjectReportsTimelineModal } from "./ProjectReportsTimelineModal";
 
 const today = dayjs();
 
+export type TaskBundle = TaskProps & { tasks: TaskProps[] };
+
 const { VITE_BFF_API_URL } = import.meta.env;
 
-export const ProjectsStats = () => {
+export const ClientProjectPage = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [day, setDay] = useState<Dayjs>(today);
 	const [view, setView] = useState<"stats" | "task">("stats");
@@ -43,7 +45,8 @@ export const ProjectsStats = () => {
 	const [statuses, setStatuses] = useState<Status[]>([]);
 	const [reportsOpen, setReportsOpen] = useState(false);
 	const [allTasksOpen, setAllTasksOpen] = useState(false);
-
+	const [bundle, setBundles] = useState<TaskBundle[]>([]);
+	console.log({ bundle });
 	const { state } = useLocation();
 
 	const { openTask } = useBitrixSlider();
@@ -63,15 +66,15 @@ export const ProjectsStats = () => {
 
 	useEffect(() => {
 		const fetchTasks = async () => {
-			const response = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
+			const response = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
 					[TaskCodes.project]: projId,
 					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 				},
-				TASK_SELECT_FIELDS,
-			);
+				select: TASK_SELECT_FIELDS,
+			});
 
 			setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
 		};
@@ -82,6 +85,51 @@ export const ProjectsStats = () => {
 	const devsIds = useMemo(() => {
 		return new Set(tasks.map((task) => task.assignedById));
 	}, [tasks]);
+
+	useEffect(() => {
+		const fetchBundles = async () => {
+			const bundleTask = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
+					[TaskCodes.project]: projId,
+					[`!${TaskCodes.linkedTasks}`]: false,
+				},
+				select: TASK_SELECT_FIELDS,
+			});
+
+			const bundlesWithTasks = await Promise.all(
+				bundleTask.map(async (bundle) => {
+					const linkedTaskIds = bundle[TaskCodes.linkedTasks] ?? [];
+
+					const tasks = await Promise.all(
+						linkedTaskIds.map(async (taskId) => {
+							const response = await $api.get<{
+								result: {
+									item: TaskProps;
+								};
+							}>(Endpoints.item, {
+								params: {
+									entityTypeId: EntityTypeIds.tasks,
+									id: taskId,
+								},
+							});
+
+							return response.data.result.item;
+						}),
+					);
+
+					return {
+						...bundle,
+						tasks,
+					} as TaskBundle;
+				}),
+			);
+
+			setBundles(bundlesWithTasks);
+		};
+
+		fetchBundles();
+	}, [projId]);
 
 	useEffect(() => {
 		const fetchActivities = async () => {
@@ -611,7 +659,8 @@ export const ProjectsStats = () => {
 				</div>
 
 				<div className={styles.sideColumn}>
-					<div className={styles.sectionCard}>
+					<TaskBundleSection bundles={bundle} />
+					{/* <div className={styles.sectionCard}>
 						<h2 className={styles.sectionTitle}>Команда проекта</h2>
 
 						<div className={styles.teamList}>
@@ -631,7 +680,7 @@ export const ProjectsStats = () => {
 								</div>
 							))}
 						</div>
-					</div>
+					</div> */}
 
 					<div className={styles.sectionCard}>
 						<h2 className={styles.sectionTitle}>Сводка по спринту</h2>

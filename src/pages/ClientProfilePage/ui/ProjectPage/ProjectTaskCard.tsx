@@ -39,19 +39,6 @@ export const ProjectTaskCard = ({
 					<div className={styles.taskId}>#{task.id}</div>
 					<div className={styles.title}>{task.title}</div>
 				</div>
-
-				{user ? (
-					<div className={styles.assignee}>
-						<img
-							src={user.photo}
-							alt={user.title}
-							title={user.title}
-							className={styles.avatar}
-						/>
-					</div>
-				) : (
-					<div className={styles.emptyAvatar}>—</div>
-				)}
 			</div>
 
 			<div className={styles.middleRow}>

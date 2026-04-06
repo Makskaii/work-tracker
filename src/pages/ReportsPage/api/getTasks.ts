@@ -2,11 +2,15 @@ import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
 import type { AnyObject } from "../../../shared/types/types";
 
-export const getItems = async <T>(
-	typeId: number,
-	filters?: AnyObject,
-	select?: readonly string[],
-): Promise<T[]> => {
+export const getItems = async <T>({
+	typeId,
+	filters,
+	select,
+}: {
+	typeId: number;
+	filters?: AnyObject;
+	select?: readonly string[];
+}): Promise<T[]> => {
 	try {
 		const response = await $api.get(Endpoints.crmItems, {
 			params: {

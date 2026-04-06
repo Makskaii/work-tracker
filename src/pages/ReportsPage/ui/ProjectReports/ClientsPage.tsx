@@ -134,13 +134,13 @@ export const getProjectsWithStatuses = async ({
 		allProjectsWithClient
 			.filter((item) => item.projectId)
 			.map(async (project) => {
-				const response = await getItems<TaskProps>(
-					EntityTypeIds.tasks,
-					{
+				const response = await getItems<TaskProps>({
+					typeId: EntityTypeIds.tasks,
+					filters: {
 						[TaskCodes.project]: project.projectId,
 					},
-					TASK_SELECT_FIELDS,
-				);
+					select: TASK_SELECT_FIELDS,
+				});
 
 				const tasks = response ?? [];
 
