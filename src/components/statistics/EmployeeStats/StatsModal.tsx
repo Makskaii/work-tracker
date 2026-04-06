@@ -107,7 +107,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 									"assignedById",
 									"createdTime",
 									"lastActivityTime",
-									`parentId${EntityTypeIds.tasks}`,
+									`parentId1072`,
 								],
 								filter: {
 									[ReportCodes.parentId]: task.id,
@@ -127,8 +127,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 					if (!items.length) continue;
 
 					const taskId =
-						String(items[0]?.[ReportCodes.taskId] ?? "") ||
-						String(items[0]?.[ReportCodes.parentId] ?? "");
+						String(items[0]?.parentId1072) ??
+						String(items[0]?.[ReportCodes.taskId]);
 
 					if (taskId) {
 						nextMap[taskId] = items;
@@ -172,8 +172,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 						],
 						filter: {
 							assignedById: user.id,
-							">=createdTime": borders.startOfTheWeek,
-							"<=createdTime": borders.endOfTheWeek,
+							">=begindate": borders.startOfTheWeek,
+							"<=begindate": borders.endOfTheWeek,
 						},
 					},
 				});

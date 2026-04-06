@@ -225,7 +225,7 @@ export const EmployeeStats = ({
 		for (const report of allSprintReports) {
 			const activityId = String(report[ReportCodes.activityType] ?? "");
 			const timeSpent = Number(report[ReportCodes.timeSpent] ?? 0);
-
+			console.log({ report });
 			const activityName =
 				activities.find((item) => item.ID === activityId)?.NAME ||
 				"Без активности";
@@ -318,13 +318,6 @@ export const EmployeeStats = ({
 	const devDeg = getProgressDeg(stats.spentAllReports, stats.devCapacity);
 	const fullDeg = getProgressDeg(stats.spentAllReports, stats.fullCapacity);
 
-	const fullBadge =
-		stats.deficitHours > 0
-			? `Риск: не хватает ${stats.deficitHours}ч`
-			: stats.availableReserveHours > 0
-				? `Резерв: ${stats.availableReserveHours}ч`
-				: "Впритык";
-
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 			<div className={cls.container}>
@@ -360,7 +353,6 @@ export const EmployeeStats = ({
 					<div className={cls.statValue}>
 						{stats.spentAllReports} / {stats.fullCapacity}ч
 					</div>
-					<div className={cls.statBadge}>{fullBadge}</div>
 				</div>
 
 				<div className={cls.statCard}>
@@ -415,16 +407,6 @@ export const EmployeeStats = ({
 					<div className={cls.statValue}>{stats.availableReserveHours}ч</div>
 					<div className={cls.statBadge}>
 						Использовано: {stats.usedReserveHours}ч
-					</div>
-				</div>
-
-				<div className={cls.statCard}>
-					<div className={cls.statLabel}>Остаток по задачам</div>
-					<div className={cls.statValue}>{stats.remainingTaskHours}ч</div>
-					<div className={cls.statBadge}>
-						{stats.deficitHours > 0
-							? `Не помещается: ${stats.deficitHours}ч`
-							: "Помещается в остаток спринта"}
 					</div>
 				</div>
 			</div>
