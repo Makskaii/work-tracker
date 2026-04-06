@@ -27,6 +27,8 @@ import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeek
 
 const today = dayjs();
 
+const { VITE_BFF_API_URL } = import.meta.env;
+
 export const ClientProjectsStats = ({
 	project,
 }: {
@@ -46,15 +48,15 @@ export const ClientProjectsStats = ({
 
 	useEffect(() => {
 		const fetchTasks = async () => {
-			const response = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
+			const response = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
 					[TaskCodes.project]: project.projectId,
 					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 				},
-				TASK_SELECT_FIELDS,
-			);
+				select: TASK_SELECT_FIELDS,
+			});
 			setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
 		};
 
@@ -185,9 +187,7 @@ export const ClientProjectsStats = ({
 
 			const downloadUrl = response.data.downloadUrl;
 
-			setLoadUrl(
-				`https://crm.evolution-soft.ru/devapps/work-tracker/api${downloadUrl}`,
-			);
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
 		} catch (error) {
 			console.log(error);
 		} finally {

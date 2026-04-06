@@ -37,8 +37,8 @@ export const ProjectAllTasksModal = ({
 	const [error, setError] = useState<string | null>(null);
 
 	const [search, setSearch] = useState("");
-	const [selectedStatus, setSelectedStatus] = useState("all");
-	const [sortMode, setSortMode] = useState<SortMode>("updated_desc");
+	const [selectedStatus, _setSelectedStatus] = useState("all");
+	const [sortMode, _setSortMode] = useState<SortMode>("updated_desc");
 
 	const { openTask } = useBitrixSlider();
 
@@ -50,13 +50,13 @@ export const ProjectAllTasksModal = ({
 				setLoading(true);
 				setError(null);
 
-				const response = await getItems<TaskProps>(
-					EntityTypeIds.tasks,
-					{
+				const response = await getItems<TaskProps>({
+					typeId: EntityTypeIds.tasks,
+					filters: {
 						[TaskCodes.project]: projectId,
 					},
-					TASK_SELECT_FIELDS,
-				);
+					select: TASK_SELECT_FIELDS,
+				});
 
 				setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
 			} catch (err) {
@@ -163,38 +163,6 @@ export const ProjectAllTasksModal = ({
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 					/>
-
-					<select
-						className={styles.select}
-						value={selectedStatus}
-						onChange={(e) => setSelectedStatus(e.target.value)}
-					>
-						<option value="all">Все статусы</option>
-						{statuses.map((status) => (
-							<option key={status.STATUS_ID} value={status.STATUS_ID}>
-								{status.NAME}
-							</option>
-						))}
-					</select>
-
-					<select
-						className={styles.select}
-						value={sortMode}
-						onChange={(e) => setSortMode(e.target.value as SortMode)}
-					>
-						<option value="updated_desc">Сначала обновлённые</option>
-						<option value="updated_asc">Сначала старые</option>
-						<option value="title_asc">Название А-Я</option>
-						<option value="title_desc">Название Я-А</option>
-					</select>
-
-					<button
-						type="button"
-						className={styles.closeButton}
-						onClick={onClose}
-					>
-						Закрыть
-					</button>
 				</div>
 
 				<div className={styles.content}>

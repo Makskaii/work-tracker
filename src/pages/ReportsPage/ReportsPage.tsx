@@ -112,16 +112,16 @@ const ReportsPage = () => {
 
 	useEffect(() => {
 		const fetchTasks = async () => {
-			const response = await getItems<TaskProps>(
-				EntityTypeIds.tasks,
-				{
+			const response = await getItems<TaskProps>({
+				typeId: EntityTypeIds.tasks,
+				filters: {
 					[UserCodes.client]: currProject === "" ? null : currProject,
 
 					">=createdTime": getSrartEndMonthDate("start", month, year),
 					"<=createdTime": getSrartEndMonthDate("end", month, year),
 				},
-				TASK_SELECT_FIELDS,
-			);
+				select: TASK_SELECT_FIELDS,
+			});
 
 			setTasks(response);
 		};
@@ -169,12 +169,12 @@ const ReportsPage = () => {
 			try {
 				const response = await Promise.all(
 					clients.map(async (client) => {
-						const projects = await getItems<ClientProjectProps>(
-							EntityTypeIds.projects,
-							{
+						const projects = await getItems<ClientProjectProps>({
+							typeId: EntityTypeIds.projects,
+							filters: {
 								[ClientsCodes.client]: client.ID,
 							},
-						);
+						});
 
 						const projectsWithRealId = (projects ?? []).map((project) => {
 							const projectTitle = String(project.title ?? "")

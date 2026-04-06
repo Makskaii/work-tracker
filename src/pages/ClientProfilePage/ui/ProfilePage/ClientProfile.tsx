@@ -122,12 +122,12 @@ const ClientProfile = () => {
 				setLoading(true);
 				setError(null);
 
-				const response = await getItems<ClientProjectProps>(
-					EntityTypeIds.projects,
-					{
+				const response = await getItems<ClientProjectProps>({
+					typeId: EntityTypeIds.projects,
+					filters: {
 						[ClientsCodes.client]: clientId,
 					},
-				);
+				});
 
 				const projectsList = await getProjectsFromList();
 
