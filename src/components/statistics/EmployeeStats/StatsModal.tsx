@@ -23,15 +23,29 @@ const today = dayjs();
 export const StatsModal = ({ user }: { user: User }) => {
 	const [day, setDay] = useState<Dayjs>(today);
 	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
-	const { setUser, projects, statuses } = useOutletContext<ReportsContext>();
+
+	const { setUser, projects, statuses, activities } =
+		useOutletContext<ReportsContext>();
+
 	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
-	const [reports, setReports] = useState<{
-		[key: string]: ReportProps[];
-	}>({});
+	const [reportsByTask, setReportsByTask] = useState<
+		Record<string, ReportProps[]>
+	>({});
+	const [allSprintReports, setAllSprintReports] = useState<ReportProps[]>([]);
 	const [activeTask, setActiveTask] = useState<TaskProps | null>(null);
-
 	const [view, setView] = useState<"task" | "stats">("stats");
+
+	const [taskFilter, setTaskFilter] = useState<"all" | "overrun">("all");
+	const [overrunTaskIds, setOverrunTaskIds] = useState<string[]>([]);
+
+	const filteredTasks = useMemo(() => {
+		if (taskFilter === "overrun") {
+			return tasks.filter((task) => overrunTaskIds.includes(String(task.id)));
+		}
+
+		return tasks;
+	}, [tasks, taskFilter, overrunTaskIds]);
 
 	useEffect(() => {
 		const getTasks = async () => {
@@ -43,7 +57,6 @@ export const StatsModal = ({ user }: { user: User }) => {
 				}>(Endpoints.crmItems, {
 					params: {
 						entityTypeId: EntityTypeIds.tasks,
-
 						select: TASK_SELECT_FIELDS,
 						filter: {
 							[`<=${TaskCodes.sprintDateStart}`]: borders.endOfTheWeek,
@@ -53,26 +66,31 @@ export const StatsModal = ({ user }: { user: User }) => {
 					},
 				});
 
-				setTasks(
-					response.data.result.items.toSorted((a, b) =>
-						a.stageId.localeCompare(b.stageId),
-					),
+				const items = response.data.result.items.toSorted((a, b) =>
+					a.stageId.localeCompare(b.stageId),
 				);
-				setGrouped(groupTasksByProject(response.data.result.items));
-			} catch {
-				console.log("Ошибка при получении списка сотрудников");
+
+				setTasks(items);
+				setGrouped(groupTasksByProject(items));
+			} catch (error) {
+				console.log("Ошибка при получении задач сотрудника", error);
 			}
 		};
 
 		if (user.id) {
 			getTasks();
 		}
-	}, [user.id, borders]);
+	}, [user.id, borders.startOfTheWeek, borders.endOfTheWeek]);
 
 	useEffect(() => {
 		const getReportsByTask = async () => {
 			try {
-				const reportsByTask = await Promise.all(
+				if (!tasks.length) {
+					setReportsByTask({});
+					return;
+				}
+
+				const responses = await Promise.all(
 					tasks.map((task) =>
 						$api.get(Endpoints.crmItems, {
 							params: {
@@ -89,7 +107,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 									"assignedById",
 									"createdTime",
 									"lastActivityTime",
-									`parentId${EntityTypeIds.tasks}`,
+									`parentId1072`,
 								],
 								filter: {
 									[ReportCodes.parentId]: task.id,
@@ -102,36 +120,74 @@ export const StatsModal = ({ user }: { user: User }) => {
 					),
 				);
 
-				reportsByTask.map((item) => {
-					const items = item.data.result.items;
+				const nextMap: Record<string, ReportProps[]> = {};
 
-					if (items.length !== 0)
-						setReports((prev) => ({
-							...prev,
-							[items[0]?.[ReportCodes.taskId]]: items,
-							[items[0]?.[ReportCodes.parentId]]: items,
-						}));
-				});
+				for (const response of responses) {
+					const items = response.data.result.items as ReportProps[];
+					if (!items.length) continue;
+
+					const taskId =
+						String(items[0]?.parentId1072) ??
+						String(items[0]?.[ReportCodes.taskId]);
+
+					if (taskId) {
+						nextMap[taskId] = items;
+					}
+				}
+
+				setReportsByTask(nextMap);
 			} catch (error) {
-				console.log(error);
+				console.log("Ошибка при получении отчетов по задачам", error);
 			}
 		};
 
-		if (user) getReportsByTask();
-	}, [tasks, user, borders.endOfTheWeek, borders.startOfTheWeek]);
-
-	const totlaTimeSpent = tasks.reduce((acc, task) => {
-		const timespent = reports?.[task.id]?.reduce((acc, report) => {
-			return acc + Number(report[ReportCodes.timeSpent]);
-		}, 0);
-
-		if (timespent) {
-			acc += timespent;
-			return acc;
+		if (user.id) {
+			getReportsByTask();
 		}
+	}, [tasks, user.id, borders.startOfTheWeek, borders.endOfTheWeek]);
 
-		return acc;
-	}, 0);
+	useEffect(() => {
+		const getAllSprintReports = async () => {
+			try {
+				const response = await $api.get<{
+					result: {
+						items: ReportProps[];
+					};
+				}>(Endpoints.crmItems, {
+					params: {
+						entityTypeId: EntityTypeIds.reports,
+						select: [
+							"id",
+							"title",
+							"begindate",
+							ReportCodes.title,
+							ReportCodes.timeSpent,
+							ReportCodes.project,
+							ReportCodes.taskId,
+							ReportCodes.activityType,
+							"assignedById",
+							"createdTime",
+							"lastActivityTime",
+							`parentId${EntityTypeIds.tasks}`,
+						],
+						filter: {
+							assignedById: user.id,
+							">=begindate": borders.startOfTheWeek,
+							"<=begindate": borders.endOfTheWeek,
+						},
+					},
+				});
+
+				setAllSprintReports(response.data.result.items ?? []);
+			} catch (error) {
+				console.log("Ошибка при получении всех отчетов сотрудника", error);
+			}
+		};
+
+		if (user.id) {
+			getAllSprintReports();
+		}
+	}, [user.id, borders.startOfTheWeek, borders.endOfTheWeek]);
 
 	return (
 		<div
@@ -161,7 +217,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 						}}
 						onClick={() => setUser(user.id)}
 					>
-						<Link to="/reports/calendar"> Календарь отчетов</Link>
+						<Link to="/reports/calendar">Календарь отчетов</Link>
 					</div>
 				</div>
 
@@ -186,10 +242,12 @@ export const StatsModal = ({ user }: { user: User }) => {
 					>
 						пред. спринт
 					</button>
+
 					<div>
 						{dayjs(borders.startOfTheWeek).format("DD.MM")}-
 						{dayjs(borders.endOfTheWeek).format("DD.MM")}
 					</div>
+
 					<button
 						style={{
 							background: "white",
@@ -226,36 +284,68 @@ export const StatsModal = ({ user }: { user: User }) => {
 							padding: "0.5rem 0",
 							display: "flex",
 							justifyContent: "space-between",
+							zIndex: 2,
 						}}
 					>
-						<span> Задачи спринта:</span>
-						<span>Времени затрачено/Оценка</span>
+						<span>
+							Задачи спринта:
+							{taskFilter === "overrun" && (
+								<button
+									style={{
+										marginLeft: "12px",
+										background: "#f3f4f6",
+										color: "#374151",
+									}}
+									onClick={() => setTaskFilter("all")}
+								>
+									Сбросить фильтр
+								</button>
+							)}
+						</span>
+						<span>Времени затрачено / Оценка</span>
 					</div>
+
 					<TasksList
-						tasks={tasks}
-						reports={reports}
+						tasks={filteredTasks}
+						reports={reportsByTask}
 						setActiveTask={setActiveTask}
 						setView={setView}
 						statuses={statuses}
 					/>
 				</div>
+
 				<div
 					style={{
 						flex: 1,
 						padding: "0 1rem",
+						overflowY: "auto",
+						height: "calc(100vh * 0.65)",
 					}}
 				>
 					{view === "task" && activeTask ? (
 						<TaskView
-							taskId={activeTask?.id}
+							taskId={activeTask.id}
 							setActiveTask={setActiveTask}
 							setView={setView}
 						/>
 					) : (
 						<>
-							<EmployeeStats tasks={tasks} total={totlaTimeSpent} />
+							<EmployeeStats
+								tasks={tasks}
+								taskReportsMap={reportsByTask}
+								allSprintReports={allSprintReports}
+								activities={activities}
+								sprintStart={borders.startOfTheWeek}
+								sprintEnd={borders.endOfTheWeek}
+								onOpenOverrunTasks={(taskIds) => {
+									setOverrunTaskIds(taskIds);
+									setTaskFilter("overrun");
+								}}
+								doneStageId={"DT1072_18:UC_6JNSDG"}
+							/>
+
 							{tasks.length !== 0 && (
-								<div>
+								<div style={{ marginTop: "1rem" }}>
 									<div
 										style={{
 											display: "flex",
@@ -263,8 +353,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 											marginBottom: "1rem",
 										}}
 									>
-										<div> Список проектов:</div>
-										<div> Задач в проекте:</div>
+										<div>Список проектов:</div>
+										<div>Задач в проекте:</div>
 									</div>
 
 									<div
@@ -272,30 +362,33 @@ export const StatsModal = ({ user }: { user: User }) => {
 											display: "flex",
 											flexDirection: "column",
 											overflowY: "auto",
-											height: "calc(100vh * 0.4)",
+											height: "calc(100vh * 0.25)",
 											background: "#f9fafb",
 											padding: "1rem",
 											gap: "10px",
 											borderRadius: "24px",
 										}}
 									>
-										{Object.entries(grouped).map(([projectId, tasks]) => (
-											<div
-												key={projectId}
-												style={{
-													display: "flex",
-													justifyContent: "space-between",
-												}}
-											>
-												<div>
-													{
-														projects.find((project) => project.id === projectId)
-															?.name
-													}
+										{Object.entries(grouped).map(
+											([projectId, projectTasks]) => (
+												<div
+													key={projectId}
+													style={{
+														display: "flex",
+														justifyContent: "space-between",
+													}}
+												>
+													<div>
+														{
+															projects.find(
+																(project) => project.id === projectId,
+															)?.name
+														}
+													</div>
+													<div>{projectTasks?.length}</div>
 												</div>
-												<div> {tasks?.length}</div>
-											</div>
-										))}
+											),
+										)}
 									</div>
 								</div>
 							)}
