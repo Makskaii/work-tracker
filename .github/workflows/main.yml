@@ -30,8 +30,8 @@
           curl -s -X POST "$BITRIX_WEBHOOK" \
             -H "Content-Type: application/json" \
             -d '{
-                  "to": "3843",
-                  "message": "✅ Деплой прошёл успешно!\nБранч: '${{ github.ref_name }}'\nКоммит: '${{ github.sha }}'\nАвтор: '${{ github.actor }}'"
+                  "DIALOG_ID": "chat3843",
+                  "MESSAGE": "✅ Деплой прошёл успешно!\nБранч: '${{ github.ref_name }}'\nКоммит: '${{ github.sha }}'\nАвтор: '${{ github.actor }}'"
                 }'
 
       - name: Notify Bitrix on failure
@@ -42,6 +42,6 @@
           curl -s -X POST "$BITRIX_WEBHOOK" \
             -H "Content-Type: application/json" \
             -d '{
-                  "to": "3843",
-                  "message": "❌ Деплой завершился с ошибкой!\nБранч: '${{ github.ref_name }}'\nКоммит: '${{ github.sha }}'\nАвтор: '${{ github.actor }}'"
+                  "DIALOG_ID": "chat3843",
+                  "MESSAGE": "❌ Деплой завершился с ошибкой!\nБранч: '${{ github.ref_name }}'\nКоммит: '${{ github.sha }}'\nАвтор: '${{ github.actor }}'"
                 }'
