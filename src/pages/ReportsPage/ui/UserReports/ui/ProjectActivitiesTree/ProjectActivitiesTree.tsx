@@ -98,7 +98,7 @@ export const ProjectActivitiesTree = ({
 								{client.clientTitle}
 							</div>
 						}
-						value={`${client.timeSpent} ч.`}
+						value={`${client.timeSpent.toFixed(2)} ч.`}
 						isExpanded={isClientExpanded}
 						onToggle={() => toggleClient(client.clientId)}
 					>
@@ -121,7 +121,7 @@ export const ProjectActivitiesTree = ({
 											{project.projectTitle}
 										</div>
 									}
-									value={`${project.timeSpent} ч.`}
+									value={`${project.timeSpent.toFixed(2)} ч.`}
 									isExpanded={isProjectExpanded}
 									onToggle={() =>
 										toggleProject(client.clientId, project.projectId)
@@ -170,7 +170,7 @@ export const ProjectActivitiesTree = ({
 															color: "#6b7280",
 														}}
 													>
-														{category.timeSpent} ч.
+														{category.timeSpent.toFixed(2)} ч.
 													</div>
 												</div>
 
