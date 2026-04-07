@@ -305,6 +305,33 @@
     &:hover {
         transform: translateY(-1px);
     }
+
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+
+.loadingPulse {
+    animation: pulse 1.2s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 150, 0, 0.4);
+    }
+
+    50% {
+        transform: scale(1.03);
+        box-shadow: 0 0 0 8px rgba(0, 150, 0, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 150, 0, 0);
+    }
 }
 
 .secondaryButton {
@@ -475,4 +502,11 @@
 .mutedText {
     color: #64748b;
     font-size: 0.95rem;
+}
+
+
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
 }
