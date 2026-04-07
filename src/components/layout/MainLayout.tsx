@@ -160,6 +160,7 @@ export const MainLayout = () => {
 						display: "flex",
 						flexDirection: "column",
 						overflow: "hidden",
+						padding: "2rem",
 					}}
 				>
 					<div

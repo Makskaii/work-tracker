@@ -49,7 +49,7 @@ export const ReportRow = ({ date, timeSpent, id }: ReportRowProps) => {
 					whiteSpace: "nowrap",
 				}}
 			>
-				{timeSpent} ч.
+				{timeSpent.toFixed(1)} ч.
 			</div>
 		</div>
 	);

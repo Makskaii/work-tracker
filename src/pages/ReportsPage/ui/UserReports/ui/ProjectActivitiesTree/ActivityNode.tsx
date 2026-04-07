@@ -24,7 +24,7 @@ export const ActivityNode = ({ activity }: ActivityNodeProps) => {
 					{activity.activityTitle}
 				</div>
 			}
-			value={`${activity.timeSpent} ч.`}
+			value={`${activity.timeSpent.toFixed(2)} ч.`}
 			isExpanded={isExpanded}
 			onToggle={() => setIsExpanded((prev) => !prev)}
 			styles={treeColors.activity}
