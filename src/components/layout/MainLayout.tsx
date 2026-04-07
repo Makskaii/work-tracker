@@ -182,6 +182,17 @@ export const MainLayout = () => {
 						>
 							Клиенты
 						</NavLink>
+
+						<NavLink
+							key="/client-profile"
+							className={({ isActive, isPending }) =>
+								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
+							}
+							to="/client-profile"
+							end
+						>
+							Клиентский портал
+						</NavLink>
 					</div>
 
 					<Outlet />

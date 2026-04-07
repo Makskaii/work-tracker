@@ -177,7 +177,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 		try {
 			setLoading(true);
 			const response = await $backendApi.post("doc-records/report", {
-				projectId,
+				id: projectId,
 				startOfThePeriod,
 				endOfThePeriod,
 			});

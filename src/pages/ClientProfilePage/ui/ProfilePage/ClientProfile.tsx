@@ -10,8 +10,12 @@ import {
 	type ProjectFromList,
 } from "@/pages/ReportsPage/ReportsPage";
 import { getProjectsFromList } from "@/shared/api/getCrmFields";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import { ClientsCodes, EntityTypeIds } from "@/shared/constants/const";
 import type { ClientProjectProps, User } from "@/shared/types/types";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
+import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { classNames } from "@/shared/utils/utils";
 import styles from "./ClientProfile.module.scss";
 
 type ProjectMeeting = {
@@ -22,6 +26,8 @@ type ProjectMeeting = {
 	time: string;
 	link?: string;
 };
+
+const { VITE_BFF_API_URL } = import.meta.env;
 
 const mockMeetings: ProjectMeeting[] = [
 	{
@@ -88,11 +94,49 @@ const ClientProfile = () => {
 		ProjectFromList[]
 	>([]);
 	const [loading, setLoading] = useState(false);
+	const [loadingReport, setLoadingReport] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [users, setUsers] = useState<User[]>([]);
+	const [loadUrl, setLoadUrl] = useState("");
+
+	const borders = useMemo(() => getSprintWeekBorders(dayjs()), []);
 
 	const { clientId } = useParams<{ clientId: string }>();
+
 	const navigate = useNavigate();
+
+	const getReportPdf = async (
+		id: string,
+		startOfThePeriod: string,
+		endOfThePeriod: string,
+	) => {
+		try {
+			setLoadingReport(true);
+			const response = await $backendApi.post("doc-records/client-report", {
+				id,
+				startOfThePeriod,
+				endOfThePeriod,
+			});
+
+			const downloadUrl = response.data.downloadUrl;
+
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
+
+			notify({
+				message: "Отчет сформирован",
+				type: "success",
+			});
+		} catch (error) {
+			console.log(error);
+
+			notify({
+				message: "Ошибка загрузки отчёта",
+				type: "error",
+			});
+		} finally {
+			setLoadingReport(false);
+		}
+	};
 
 	useEffect(() => {
 		const getUsers = async () => {
@@ -165,6 +209,8 @@ const ClientProfile = () => {
 		return diffInDays <= 7;
 	}).length;
 
+	if (!clientId) return null;
+
 	return (
 		<CheckPermission permission="read" subject={`client-profile-${clientId}`}>
 			<div className={styles.page}>
@@ -209,9 +255,37 @@ const ClientProfile = () => {
 									</p>
 								</div>
 
-								<button type="button" className={styles.primaryButton}>
-									Оставить заявку
-								</button>
+								{loadUrl === "" ? (
+									<button
+										disabled={loadingReport}
+										type="button"
+										className={classNames(styles.primaryButton, {
+											[styles.loadingPulse]: loadingReport,
+										})}
+										onClick={async () =>
+											await getReportPdf(
+												clientId,
+												borders.startOfTheWeek,
+												borders.endOfTheWeek,
+											)
+										}
+									>
+										{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
+									</button>
+								) : (
+									<button
+										type="button"
+										className={styles.primaryButton}
+										onClick={async () =>
+											loadUrl !== "" && window.open(loadUrl, "_blank")
+										}
+										style={{
+											background: "green",
+										}}
+									>
+										Скачать отчёт
+									</button>
+								)}
 							</div>
 
 							{loading && (
