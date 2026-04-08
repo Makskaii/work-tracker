@@ -286,3 +286,24 @@
     color: #4b5563;
     border: 1px solid #e5e7eb;
 }
+
+
+
+.emptyState {
+    padding: 3rem 1rem;
+    text-align: center;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.emptyTitle {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.emptyText {
+    margin-top: 0.35rem;
+    color: #64748b;
+}
