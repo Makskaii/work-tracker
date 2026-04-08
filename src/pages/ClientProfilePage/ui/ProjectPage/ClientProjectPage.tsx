@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
@@ -19,15 +19,13 @@ import {
 } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { Status, TaskProps, User } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { TaskBundleSection } from "../BundleSection/TaskBundleSection";
 import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
 import styles from "./ProjectPage.module.scss";
 import { ProjectReportsTimelineModal } from "./ProjectReportsTimelineModal";
-
-const today = dayjs();
 
 export type TaskBundle = TaskProps & { tasks: TaskProps[] };
 
@@ -35,7 +33,6 @@ const { VITE_BFF_API_URL } = import.meta.env;
 
 export const ClientProjectPage = () => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
-	const [day, setDay] = useState<Dayjs>(today);
 	const [view, setView] = useState<"stats" | "task">("stats");
 	const [loading, setLoading] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
@@ -51,8 +48,7 @@ export const ClientProjectPage = () => {
 
 	const { openTask } = useBitrixSlider();
 
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
-	const { startOfTheWeek, endOfTheWeek } = borders;
+	const { endOfTheWeek, setDay, startOfTheWeek } = useSprintBorders();
 
 	useEffect(() => {
 		const fetchStatuses = async () => {

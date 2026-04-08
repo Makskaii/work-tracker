@@ -1,4 +1,5 @@
 import type { Header } from "@/shared/types/table";
+import { getFixedNumber } from "@/shared/utils/getNumber";
 import type { SalesTableFields } from "../types/types";
 
 // export const headersForSales: Header<SalesFields>[] = [
@@ -49,5 +50,7 @@ export const headersForSales: Header<SalesTableFields>[] = [
 	{
 		title: "Отклонение",
 		key: "deviation",
+		convertFn: (value) =>
+			Number(value) > 0 ? `+${getFixedNumber(value)}` : getFixedNumber(value),
 	},
 ];

@@ -1,12 +1,14 @@
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
+import { Outlet, useNavigate } from "react-router";
 import { getDepartmentsHeads } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
+import { DEPARTMENT_IDS } from "@/shared/constants/const";
 import { type CurrentUserDepartmentInfo } from "@/shared/hooks/useCurrentBitrixUser";
 import { ability } from "../../shared/config/ability/casl";
 import { Spinner } from "../spinner/Spinner";
+import { AppHeader } from "./AppHeader";
 
 const devMode =
 	typeof import.meta !== "undefined" && (import.meta.env?.DEV ?? false);
@@ -112,12 +114,20 @@ export const MainLayout = () => {
 					});
 				}
 
-				if (currUser?.departmentIds.includes(25)) {
+				if (currUser?.departmentIds.includes(DEPARTMENT_IDS.ANALYTICS)) {
 					addRuleIfMissing(nextRules, {
 						action: "create-client",
 						subject: "client",
 					});
 					redirectTo = "/create-client-form";
+				}
+
+				if (currUser?.departmentIds.includes(DEPARTMENT_IDS.SALES)) {
+					addRuleIfMissing(nextRules, {
+						action: "create-client",
+						subject: "client",
+					});
+					redirectTo = "/reports/sales";
 				}
 
 				ability.update(nextRules);
@@ -153,48 +163,24 @@ export const MainLayout = () => {
 
 	return (
 		<B24Context.Provider value={{ b24 }}>
-			<div style={{ display: "flex", height: "100%" }}>
+			<div
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					height: "100%",
+					minHeight: 0,
+				}}
+			>
+				<AppHeader />
+
 				<main
 					style={{
-						width: "100%",
-						display: "flex",
-						flexDirection: "column",
-						overflow: "hidden",
-						padding: "2rem",
+						flex: 1,
+						minHeight: 0,
+						overflow: "auto",
+						padding: "20px 24px",
 					}}
 				>
-					<div
-						style={{
-							display: "flex",
-							gap: "1rem",
-							padding: "0 1rem",
-							paddingBottom: "0.5rem",
-							alignItems: "center",
-						}}
-					>
-						<NavLink
-							key="create-client-form"
-							className={({ isActive, isPending }) =>
-								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-							}
-							to="create-client-form"
-							end
-						>
-							Клиенты
-						</NavLink>
-
-						<NavLink
-							key="/client-profile"
-							className={({ isActive, isPending }) =>
-								[isPending ? "pending" : "", isActive ? "active" : ""].join(" ")
-							}
-							to="/client-profile"
-							end
-						>
-							Клиентский портал
-						</NavLink>
-					</div>
-
 					<Outlet />
 				</main>
 			</div>

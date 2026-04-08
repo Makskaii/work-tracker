@@ -18,8 +18,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -34,12 +34,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master')
+
     steps:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
+      - name: Prepare links
+        run: |
+          echo "RUN_URL=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_ENV
+          echo "COMMIT_URL=https://github.com/${{ github.repository }}/commit/${{ github.sha }}" >> $GITHUB_ENV
+          echo "COMPARE_URL=https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" >> $GITHUB_ENV
+
       - name: Run deploy on server
         id: deploy_step
+        continue-on-error: true
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
@@ -47,31 +55,78 @@ jobs:
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
         run: |
           set -o pipefail
-          if sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no -p "${SERVER_PORT:-22}" "$SERVER_USER@$SERVER_HOST" "cd /home/bitrix/devapps/work-tracker && npm run deploy"; then
-            echo "DEPLOY_STATUS=success" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_STATUS=failure" >> $GITHUB_ENV
-            exit 1
-          fi
+
+          sshpass -p "$SERVER_PASSWORD" ssh \
+            -o StrictHostKeyChecking=no \
+            -p "${SERVER_PORT:-22}" \
+            "$SERVER_USER@$SERVER_HOST" \
+            "cd /home/bitrix/devapps/work-tracker && npm run deploy" \
+            2>&1 | tee deploy.log
+
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          {
+            echo "DEPLOY_EXIT_CODE=$EXIT_CODE"
+            echo "DEPLOY_LOG<<EOF"
+            tail -n 25 deploy.log
+            echo "EOF"
+          } >> $GITHUB_ENV
+
+          exit $EXIT_CODE
+
       - name: Notify Bitrix on success
-        if: env.DEPLOY_STATUS == 'success'
+        if: steps.deploy_step.outcome == 'success'
         env:
           BITRIX_WEBHOOK: ${{ secrets.BITRIX_WEBHOOK }}
         run: |
-          curl -s -X POST "$BITRIX_WEBHOOK" \
-            -H "Content-Type: application/json" \
-            -d '{
-                  "DIALOG_ID": "chat3843",
-                  "MESSAGE": "✅ Деплой прошёл успешно!\nБранч: '${{ github.ref_name }}'\nКоммит: '${{ github.sha }}'\nАвтор: '${{ github.actor }}'"
-                }'
-      - name: Notify Bitrix on failure
-        if: failure()
-        env:
-          BITRIX_WEBHOOK: ${{ secrets.BITRIX_WEBHOOK }}
-        run: |
-          curl -s -X POST "$BITRIX_WEBHOOK" \
-            -H "Content-Type: application/json" \
-            -d '{
-                  "DIALOG_ID": "chat3843",
-                  "MESSAGE": "❌ Деплой завершился с ошибкой!\nБранч: '${{ github.ref_name }}'\nКоммит: '${{ github.sha }}'\nАвтор: '${{ github.actor }}'"
-                }'
+          MESSAGE=$(cat <<EOF
+          ✅ Деплой прошёл успешно
+
+          📦 Репозиторий: ${{ github.repository }}
+          🌿 Ветка: ${{ github.ref_name }}
+          👤 Автор: ${{ github.actor }}
+
+          🔗 Run: $RUN_URL
+          🔗 Commit: $COMMIT_URL
+          🔗 Changes: $COMPARE_URL
+          EOF
+          )
+
+                    curl -s -X POST "$BITRIX_WEBHOOK" \
+                      -H "Content-Type: application/json" \
+                      -d "$(jq -n \
+                        --arg dialog_id "chat3843" \
+                        --arg message "$MESSAGE" \
+                        '{DIALOG_ID: $dialog_id, MESSAGE: $message}')"
+
+                - name: Notify Bitrix on failure
+                  if: steps.deploy_step.outcome == 'failure'
+                  env:
+                    BITRIX_WEBHOOK: ${{ secrets.BITRIX_WEBHOOK }}
+                  run: |
+                    MESSAGE=$(cat <<EOF
+          ❌ Деплой завершился с ошибкой
+
+          📦 Репозиторий: ${{ github.repository }}
+          🌿 Ветка: ${{ github.ref_name }}
+          👤 Автор: ${{ github.actor }}
+
+          🔗 Run: $RUN_URL
+          🔗 Commit: $COMMIT_URL
+          🔗 Changes: $COMPARE_URL
+
+          🧾 Последние строки лога:
+          $DEPLOY_LOG
+          EOF
+          )
+
+                    curl -s -X POST "$BITRIX_WEBHOOK" \
+                      -H "Content-Type: application/json" \
+                      -d "$(jq -n \
+                        --arg dialog_id "chat3843" \
+                        --arg message "$MESSAGE" \
+                        '{DIALOG_ID: $dialog_id, MESSAGE: $message}')"
+
+                - name: Fail job if deploy failed
+                  if: steps.deploy_step.outcome == 'failure'
+                  run: exit 1

@@ -1,11 +1,10 @@
-import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Modal } from "@/components/modal";
 import { ClientProjectsStats } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectStats";
 import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type {
 	ClientListItems,
 	ClientProjectProps,
@@ -147,8 +146,6 @@ export const getProjectsWithStatuses = async ({
 	return result;
 };
 
-const today = dayjs();
-
 const ProjectsReports = () => {
 	const [expandedClients, setExpandedClients] = useState<
 		Record<string, boolean>
@@ -159,7 +156,7 @@ const ProjectsReports = () => {
 
 	const [activeProject, setActiveProject] = useState<ClientProjectProps>();
 
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
+	const { endOfTheWeek, startOfTheWeek } = useSprintBorders();
 	const [projectsWithStatus, setProjectsWithStatus] = useState<
 		ProjectWithStatus[]
 	>([]);
@@ -168,8 +165,8 @@ const ProjectsReports = () => {
 		const fetchData = async () => {
 			const result = await getProjectsWithStatuses({
 				clients,
-				startOfTheWeek: borders.startOfTheWeek,
-				endOfTheWeek: borders.endOfTheWeek,
+				startOfTheWeek: startOfTheWeek,
+				endOfTheWeek: endOfTheWeek,
 			});
 
 			setProjectsWithStatus(result);
@@ -178,7 +175,7 @@ const ProjectsReports = () => {
 		if (clients.length) {
 			fetchData();
 		}
-	}, [borders.endOfTheWeek, borders.startOfTheWeek, clients]);
+	}, [endOfTheWeek, startOfTheWeek, clients]);
 
 	const toggleClient = (clientId: string) => {
 		setExpandedClients((prev) => ({

@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
@@ -12,18 +12,13 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { UserCard } from "../../userCard/UserCard";
 import { EmployeeStats } from "./EmployeeStats";
 import { TasksList } from "./TasksList";
 
-const today = dayjs();
-
 export const StatsModal = ({ user }: { user: User }) => {
-	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
-
 	const { setUser, projects, statuses, activities } =
 		useOutletContext<ReportsContext>();
 
@@ -47,6 +42,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 		return tasks;
 	}, [tasks, taskFilter, overrunTaskIds]);
 
+	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders();
+
 	useEffect(() => {
 		const getTasks = async () => {
 			try {
@@ -59,8 +56,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 						entityTypeId: EntityTypeIds.tasks,
 						select: TASK_SELECT_FIELDS,
 						filter: {
-							[`<=${TaskCodes.sprintDateStart}`]: borders.endOfTheWeek,
-							[`>=${TaskCodes.sprintDateStart}`]: borders.startOfTheWeek,
+							[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
+							[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 							assignedById: user.id,
 						},
 					},
@@ -80,7 +77,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 		if (user.id) {
 			getTasks();
 		}
-	}, [user.id, borders.startOfTheWeek, borders.endOfTheWeek]);
+	}, [user.id, startOfTheWeek, endOfTheWeek]);
 
 	useEffect(() => {
 		const getReportsByTask = async () => {
@@ -112,8 +109,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 								filter: {
 									[ReportCodes.parentId]: task.id,
 									assignedById: user.id,
-									">=begindate": borders.startOfTheWeek,
-									"<=begindate": borders.endOfTheWeek,
+									">=begindate": startOfTheWeek,
+									"<=begindate": endOfTheWeek,
 								},
 							},
 						}),
@@ -144,7 +141,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 		if (user.id) {
 			getReportsByTask();
 		}
-	}, [tasks, user.id, borders.startOfTheWeek, borders.endOfTheWeek]);
+	}, [tasks, user.id, startOfTheWeek, endOfTheWeek]);
 
 	useEffect(() => {
 		const getAllSprintReports = async () => {
@@ -172,8 +169,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 						],
 						filter: {
 							assignedById: user.id,
-							">=begindate": borders.startOfTheWeek,
-							"<=begindate": borders.endOfTheWeek,
+							">=begindate": startOfTheWeek,
+							"<=begindate": endOfTheWeek,
 						},
 					},
 				});
@@ -187,7 +184,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 		if (user.id) {
 			getAllSprintReports();
 		}
-	}, [user.id, borders.startOfTheWeek, borders.endOfTheWeek]);
+	}, [user.id, startOfTheWeek, endOfTheWeek]);
 
 	return (
 		<div
@@ -244,8 +241,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 					</button>
 
 					<div>
-						{dayjs(borders.startOfTheWeek).format("DD.MM")}-
-						{dayjs(borders.endOfTheWeek).format("DD.MM")}
+						{dayjs(startOfTheWeek).format("DD.MM")}-
+						{dayjs(endOfTheWeek).format("DD.MM")}
 					</div>
 
 					<button
@@ -335,8 +332,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 								taskReportsMap={reportsByTask}
 								allSprintReports={allSprintReports}
 								activities={activities}
-								sprintStart={borders.startOfTheWeek}
-								sprintEnd={borders.endOfTheWeek}
+								sprintStart={startOfTheWeek}
+								sprintEnd={endOfTheWeek}
 								onOpenOverrunTasks={(taskIds) => {
 									setOverrunTaskIds(taskIds);
 									setTaskFilter("overrun");

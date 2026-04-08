@@ -3,7 +3,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 
 import { getActivitiesList } from "@/shared/api/getCrmFields";
-import { Endpoints } from "@/shared/constants/const";
+import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
 import type { GroupedReportFields } from "@/shared/types/table";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import { AsyncSelect } from "../../../../components/form/SelectField";
@@ -293,7 +293,10 @@ const ReportsCalendar = () => {
 							params={{
 								params: {
 									filter: {
-										"@UF_DEPARTMENT": [23, 25],
+										"@UF_DEPARTMENT": [
+											DEPARTMENT_IDS.ANALYTICS,
+											DEPARTMENT_IDS.DEV,
+										],
 									},
 									select: [
 										"NAME",

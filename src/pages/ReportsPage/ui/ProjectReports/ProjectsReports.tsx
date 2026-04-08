@@ -1,13 +1,12 @@
-import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
-import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { Header } from "@/shared/types/table";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getFixedNumber } from "@/shared/utils/getNumber";
 import { Modal } from "../../../../components/modal";
 import type {
 	ClientListItems,
@@ -162,17 +161,18 @@ export const headersForProjects: Header<ProjectTableRow>[] = [
 	{
 		title: "План часов",
 		key: "planHours",
-		convertFn: (value) => String(value),
+		convertFn: (value) => getFixedNumber(value),
 	},
 	{
 		title: "Потрачено",
 		key: "spentHours",
-		convertFn: (value) => String(value),
+		convertFn: (value) => getFixedNumber(value),
 	},
 	{
 		title: "Отклонение",
 		key: "deviation",
-		convertFn: (value) => (value > 0 ? `+${value}` : String(value)),
+		convertFn: (value) =>
+			value > 0 ? `+${getFixedNumber(value)}` : getFixedNumber(value),
 	},
 	{
 		title: "Риск",
@@ -225,27 +225,23 @@ export const getProjectsWithStatuses = async ({
 	return result;
 };
 
-const today = dayjs();
-
 const ProjectsReports = () => {
 	const [open, setOpen] = useState<boolean>(false);
-	const [showStatuses, setShowStatuses] = useState<boolean>(false);
 	const [activeProject, setActiveProject] = useState<{
 		ID: string;
 		NAME: string;
 	}>();
 
 	const { clientsList } = useOutletContext<ReportsContext>();
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(today)), []);
+	const { startOfTheWeek, endOfTheWeek } = useSprintBorders();
 	const [projWithStatus, setProjWithStatus] = useState<ProjectWithStatus[]>([]);
-	const [tableData, setTableData] = useState<ProjectTableRow[]>([]);
 
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await getProjectsWithStatuses({
 				projects: clientsList,
-				startOfTheWeek: borders.startOfTheWeek,
-				endOfTheWeek: borders.endOfTheWeek,
+				startOfTheWeek: startOfTheWeek,
+				endOfTheWeek: endOfTheWeek,
 			});
 
 			setProjWithStatus(result);
@@ -254,21 +250,7 @@ const ProjectsReports = () => {
 		if (clientsList) {
 			fetchData();
 		}
-	}, [borders.endOfTheWeek, borders.startOfTheWeek, clientsList]);
-
-	useEffect(() => {
-		const fetchData = async () => {
-			const result = await getProjectsTableData({
-				projects: clientsList,
-			});
-
-			setTableData(result);
-		};
-
-		if (clientsList) {
-			fetchData();
-		}
-	}, [clientsList]);
+	}, [endOfTheWeek, startOfTheWeek, clientsList]);
 
 	return (
 		<>
@@ -301,14 +283,6 @@ const ProjectsReports = () => {
 							</div>
 						))}
 				</div>
-				<div className={styles.statisticsContainer}>
-					<div className={styles.noTasksMessage}>
-						Количество проектов: {clientsList.length}
-						<button onClick={() => setShowStatuses(true)}>
-							Статус проектов
-						</button>
-					</div>
-				</div>
 			</div>
 
 			{activeProject && (
@@ -319,22 +293,6 @@ const ProjectsReports = () => {
 					size="covered"
 				>
 					<ProjectsStats project={activeProject} />
-				</Modal>
-			)}
-
-			{showStatuses && (
-				<Modal
-					isOpen={showStatuses}
-					onClose={() => setShowStatuses(false)}
-					innerScroll
-					size="covered"
-				>
-					<UniversalTable<ProjectTableRow>
-						headers={headersForProjects}
-						activeItems={tableData.toSorted((a, b) =>
-							a.status.localeCompare(b.status),
-						)}
-					/>
 				</Modal>
 			)}
 		</>
