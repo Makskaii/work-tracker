@@ -13,6 +13,7 @@ import type {
 	TaskProps,
 } from "../../../../shared/types/types";
 import { getItems } from "../../api/getTasks";
+import { TASK_STAGE_IDS } from "../../constants/statuses";
 import styles from "./ProjectsReports.module.scss";
 
 type ClientWithProjects = ClientListItems & {
@@ -23,22 +24,22 @@ const STATUS_META: Record<
 	ProjectStatus,
 	{ label: string; className: string; order: number }
 > = {
-	active: {
+	Активен: {
 		label: "Active",
 		className: "active",
 		order: 1,
 	},
-	backlog: {
+	Беклог: {
 		label: "Backlog",
 		className: "backlog",
 		order: 2,
 	},
-	done: {
+	Завершен: {
 		label: "Done",
 		className: "done",
 		order: 3,
 	},
-	empty: {
+	"Отсутствуют задачи": {
 		label: "Empty",
 		className: "empty",
 		order: 4,
@@ -60,27 +61,17 @@ type ProjectWithStatus = Partial<ClientProjectProps> & {
 	tasksCount: number;
 };
 
-const TASK_STAGE_IDS = {
-	BACKLOG: "DT1072_18:NEW",
-	SPRINT: "DT1072_18:PREPARATION",
-	IN_WORK: "DT1072_18:CLIENT",
-	DONE: "DT1072_18:UC_6JNSDG",
-	TESTING: "DT1072_18:TESTING",
-	WAITING: "DT1072_18:UC_A9IWFS",
-	DOCS: "DT1072_18:UC_K596F0",
-} as const;
-
 export const getRiskColor = (risk: string): string => {
 	return risk === "Перерасход" ? "#ef4444" : "#22c55e";
 };
 
-type ProjectStatus = "active" | "backlog" | "done" | "empty";
+type ProjectStatus = "Активен" | "Беклог" | "Завершен" | "Отсутствуют задачи";
 
-const getProjectStatus = (
+export const getProjectStatus = (
 	tasks: Array<{ stageId?: string }>,
 ): ProjectStatus => {
 	if (tasks.length === 0) {
-		return "empty";
+		return "Отсутствуют задачи";
 	}
 
 	const hasInWorkTasks = tasks.some(
@@ -93,7 +84,7 @@ const getProjectStatus = (
 	);
 
 	if (hasInWorkTasks) {
-		return "active";
+		return "Активен";
 	}
 
 	const hasBacklogTasks = tasks.some(
@@ -101,7 +92,7 @@ const getProjectStatus = (
 	);
 
 	if (hasBacklogTasks) {
-		return "backlog";
+		return "Беклог";
 	}
 
 	const hasDoneTasks = tasks.some(
@@ -109,10 +100,10 @@ const getProjectStatus = (
 	);
 
 	if (hasDoneTasks) {
-		return "done";
+		return "Завершен";
 	}
 
-	return "empty";
+	return "Отсутствуют задачи";
 };
 
 export const getProjectsWithStatuses = async ({
@@ -143,8 +134,6 @@ export const getProjectsWithStatuses = async ({
 				});
 
 				const tasks = response ?? [];
-
-				console.log(getProjectStatus(tasks), project.title, tasks);
 
 				return {
 					id: project.id,
@@ -239,9 +228,11 @@ const ProjectsReports = () => {
 											{clientProjects
 												.toSorted((a, b) => {
 													const statusA =
-														getProjectMeta(String(a.id))?.status ?? "empty";
+														getProjectMeta(String(a.id))?.status ??
+														"Отсутствуют задачи";
 													const statusB =
-														getProjectMeta(String(b.id))?.status ?? "empty";
+														getProjectMeta(String(b.id))?.status ??
+														"Отсутствуют задачи";
 
 													return (
 														STATUS_META[statusA].order -
@@ -250,7 +241,7 @@ const ProjectsReports = () => {
 												})
 												.map((project) => {
 													const meta = getProjectMeta(String(project.id));
-													const status = meta?.status ?? "empty";
+													const status = meta?.status ?? "Отсутствуют задачи";
 
 													return (
 														<div

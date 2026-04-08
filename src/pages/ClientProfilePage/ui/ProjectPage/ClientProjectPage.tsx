@@ -20,7 +20,7 @@ import {
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { Status, TaskProps, User } from "@/shared/types/types";
-import { convertNumberFormat, getWeekArray } from "@/shared/utils";
+import { convertNumberFormat } from "@/shared/utils";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { TaskBundleSection } from "../BundleSection/TaskBundleSection";
 import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
@@ -260,88 +260,6 @@ export const ClientProjectPage = () => {
 		);
 	}, [data]);
 
-	const week = useMemo(() => getWeekArray(borders.startOfTheWeek), [borders]);
-
-	const weeklyActivity = useMemo(() => {
-		return week.map((weekDay) => {
-			const dayKey = dayjs(weekDay.day).format("YYYY-MM-DD");
-
-			const reportsByDay = data.filter((report) => {
-				return dayjs(report.begindate).format("YYYY-MM-DD") === dayKey;
-			});
-
-			const groupedByActivity = reportsByDay.reduce(
-				(acc, report) => {
-					const activityId = String(report[ReportCodes.activityType] ?? "");
-
-					if (!activityId) return acc;
-
-					acc[activityId] =
-						(acc[activityId] || 0) +
-						convertNumberFormat(report[ReportCodes.timeSpent]);
-
-					return acc;
-				},
-				{} as Record<string, number>,
-			);
-
-			const total = Object.values(groupedByActivity).reduce(
-				(acc, value) => acc + value,
-				0,
-			);
-
-			return {
-				...weekDay,
-				total,
-				activities: groupedByActivity,
-			};
-		});
-	}, [data, week]);
-
-	const activityMap = useMemo(() => {
-		return activities.reduce(
-			(acc, activity) => {
-				acc[String(activity.ID)] = activity;
-				return acc;
-			},
-			{} as Record<
-				string,
-				{
-					ID: string;
-					IBLOCK_ID: string;
-					NAME: string;
-					IBLOCK_SECTION_ID: string | null;
-					CREATED_BY: string;
-					BP_PUBLISHED: string;
-					CODE: string | null;
-					SORT: string;
-				}
-			>,
-		);
-	}, [activities]);
-
-	const maxDayLoad = useMemo(() => {
-		const max = Math.max(...weeklyActivity.map((day) => day.total), 1);
-		return max;
-	}, [weeklyActivity]);
-
-	const activitySummary = useMemo(() => {
-		return data.reduce(
-			(acc, report) => {
-				const activityId = String(report[ReportCodes.activityType] ?? "");
-
-				if (!activityId) return acc;
-
-				acc[activityId] =
-					(acc[activityId] || 0) +
-					convertNumberFormat(report[ReportCodes.timeSpent]);
-
-				return acc;
-			},
-			{} as Record<string, number>,
-		);
-	}, [data]);
-
 	useEffect(() => {
 		const getUsers = async () => {
 			const response = await getDevelopers();
@@ -391,30 +309,6 @@ export const ClientProjectPage = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
-
-	const activityColorClasses = [
-		styles.activityColor1,
-		styles.activityColor2,
-		styles.activityColor3,
-		styles.activityColor4,
-		styles.activityColor5,
-		styles.activityColor6,
-	];
-
-	const activityIdsOrdered = useMemo(() => {
-		return Object.keys(activitySummary).sort((a, b) => {
-			const aSort = Number(activityMap[a]?.SORT ?? 9999);
-			const bSort = Number(activityMap[b]?.SORT ?? 9999);
-			return aSort - bSort;
-		});
-	}, [activitySummary, activityMap]);
-
-	const getActivityColorClass = (activityId: string, fallbackIndex = 0) => {
-		const index = activityIdsOrdered.indexOf(activityId);
-		const safeIndex = index >= 0 ? index : fallbackIndex;
-
-		return activityColorClasses[safeIndex % activityColorClasses.length];
 	};
 
 	if (!projId) return;
@@ -540,84 +434,6 @@ export const ClientProjectPage = () => {
 
 			<div className={styles.content}>
 				<div className={styles.mainColumn}>
-					<div className={styles.sectionCard}>
-						<div className={styles.sectionHeader}>
-							<div>
-								<h2 className={styles.sectionTitle}>Активность за спринт</h2>
-								<p className={styles.sectionSubtitle}>
-									Распределение активности по дням недели
-								</p>
-							</div>
-						</div>
-
-						<div className={styles.chart}>
-							{weeklyActivity.map((item) => {
-								let currentOffset = 0;
-
-								return (
-									<div className={styles.chartColumn} key={item.day}>
-										<div className={styles.chartBarArea}>
-											{Object.entries(item.activities).map(
-												([activityId, value], index) => {
-													const percent = (value / maxDayLoad) * 100;
-													const bottom = (currentOffset / maxDayLoad) * 100;
-													currentOffset += value;
-
-													return (
-														<div
-															key={activityId}
-															className={`${styles.chartSegment} ${getActivityColorClass(
-																activityId,
-																index,
-															)}`}
-															style={{
-																height: `${percent}%`,
-																bottom: `${bottom}%`,
-															}}
-															title={`${activityMap[activityId]?.NAME || activityId}: ${value.toFixed(1)} ч`}
-														/>
-													);
-												},
-											)}
-										</div>
-
-										<div className={styles.chartMeta}>
-											<div className={styles.chartDay}>{item.name}</div>
-											<div className={styles.chartDate}>
-												{dayjs(item.day).format("DD.MM")}
-											</div>
-											<div className={styles.chartTotal}>
-												{item.total.toFixed(1)} ч
-											</div>
-										</div>
-									</div>
-								);
-							})}
-						</div>
-
-						<div className={styles.legend}>
-							{Object.entries(activitySummary).map(
-								([activityId, value], index) => (
-									<div className={styles.legendItem} key={activityId}>
-										<span
-											className={`${styles.legendDot} ${getActivityColorClass(
-												activityId,
-												index,
-											)}`}
-										/>
-										<span className={styles.legendLabel}>
-											{activityMap[activityId]?.NAME ||
-												`Активность #${activityId}`}
-										</span>
-										<span className={styles.legendValue}>
-											{value.toFixed(1)} ч
-										</span>
-									</div>
-								),
-							)}
-						</div>
-					</div>
-
 					<div className={styles.sectionCard}>
 						<div className={styles.sectionHeader}>
 							<div>

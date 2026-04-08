@@ -165,6 +165,18 @@ const TaskBundleCard = ({ bundle }: { bundle: TaskBundle }) => {
 };
 
 export const TaskBundleSection = ({ bundles }: { bundles: TaskBundle[] }) => {
+	if (!bundles.length) {
+		return (
+			<div className={cls.emptyState}>
+				<div className={cls.emptyTitle}>Нет бандлов задач для отображения</div>
+				<div className={cls.emptyText}>
+					Создайте бандлы задач, чтобы отслеживать прогресс и управлять
+					отдельными задачами
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<section className={cls.section}>
 			<div className={cls.sectionHeader}>

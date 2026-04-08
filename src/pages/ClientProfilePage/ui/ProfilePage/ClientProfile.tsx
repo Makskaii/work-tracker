@@ -1,52 +1,28 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { UserCard } from "@/components/userCard/UserCard";
+import { TaskCodes } from "@/components/calendar/constants/const";
 import { getDevelopers } from "@/pages/ReportsPage/api/getDevelopers";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import {
 	mapProjectsFromList,
 	type ProjectFromList,
 } from "@/pages/ReportsPage/ReportsPage";
+import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { getProjectsFromList } from "@/shared/api/getCrmFields";
 import { $backendApi } from "@/shared/config/axios/axios.config";
-import { ClientsCodes, EntityTypeIds } from "@/shared/constants/const";
-import type { ClientProjectProps, User } from "@/shared/types/types";
+import {
+	ClientsCodes,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "@/shared/constants/const";
+import type { ClientProjectProps, TaskProps, User } from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { classNames } from "@/shared/utils/utils";
 import styles from "./ClientProfile.module.scss";
 
-type ProjectMeeting = {
-	id: number;
-	title: string;
-	projectTitle: string;
-	date: string;
-	time: string;
-	link?: string;
-};
-
 const { VITE_BFF_API_URL } = import.meta.env;
-
-const mockMeetings: ProjectMeeting[] = [
-	{
-		id: 1,
-		title: "Еженедельный созвон по проекту",
-		projectTitle: "CRM Dashboard",
-		date: "2026-03-25",
-		time: "14:00",
-		link: "#",
-	},
-	{
-		id: 2,
-		title: "Демо промежуточного результата",
-		projectTitle: "Mobile App",
-		date: "2026-03-27",
-		time: "11:30",
-		link: "#",
-	},
-];
 
 const formatDate = (date?: string) => {
 	if (!date) return "—";
@@ -58,33 +34,26 @@ const formatDate = (date?: string) => {
 	return parsed.format("DD.MM.YYYY HH:mm");
 };
 
-const getActivityLabel = (lastActivityTime?: string) => {
-	if (!lastActivityTime) {
+const getTasksInWork = (tasks?: TaskProps[]) => {
+	if (!tasks?.length) {
 		return {
-			text: "Нет активности",
+			text: "Нет задач",
 			type: "idle",
 		};
 	}
 
-	const diffInDays = dayjs().diff(dayjs(lastActivityTime), "day");
-
-	if (diffInDays <= 1) {
-		return {
-			text: "Активность сегодня",
-			type: "active",
-		};
-	}
-
-	if (diffInDays <= 7) {
-		return {
-			text: "Активность на этой неделе",
-			type: "warning",
-		};
-	}
+	const inWorkTasks = tasks.filter(
+		(task) =>
+			task.stageId === "DT1072_18:PREPARATION" ||
+			task.stageId === "DT1072_18:CLIENT" ||
+			task.stageId === "DT1072_18:UC_EW15HA" ||
+			task.stageId === "DT1072_18:UC_6BH5MH" ||
+			task.stageId === "DT1072_18:UC_5GG9S1",
+	);
 
 	return {
-		text: "Давно без обновлений",
-		type: "idle",
+		text: `Задач в работе: ${inWorkTasks.length}`,
+		type: "active",
 	};
 };
 
@@ -98,6 +67,13 @@ const ClientProfile = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [users, setUsers] = useState<User[]>([]);
 	const [loadUrl, setLoadUrl] = useState("");
+	const [projectTasks, setProjectTasks] = useState<{
+		[projectId: number]: TaskProps[];
+	}>();
+
+	const [bundles, setBundles] = useState<{
+		[projectId: number]: TaskProps[];
+	}>();
 
 	const borders = useMemo(() => getSprintWeekBorders(dayjs()), []);
 
@@ -137,6 +113,59 @@ const ClientProfile = () => {
 			setLoadingReport(false);
 		}
 	};
+
+	useEffect(() => {
+		const fetchTasks = async () => {
+			const tasksInWork = await Promise.all(
+				projects.map(async (project) => ({
+					[project.id]: await getItems<TaskProps>({
+						typeId: EntityTypeIds.tasks,
+						filters: {
+							[TaskCodes.project]: normalizedProjects.find(
+								(p) => Number(p.projectId) === project.id,
+							)?.id,
+							"!@stageId": [
+								"DT1072_18:UC_6JNSDG",
+								"DT1072_18:UC_UZMTY8",
+								"DT1072_18:NEW",
+								"DT1072_18:UC_A9IWFS",
+								"DT1072_18:UC_YU7VRR",
+								"DT1072_18:UC_GEW05D",
+								"DT1072_18:SUCCESS",
+								"DT1072_18:FAIL",
+							],
+						},
+						select: TASK_SELECT_FIELDS,
+					}),
+				})),
+			);
+
+			const bundlesAmount = await Promise.all(
+				projects.map(async (project) => ({
+					[project.id]: await getItems<TaskProps>({
+						typeId: EntityTypeIds.tasks,
+						filters: {
+							[TaskCodes.project]: normalizedProjects.find(
+								(p) => Number(p.projectId) === project.id,
+							)?.id,
+							stageId: "DT1072_18:UC_YU7VRR",
+						},
+						select: TASK_SELECT_FIELDS,
+					}),
+				})),
+			);
+
+			setProjectTasks(
+				tasksInWork.reduce((acc, item) => ({ ...acc, ...item }), {}),
+			);
+
+			setBundles(
+				bundlesAmount.reduce((acc, item) => ({ ...acc, ...item }), {}),
+			);
+		};
+
+		projects && fetchTasks();
+	}, [projects, normalizedProjects]);
 
 	useEffect(() => {
 		const getUsers = async () => {
@@ -197,148 +226,147 @@ const ClientProfile = () => {
 			.filter((project) => project.lastActivityTime)
 			.sort(
 				(a, b) =>
-					dayjs(b.lastActivityTime).valueOf() -
-					dayjs(a.lastActivityTime).valueOf(),
+					dayjs(a.lastActivityTime).valueOf() -
+					dayjs(b.lastActivityTime).valueOf(),
 			)
 			.slice(0, 4);
 	}, [projects]);
 
 	const totalProjects = projects.length;
-	const activeProjectsCount = projects.filter((project) => {
-		const diffInDays = dayjs().diff(dayjs(project.lastActivityTime), "day");
-		return diffInDays <= 7;
-	}).length;
+	const activeProjectsCount = Object.entries(projectTasks ?? {}).filter(
+		([_connectProjectIds, tasks]) => tasks.length > 0,
+	).length;
 
 	if (!clientId) return null;
 
 	return (
-		<CheckPermission permission="read" subject={`client-profile-${clientId}`}>
-			<div className={styles.page}>
-				<div className={styles.headerCard}>
-					<div className={styles.headerInfo}>
-						<div className={styles.badge}>Кабинет клиента</div>
-						<h1 className={styles.pageTitle}>Профиль клиента</h1>
-						<p className={styles.pageSubtitle}>
-							Здесь отображаются все проекты клиента, последние обновления по
-							ним и ближайшие активности команды.
-						</p>
-					</div>
-
-					<div className={styles.headerStats}>
-						<div className={styles.statCard}>
-							<div className={styles.statValue}>{totalProjects}</div>
-							<div className={styles.statLabel}>Всего проектов</div>
-						</div>
-
-						<div className={styles.statCard}>
-							<div className={styles.statValue}>{activeProjectsCount}</div>
-							<div className={styles.statLabel}>Активны за 7 дней</div>
-						</div>
-					</div>
+		// <CheckPermission permission="read" subject={`client-profile-${clientId}`}>
+		<div className={styles.page}>
+			<div className={styles.headerCard}>
+				<div className={styles.headerInfo}>
+					<div className={styles.badge}>Кабинет клиента</div>
+					<h1 className={styles.pageTitle}>Профиль клиента</h1>
+					<p className={styles.pageSubtitle}>
+						Здесь отображаются все проекты клиента, последние обновления по ним
+						и ближайшие активности команды.
+					</p>
 				</div>
 
-				<div className={styles.content}>
-					<div className={styles.mainColumn}>
-						<div className={styles.sectionCard}>
-							<div className={styles.sectionHeader}>
-								<div>
-									<h2
-										style={{
-											textAlign: "left",
-										}}
-										className={styles.sectionTitle}
-									>
-										Проекты
-									</h2>
-									<p className={styles.sectionSubtitle}>
-										Основной список проектов с краткой сводкой по каждому
-									</p>
-								</div>
+				<div className={styles.headerStats}>
+					<div className={styles.statCard}>
+						<div className={styles.statValue}>{totalProjects}</div>
+						<div className={styles.statLabel}>Всего проектов</div>
+					</div>
 
-								{loadUrl === "" ? (
-									<button
-										disabled={loadingReport}
-										type="button"
-										className={classNames(styles.primaryButton, {
-											[styles.loadingPulse]: loadingReport,
-										})}
-										onClick={async () =>
-											await getReportPdf(
-												clientId,
-												borders.startOfTheWeek,
-												borders.endOfTheWeek,
-											)
-										}
-									>
-										{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
-									</button>
-								) : (
-									<button
-										type="button"
-										className={styles.primaryButton}
-										onClick={async () =>
-											loadUrl !== "" && window.open(loadUrl, "_blank")
-										}
-										style={{
-											background: "green",
-										}}
-									>
-										Скачать отчёт
-									</button>
-								)}
+					<div className={styles.statCard}>
+						<div className={styles.statValue}>{activeProjectsCount}</div>
+						<div className={styles.statLabel}>Проекты в работе</div>
+					</div>
+				</div>
+			</div>
+
+			<div className={styles.content}>
+				<div className={styles.mainColumn}>
+					<div className={styles.sectionCard}>
+						<div className={styles.sectionHeader}>
+							<div>
+								<h2
+									style={{
+										textAlign: "left",
+									}}
+									className={styles.sectionTitle}
+								>
+									Проекты
+								</h2>
+								<p className={styles.sectionSubtitle}>
+									Основной список проектов с краткой сводкой по каждому
+								</p>
 							</div>
 
-							{loading && (
-								<div className={styles.stateBox}>
-									<div className={styles.stateTitle}>Загрузка проектов...</div>
-									<div className={styles.stateText}>
-										Получаем список проектов клиента
-									</div>
-								</div>
+							{loadUrl === "" ? (
+								<button
+									disabled={loadingReport}
+									type="button"
+									className={classNames(styles.primaryButton, {
+										[styles.loadingPulse]: loadingReport,
+									})}
+									onClick={async () =>
+										await getReportPdf(
+											clientId,
+											borders.startOfTheWeek,
+											borders.endOfTheWeek,
+										)
+									}
+								>
+									{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
+								</button>
+							) : (
+								<button
+									type="button"
+									className={styles.primaryButton}
+									onClick={async () =>
+										loadUrl !== "" && window.open(loadUrl, "_blank")
+									}
+									style={{
+										background: "green",
+									}}
+								>
+									Скачать отчёт
+								</button>
 							)}
+						</div>
 
-							{error && !loading && (
-								<div className={styles.stateBoxError}>
-									<div className={styles.stateTitle}>{error}</div>
-									<div className={styles.stateText}>
-										Попробуй обновить страницу или проверить доступ к данным
-									</div>
+						{loading && (
+							<div className={styles.stateBox}>
+								<div className={styles.stateTitle}>Загрузка проектов...</div>
+								<div className={styles.stateText}>
+									Получаем список проектов клиента
 								</div>
-							)}
+							</div>
+						)}
 
-							{!loading && !error && projects.length === 0 && (
-								<div className={styles.stateBox}>
-									<div className={styles.stateTitle}>Проекты не найдены</div>
-									<div className={styles.stateText}>
-										Для этого клиента пока нет доступных проектов
-									</div>
+						{error && !loading && (
+							<div className={styles.stateBoxError}>
+								<div className={styles.stateTitle}>{error}</div>
+								<div className={styles.stateText}>
+									Попробуй обновить страницу или проверить доступ к данным
 								</div>
-							)}
+							</div>
+						)}
 
-							{!loading && !error && projects.length > 0 && (
-								<div className={styles.projectsList}>
-									{projects.map((project) => {
-										const activity = getActivityLabel(project.lastActivityTime);
-										const responsible = users.find(
-											(user) => user.id === String(project.assignedById),
-										);
-										const lastUpdater = users.find(
-											(user) => user.id === String(project.lastActivityBy),
-										);
+						{!loading && !error && projects.length === 0 && (
+							<div className={styles.stateBox}>
+								<div className={styles.stateTitle}>Проекты не найдены</div>
+								<div className={styles.stateText}>
+									Для этого клиента пока нет доступных проектов
+								</div>
+							</div>
+						)}
 
-										const actualId = normalizedProjects.find(
-											(p) => Number(p.projectId) === project.id,
-										)?.id;
+						{!loading && !error && projects.length > 0 && (
+							<div className={styles.projectsList}>
+								{projects.map((project) => {
+									const projTasks = projectTasks?.[project.id];
 
-										return (
-											<div key={project.id} className={styles.projectCard}>
-												<div className={styles.projectTop}>
-													<div className={styles.projectMainInfo}>
-														<div className={styles.projectTitleRow}>
-															<h3 className={styles.projectTitle}>
-																{project.title}
-															</h3>
+									const activity = getTasksInWork(projTasks);
+									const lastUpdater = users.find(
+										(user) => user.id === String(project.lastActivityBy),
+									);
 
+									const actualId = normalizedProjects.find(
+										(p) => Number(p.projectId) === project.id,
+									)?.id;
+
+									return (
+										<div key={project.id} className={styles.projectCard}>
+											<div className={styles.projectTop}>
+												<div className={styles.projectMainInfo}>
+													<div className={styles.projectTitleRow}>
+														<h3 className={styles.projectTitle}>
+															{project.title}
+														</h3>
+
+														{projTasks && (
 															<span
 																className={`${styles.activityBadge} ${
 																	activity.type === "active"
@@ -348,37 +376,11 @@ const ClientProfile = () => {
 																			: styles.activityIdle
 																}`}
 															>
-																{activity.text}
+																{getProjectStatus(projTasks)}
 															</span>
-														</div>
-
-														{responsible && (
-															<div className={styles.projectMeta}>
-																<span>Ответственный:</span>
-																<UserCard user={responsible} />
-															</div>
 														)}
 													</div>
-
-													<div className={styles.projectDates}>
-														<div className={styles.dateItem}>
-															<span className={styles.dateLabel}>Обновлён</span>
-															<span className={styles.dateValue}>
-																{formatDate(project.updatedTime)}
-															</span>
-														</div>
-
-														<div className={styles.dateItem}>
-															<span className={styles.dateLabel}>
-																Последняя активность
-															</span>
-															<span className={styles.dateValue}>
-																{formatDate(project.lastActivityTime)}
-															</span>
-														</div>
-													</div>
 												</div>
-
 												<div className={styles.projectBody}>
 													<div className={styles.projectInfoGrid}>
 														<div className={styles.infoTile}>
@@ -387,15 +389,6 @@ const ClientProfile = () => {
 															</div>
 															<div className={styles.infoTileValue}>
 																{formatDate(project.createdTime)}
-															</div>
-														</div>
-
-														<div className={styles.infoTile}>
-															<div className={styles.infoTileLabel}>
-																Последнее перемещение
-															</div>
-															<div className={styles.infoTileValue}>
-																{formatDate(project.movedTime)}
 															</div>
 														</div>
 
@@ -410,9 +403,42 @@ const ClientProfile = () => {
 																</div>
 															</div>
 														)}
+
+														{bundles?.[project.id] && (
+															<div className={styles.infoTile}>
+																<div className={styles.infoTileLabel}>
+																	Бандлов в проекте
+																</div>
+																<div className={styles.infoTileValue}>
+																	{bundles[project.id].length}
+																</div>
+															</div>
+														)}
+
+														<div className={styles.infoTile}>
+															<div className={styles.infoTileLabel}>
+																Кол-во часов
+															</div>
+															<div className={styles.infoTileValue}>
+																{projTasks?.reduce((acc, task) => {
+																	return acc + +task[TaskCodes.estimateTime];
+																}, 0)}
+															</div>
+														</div>
 													</div>
 
 													<div className={styles.projectActions}>
+														<span
+															className={`${styles.activityBadge} ${
+																activity.type === "active"
+																	? styles.activityActive
+																	: activity.type === "warning"
+																		? styles.activityWarning
+																		: styles.activityIdle
+															}`}
+														>
+															{activity.text}
+														</span>
 														<button
 															type="button"
 															className={styles.secondaryButton}
@@ -427,99 +453,98 @@ const ClientProfile = () => {
 														>
 															Открыть карточку проекта
 														</button>
-
-														<button
-															type="button"
-															className={styles.ghostButton}
-														>
-															Связаться с менеджером
-														</button>
-
-														<button
-															type="button"
-															className={styles.ghostButton}
-														>
-															Написать разработчикам
-														</button>
 													</div>
 												</div>
 											</div>
-										);
-									})}
+										</div>
+									);
+								})}
+							</div>
+						)}
+					</div>
+				</div>
+
+				<div className={styles.sideColumn}>
+					<div
+						className={styles.sectionCard}
+						onClick={() => {
+							notify({
+								message: "Кнопки заработают в ближайшее время!",
+								type: "warning",
+							});
+						}}
+					>
+						<h2 className={styles.sectionTitle}>Быстрые действия</h2>
+
+						<div className={styles.quickActions}>
+							<button disabled type="button" className={styles.primaryButton}>
+								Оставить обращение
+							</button>
+							<button disabled type="button" className={styles.secondaryButton}>
+								Запросить отчёт
+							</button>
+							<button disabled type="button" className={styles.secondaryButton}>
+								Запланировать встречу
+							</button>
+						</div>
+					</div>
+
+					<div className={styles.sectionCard}>
+						<h2 className={styles.sectionTitle}>Последняя активность</h2>
+
+						<div className={styles.activityList}>
+							{latestActivityProjects.length > 0 ? (
+								latestActivityProjects.map((project) => (
+									<div key={project.id} className={styles.activityItem}>
+										<div className={styles.activityDot} />
+										<div className={styles.activityContent}>
+											<div className={styles.activityProjectTitle}>
+												{project.title}
+											</div>
+											<div className={styles.activityProjectText}>
+												Последнее действие:{" "}
+												{formatDate(project.lastActivityTime)}
+											</div>
+										</div>
+									</div>
+								))
+							) : (
+								<div className={styles.mutedText}>
+									Пока нет данных по активности
 								</div>
 							)}
 						</div>
 					</div>
 
-					<div className={styles.sideColumn}>
-						<div className={styles.sectionCard}>
-							<h2 className={styles.sectionTitle}>Быстрые действия</h2>
+					<div className={styles.sectionCard}>
+						<h2 className={styles.sectionTitle}>Ближайшие встречи</h2>
 
-							<div className={styles.quickActions}>
-								<button type="button" className={styles.primaryButton}>
-									Оставить обращение
-								</button>
-								<button type="button" className={styles.secondaryButton}>
-									Запросить отчёт
-								</button>
-								<button type="button" className={styles.secondaryButton}>
-									Запланировать встречу
-								</button>
-							</div>
-						</div>
-
-						<div className={styles.sectionCard}>
-							<h2 className={styles.sectionTitle}>Последняя активность</h2>
-
-							<div className={styles.activityList}>
-								{latestActivityProjects.length > 0 ? (
-									latestActivityProjects.map((project) => (
-										<div key={project.id} className={styles.activityItem}>
-											<div className={styles.activityDot} />
-											<div className={styles.activityContent}>
-												<div className={styles.activityProjectTitle}>
-													{project.title}
-												</div>
-												<div className={styles.activityProjectText}>
-													Последнее действие:{" "}
-													{formatDate(project.lastActivityTime)}
-												</div>
-											</div>
-										</div>
-									))
-								) : (
-									<div className={styles.mutedText}>
-										Пока нет данных по активности
+						<div className={styles.meetingsList}>
+							{/* {mockMeetings.map((meeting) => (
+								<div key={meeting.id} className={styles.meetingCard}>
+									<div className={styles.meetingTitle}>{meeting.title}</div>
+									<div className={styles.meetingProject}>
+										{meeting.projectTitle}
 									</div>
-								)}
-							</div>
-						</div>
-
-						<div className={styles.sectionCard}>
-							<h2 className={styles.sectionTitle}>Ближайшие встречи</h2>
-
-							<div className={styles.meetingsList}>
-								{mockMeetings.map((meeting) => (
-									<div key={meeting.id} className={styles.meetingCard}>
-										<div className={styles.meetingTitle}>{meeting.title}</div>
-										<div className={styles.meetingProject}>
-											{meeting.projectTitle}
-										</div>
-										<div className={styles.meetingMeta}>
-											<span>{dayjs(meeting.date).format("DD.MM.YYYY")}</span>
-											<span>{meeting.time}</span>
-										</div>
-										<a href={meeting.link} className={styles.meetingLink}>
-											Подключиться
-										</a>
+									<div className={styles.meetingMeta}>
+										<span>{dayjs(meeting.date).format("DD.MM.YYYY")}</span>
+										<span>{meeting.time}</span>
 									</div>
-								))}
+									<a href={meeting.link} className={styles.meetingLink}>
+										Подключиться
+									</a>
+								</div>
+							))} */}
+
+							<div className={styles.meetingCard}>
+								<div className={styles.meetingTitle}>Нет ближайших встреч</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		</CheckPermission>
+		</div>
+		// </CheckPermission>
 	);
 };
 
