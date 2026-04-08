@@ -1,7 +1,7 @@
-import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
+import { useEffect, useState } from "react";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import { getCalls } from "../../api/getCalls";
 import { getDeals } from "../../api/getDeals";
 import { headersForSales } from "../../constants/SalesTitleMap";
@@ -84,14 +84,10 @@ const toNumber = (value: string | number) => {
 	return Number(String(value).replace(/\s/g, "")) || 0;
 };
 
-const today = dayjs();
-
 export const SalesPage = () => {
-	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const [data, setData] = useState<SalesTableFields[]>([]);
 
-	const { endOfTheWeek, startOfTheWeek } = borders;
+	const { endOfTheWeek, startOfTheWeek, setDay } = useSprintBorders();
 
 	const start = dayjs(startOfTheWeek).subtract(1, "day").format("YYYY-MM-DD");
 	const end = dayjs(endOfTheWeek).subtract(3, "day").format("YYYY-MM-DD");
@@ -235,8 +231,8 @@ export const SalesPage = () => {
 					}}
 				>
 					<div>
-						{dayjs(borders.startOfTheWeek).subtract(1, "day").format("DD.MM")}-
-						{dayjs(borders.endOfTheWeek).subtract(3, "day").format("DD.MM")}
+						{dayjs(startOfTheWeek).subtract(1, "day").format("DD.MM")}-
+						{dayjs(endOfTheWeek).subtract(3, "day").format("DD.MM")}
 					</div>
 				</div>
 

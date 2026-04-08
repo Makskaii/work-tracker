@@ -6,6 +6,12 @@ import type { TaskProps } from "../types/types";
 
 export const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
+export const enum DEPARTMENT_IDS {
+	DEV = 23,
+	SALES = 19,
+	ANALYTICS = 25,
+}
+
 export const Endpoints = {
 	tasks: "tasks.task.list",
 	groups: "sonet_group.get",

@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
@@ -14,33 +14,31 @@ import {
 } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type {
 	ClientListItems,
 	ReportsContext,
 	TaskProps,
 } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
+import { getFixedNumber } from "@/shared/utils/getNumber";
 import { getItems } from "../../api/getTasks";
 import { ProjectActivityChart } from "./ActivityChart";
 import { DoneTasksList } from "./DoneTasksList";
-
-const today = dayjs();
 
 const { VITE_BFF_API_URL } = import.meta.env;
 
 export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 	const { users, statuses, activities } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
-	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
+
 	const [view, setView] = useState<"task" | "stats">("stats");
 	const [loading, setLoading] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
 
 	const { openTask } = useBitrixSlider();
 
-	const { startOfTheWeek, endOfTheWeek } = borders;
+	const { startOfTheWeek, endOfTheWeek, setDay } = useSprintBorders();
 
 	useEffect(() => {
 		const fetchTasks = async () => {
@@ -275,8 +273,8 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 						>
 							<span>Cпринт</span>
 							<div>
-								{dayjs(borders.startOfTheWeek).format("DD.MM")}-
-								{dayjs(borders.endOfTheWeek).format("DD.MM")}
+								{dayjs(startOfTheWeek).format("DD.MM")}-
+								{dayjs(endOfTheWeek).format("DD.MM")}
 							</div>
 						</div>
 						<button
@@ -292,7 +290,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 						</button>
 					</div>
 
-					<span>Всего времени: {totalSpentTime.toFixed(2)} ч.</span>
+					<span>Всего времени: {getFixedNumber(totalSpentTime)} ч.</span>
 				</div>
 				<div
 					style={{
@@ -398,11 +396,13 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 								}}
 							>
 								Всего затрачено за спринт:{" "}
-								{data.reduce((acc, report) => {
-									return (
-										acc + parseFloat(String(report[ReportCodes.timeSpent]))
-									);
-								}, 0)}
+								{getFixedNumber(
+									data.reduce((acc, report) => {
+										return (
+											acc + parseFloat(String(report[ReportCodes.timeSpent]))
+										);
+									}, 0),
+								)}
 								ч.
 							</span>
 
@@ -412,11 +412,13 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 								}}
 							>
 								План по часам:{" "}
-								{tasks.reduce((acc, report) => {
-									return (
-										acc + convertNumberFormat(report[TaskCodes.estimateTime])
-									);
-								}, 0)}
+								{getFixedNumber(
+									tasks.reduce((acc, report) => {
+										return (
+											acc + convertNumberFormat(report[TaskCodes.estimateTime])
+										);
+									}, 0),
+								)}
 								ч.
 							</span>
 						</div>

@@ -1,11 +1,10 @@
-import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { ReportsContext } from "@/shared/types/types";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import { ActivityTitle, ActivityType, ReportCodes } from "./constants/const";
@@ -14,17 +13,13 @@ import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import type { ReportProps } from "./types/types";
 import cls from "./WeekCalendar.module.scss";
 
-const today = dayjs();
-
 const WeekCalendar = () => {
 	const HOUR_HEIGHT = 800 / 8;
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReport, setActiveReport] = useState<ReportProps>();
-	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const { user } = useOutletContext<ReportsContext>();
 
-	const { startOfTheWeek, endOfTheWeek } = borders;
+	const { startOfTheWeek, endOfTheWeek, setDay, day } = useSprintBorders();
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
@@ -83,8 +78,15 @@ const WeekCalendar = () => {
 	}, [endOfTheWeek, setFilters, startOfTheWeek, user, day]);
 
 	const weekCalendar = useMemo(() => {
-		return buildWeekCalendarFromReports(data, borders, ReportCodes.timeSpent);
-	}, [data, borders]);
+		return buildWeekCalendarFromReports(
+			data,
+			{
+				startOfTheWeek,
+				endOfTheWeek,
+			},
+			ReportCodes.timeSpent,
+		);
+	}, [data, startOfTheWeek, endOfTheWeek]);
 
 	return (
 		<div
@@ -171,8 +173,8 @@ const WeekCalendar = () => {
 					>
 						<span>Cпринт</span>
 						<div>
-							{dayjs(borders.startOfTheWeek).format("DD.MM")}-
-							{dayjs(borders.endOfTheWeek).format("DD.MM")}
+							{dayjs(startOfTheWeek).format("DD.MM")}-
+							{dayjs(endOfTheWeek).format("DD.MM")}
 						</div>
 					</div>
 					<button

@@ -1,5 +1,5 @@
 import { $api } from "@/shared/config";
-import { Endpoints } from "@/shared/constants/const";
+import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
 
 export const getDevelopers = async (): Promise<
 	{
@@ -15,7 +15,7 @@ export const getDevelopers = async (): Promise<
 		const response = await $api.get(Endpoints.users, {
 			params: {
 				filter: {
-					"@UF_DEPARTMENT": [23, 25],
+					"@UF_DEPARTMENT": [DEPARTMENT_IDS.ANALYTICS, DEPARTMENT_IDS.DEV],
 				},
 				select: [
 					"NAME",

@@ -14,8 +14,10 @@ import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfil
 import { ClientProjectPage } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectPage";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
+import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
+import { WorkLoad } from "@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad";
 
 export const router = createBrowserRouter(
 	[
@@ -27,7 +29,7 @@ export const router = createBrowserRouter(
 			children: [
 				{
 					index: true,
-					element: <Navigate to="/reports/calendar" replace />,
+					element: <Navigate to="/reports/developers" replace />,
 				},
 				{
 					path: "/reports",
@@ -82,6 +84,22 @@ export const router = createBrowserRouter(
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<ClientList />
+								</Suspense>
+							),
+						},
+						{
+							path: "workload",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<WorkLoad />
+								</Suspense>
+							),
+						},
+						{
+							path: "project-statuses",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<ProjectStatuses />
 								</Suspense>
 							),
 						},

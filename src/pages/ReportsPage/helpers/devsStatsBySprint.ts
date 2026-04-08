@@ -21,8 +21,8 @@ export const getWorkWeekBorders = (date: Dayjs) => {
 	const endOfWeek = startOfWeek.add(4, "day").endOf("day");
 
 	return {
-		startOfWeek: startOfWeek.format("YYYY-MM-DD"),
-		endOfWeek: endOfWeek.format("YYYY-MM-DD"),
+		startOfTheWeek: startOfWeek.format("YYYY-MM-DD"),
+		endOfTheWeek: endOfWeek.format("YYYY-MM-DD"),
 	};
 };
 
@@ -119,7 +119,7 @@ export const getUsersTableData = async ({
 	const day = dayjs().day();
 
 	const availableTime = dayjs(startOfTheWeek).isBefore(
-		dayjs(currWeekBorders.startOfWeek),
+		dayjs(currWeekBorders.startOfTheWeek),
 	)
 		? 40
 		: day * 8;

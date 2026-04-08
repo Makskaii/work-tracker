@@ -1,5 +1,6 @@
 import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
 import type { Header } from "@/shared/types/table";
+import { getFixedNumber } from "@/shared/utils/getNumber";
 import type { ActivityListItem, GroupedFields } from "../types/types";
 
 export const getHeadersForDevs = (
@@ -9,6 +10,7 @@ export const getHeadersForDevs = (
 		(activity) => ({
 			title: activity.NAME,
 			key: String(activity.ID),
+			convertFn: (value) => getFixedNumber(value),
 		}),
 	);
 

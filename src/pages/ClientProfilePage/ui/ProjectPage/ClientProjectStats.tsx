@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
@@ -17,15 +17,13 @@ import {
 } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type {
 	ClientProjectProps,
 	ReportsContext,
 	TaskProps,
 } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
-
-const today = dayjs();
 
 const { VITE_BFF_API_URL } = import.meta.env;
 
@@ -36,15 +34,13 @@ export const ClientProjectsStats = ({
 }) => {
 	const { users, statuses, activities } = useOutletContext<ReportsContext>();
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
-	const [day, setDay] = useState<Dayjs>(today);
-	const borders = useMemo(() => getSprintWeekBorders(dayjs(day)), [day]);
 	const [view, setView] = useState<"task" | "stats">("stats");
 	const [loading, setLoading] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
 
 	const { openTask } = useBitrixSlider();
 
-	const { startOfTheWeek, endOfTheWeek } = borders;
+	const { startOfTheWeek, endOfTheWeek, setDay } = useSprintBorders();
 
 	useEffect(() => {
 		const fetchTasks = async () => {
@@ -283,8 +279,8 @@ export const ClientProjectsStats = ({
 						>
 							<span>Cпринт</span>
 							<div>
-								{dayjs(borders.startOfTheWeek).format("DD.MM")}-
-								{dayjs(borders.endOfTheWeek).format("DD.MM")}
+								{dayjs(startOfTheWeek).format("DD.MM")}-
+								{dayjs(endOfTheWeek).format("DD.MM")}
 							</div>
 						</div>
 						<button

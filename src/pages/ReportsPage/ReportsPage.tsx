@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet } from "react-router";
+import { Outlet } from "react-router";
 import { TaskCodes as UserCodes } from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import {
@@ -26,7 +26,6 @@ import { getSrartEndMonthDate } from "../../shared/utils/utils";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
 import { getItems } from "./api/getTasks";
-import { Navigation } from "./constants/UsersTitleMap";
 import type { ActivityListItem } from "./types/types";
 
 const currentMonth = dayjs().month() + 1;
@@ -241,35 +240,6 @@ const ReportsPage = () => {
 					padding: "1rem",
 				}}
 			>
-				<div
-					style={{
-						display: "flex",
-						gap: "1rem",
-						justifyContent: "space-between",
-					}}
-				>
-					<div
-						style={{
-							display: "flex",
-							gap: "1rem",
-						}}
-					>
-						{Navigation.map((link) => (
-							<NavLink
-								key={link.path}
-								className={({ isActive, isPending }) =>
-									[isPending ? "pending" : "", isActive ? "active" : ""].join(
-										" ",
-									)
-								}
-								to={link.path}
-								end
-							>
-								<div>{link.title}</div>
-							</NavLink>
-						))}
-					</div>
-				</div>
 				<Outlet
 					context={
 						{
