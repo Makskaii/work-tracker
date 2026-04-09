@@ -307,3 +307,148 @@
     margin-top: 0.35rem;
     color: #64748b;
 }
+
+
+
+.titleRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+.titleBlock {
+    flex: 1;
+    min-width: 0;
+}
+
+.titleBadge {
+    flex-shrink: 0;
+}
+
+.title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.descriptionBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.description {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #4b5563;
+    word-break: break-word;
+}
+
+.descriptionExpanded {
+    display: block;
+}
+
+.inlineButton {
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2563eb;
+    cursor: pointer;
+}
+
+.inlineButton:hover {
+    text-decoration: underline;
+}
+
+.cardActions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tasksSection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid #eceff3;
+}
+
+.tasksSectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tasksSectionTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.tasksList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tasksListScrollable {
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.taskRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #eceff3;
+    border-radius: 10px;
+    background: #fafafa;
+    min-width: 0;
+}
+
+.taskMain {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.taskTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.taskSide {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}

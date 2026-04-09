@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from "react";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { TaskItem } from "@/components/taskItem/TaskItemSimple";
@@ -9,16 +8,12 @@ import type { Status, TaskProps } from "../../../shared/types/types";
 export const TasksList = ({
 	tasks,
 	reports,
-	setActiveTask,
-	setView,
 	statuses,
 }: {
 	tasks: TaskProps[];
 	reports: {
 		[key: string]: ReportProps[];
 	};
-	setActiveTask: Dispatch<SetStateAction<TaskProps | null>>;
-	setView: Dispatch<SetStateAction<"task" | "stats">>;
 	statuses: Status[];
 }) => {
 	const { openTask } = useBitrixSlider();
@@ -40,8 +35,6 @@ export const TasksList = ({
 					<div
 						key={task.id}
 						onClick={() => {
-							setView("task");
-							setActiveTask(task);
 							openTask(task.id, EntityTypeIds.tasks);
 						}}
 					>

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
-import { TaskView } from "@/components/taskItem/TaskView";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import type { TGroupedTasks } from "@/pages/ReportsPage/ui/ProgressReports/types";
 import { $api } from "@/shared/config";
@@ -28,8 +27,6 @@ export const StatsModal = ({ user }: { user: User }) => {
 		Record<string, ReportProps[]>
 	>({});
 	const [allSprintReports, setAllSprintReports] = useState<ReportProps[]>([]);
-	const [activeTask, setActiveTask] = useState<TaskProps | null>(null);
-	const [view, setView] = useState<"task" | "stats">("stats");
 
 	const [taskFilter, setTaskFilter] = useState<"all" | "overrun">("all");
 	const [overrunTaskIds, setOverrunTaskIds] = useState<string[]>([]);
@@ -305,8 +302,6 @@ export const StatsModal = ({ user }: { user: User }) => {
 					<TasksList
 						tasks={filteredTasks}
 						reports={reportsByTask}
-						setActiveTask={setActiveTask}
-						setView={setView}
 						statuses={statuses}
 					/>
 				</div>
@@ -319,77 +314,64 @@ export const StatsModal = ({ user }: { user: User }) => {
 						height: "calc(100vh * 0.65)",
 					}}
 				>
-					{view === "task" && activeTask ? (
-						<TaskView
-							taskId={activeTask.id}
-							setActiveTask={setActiveTask}
-							setView={setView}
-						/>
-					) : (
-						<>
-							<EmployeeStats
-								tasks={tasks}
-								taskReportsMap={reportsByTask}
-								allSprintReports={allSprintReports}
-								activities={activities}
-								sprintStart={startOfTheWeek}
-								sprintEnd={endOfTheWeek}
-								onOpenOverrunTasks={(taskIds) => {
-									setOverrunTaskIds(taskIds);
-									setTaskFilter("overrun");
-								}}
-								doneStageId={"DT1072_18:UC_6JNSDG"}
-							/>
+					<EmployeeStats
+						tasks={tasks}
+						taskReportsMap={reportsByTask}
+						allSprintReports={allSprintReports}
+						activities={activities}
+						sprintStart={startOfTheWeek}
+						sprintEnd={endOfTheWeek}
+						onOpenOverrunTasks={(taskIds) => {
+							setOverrunTaskIds(taskIds);
+							setTaskFilter("overrun");
+						}}
+						doneStageId={"DT1072_18:UC_6JNSDG"}
+					/>
 
-							{tasks.length !== 0 && (
-								<div style={{ marginTop: "1rem" }}>
+					{tasks.length !== 0 && (
+						<div style={{ marginTop: "1rem" }}>
+							<div
+								style={{
+									display: "flex",
+									justifyContent: "space-between",
+									marginBottom: "1rem",
+								}}
+							>
+								<div>Список проектов:</div>
+								<div>Задач в проекте:</div>
+							</div>
+
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									overflowY: "auto",
+									height: "calc(100vh * 0.25)",
+									background: "#f9fafb",
+									padding: "1rem",
+									gap: "10px",
+									borderRadius: "24px",
+								}}
+							>
+								{Object.entries(grouped).map(([projectId, projectTasks]) => (
 									<div
+										key={projectId}
 										style={{
 											display: "flex",
 											justifyContent: "space-between",
-											marginBottom: "1rem",
 										}}
 									>
-										<div>Список проектов:</div>
-										<div>Задач в проекте:</div>
+										<div>
+											{
+												projects.find((project) => project.id === projectId)
+													?.name
+											}
+										</div>
+										<div>{projectTasks?.length}</div>
 									</div>
-
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											overflowY: "auto",
-											height: "calc(100vh * 0.25)",
-											background: "#f9fafb",
-											padding: "1rem",
-											gap: "10px",
-											borderRadius: "24px",
-										}}
-									>
-										{Object.entries(grouped).map(
-											([projectId, projectTasks]) => (
-												<div
-													key={projectId}
-													style={{
-														display: "flex",
-														justifyContent: "space-between",
-													}}
-												>
-													<div>
-														{
-															projects.find(
-																(project) => project.id === projectId,
-															)?.name
-														}
-													</div>
-													<div>{projectTasks?.length}</div>
-												</div>
-											),
-										)}
-									</div>
-								</div>
-							)}
-						</>
+								))}
+							</div>
+						</div>
 					)}
 				</div>
 			</div>

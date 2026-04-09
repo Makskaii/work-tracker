@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { TaskCodes } from "@/components/calendar/constants/const";
+import { TaskView } from "@/components/taskItem/TaskView";
 import type { TaskProps } from "@/shared/types/types";
 import type { TaskBundle } from "../ProjectPage/ClientProjectPage";
 import cls from "./TaskBundleSection.module.scss";
@@ -85,38 +86,109 @@ const StatusBadge = ({
 	);
 };
 const BundleTaskRow = ({ task }: { task: TaskProps }) => {
-	return (
-		<div className={cls.taskRow}>
-			<div className={cls.taskMain}>
-				<div className={cls.taskTitle}>{task.title}</div>
-			</div>
+	const [extended, setExtended] = useState(false);
 
-			<div className={cls.taskSide}>
-				<StatusBadge status={task.stageId} type="task" />
-			</div>
+	return (
+		<div className={cls.taskRow} onClick={() => setExtended(true)}>
+			{extended ? (
+				<TaskView taskId={task.id} onClose={() => setExtended(false)} />
+			) : (
+				<>
+					<div className={cls.taskMain}>
+						<div className={cls.taskTitle} title={task.title}>
+							{task.title}
+						</div>
+
+						<div className={cls.taskMeta}>
+							{task.createdTime ? (
+								<span>Создана: {formatDate(task.createdTime)}</span>
+							) : null}
+						</div>
+					</div>
+
+					<div className={cls.taskSide}>
+						<StatusBadge status={task.stageId} type="task" />
+					</div>
+				</>
+			)}
 		</div>
 	);
 };
 
+const DESCRIPTION_PREVIEW_LIMIT = 180;
+const TASKS_PREVIEW_COUNT = 5;
+
+const isDoneStage = (stageId?: string) => stageId === "DT1072_18:UC_6JNSDG";
+const isActiveStage = (stageId?: string) => stageId === "DT1072_18:UC_YU7VRR";
+
+const getSafeText = (value?: string | null) => value?.trim() ?? "";
+
+const clampText = (text: string, limit: number) => {
+	if (text.length <= limit) return text;
+	return `${text.slice(0, limit).trim()}...`;
+};
+
 const TaskBundleCard = ({ bundle }: { bundle: TaskBundle }) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+	const [showAllTasks, setShowAllTasks] = useState(false);
 
 	const progress = getBundleProgress(bundle.tasks);
-	const doneTasksCount = bundle.tasks.filter(
-		(task) => task.stageId === "done",
-	).length;
+
+	const doneTasksCount = useMemo(() => {
+		return bundle.tasks.filter((task) => isDoneStage(task.stageId)).length;
+	}, [bundle.tasks]);
+
+	const description = getSafeText(bundle[TaskCodes.description]);
+	const hasLongDescription = description.length > DESCRIPTION_PREVIEW_LIMIT;
+
+	const visibleDescription = isDescriptionExpanded
+		? description
+		: clampText(description, DESCRIPTION_PREVIEW_LIMIT);
+
+	const hasManyTasks = bundle.tasks.length > TASKS_PREVIEW_COUNT;
+	const visibleTasks = showAllTasks
+		? bundle.tasks
+		: bundle.tasks.slice(0, TASKS_PREVIEW_COUNT);
 
 	return (
-		<div className={cls.card}>
+		<article className={cls.card}>
 			<div className={cls.cardHeader}>
 				<div className={cls.headerMain}>
 					<div className={cls.titleRow}>
-						<h3 className={cls.title}>{bundle.title}</h3>
-						<StatusBadge status={bundle.stageId} type="bundle" />
+						<div className={cls.titleBlock}>
+							<h3 className={cls.title} title={bundle.title}>
+								{bundle.title}
+							</h3>
+						</div>
+
+						<div className={cls.titleBadge}>
+							<StatusBadge status={bundle.stageId} type="bundle" />
+						</div>
 					</div>
 
-					{bundle[TaskCodes.description] ? (
-						<p className={cls.description}>{bundle[TaskCodes.description]}</p>
+					{description ? (
+						<div className={cls.descriptionBlock}>
+							<p
+								className={`${cls.description} ${
+									isDescriptionExpanded ? cls.descriptionExpanded : ""
+								}`}
+							>
+								{visibleDescription}
+							</p>
+
+							{hasLongDescription ? (
+								<button
+									type="button"
+									className={cls.inlineButton}
+									onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+								>
+									{isDescriptionExpanded
+										? "Скрыть описание"
+										: "Показать описание"}
+								</button>
+							) : null}
+						</div>
 					) : null}
 
 					<div className={cls.metaGrid}>
@@ -131,6 +203,18 @@ const TaskBundleCard = ({ bundle }: { bundle: TaskBundle }) => {
 							<span className={cls.metaLabel}>Дедлайн</span>
 							<span className={cls.metaValue}>{formatDate("2026-02-02")}</span>
 						</div>
+
+						<div className={cls.metaItem}>
+							<span className={cls.metaLabel}>Всего задач</span>
+							<span className={cls.metaValue}>{bundle.tasks.length}</span>
+						</div>
+
+						<div className={cls.metaItem}>
+							<span className={cls.metaLabel}>Завершено</span>
+							<span className={cls.metaValue}>
+								{doneTasksCount} / {bundle.tasks.length}
+							</span>
+						</div>
 					</div>
 				</div>
 
@@ -143,24 +227,48 @@ const TaskBundleCard = ({ bundle }: { bundle: TaskBundle }) => {
 						</div>
 					</div>
 
-					<button
-						type="button"
-						className={cls.toggleButton}
-						onClick={() => setIsOpen((prev) => !prev)}
-					>
-						{isOpen ? "Скрыть задачи" : "Показать задачи"}
-					</button>
+					<div className={cls.cardActions}>
+						<button
+							type="button"
+							className={cls.toggleButton}
+							onClick={() => setIsOpen((prev) => !prev)}
+						>
+							{isOpen ? "Скрыть задачи" : "Показать задачи"}
+						</button>
+					</div>
 				</div>
 			</div>
 
 			{isOpen ? (
-				<div className={cls.tasksList}>
-					{bundle.tasks.map((task) => (
-						<BundleTaskRow key={task.id} task={task} />
-					))}
+				<div className={cls.tasksSection}>
+					<div className={cls.tasksSectionHeader}>
+						<div className={cls.tasksSectionTitle}>Задачи бандла</div>
+
+						{hasManyTasks ? (
+							<button
+								type="button"
+								className={cls.inlineButton}
+								onClick={() => setShowAllTasks((prev) => !prev)}
+							>
+								{showAllTasks
+									? "Показать меньше"
+									: `Показать все (${bundle.tasks.length})`}
+							</button>
+						) : null}
+					</div>
+
+					<div
+						className={`${cls.tasksList} ${
+							showAllTasks ? cls.tasksListScrollable : ""
+						}`}
+					>
+						{visibleTasks.map((task) => (
+							<BundleTaskRow key={task.id} task={task} />
+						))}
+					</div>
 				</div>
 			) : null}
-		</div>
+		</article>
 	);
 };
 
@@ -177,6 +285,14 @@ export const TaskBundleSection = ({ bundles }: { bundles: TaskBundle[] }) => {
 		);
 	}
 
+	const activeBundlesCount = bundles.filter((bundle) =>
+		isActiveStage(bundle.stageId),
+	).length;
+
+	const doneBundlesCount = bundles.filter((bundle) =>
+		isDoneStage(bundle.stageId),
+	).length;
+
 	return (
 		<section className={cls.section}>
 			<div className={cls.sectionHeader}>
@@ -192,20 +308,10 @@ export const TaskBundleSection = ({ bundles }: { bundles: TaskBundle[] }) => {
 						Всего бандлов: {bundles.length}
 					</span>
 					<span className={cls.summaryItem}>
-						Активных:{" "}
-						{
-							bundles.filter(
-								(bundle) => bundle.stageId === "DT1072_18:UC_YU7VRR",
-							).length
-						}
+						Активных: {activeBundlesCount}
 					</span>
 					<span className={cls.summaryItem}>
-						Завершённых:{" "}
-						{
-							bundles.filter(
-								(bundle) => bundle.stageId === "DT1072_18:UC_6JNSDG",
-							).length
-						}
+						Завершённых: {doneBundlesCount}
 					</span>
 				</div>
 			</div>
