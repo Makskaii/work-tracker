@@ -1,22 +1,11 @@
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
+import type { Deal } from "../types/deals.types";
 import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
 	filters?: Record<string, string | number>,
-): Promise<
-	{
-		id: string;
-		createdTime: string;
-		opportunity: string;
-		stageId: string;
-		isNew: string;
-		createdBy: string;
-		movedTime: string;
-		[SalesCodes.kpSuccess]: number;
-		[SalesCodes.ppoSuccess]: number;
-	}[]
-> => {
+): Promise<Deal[]> => {
 	try {
 		const response = await $api.post(Endpoints.crmItems, {
 			entityTypeId: 2,

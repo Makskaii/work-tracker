@@ -49,8 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
 					},
 					{
 						label: "Отчеты отдела бизнес-аналитики",
-						to: "/departments-reports/commercial/analytics-report",
-						disabled: true,
+						to: "/reports/commertial-analytics",
 					},
 				],
 			},

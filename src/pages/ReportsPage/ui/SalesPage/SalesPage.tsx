@@ -87,10 +87,11 @@ const toNumber = (value: string | number) => {
 export const SalesPage = () => {
 	const [data, setData] = useState<SalesTableFields[]>([]);
 
-	const { endOfTheWeek, startOfTheWeek, setDay } = useSprintBorders();
-
-	const start = dayjs(startOfTheWeek).subtract(1, "day").format("YYYY-MM-DD");
-	const end = dayjs(endOfTheWeek).subtract(3, "day").format("YYYY-MM-DD");
+	const {
+		endOfTheWeek: end,
+		startOfTheWeek: start,
+		setDay,
+	} = useSprintBorders("workweek");
 
 	useEffect(() => {
 		const fetchCallsAmount = async () => {
@@ -231,8 +232,7 @@ export const SalesPage = () => {
 					}}
 				>
 					<div>
-						{dayjs(startOfTheWeek).subtract(1, "day").format("DD.MM")}-
-						{dayjs(endOfTheWeek).subtract(3, "day").format("DD.MM")}
+						{dayjs(start).format("DD.MM")}-{dayjs(end).format("DD.MM")}
 					</div>
 				</div>
 
