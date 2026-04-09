@@ -1,8 +1,7 @@
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
+import { useEffect, useState } from "react";
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
-import type { ReportsContext, TaskProps } from "@/shared/types/types";
+import type { TaskProps } from "@/shared/types/types";
 import { convertNumberFormat, convertToDate } from "@/shared/utils";
 import { TaskCodes } from "../calendar/constants/const";
 import { Spinner } from "../spinner/Spinner";
@@ -10,16 +9,13 @@ import { InfoCard } from "./TaskInfoCard";
 
 export const TaskView = ({
 	taskId,
-	setActiveTask,
-	setView,
+	onClose,
 }: {
 	taskId: string;
-	setActiveTask: Dispatch<SetStateAction<TaskProps | null>>;
-	setView: Dispatch<SetStateAction<"task" | "stats">>;
+	onClose: () => void;
 }) => {
 	const [task, setTask] = useState<TaskProps | null>(null);
 	const [loading, setLoading] = useState<boolean>(false);
-	const { projects } = useOutletContext<ReportsContext>();
 
 	useEffect(() => {
 		const fetchTask = async () => {
@@ -78,6 +74,7 @@ export const TaskView = ({
 				gap: "20px",
 				border: "1px solid #f1f5f9",
 				position: "relative",
+				width: "100%",
 			}}
 		>
 			<div
@@ -135,9 +132,10 @@ export const TaskView = ({
 						whiteSpace: "nowrap",
 						cursor: "pointer",
 					}}
-					onClick={() => {
-						setView("stats");
-						setActiveTask(null);
+					onClick={(e) => {
+						e.stopPropagation();
+						console.log("in");
+						onClose();
 					}}
 				>
 					Закрыть
@@ -157,15 +155,6 @@ export const TaskView = ({
 						task[TaskCodes.estimateTime]
 							? `${convertNumberFormat(task[TaskCodes.estimateTime])} ч.`
 							: "—"
-					}
-				/>
-
-				<InfoCard
-					label="Проект"
-					value={
-						projects.find(
-							(project) => project.id === String(task[TaskCodes.client]),
-						)?.name ?? ""
 					}
 				/>
 			</div>

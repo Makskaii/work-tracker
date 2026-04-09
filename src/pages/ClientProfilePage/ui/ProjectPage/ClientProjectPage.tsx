@@ -43,7 +43,7 @@ export const ClientProjectPage = () => {
 	const [reportsOpen, setReportsOpen] = useState(false);
 	const [allTasksOpen, setAllTasksOpen] = useState(false);
 	const [bundle, setBundles] = useState<TaskBundle[]>([]);
-	console.log({ bundle });
+
 	const { state } = useLocation();
 
 	const { openTask } = useBitrixSlider();
