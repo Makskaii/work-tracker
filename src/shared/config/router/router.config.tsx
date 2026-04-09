@@ -13,6 +13,7 @@ import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLo
 import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
 import { ClientProjectPage } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectPage";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
+import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
@@ -100,6 +101,14 @@ export const router = createBrowserRouter(
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<ProjectStatuses />
+								</Suspense>
+							),
+						},
+						{
+							path: "commertial-analytics",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<AnalyticsCommertialReportPage />
 								</Suspense>
 							),
 						},

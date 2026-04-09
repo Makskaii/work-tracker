@@ -46,6 +46,10 @@ export const enum SalesCodes {
 	kpSuccess = "ufCrm_1773845648828",
 	kpday = "ufCrm_1774011083796",
 	ppoDay = "ufCrm_1774011061113",
+	analytic = "ufCrm_1765448675",
+	estimateCost = "ufCrm_1775742423919",
+	totalCost = "ufCrm_1775742463983",
+	costFile = "ufCrm_1765448442404",
 }
 
 export type ActivitySort = 0 | 1 | 2;
