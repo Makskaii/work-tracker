@@ -15,4 +15,7 @@ export interface Deal {
 	[SalesCodes.estimateCost]: number;
 	[SalesCodes.totalCost]: number;
 	[SalesCodes.costFile]: string[];
+	[SalesCodes.kpday]: string;
+	[SalesCodes.ppoDay]: string;
+	assignedById: number;
 }

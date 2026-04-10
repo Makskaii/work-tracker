@@ -16,7 +16,7 @@ export type UniversalTableProps<T extends { id: string }> = {
 	activeItems: T[];
 	additionalData?: AnyObject;
 	totalRow?: React.ReactNode;
-	onRowClick?: (id: string) => void;
+	onRowClick?: (item: T) => void;
 	fallbackText?: string;
 };
 
