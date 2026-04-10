@@ -8,6 +8,7 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 	additionalData,
 	totalRow,
 	fallbackText = "Загрузка...",
+	onRowClick,
 }: UniversalTableProps<T>) => {
 	return (
 		<div
@@ -35,7 +36,7 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 									row: item,
 								};
 								return (
-									<tr key={item.id}>
+									<tr key={item.id} onClick={() => onRowClick?.(item)}>
 										{headers.map((header) => {
 											const value = item[header.key];
 
