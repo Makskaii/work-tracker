@@ -7,10 +7,13 @@ export const useBitrixSlider = () => {
 	const openCrmItem = async (
 		itemId: number | string,
 		entityId: number = EntityTypeIds.tasks,
+		type: "task" | "common" = "task",
 	) => {
 		if (!b24) return null;
 
-		const url = b24.slider.getUrl(`/crm/type/${entityId}/details/${itemId}/`);
+		const path = `/crm/${type === "task" ? `type/${entityId}` : "deal"}/details/${itemId}/`;
+
+		const url = b24.slider.getUrl(path);
 		return b24.slider.openPath(url, 1100);
 	};
 
