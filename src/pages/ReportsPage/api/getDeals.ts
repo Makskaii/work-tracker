@@ -4,7 +4,7 @@ import type { Deal } from "../types/deals.types";
 import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
-	filters?: Record<string, string | number>,
+	filters?: Record<string, string | number | undefined>,
 ): Promise<Deal[]> => {
 	try {
 		const response = await $api.post(Endpoints.crmItems, {
@@ -23,6 +23,10 @@ export const getDeals = async (
 				SalesCodes.ppoSuccess,
 				SalesCodes.kpday,
 				SalesCodes.ppoDay,
+				SalesCodes.analytic,
+				SalesCodes.totalCost,
+				SalesCodes.costFile,
+				SalesCodes.estimateCost,
 				"title",
 			],
 		});

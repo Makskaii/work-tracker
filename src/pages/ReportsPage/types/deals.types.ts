@@ -6,6 +6,7 @@ export interface Deal {
 	opportunity: string;
 	stageId: string;
 	isNew: string;
+	title: string;
 	createdBy: string;
 	movedTime: string;
 	[SalesCodes.kpSuccess]: number;

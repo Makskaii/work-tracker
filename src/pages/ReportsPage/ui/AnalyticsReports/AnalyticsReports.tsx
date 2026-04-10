@@ -1,13 +1,17 @@
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Modal } from "@/components/modal";
 import { Spinner } from "@/components/spinner/Spinner";
 import { $api } from "@/shared/config";
 import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import type { User } from "@/shared/types/types";
 import { getDeals } from "../../api/getDeals";
+import type { Deal } from "../../types/deals.types";
 import { SalesCodes } from "../../types/types";
 import styles from "./AnalyticsReports.module.scss";
+import { DealCard } from "./DealCard";
 
 export const getUsers = async (): Promise<
 	{
@@ -114,13 +118,26 @@ function MetricCard({ title, value, onClick }: MetricCardProps) {
 
 function AnalyticsCommertialReportPage() {
 	const [data, setData] = useState<
-		{ title: string; value?: string | number }[]
+		{
+			title: string;
+			value?: string | number;
+			items?: Deal[];
+		}[]
 	>([]);
 	const [loading, setLoading] = useState(false);
 	const [users, setUsers] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<string>("");
-	console.log(selectedUser);
+	const [open, setOpen] = useState(false);
+	const [activeItems, setActiveItems] = useState<Deal[]>([]);
+
 	const { setPeriod, start, end, period } = usePeriodBorders("week", "sprint");
+
+	const { openTask } = useBitrixSlider();
+
+	const analyticFilter = useMemo(
+		() => (selectedUser !== "" ? { [SalesCodes.analytic]: selectedUser } : {}),
+		[selectedUser],
+	);
 
 	useEffect(() => {
 		const fetchCallsAmount = async () => {
@@ -133,32 +150,34 @@ function AnalyticsCommertialReportPage() {
 						[`>=${SalesCodes.ppoDay}`]: start,
 						[`<=${SalesCodes.ppoDay}`]: end,
 						[SalesCodes.ppoSuccess]: 390,
-						[SalesCodes.analytic]: selectedUser,
+						...analyticFilter,
 					}),
 					await getDeals({
 						categoryId: 0,
 						[`>=${SalesCodes.kpday}`]: start,
 						[`<=${SalesCodes.kpday}`]: end,
 						[SalesCodes.kpSuccess]: 388,
-						[SalesCodes.analytic]: selectedUser,
+						...analyticFilter,
 					}),
 					await getDeals({
 						">=movedTime": start,
-						"<=movedTime": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
+						"<=movedTime": end,
 						categoryId: 0,
 						stageId: "WON",
-						[SalesCodes.analytic]: selectedUser,
+						...analyticFilter,
 					}),
 				]);
-				console.log({ wonItems });
+				console.log({ ppoItems, kpItems, wonItems });
 				const metrics = [
 					{
 						title: "Количество ППО",
 						value: ppoItems.length,
+						items: ppoItems,
 					},
 					{
 						title: "Количество защит КП",
 						value: kpItems.length,
+						items: kpItems,
 					},
 					{
 						title: "Количество посчитанных смет",
@@ -172,6 +191,7 @@ function AnalyticsCommertialReportPage() {
 							}
 							return acc;
 						}, 0),
+						items: wonItems,
 					},
 					{
 						title: "Средняя сумма сметы",
@@ -227,7 +247,7 @@ function AnalyticsCommertialReportPage() {
 		};
 
 		fetchCallsAmount();
-	}, [start, end, selectedUser]);
+	}, [start, end, analyticFilter]);
 
 	return (
 		<section className={styles.section}>
@@ -246,7 +266,7 @@ function AnalyticsCommertialReportPage() {
 							value={selectedUser}
 							onChange={(e) => setSelectedUser(e.target.value)}
 						>
-							<option value="all">Весь отдел</option>
+							<option value={""}>Весь отдел</option>
 							{users.map((user) => (
 								<option key={user.id} value={String(user.id)}>
 									{user.title}
@@ -285,13 +305,32 @@ function AnalyticsCommertialReportPage() {
 									key={metric.title}
 									title={metric.title}
 									value={metric.value}
-									onClick={() => console.log("open drawer:", metric.title)}
+									onClick={() => {
+										if (!metric.items) return;
+										setActiveItems(metric.items);
+										setOpen(true);
+										console.log("open drawer:", metric.title);
+									}}
 								/>
 							);
 						})}
 					</div>
 				)}
 			</div>
+
+			<Modal onClose={() => setOpen(false)} isOpen={open} innerScroll>
+				{activeItems.map((item) => (
+					<DealCard
+						deal={item}
+						analyticName={
+							users.find(
+								(user) => Number(user.id) === item[SalesCodes.analytic],
+							)?.title
+						}
+						onClick={() => openTask(item.id)}
+					/>
+				))}
+			</Modal>
 		</section>
 	);
 }
