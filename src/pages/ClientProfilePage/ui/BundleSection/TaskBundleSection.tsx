@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { TaskView } from "@/components/taskItem/TaskView";
+import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import type { TaskProps } from "@/shared/types/types";
 import type { TaskBundle } from "../ProjectPage/ClientProjectPage";
 import cls from "./TaskBundleSection.module.scss";
@@ -34,6 +35,30 @@ const getBundleStatusLabel = (status: string) => {
 		default:
 			return "Новый";
 	}
+};
+type TaskStatus = "In work" | "Done" | "Sprint" | "Backlog";
+
+const getTaskStatus = (task: TaskProps): TaskStatus => {
+	console.log({ task });
+	if (task.stageId === TASK_STAGE_IDS.DONE) {
+		return "Done";
+	}
+
+	const isInWOrk =
+		task.stageId === TASK_STAGE_IDS.IN_WORK ||
+		task.stageId === TASK_STAGE_IDS.TESTING ||
+		task.stageId === TASK_STAGE_IDS.WAITING ||
+		task.stageId === TASK_STAGE_IDS.DOCS;
+
+	if (isInWOrk) {
+		return "In work";
+	}
+
+	if (task.stageId === TASK_STAGE_IDS.BACKLOG) {
+		return "Backlog";
+	}
+
+	return "Sprint";
 };
 
 const formatDate = (date?: string) => {
@@ -106,8 +131,22 @@ const BundleTaskRow = ({ task }: { task: TaskProps }) => {
 						</div>
 					</div>
 
-					<div className={cls.taskSide}>
-						<StatusBadge status={task.stageId} type="task" />
+					<div
+						className={cls.taskSide}
+						style={{
+							background:
+								getTaskStatus(task) === "In work"
+									? "greenyellow"
+									: getTaskStatus(task) === "Done"
+										? "blue"
+										: getTaskStatus(task) === "Sprint"
+											? "#bfdbfe"
+											: "orange",
+							borderRadius: "10px",
+							padding: "0 1rem",
+						}}
+					>
+						{getTaskStatus(task)}
 					</div>
 				</>
 			)}

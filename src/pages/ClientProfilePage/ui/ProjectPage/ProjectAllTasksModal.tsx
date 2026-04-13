@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import { TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
 import { Spinner } from "@/components/spinner/Spinner";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
+import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { Status, TaskProps, User } from "@/shared/types/types";
-import { convertNumberFormat } from "@/shared/utils";
 import styles from "./ProjectAllTasksModal.module.scss";
 import { ProjectTaskCard } from "./ProjectTaskCard";
 
@@ -30,7 +30,6 @@ export const ProjectAllTasksModal = ({
 	projectName,
 	users,
 	statuses,
-	reports,
 }: Props) => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -54,6 +53,7 @@ export const ProjectAllTasksModal = ({
 					typeId: EntityTypeIds.tasks,
 					filters: {
 						[TaskCodes.project]: projectId,
+						"!stageId": TASK_STAGE_IDS.BUNDLE,
 					},
 					select: TASK_SELECT_FIELDS,
 				});
@@ -69,25 +69,6 @@ export const ProjectAllTasksModal = ({
 
 		fetchTasks();
 	}, [open, projectId]);
-
-	const groupedReportTimeByTask = useMemo(() => {
-		return reports.reduce(
-			(acc, report) => {
-				const taskId = String(
-					report[ReportCodes.parentId] ?? report[ReportCodes.taskId],
-				);
-
-				if (!taskId) return acc;
-
-				acc[taskId] =
-					(acc[taskId] || 0) +
-					convertNumberFormat(report[ReportCodes.timeSpent]);
-
-				return acc;
-			},
-			{} as Record<string, number>,
-		);
-	}, [reports]);
 
 	const filteredTasks = useMemo(() => {
 		const prepared = tasks.filter((task) => {
@@ -127,9 +108,9 @@ export const ProjectAllTasksModal = ({
 
 	const totalSpent = useMemo(() => {
 		return filteredTasks.reduce((acc, task) => {
-			return acc + (groupedReportTimeByTask[String(task.id)] || 0);
+			return acc + +(task[TaskCodes.estimateTime] || 0);
 		}, 0);
-	}, [filteredTasks, groupedReportTimeByTask]);
+	}, [filteredTasks]);
 
 	return (
 		<Modal isOpen={open} onClose={onClose} size="full" innerScroll>
@@ -196,7 +177,7 @@ export const ProjectAllTasksModal = ({
 									key={task.id}
 									task={task}
 									estimateTime={task[TaskCodes.estimateTime]}
-									timeSpent={groupedReportTimeByTask[String(task.id)] || 0}
+									timeSpent={totalSpent}
 									users={users}
 									statuses={statuses}
 									onClick={() => openTask(task.id)}

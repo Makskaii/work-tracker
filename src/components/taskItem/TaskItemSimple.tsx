@@ -7,11 +7,13 @@ export const TaskItem = ({
 	estimateTime,
 	timeSpent,
 	statuses,
+	withTime = true,
 }: {
 	task: TaskProps;
 	timeSpent: number;
 	estimateTime: string;
 	statuses: Status[];
+	withTime?: boolean;
 }) => {
 	return (
 		<div
@@ -30,6 +32,7 @@ export const TaskItem = ({
 					maxWidth: "60%",
 					flexDirection: "column",
 					justifyContent: "space-between",
+					textAlign: "left",
 				}}
 			>
 				<span
@@ -58,9 +61,11 @@ export const TaskItem = ({
 				}}
 			>
 				<StatucBadge statuses={statuses} status={task.stageId} />
-				<span>
-					{timeSpent ?? 0}/{estimateTime} ч
-				</span>
+				{withTime && (
+					<span>
+						{timeSpent ?? 0}/{estimateTime} ч
+					</span>
+				)}
 			</div>
 		</div>
 	);
