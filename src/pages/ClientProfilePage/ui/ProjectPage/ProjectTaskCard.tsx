@@ -1,6 +1,7 @@
-import { StatucBadge } from "@/components/statusBadge/StatucBadge";
+import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import type { Status, TaskProps, User } from "@/shared/types/types";
 import { calcTimeDifference } from "@/shared/utils/calcTimeDifference";
+import { classNames } from "@/shared/utils/utils";
 import styles from "./ProjectTaskCard.module.scss";
 
 type Props = {
@@ -12,18 +13,36 @@ type Props = {
 	onClick?: () => void;
 };
 
-export const ProjectTaskCard = ({
-	task,
-	timeSpent,
-	estimateTime,
-	statuses,
-	users,
-	onClick,
-}: Props) => {
+type TaskStatus = "In work" | "Done" | "Sprint" | "Backlog";
+
+export const ProjectTaskCard = ({ task, statuses, users, onClick }: Props) => {
 	const user = users.find((item) => item.id === String(task.assignedById));
 
 	const getStatusColor = (status: string) => {
 		return statuses.find((st) => status === st.STATUS_ID)?.COLOR || "#cbd5e1";
+	};
+
+	const getTaskStatus = (task: TaskProps): TaskStatus => {
+		console.log({ task });
+		if (task.stageId === TASK_STAGE_IDS.DONE) {
+			return "Done";
+		}
+
+		const isInWOrk =
+			task.stageId === TASK_STAGE_IDS.IN_WORK ||
+			task.stageId === TASK_STAGE_IDS.TESTING ||
+			task.stageId === TASK_STAGE_IDS.WAITING ||
+			task.stageId === TASK_STAGE_IDS.DOCS;
+
+		if (isInWOrk) {
+			return "In work";
+		}
+
+		if (task.stageId === TASK_STAGE_IDS.BACKLOG) {
+			return "Backlog";
+		}
+
+		return "Sprint";
 	};
 
 	return (
@@ -36,16 +55,21 @@ export const ProjectTaskCard = ({
 		>
 			<div className={styles.topRow}>
 				<div className={styles.titleBlock}>
-					<div className={styles.taskId}>#{task.id}</div>
 					<div className={styles.title}>{task.title}</div>
 				</div>
 			</div>
 
 			<div className={styles.middleRow}>
-				<StatucBadge status={task.stageId} statuses={statuses} />
-				<div className={styles.metaPill}>
-					Списано: {timeSpent ?? 0}/{estimateTime} ч
-				</div>
+				<span
+					className={classNames(styles.activityBadge, {
+						[styles.inWork]: getTaskStatus(task) === "In work",
+						[styles.done]: getTaskStatus(task) === "Done",
+						[styles.backlog]: getTaskStatus(task) === "Backlog",
+						[styles.sprint]: getTaskStatus(task) === "Sprint",
+					})}
+				>
+					{getTaskStatus(task)}
+				</span>
 			</div>
 
 			<div className={styles.bottomRow}>

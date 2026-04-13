@@ -2,8 +2,8 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
-import { getDevelopers } from "@/pages/ReportsPage/api/getDevelopers";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
+import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import {
 	mapProjectsFromList,
 	type ProjectFromList,
@@ -16,7 +16,7 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
-import type { ClientProjectProps, TaskProps, User } from "@/shared/types/types";
+import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { classNames } from "@/shared/utils/utils";
@@ -31,7 +31,7 @@ const formatDate = (date?: string) => {
 
 	if (!parsed.isValid()) return date;
 
-	return parsed.format("DD.MM.YYYY HH:mm");
+	return parsed.format("DD.MM.YYYY");
 };
 
 const getTasksInWork = (tasks?: TaskProps[]) => {
@@ -65,7 +65,6 @@ const ClientProfile = () => {
 	const [loading, setLoading] = useState(false);
 	const [loadingReport, setLoadingReport] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [users, setUsers] = useState<User[]>([]);
 	const [loadUrl, setLoadUrl] = useState("");
 	const [projectTasks, setProjectTasks] = useState<{
 		[projectId: number]: TaskProps[];
@@ -167,26 +166,26 @@ const ClientProfile = () => {
 		projects && fetchTasks();
 	}, [projects, normalizedProjects]);
 
-	useEffect(() => {
-		const getUsers = async () => {
-			const response = await getDevelopers();
+	// useEffect(() => {
+	// 	const getUsers = async () => {
+	// 		const response = await getDevelopers();
 
-			setUsers(
-				response
-					.map((user) => ({
-						id: user.ID,
-						value: user.NAME + user.LAST_NAME,
-						title: user.NAME + " " + user.LAST_NAME,
-						position: user.WORK_POSITION,
-						photo: user.PERSONAL_PHOTO,
-						department: user.UF_DEPARTMENT[0],
-					}))
-					.toSorted((a, b) => a.department - b.department),
-			);
-		};
+	// 		setUsers(
+	// 			response
+	// 				.map((user) => ({
+	// 					id: user.ID,
+	// 					value: user.NAME + user.LAST_NAME,
+	// 					title: user.NAME + " " + user.LAST_NAME,
+	// 					position: user.WORK_POSITION,
+	// 					photo: user.PERSONAL_PHOTO,
+	// 					department: user.UF_DEPARTMENT[0],
+	// 				}))
+	// 				.toSorted((a, b) => a.department - b.department),
+	// 		);
+	// 	};
 
-		getUsers();
-	}, []);
+	// 	getUsers();
+	// }, []);
 
 	useEffect(() => {
 		const fetchProjects = async () => {
@@ -221,21 +220,36 @@ const ClientProfile = () => {
 		fetchProjects();
 	}, [clientId]);
 
-	const latestActivityProjects = useMemo(() => {
-		return [...projects]
-			.filter((project) => project.lastActivityTime)
-			.sort(
-				(a, b) =>
-					dayjs(a.lastActivityTime).valueOf() -
-					dayjs(b.lastActivityTime).valueOf(),
-			)
-			.slice(0, 4);
-	}, [projects]);
+	// const latestActivityProjects = useMemo(() => {
+	// 	return [...projects]
+	// 		.filter((project) => project.lastActivityTime)
+	// 		.sort(
+	// 			(a, b) =>
+	// 				dayjs(b.lastActivityTime).valueOf() -
+	// 				dayjs(a.lastActivityTime).valueOf(),
+	// 		)
+	// 		.slice(0, 4);
+	// }, [projects]);
 
 	const totalProjects = projects.length;
 	const activeProjectsCount = Object.entries(projectTasks ?? {}).filter(
 		([_connectProjectIds, tasks]) => tasks.length > 0,
 	).length;
+
+	const doneProjects = Object.entries(projectTasks ?? {}).reduce(
+		(acc, [_connectProjectIds, tasks]) => {
+			if (
+				tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length ===
+					tasks.length &&
+				tasks.length > 0
+			) {
+				acc += 1;
+			}
+
+			return acc;
+		},
+		0,
+	);
 
 	if (!clientId) return null;
 
@@ -261,6 +275,11 @@ const ClientProfile = () => {
 					<div className={styles.statCard}>
 						<div className={styles.statValue}>{activeProjectsCount}</div>
 						<div className={styles.statLabel}>Проекты в работе</div>
+					</div>
+
+					<div className={styles.statCard}>
+						<div className={styles.statValue}>{doneProjects}</div>
+						<div className={styles.statLabel}>Завершенных проектов</div>
 					</div>
 				</div>
 			</div>
@@ -349,9 +368,6 @@ const ClientProfile = () => {
 									const projTasks = projectTasks?.[project.id];
 
 									const activity = getTasksInWork(projTasks);
-									const lastUpdater = users.find(
-										(user) => user.id === String(project.lastActivityBy),
-									);
 
 									const actualId = normalizedProjects.find(
 										(p) => Number(p.projectId) === project.id,
@@ -391,18 +407,6 @@ const ClientProfile = () => {
 																{formatDate(project.createdTime)}
 															</div>
 														</div>
-
-														{lastUpdater && (
-															<div className={styles.infoTile}>
-																<div className={styles.infoTileLabel}>
-																	Последний активный пользователь
-																</div>
-
-																<div className={styles.infoTileValue}>
-																	{lastUpdater?.title}
-																</div>
-															</div>
-														)}
 
 														{bundles?.[project.id] && (
 															<div className={styles.infoTile}>
@@ -477,13 +481,13 @@ const ClientProfile = () => {
 						<h2 className={styles.sectionTitle}>Быстрые действия</h2>
 
 						<div className={styles.quickActions}>
-							<button disabled type="button" className={styles.primaryButton}>
+							<button disabled type="button" className={styles.ghostButton}>
 								Оставить обращение
 							</button>
-							<button disabled type="button" className={styles.secondaryButton}>
+							<button disabled type="button" className={styles.ghostButton}>
 								Запросить отчёт
 							</button>
-							<button disabled type="button" className={styles.secondaryButton}>
+							<button disabled type="button" className={styles.ghostButton}>
 								Запланировать встречу
 							</button>
 						</div>
@@ -492,7 +496,13 @@ const ClientProfile = () => {
 					<div className={styles.sectionCard}>
 						<h2 className={styles.sectionTitle}>Последняя активность</h2>
 
-						<div className={styles.activityList}>
+						<div className={styles.meetingCard}>
+							<div className={styles.meetingTitle}>
+								Активности скоро появятся
+							</div>
+						</div>
+
+						{/* <div className={styles.activityList}>
 							{latestActivityProjects.length > 0 ? (
 								latestActivityProjects.map((project) => (
 									<div key={project.id} className={styles.activityItem}>
@@ -513,7 +523,7 @@ const ClientProfile = () => {
 									Пока нет данных по активности
 								</div>
 							)}
-						</div>
+						</div> */}
 					</div>
 
 					<div className={styles.sectionCard}>
