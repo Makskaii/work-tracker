@@ -24,8 +24,13 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 					<table>
 						<thead>
 							<tr>
-								{headers.map((header) => (
-									<th key={String(header.key)}>{header.title}</th>
+								{headers.map((header, index) => (
+									<th
+										key={String(header.key)}
+										className={index === 0 ? cls.stickyColumn : undefined}
+									>
+										{header.title}
+									</th>
 								))}
 							</tr>
 						</thead>
@@ -37,11 +42,14 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 								};
 								return (
 									<tr key={item.id} onClick={() => onRowClick?.(item)}>
-										{headers.map((header) => {
+										{headers.map((header, index) => {
 											const value = item[header.key];
 
 											return (
-												<td key={String(header.key)}>
+												<td
+													className={index === 0 ? cls.stickyColumn : undefined}
+													key={String(header.key)}
+												>
 													{header.render
 														? header.render(value, preparedAdditionalData)
 														: header.convertFn
