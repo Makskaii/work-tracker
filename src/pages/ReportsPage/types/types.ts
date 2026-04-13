@@ -41,6 +41,7 @@ export type SalesTableFields = {
 	fact: number | string;
 	deviation: number | string;
 	items?: Deal[];
+	details?: Record<string, Deal[]>[];
 };
 
 export const enum SalesCodes {

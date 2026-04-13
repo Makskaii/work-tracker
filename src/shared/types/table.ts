@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { AnyObject } from "./types";
 
 type HeaderItem<T, K extends keyof T> = {
@@ -18,6 +19,10 @@ export type UniversalTableProps<T extends { id: string }> = {
 	totalRow?: React.ReactNode;
 	onRowClick?: (item: T) => void;
 	fallbackText?: string;
+
+	expandable?: boolean;
+	renderExpandedRow?: (item: T) => ReactNode;
+	isRowExpandable?: (item: T) => boolean;
 };
 
 export interface GroupedReportFields {

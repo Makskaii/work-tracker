@@ -48,7 +48,8 @@ export const headersForSales: Header<SalesTableFields>[] = [
 					style={{
 						background: "#ccc",
 					}}
-					onClick={() => {
+					onClick={(e) => {
+						e.stopPropagation();
 						additionalData?.setRow(row);
 					}}
 				>
@@ -269,10 +270,12 @@ export const SalesPage = () => {
 				const preparedData: SalesTableFields[] = rows.map((row) => {
 					let fact = 0;
 					const arr: Deal[] = [];
+					const details: Record<string, Deal[]>[] = [];
 
 					switch (row.id) {
 						case "1":
 							fact = stats.callCount;
+
 							break;
 						case "2":
 							fact = stats.bidCount;
@@ -283,14 +286,56 @@ export const SalesPage = () => {
 										item.stageId !== "UC_B20EGT",
 								),
 							);
+							details.push(
+								items.reduce(
+									(acc, item) => {
+										if (!acc[item.assignedById]) {
+											acc[item.assignedById] = [];
+										}
+
+										acc[item.assignedById].push(item);
+
+										return acc;
+									},
+									{} as Record<string, Deal[]>,
+								),
+							);
 							break;
 						case "3":
 							fact = stats.ppoCount;
 							arr.push(...ppoItems);
+							details.push(
+								ppoItems.reduce(
+									(acc, item) => {
+										if (!acc[item.assignedById]) {
+											acc[item.assignedById] = [];
+										}
+
+										acc[item.assignedById].push(item);
+
+										return acc;
+									},
+									{} as Record<string, Deal[]>,
+								),
+							);
 							break;
 						case "4":
 							fact = stats.kpCount;
 							arr.push(...kpItems);
+							details.push(
+								kpItems.reduce(
+									(acc, item) => {
+										if (!acc[item.assignedById]) {
+											acc[item.assignedById] = [];
+										}
+
+										acc[item.assignedById].push(item);
+
+										return acc;
+									},
+									{} as Record<string, Deal[]>,
+								),
+							);
 							break;
 						case "5":
 							fact = stats.activeDeals;
@@ -299,10 +344,38 @@ export const SalesPage = () => {
 						case "6":
 							fact = stats.salesCount;
 							arr.push(...wonItems);
+							details.push(
+								wonItems.reduce(
+									(acc, item) => {
+										if (!acc[item.assignedById]) {
+											acc[item.assignedById] = [];
+										}
+
+										acc[item.assignedById].push(item);
+
+										return acc;
+									},
+									{} as Record<string, Deal[]>,
+								),
+							);
 							break;
 						case "7":
 							fact = stats.totalSales;
 							arr.push(...wonItems);
+							details.push(
+								wonItems.reduce(
+									(acc, item) => {
+										if (!acc[item.assignedById]) {
+											acc[item.assignedById] = [];
+										}
+
+										acc[item.assignedById].push(item);
+
+										return acc;
+									},
+									{} as Record<string, Deal[]>,
+								),
+							);
 							break;
 					}
 
@@ -315,6 +388,7 @@ export const SalesPage = () => {
 						fact,
 						deviation,
 						items: arr,
+						details,
 					};
 				});
 
@@ -382,10 +456,37 @@ export const SalesPage = () => {
 				<UniversalTable<SalesTableFields>
 					headers={headersForSales}
 					activeItems={data}
-					fallbackText="Загружаем сделки..."
 					additionalData={{
 						setRow: setRowItems,
 					}}
+					expandable
+					isRowExpandable={(item) => Boolean(item?.items?.length)}
+					fallbackText="Загружаем сделки..."
+					renderExpandedRow={(item) =>
+						item.details ? (
+							<div style={{ padding: "12px", background: "#f8f8f8" }}>
+								<table style={{ width: "100%", borderCollapse: "collapse" }}>
+									<thead>
+										<tr>
+											<th>Сотрудник</th>
+											<th>Сделок</th>
+										</tr>
+									</thead>
+									<tbody>
+										{Object.entries(item.details[0])?.map(([id, items]) => {
+											const user = users.find((user) => user.id === id);
+											return (
+												<tr key={id}>
+													<td>{user?.title}</td>
+													<td>{items.length}</td>
+												</tr>
+											);
+										})}
+									</tbody>
+								</table>
+							</div>
+						) : null
+					}
 				/>
 			</div>
 
@@ -405,7 +506,16 @@ export const SalesPage = () => {
 					) ?? {},
 				).map(([id, items]) => {
 					const user = users.find((user) => user.id === id);
-					return user && <SalesCard key={id} user={user} deals={items} />;
+					return (
+						user && (
+							<SalesCard
+								key={id}
+								user={user}
+								deals={items}
+								isTotal={rowItems?.title === "Сумма продаж"}
+							/>
+						)
+					);
 				})}
 			</div>
 		</div>
