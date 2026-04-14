@@ -41,8 +41,13 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 					<table>
 						<thead>
 							<tr>
-								{headers.map((header) => (
-									<th key={String(header.key)}>{header.title}</th>
+								{headers.map((header, index) => (
+									<th
+										key={String(header.key)}
+										className={index === 0 ? cls.stickyColumn : undefined}
+									>
+										{header.title}
+									</th>
 								))}
 							</tr>
 						</thead>

@@ -1,9 +1,11 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
+import {
+	getHeadersForDevs,
+	WorkLoadTable,
+} from "@/components/Table/WorkLoadTable/WorkLoadTable";
 import { getUsersTableData } from "@/pages/ReportsPage/helpers/devsStatsBySprint";
-import { getHeadersForDevs } from "@/pages/ReportsPage/helpers/getHeadersForDevs";
 import type { GroupedFields } from "@/pages/ReportsPage/types/types";
 import { DEPARTMENT_IDS } from "@/shared/constants/const";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
@@ -15,7 +17,7 @@ export const WorkLoad = () => {
 	const tableHeaders = useMemo(() => {
 		return getHeadersForDevs(activities ?? []);
 	}, [activities]);
-
+	console.log({ activities });
 	const { endOfTheWeek, startOfTheWeek, setDay } = useSprintBorders();
 
 	const [effectivity, setEffectivity] = useState<GroupedFields[]>([]);
@@ -83,7 +85,7 @@ export const WorkLoad = () => {
 					след. неделя
 				</button>
 			</div>
-			<UniversalTable<GroupedFields>
+			<WorkLoadTable<GroupedFields>
 				headers={tableHeaders}
 				activeItems={effectivity}
 				additionalData={{
