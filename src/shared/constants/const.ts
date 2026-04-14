@@ -28,6 +28,7 @@ export const EntityTypeIds = {
 	reports: 1060,
 	tasks: 1072,
 	projects: 1092,
+	default: 2,
 };
 
 export const TASK_SELECT_FIELDS = [

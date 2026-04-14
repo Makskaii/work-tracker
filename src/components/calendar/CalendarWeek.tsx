@@ -7,7 +7,7 @@ import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { ReportsContext } from "@/shared/types/types";
 import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
-import { ActivityTitle, ActivityType, ReportCodes } from "./constants/const";
+import { ActivityTitle, ReportCodes } from "./constants/const";
 import { buildWeekCalendarFromReports } from "./helpers/generateWeek";
 import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import type { ReportProps } from "./types/types";
@@ -107,45 +107,6 @@ const WeekCalendar = () => {
 					justifyContent: "space-between",
 				}}
 			>
-				<div
-					style={{
-						display: "flex",
-					}}
-				>
-					<div
-						style={{
-							background: "rgba(76, 175, 80, 0.2)",
-							borderLeft: "4px solid #4caf50",
-						}}
-					>
-						{ActivityTitle[ActivityType.development]}
-					</div>
-					<div
-						style={{
-							background: "#eeab6d",
-							borderLeft: "4px solid #f3e300",
-						}}
-					>
-						{ActivityTitle[ActivityType.analitycsCall]}
-					</div>
-					<div
-						style={{
-							background: "#E6E6FA",
-							borderLeft: "4px solid #2414af",
-						}}
-					>
-						{ActivityTitle[ActivityType.clientCall]}
-					</div>
-					<div
-						style={{
-							background: "#E6E6FA",
-							borderLeft: "4px solid #d397d3",
-						}}
-					>
-						{ActivityTitle[ActivityType.dash]}
-					</div>
-				</div>
-
 				<div
 					style={{
 						display: "flex",
