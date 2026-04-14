@@ -4,7 +4,6 @@ import { useLocation, useParams } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
-import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { getDevelopers } from "@/pages/ReportsPage/api/getDevelopers";
 import { getStatuses } from "@/pages/ReportsPage/api/getStatusFields";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
@@ -26,6 +25,7 @@ import { TaskBundleSection } from "../BundleSection/TaskBundleSection";
 import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
 import styles from "./ProjectPage.module.scss";
 import { ProjectReportsTimelineModal } from "./ProjectReportsTimelineModal";
+import { ProjectTaskCard } from "./ProjectTaskCard";
 
 export type TaskBundle = TaskProps & { tasks: TaskProps[] };
 
@@ -226,10 +226,10 @@ export const ClientProjectPage = () => {
 	}, [allReports]);
 
 	const sprintSpentTime = useMemo(() => {
-		return data.reduce((acc, report) => {
-			return acc + convertNumberFormat(report[ReportCodes.timeSpent]);
+		return tasks.reduce((acc, task) => {
+			return acc + convertNumberFormat(task[TaskCodes.estimateTime]);
 		}, 0);
-	}, [data]);
+	}, [tasks]);
 
 	const totalEstimateTime = useMemo(() => {
 		return tasks.reduce((acc, task) => {
@@ -434,9 +434,6 @@ export const ClientProjectPage = () => {
 						<div className={styles.sectionHeader}>
 							<div>
 								<h2 className={styles.sectionTitle}>Задачи спринта</h2>
-								<p className={styles.sectionSubtitle}>
-									Список задач с фактически списанным временем
-								</p>
 							</div>
 						</div>
 
@@ -456,7 +453,7 @@ export const ClientProjectPage = () => {
 										className={styles.taskRow}
 										onClick={() => openTask(task.id)}
 									>
-										<TaskItemExtended
+										<ProjectTaskCard
 											task={task}
 											estimateTime={task[TaskCodes.estimateTime]}
 											timeSpent={timeSpent ?? 0}

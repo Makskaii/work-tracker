@@ -65,6 +65,7 @@ export type ActivityListItem = {
 	BP_PUBLISHED: string;
 	CODE: string | null;
 	SORT: string;
+	PROPERTY_89?: Record<string, string>;
 };
 
 export type GroupedClientReport = {
