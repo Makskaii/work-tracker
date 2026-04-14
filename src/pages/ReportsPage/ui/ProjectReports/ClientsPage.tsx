@@ -79,7 +79,9 @@ export const getProjectStatus = (
 			task.stageId === TASK_STAGE_IDS.SPRINT ||
 			task.stageId === TASK_STAGE_IDS.TESTING ||
 			task.stageId === TASK_STAGE_IDS.WAITING ||
-			task.stageId === TASK_STAGE_IDS.DOCS,
+			task.stageId === TASK_STAGE_IDS.DOCS ||
+			task.stageId === TASK_STAGE_IDS.REVIEW ||
+			task.stageId === TASK_STAGE_IDS.QA,
 	);
 
 	if (hasInWorkTasks) {

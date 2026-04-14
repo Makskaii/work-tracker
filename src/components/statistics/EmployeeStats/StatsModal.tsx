@@ -14,6 +14,7 @@ import {
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { UserCard } from "../../userCard/UserCard";
+import { DeveloperProjectsAccordion } from "./DeveloperProjectsList";
 import { EmployeeStats } from "./EmployeeStats";
 import { TasksList } from "./TasksList";
 
@@ -329,49 +330,11 @@ export const StatsModal = ({ user }: { user: User }) => {
 					/>
 
 					{tasks.length !== 0 && (
-						<div style={{ marginTop: "1rem" }}>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									marginBottom: "1rem",
-								}}
-							>
-								<div>Список проектов:</div>
-								<div>Задач в проекте:</div>
-							</div>
-
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									overflowY: "auto",
-									height: "calc(100vh * 0.25)",
-									background: "#f9fafb",
-									padding: "1rem",
-									gap: "10px",
-									borderRadius: "24px",
-								}}
-							>
-								{Object.entries(grouped).map(([projectId, projectTasks]) => (
-									<div
-										key={projectId}
-										style={{
-											display: "flex",
-											justifyContent: "space-between",
-										}}
-									>
-										<div>
-											{
-												projects.find((project) => project.id === projectId)
-													?.name
-											}
-										</div>
-										<div>{projectTasks?.length}</div>
-									</div>
-								))}
-							</div>
-						</div>
+						<DeveloperProjectsAccordion
+							projects={projects}
+							tasks={tasks}
+							grouped={grouped}
+						/>
 					)}
 				</div>
 			</div>

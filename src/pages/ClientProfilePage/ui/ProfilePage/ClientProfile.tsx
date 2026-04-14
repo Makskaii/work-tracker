@@ -469,25 +469,44 @@ const ClientProfile = () => {
 				</div>
 
 				<div className={styles.sideColumn}>
-					<div
-						className={styles.sectionCard}
-						onClick={() => {
-							notify({
-								message: "Кнопки заработают в ближайшее время!",
-								type: "warning",
-							});
-						}}
-					>
+					<div className={styles.sectionCard}>
 						<h2 className={styles.sectionTitle}>Быстрые действия</h2>
 
 						<div className={styles.quickActions}>
-							<button disabled type="button" className={styles.ghostButton}>
+							<button
+								onClick={() => {
+									notify({
+										message: "Кнопки заработают в ближайшее время!",
+										type: "warning",
+									});
+								}}
+								type="button"
+								className={styles.ghostButton}
+							>
 								Оставить обращение
 							</button>
-							<button disabled type="button" className={styles.ghostButton}>
+							<button
+								onClick={() => {
+									notify({
+										message: "Кнопки заработают в ближайшее время!",
+										type: "warning",
+									});
+								}}
+								type="button"
+								className={styles.ghostButton}
+							>
 								Запросить отчёт
 							</button>
-							<button disabled type="button" className={styles.ghostButton}>
+							<button
+								onClick={() => {
+									notify({
+										message: "Кнопки заработают в ближайшее время!",
+										type: "warning",
+									});
+								}}
+								type="button"
+								className={styles.ghostButton}
+							>
 								Запланировать встречу
 							</button>
 						</div>
