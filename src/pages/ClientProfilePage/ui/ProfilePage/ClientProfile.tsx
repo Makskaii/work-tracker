@@ -2,6 +2,8 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
+import { Modal } from "@/components/modal";
+import { Spinner } from "@/components/spinner/Spinner";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import {
@@ -9,17 +11,25 @@ import {
 	type ProjectFromList,
 } from "@/pages/ReportsPage/ReportsPage";
 import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
-import { getProjectsFromList } from "@/shared/api/getCrmFields";
+import {
+	getClientsFromList,
+	getProjectsFromList,
+} from "@/shared/api/getCrmFields";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	ClientsCodes,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
-import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
+import type {
+	ClientListItems,
+	ClientProjectProps,
+	TaskProps,
+} from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { classNames } from "@/shared/utils/utils";
+import { TaskList } from "../TaskList/TaskList";
 import styles from "./ClientProfile.module.scss";
 
 const { VITE_BFF_API_URL } = import.meta.env;
@@ -70,13 +80,19 @@ const ClientProfile = () => {
 		[projectId: number]: TaskProps[];
 	}>();
 
+	const [taskList, setTaskList] = useState<TaskProps[]>([]);
+
 	const [bundles, setBundles] = useState<{
 		[projectId: number]: TaskProps[];
 	}>();
 
+	const [clientData, setClientData] = useState<ClientListItems>();
+
 	const borders = useMemo(() => getSprintWeekBorders(dayjs()), []);
 
 	const { clientId } = useParams<{ clientId: string }>();
+
+	const [open, setOpen] = useState<boolean>(false);
 
 	const navigate = useNavigate();
 
@@ -139,6 +155,18 @@ const ClientProfile = () => {
 				})),
 			);
 
+			const tasksFlat = Object.entries(
+				tasksInWork.reduce((acc, item) => ({ ...acc, ...item }), {}),
+			).reduce((acc, [_id, tasks]) => {
+				if (tasks.length > 0) {
+					acc.push(...tasks);
+				}
+
+				return acc;
+			}, [] as TaskProps[]);
+
+			setTaskList(tasksFlat);
+
 			const bundlesAmount = await Promise.all(
 				projects.map(async (project) => ({
 					[project.id]: await getItems<TaskProps>({
@@ -166,27 +194,6 @@ const ClientProfile = () => {
 		projects && fetchTasks();
 	}, [projects, normalizedProjects]);
 
-	// useEffect(() => {
-	// 	const getUsers = async () => {
-	// 		const response = await getDevelopers();
-
-	// 		setUsers(
-	// 			response
-	// 				.map((user) => ({
-	// 					id: user.ID,
-	// 					value: user.NAME + user.LAST_NAME,
-	// 					title: user.NAME + " " + user.LAST_NAME,
-	// 					position: user.WORK_POSITION,
-	// 					photo: user.PERSONAL_PHOTO,
-	// 					department: user.UF_DEPARTMENT[0],
-	// 				}))
-	// 				.toSorted((a, b) => a.department - b.department),
-	// 		);
-	// 	};
-
-	// 	getUsers();
-	// }, []);
-
 	useEffect(() => {
 		const fetchProjects = async () => {
 			if (!clientId) return;
@@ -208,6 +215,10 @@ const ClientProfile = () => {
 
 				setNormalizedProjects(normalizedProjects);
 
+				const fetchclientData = await getClientsFromList();
+
+				setClientData(fetchclientData.find((client) => client.ID === clientId));
+
 				setProjects(response ?? []);
 			} catch (err) {
 				console.error(err);
@@ -219,17 +230,6 @@ const ClientProfile = () => {
 
 		fetchProjects();
 	}, [clientId]);
-
-	// const latestActivityProjects = useMemo(() => {
-	// 	return [...projects]
-	// 		.filter((project) => project.lastActivityTime)
-	// 		.sort(
-	// 			(a, b) =>
-	// 				dayjs(b.lastActivityTime).valueOf() -
-	// 				dayjs(a.lastActivityTime).valueOf(),
-	// 		)
-	// 		.slice(0, 4);
-	// }, [projects]);
 
 	const totalProjects = projects.length;
 	const activeProjectsCount = Object.entries(projectTasks ?? {}).filter(
@@ -259,11 +259,9 @@ const ClientProfile = () => {
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
 					<div className={styles.badge}>Кабинет клиента</div>
-					<h1 className={styles.pageTitle}>Профиль клиента</h1>
-					<p className={styles.pageSubtitle}>
-						Здесь отображаются все проекты клиента, последние обновления по ним
-						и ближайшие активности команды.
-					</p>
+					<h1 className={styles.pageTitle}>
+						{clientData?.NAME ?? <Spinner onlySpin />}
+					</h1>
 				</div>
 
 				<div className={styles.headerStats}>
@@ -297,9 +295,6 @@ const ClientProfile = () => {
 								>
 									Проекты
 								</h2>
-								<p className={styles.sectionSubtitle}>
-									Основной список проектов с краткой сводкой по каждому
-								</p>
 							</div>
 
 							{loadUrl === "" ? (
@@ -425,7 +420,7 @@ const ClientProfile = () => {
 															</div>
 															<div className={styles.infoTileValue}>
 																{projTasks?.reduce((acc, task) => {
-																	return acc + +task[TaskCodes.estimateTime];
+																	return acc + +(task[TaskCodes.hours] ?? 0);
 																}, 0)}
 															</div>
 														</div>
@@ -474,17 +469,13 @@ const ClientProfile = () => {
 
 						<div className={styles.quickActions}>
 							<button
-								onClick={() => {
-									notify({
-										message: "Кнопки заработают в ближайшее время!",
-										type: "warning",
-									});
-								}}
+								onClick={() => setOpen(true)}
 								type="button"
-								className={styles.ghostButton}
+								className={styles.secondaryButton}
 							>
-								Оставить обращение
+								Просмотреть все задачи
 							</button>
+							<button className={styles.ghostButton}>Оставить обращение</button>
 							<button
 								onClick={() => {
 									notify({
@@ -520,51 +511,12 @@ const ClientProfile = () => {
 								Активности скоро появятся
 							</div>
 						</div>
-
-						{/* <div className={styles.activityList}>
-							{latestActivityProjects.length > 0 ? (
-								latestActivityProjects.map((project) => (
-									<div key={project.id} className={styles.activityItem}>
-										<div className={styles.activityDot} />
-										<div className={styles.activityContent}>
-											<div className={styles.activityProjectTitle}>
-												{project.title}
-											</div>
-											<div className={styles.activityProjectText}>
-												Последнее действие:{" "}
-												{formatDate(project.lastActivityTime)}
-											</div>
-										</div>
-									</div>
-								))
-							) : (
-								<div className={styles.mutedText}>
-									Пока нет данных по активности
-								</div>
-							)}
-						</div> */}
 					</div>
 
 					<div className={styles.sectionCard}>
 						<h2 className={styles.sectionTitle}>Ближайшие встречи</h2>
 
 						<div className={styles.meetingsList}>
-							{/* {mockMeetings.map((meeting) => (
-								<div key={meeting.id} className={styles.meetingCard}>
-									<div className={styles.meetingTitle}>{meeting.title}</div>
-									<div className={styles.meetingProject}>
-										{meeting.projectTitle}
-									</div>
-									<div className={styles.meetingMeta}>
-										<span>{dayjs(meeting.date).format("DD.MM.YYYY")}</span>
-										<span>{meeting.time}</span>
-									</div>
-									<a href={meeting.link} className={styles.meetingLink}>
-										Подключиться
-									</a>
-								</div>
-							))} */}
-
 							<div className={styles.meetingCard}>
 								<div className={styles.meetingTitle}>Нет ближайших встреч</div>
 							</div>
@@ -572,6 +524,19 @@ const ClientProfile = () => {
 					</div>
 				</div>
 			</div>
+
+			<Modal
+				isOpen={open}
+				onClose={() => setOpen(false)}
+				innerScroll
+				size="full"
+			>
+				<TaskList
+					tasks={taskList}
+					normalizedProjects={normalizedProjects}
+					clientsProjects={projects}
+				/>
+			</Modal>
 		</div>
 		// </CheckPermission>
 	);

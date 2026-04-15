@@ -23,6 +23,7 @@ export enum ReportCodes {
 	client = "ufCrm11_1772012010",
 	activityType = "ufCrm11_1774427281",
 	parentId = "parentId1072",
+	show = "ufCrm11_1776177558677",
 }
 
 export enum TaskCodes {
@@ -36,6 +37,7 @@ export enum TaskCodes {
 	comment = "ufCrm14_1771314401297",
 	sprintDateStart = "ufCrm14_1771510367281",
 	linkedTasks = "ufCrm14_1775462592",
+	hours = "ufCrm14_1776177413413",
 }
 
 export enum ActivityType {

@@ -12,7 +12,6 @@ export default function Modal({
 }: {
 	innerScroll?: boolean;
 	isOpen?: boolean;
-	interceptor?: boolean;
 	children: React.ReactNode;
 	size?: "full" | "covered" | "small";
 	onClose?(): void;

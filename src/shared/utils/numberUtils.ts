@@ -1,4 +1,5 @@
 export const convertNumberFormat = (value: string | number): number => {
+	console.log({ value });
 	if (typeof value === "number") {
 		return value;
 	}
@@ -7,7 +8,7 @@ export const convertNumberFormat = (value: string | number): number => {
 
 	const number = parseFloat(normalizedValue);
 
-	if (value === "-") return 0;
+	if (value === "-" || value === "") return 0;
 
 	if (isNaN(number)) {
 		throw new Error(`Invalid number format: ${value}`);

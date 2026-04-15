@@ -13,6 +13,28 @@ type Props = {
 	onClick?: () => void;
 };
 
+export const getTaskStatus = (task: TaskProps): TaskStatus => {
+	if (task.stageId === TASK_STAGE_IDS.DONE) {
+		return "Done";
+	}
+
+	const isInWOrk =
+		task.stageId === TASK_STAGE_IDS.IN_WORK ||
+		task.stageId === TASK_STAGE_IDS.TESTING ||
+		task.stageId === TASK_STAGE_IDS.WAITING ||
+		task.stageId === TASK_STAGE_IDS.DOCS;
+
+	if (isInWOrk) {
+		return "In work";
+	}
+
+	if (task.stageId === TASK_STAGE_IDS.BACKLOG) {
+		return "Backlog";
+	}
+
+	return "Sprint";
+};
+
 type TaskStatus = "In work" | "Done" | "Sprint" | "Backlog";
 
 export const ProjectTaskCard = ({ task, statuses, users, onClick }: Props) => {
@@ -20,29 +42,6 @@ export const ProjectTaskCard = ({ task, statuses, users, onClick }: Props) => {
 
 	const getStatusColor = (status: string) => {
 		return statuses.find((st) => status === st.STATUS_ID)?.COLOR || "#cbd5e1";
-	};
-
-	const getTaskStatus = (task: TaskProps): TaskStatus => {
-		console.log({ task });
-		if (task.stageId === TASK_STAGE_IDS.DONE) {
-			return "Done";
-		}
-
-		const isInWOrk =
-			task.stageId === TASK_STAGE_IDS.IN_WORK ||
-			task.stageId === TASK_STAGE_IDS.TESTING ||
-			task.stageId === TASK_STAGE_IDS.WAITING ||
-			task.stageId === TASK_STAGE_IDS.DOCS;
-
-		if (isInWOrk) {
-			return "In work";
-		}
-
-		if (task.stageId === TASK_STAGE_IDS.BACKLOG) {
-			return "Backlog";
-		}
-
-		return "Sprint";
 	};
 
 	return (
