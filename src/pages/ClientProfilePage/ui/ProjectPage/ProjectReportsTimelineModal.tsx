@@ -139,10 +139,6 @@ export const ProjectReportsTimelineModal = ({
 		);
 	}, [filteredReports]);
 
-	const totalTime = filteredReports.reduce((acc, report) => {
-		return acc + Number(report[ReportCodes.timeSpent] || 0);
-	}, 0);
-
 	const withoutTaskCount = filteredReports.filter(
 		(report) => !report[ReportCodes.taskId],
 	).length;
@@ -167,11 +163,6 @@ export const ProjectReportsTimelineModal = ({
 						<div className={styles.statCard}>
 							<div className={styles.statValue}>{filteredReports.length}</div>
 							<div className={styles.statLabel}>Отчётов</div>
-						</div>
-
-						<div className={styles.statCard}>
-							<div className={styles.statValue}>{totalTime.toFixed(1)} ч</div>
-							<div className={styles.statLabel}>Всего времени</div>
 						</div>
 
 						<div className={styles.statCard}>
@@ -356,10 +347,7 @@ export const ProjectReportsTimelineModal = ({
 									<span>Всего записей</span>
 									<strong>{filteredReports.length}</strong>
 								</div>
-								<div className={styles.sideRow}>
-									<span>Всего времени</span>
-									<strong>{totalTime.toFixed(1)} ч</strong>
-								</div>
+
 								<div className={styles.sideRow}>
 									<span>Без задачи</span>
 									<strong>{withoutTaskCount}</strong>

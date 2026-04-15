@@ -16,16 +16,15 @@ import {
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
-import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { Status, TaskProps, User } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
 import { TaskBundleSection } from "../BundleSection/TaskBundleSection";
+import { TaskList } from "../TaskList/TaskList";
 import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
 import styles from "./ProjectPage.module.scss";
 import { ProjectReportsTimelineModal } from "./ProjectReportsTimelineModal";
-import { ProjectTaskCard } from "./ProjectTaskCard";
 
 export type TaskBundle = TaskProps & { tasks: TaskProps[] };
 
@@ -45,8 +44,6 @@ export const ClientProjectPage = () => {
 	const [bundle, setBundles] = useState<TaskBundle[]>([]);
 
 	const { state } = useLocation();
-
-	const { openTask } = useBitrixSlider();
 
 	const { endOfTheWeek, setDay, startOfTheWeek } = useSprintBorders();
 
@@ -218,43 +215,17 @@ export const ClientProjectPage = () => {
 		});
 	}, [endOfTheWeek, projId, setFilters, startOfTheWeek]);
 
-	const totalSpentTime = useMemo(() => {
-		return allReports.reduce(
-			(acc, report) => acc + convertNumberFormat(report[ReportCodes.timeSpent]),
-			0,
-		);
-	}, [allReports]);
-
 	const sprintSpentTime = useMemo(() => {
 		return tasks.reduce((acc, task) => {
-			return acc + convertNumberFormat(task[TaskCodes.estimateTime]);
+			return acc + convertNumberFormat(Number(task[TaskCodes.hours]) ?? 0);
 		}, 0);
 	}, [tasks]);
 
 	const totalEstimateTime = useMemo(() => {
 		return tasks.reduce((acc, task) => {
-			return acc + convertNumberFormat(task[TaskCodes.estimateTime]);
+			return acc + convertNumberFormat(Number(task[TaskCodes.hours]) ?? 0);
 		}, 0);
 	}, [tasks]);
-
-	const groupedByTaskReports = useMemo(() => {
-		return data.reduce(
-			(acc, report) => {
-				const parentId = Number(report[ReportCodes.parentId]);
-
-				if (!parentId) return acc;
-
-				if (!acc[parentId]) {
-					acc[parentId] = [report];
-				} else {
-					acc[parentId].push(report);
-				}
-
-				return acc;
-			},
-			{} as Record<number, ReportProps[]>,
-		);
-	}, [data]);
 
 	useEffect(() => {
 		const getUsers = async () => {
@@ -402,7 +373,7 @@ export const ClientProjectPage = () => {
 
 						<div className={styles.kpiCard}>
 							<div className={styles.kpiValue}>
-								{totalSpentTime.toFixed(1)} ч
+								{totalEstimateTime.toFixed(1)} ч
 							</div>
 							<div className={styles.kpiLabel}>Всего по проекту</div>
 						</div>
@@ -438,58 +409,13 @@ export const ClientProjectPage = () => {
 						</div>
 
 						<div className={styles.tasksList}>
-							{tasks.map((task) => {
-								const timeSpent = groupedByTaskReports?.[
-									Number(task.id)
-								]?.reduce((acc, report) => {
-									return (
-										acc + convertNumberFormat(report[ReportCodes.timeSpent])
-									);
-								}, 0);
-
-								return (
-									<div
-										key={task.id}
-										className={styles.taskRow}
-										onClick={() => openTask(task.id)}
-									>
-										<ProjectTaskCard
-											task={task}
-											estimateTime={task[TaskCodes.estimateTime]}
-											timeSpent={timeSpent ?? 0}
-											statuses={statuses}
-											users={users}
-										/>
-									</div>
-								);
-							})}
+							<TaskList tasks={tasks} isProject />
 						</div>
 					</div>
 				</div>
 
 				<div className={styles.sideColumn}>
 					<TaskBundleSection bundles={bundle} />
-					{/* <div className={styles.sectionCard}>
-						<h2 className={styles.sectionTitle}>Команда проекта</h2>
-
-						<div className={styles.teamList}>
-							{projectUsers.map((user) => (
-								<div className={styles.teamItem} key={user.id}>
-									<UserCard user={user} />
-									<div className={styles.teamInfo}>
-										<div className={styles.teamMeta}>
-											Задач в проекте:{" "}
-											{
-												tasks.filter(
-													(task) => String(task.assignedById) === user.id,
-												).length
-											}
-										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					</div> */}
 
 					<div className={styles.sectionCard}>
 						<h2 className={styles.sectionTitle}>Сводка по спринту</h2>
