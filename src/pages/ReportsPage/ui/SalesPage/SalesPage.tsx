@@ -4,11 +4,12 @@ import uuid4 from "uuid4";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
 import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
+import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { Header } from "@/shared/types/table";
-import type { User } from "@/shared/types/types";
+import type { AnyObject, User } from "@/shared/types/types";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { getFixedNumber } from "@/shared/utils/getNumber";
-import { getCalls } from "../../api/getCalls";
 import { getDeals } from "../../api/getDeals";
 import type { Deal } from "../../types/deals.types";
 import {
@@ -45,12 +46,19 @@ export const headersForSales: Header<SalesTableFields>[] = [
 
 			return (
 				<button
+					key={row?.id}
 					style={{
 						background: "#ccc",
 					}}
-					onClick={(e) => {
-						e.stopPropagation();
+					onClick={() => {
 						additionalData?.setRow(row);
+
+						if (row?.items?.length === 0) {
+							notify({
+								message: `${row.title} равно 0`,
+								type: "warning",
+							});
+						}
 					}}
 				>
 					подробнее
@@ -65,36 +73,43 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 		title: "Количество звонков по отделу",
 		id: "1",
 		plan: 700,
+		type: "call",
 	},
 	{
 		title: "Количество созданных сделок",
 		id: "2",
 		plan: 22,
+		type: "deal",
 	},
 	{
 		title: "Количество проведенных ППО",
 		id: "3",
 		plan: 10,
+		type: "deal",
 	},
 	{
 		title: "Количество защит КП",
 		id: "4",
 		plan: 7,
+		type: "deal",
 	},
 	{
 		title: "Количество активных карточек в работе",
 		id: "5",
 		plan: 40,
+		type: "deal",
 	},
 	{
 		title: "Количество продаж",
 		id: "6",
 		plan: 2,
+		type: "deal",
 	},
 	{
 		title: "Сумма продаж",
 		id: "7",
 		plan: 250000,
+		type: "deal",
 	},
 ];
 
@@ -108,6 +123,8 @@ const TARGET_STAGE_IDS = [
 	"UC_ZLNOOX",
 	"UC_EEZLOG",
 ] as const;
+
+export type Call = { id: string; assignedById: string };
 
 const getDealsCountByStages = async ({
 	categoryId = 0,
@@ -185,11 +202,40 @@ export const SalesPage = () => {
 		setDay,
 	} = useSprintBorders("workweek");
 
+	const { data: callsData, setFilters } = useLoadAllData<{
+		ID: string;
+		PORTAL_USER_ID: string;
+	}>({
+		initialEndpoint: Endpoints.calls,
+		initialFilters: {
+			params: {
+				filter: {
+					">=CALL_START_DATE": start,
+					"<=CALL_START_DATE": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
+					"!PORTAL_USER_ID": 11,
+				},
+				select: ["ID", "PORTAL_USER_ID"],
+			},
+		},
+		isTiems: false,
+	});
+
+	useEffect(() => {
+		setFilters({
+			params: {
+				filter: {
+					">=CALL_START_DATE": start,
+					"<=CALL_START_DATE": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
+					"!PORTAL_USER_ID": 11,
+				},
+				select: ["ID", "PORTAL_USER_ID"],
+			},
+		});
+	}, [end, start, setFilters]);
+
 	useEffect(() => {
 		const fetchCallsAmount = async () => {
 			try {
-				const totalCalls = await getCalls(start, end);
-
 				const [items, ppoItems, kpItems, activeDealsCount, wonItems, users] =
 					await Promise.all([
 						await getDeals({
@@ -247,7 +293,7 @@ export const SalesPage = () => {
 
 				const stats: SalesFields = {
 					id: "sales-stats",
-					callCount: totalCalls,
+					callCount: callsData.length,
 					bidCount: items.filter(
 						(item) =>
 							item.stageId !== "UC_9X7H19" && item.stageId !== "UC_B20EGT",
@@ -269,13 +315,18 @@ export const SalesPage = () => {
 
 				const preparedData: SalesTableFields[] = rows.map((row) => {
 					let fact = 0;
-					const arr: Deal[] = [];
-					const details: Record<string, Deal[]>[] = [];
+					const arr: AnyObject[] = [];
+					const details: Record<string, Deal[] | Call[]>[] = [];
 
 					switch (row.id) {
 						case "1":
 							fact = stats.callCount;
-
+							arr.push(
+								...callsData.map((call) => ({
+									assignedById: call.PORTAL_USER_ID,
+									id: call.ID,
+								})),
+							);
 							break;
 						case "2":
 							fact = stats.bidCount;
@@ -339,7 +390,12 @@ export const SalesPage = () => {
 							break;
 						case "5":
 							fact = stats.activeDeals;
-
+							arr.push(
+								...activeDealsCount.reduce(
+									(acc, items) => acc.concat(items),
+									[],
+								),
+							);
 							break;
 						case "6":
 							fact = stats.salesCount;
@@ -399,7 +455,7 @@ export const SalesPage = () => {
 		};
 
 		fetchCallsAmount();
-	}, [start, end]);
+	}, [start, end, callsData.map, callsData.length]);
 
 	return (
 		<div
@@ -459,65 +515,72 @@ export const SalesPage = () => {
 					additionalData={{
 						setRow: setRowItems,
 					}}
-					expandable
-					isRowExpandable={(item) => Boolean(item?.items?.length)}
 					fallbackText="Загружаем сделки..."
-					renderExpandedRow={(item) =>
-						item.details ? (
-							<div style={{ padding: "12px", background: "#f8f8f8" }}>
-								<table style={{ width: "100%", borderCollapse: "collapse" }}>
-									<thead>
-										<tr>
-											<th>Сотрудник</th>
-											<th>Сделок</th>
-										</tr>
-									</thead>
-									<tbody>
-										{Object.entries(item.details[0])?.map(([id, items]) => {
-											const user = users.find((user) => user.id === id);
-											return (
-												<tr key={id}>
-													<td>{user?.title}</td>
-													<td>{items.length}</td>
-												</tr>
-											);
-										})}
-									</tbody>
-								</table>
-							</div>
-						) : null
-					}
 				/>
 			</div>
 
-			<div>
-				{Object.entries(
-					rowItems?.items?.reduce(
-						(acc, item) => {
-							if (!acc[item.assignedById]) {
-								acc[item.assignedById] = [];
-							}
+			{rowItems?.items && (
+				<div key={rowItems.id}>
+					{Object.entries(
+						rowItems?.items?.reduce(
+							(acc, item) => {
+								if (!acc[item.assignedById]) {
+									acc[item.assignedById] = [];
+								}
 
-							acc[item.assignedById].push(item);
+								acc[item.assignedById].push(item);
 
-							return acc;
-						},
-						{} as Record<string, Deal[]>,
-					) ?? {},
-				).map(([id, items]) => {
-					const user = users.find((user) => user.id === id);
-					return (
-						user && (
-							<SalesCard
-								key={id}
-								user={user}
-								deals={items}
-								isTotal={rowItems?.title === "Сумма продаж"}
-							/>
-						)
-					);
-				})}
-			</div>
+								return acc;
+							},
+							{} as Record<string, Deal[]>,
+						) ?? {},
+					).map(([id, items]) => {
+						const user = users.find((user) => user.id === id);
+						return rowItems.type === "deal" ? (
+							user && (
+								<SalesCard
+									key={id}
+									user={user}
+									deals={items}
+									isTotal={rowItems?.title === "Сумма продаж"}
+								/>
+							)
+						) : (
+							<div
+								key={rowItems.id + id}
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: "16px",
+									padding: "16px",
+									border: "1px solid #e5e7eb",
+									borderRadius: "16px",
+									background: "#ffffff",
+									boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+								}}
+							>
+								{user?.title ?? "Неизвестный пользователь"}
+								<div
+									style={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-between",
+										paddingBottom: "12px",
+									}}
+								>
+									<div
+										style={{
+											width: "100%",
+										}}
+									>
+										Кол-во звонков: {items.length}
+									</div>
+								</div>
+							</div>
+						);
+					})}
+				</div>
+			)}
 		</div>
 	);
 };

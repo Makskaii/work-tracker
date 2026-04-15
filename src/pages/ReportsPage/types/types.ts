@@ -1,5 +1,6 @@
 import type { ReportProps } from "@/components/calendar/types/types";
-import type { User } from "@/shared/types/types";
+import type { AnyObject, User } from "@/shared/types/types";
+import type { Call } from "../ui/SalesPage/SalesPage";
 import type { Deal } from "./deals.types";
 
 export interface GroupedFields {
@@ -40,8 +41,9 @@ export type SalesTableFields = {
 	plan: number | string;
 	fact: number | string;
 	deviation: number | string;
-	items?: Deal[];
-	details?: Record<string, Deal[]>[];
+	items?: AnyObject[];
+	details?: Record<string, Deal[] | Call[]>[];
+	type: "call" | "deal";
 };
 
 export const enum SalesCodes {

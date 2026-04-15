@@ -12,8 +12,8 @@ export interface Deal {
 	[SalesCodes.kpSuccess]: number;
 	[SalesCodes.ppoSuccess]: number;
 	[SalesCodes.analytic]: number;
-	[SalesCodes.estimateCost]: number;
-	[SalesCodes.totalCost]: number;
+	[SalesCodes.estimateCost]: string;
+	[SalesCodes.totalCost]: string;
 	[SalesCodes.costFile]: string[];
 	[SalesCodes.kpday]: string;
 	[SalesCodes.ppoDay]: string;

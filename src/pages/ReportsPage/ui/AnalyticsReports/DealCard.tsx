@@ -67,14 +67,14 @@ export const DealCard = ({ deal, analyticName, onClick }: DealCardProps) => {
 					<div className={styles.item}>
 						<span className={styles.label}>Смета</span>
 						<span className={styles.value}>
-							{formatMoney(deal[SalesCodes.estimateCost])}
+							{formatMoney(deal[SalesCodes.estimateCost]?.split("|")[0])}
 						</span>
 					</div>
 
 					<div className={styles.item}>
-						<span className={styles.label}>Итоговая стоимость</span>
+						<span className={styles.label}>КП</span>
 						<span className={styles.value}>
-							{formatMoney(deal[SalesCodes.totalCost])}
+							{formatMoney(deal[SalesCodes.totalCost]?.split("|")[0])}
 						</span>
 					</div>
 				</div>
