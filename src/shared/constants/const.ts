@@ -22,6 +22,7 @@ export const Endpoints = {
 	lists: "lists.element.get",
 	item: "crm.item.get",
 	department: "department.get",
+	calls: "voximplant.statistic.get",
 };
 
 export const EntityTypeIds = {

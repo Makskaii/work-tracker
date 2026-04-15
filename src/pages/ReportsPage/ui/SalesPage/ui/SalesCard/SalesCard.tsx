@@ -35,11 +35,13 @@ export const SalesCard = ({
 				display: "flex",
 				flexDirection: "column",
 				gap: "16px",
-				padding: "16px",
 				border: "1px solid #e5e7eb",
 				borderRadius: "16px",
 				background: "#ffffff",
 				boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+				position: "relative",
+				overflowY: "auto",
+				maxHeight: "50vh",
 			}}
 		>
 			<div
@@ -48,6 +50,10 @@ export const SalesCard = ({
 					alignItems: "center",
 					justifyContent: "space-between",
 					paddingBottom: "12px",
+					position: "sticky",
+					padding: "1rem",
+					top: 0,
+					background: "white",
 				}}
 			>
 				<div
@@ -67,6 +73,7 @@ export const SalesCard = ({
 								fontSize: "18px",
 								fontWeight: 600,
 								color: "#111827",
+								background: "white",
 							}}
 						>
 							{user?.title}
@@ -128,6 +135,7 @@ export const SalesCard = ({
 						flexDirection: "column",
 						gap: "12px",
 						borderTop: "1px solid #ccc",
+						padding: "1rem",
 					}}
 				>
 					{deals.map((item) => (

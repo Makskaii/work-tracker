@@ -43,9 +43,11 @@ const fetchWithRetry = async (
 export function useLoadAllData<T>({
 	initialEndpoint,
 	initialFilters = {},
+	isTiems = true,
 }: {
 	initialEndpoint: string;
-	initialFilters: AnyObject;
+	initialFilters?: AnyObject;
+	isTiems?: boolean;
 }): UseLoadDataResult<T> {
 	const [data, setData] = useState<T[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -70,10 +72,11 @@ export function useLoadAllData<T>({
 			let totalCount = 0;
 			let nextValue = response.data.next ?? null;
 
-			resultData = response.data.result?.items || [];
+			if (isTiems) resultData = response.data.result?.items || [];
+			else resultData = response.data.result || [];
 
 			totalCount = response.data.total;
-
+			setTotal(totalCount);
 			if (nextValue !== null && nextValue > 0 && totalCount > 0) {
 				const allData = [...resultData];
 				let currentStart = start + limit;
@@ -84,7 +87,9 @@ export function useLoadAllData<T>({
 
 					const nextResponse = await fetchWithRetry(endpoint, nextParams);
 
-					const nextPageData = nextResponse.data.result?.items || [];
+					const nextPageData = isTiems
+						? nextResponse.data.result?.items
+						: nextResponse.data.result || [];
 
 					allData.push(...nextPageData);
 					nextValue = nextResponse.data.next ?? null;
@@ -92,7 +97,7 @@ export function useLoadAllData<T>({
 				}
 
 				setData(allData);
-				setTotal(totalCount);
+
 				setNext(null);
 			} else {
 				setData(resultData);
@@ -106,7 +111,7 @@ export function useLoadAllData<T>({
 		} finally {
 			setLoading(false);
 		}
-	}, [endpoint, page, filters]);
+	}, [endpoint, page, filters, isTiems]);
 
 	useEffect(() => {
 		if (initialEndpoint) fetchData();

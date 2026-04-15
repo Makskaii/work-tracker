@@ -130,7 +130,10 @@ function AnalyticsCommertialReportPage() {
 	const [open, setOpen] = useState(false);
 	const [activeItems, setActiveItems] = useState<Deal[]>([]);
 
-	const { setPeriod, start, end, period } = usePeriodBorders("week", "sprint");
+	const { setPeriod, start, end, period } = usePeriodBorders(
+		"week",
+		"workweek",
+	);
 
 	const { openTask } = useBitrixSlider();
 
@@ -168,6 +171,7 @@ function AnalyticsCommertialReportPage() {
 					}),
 				]);
 				console.log({ ppoItems, kpItems, wonItems });
+
 				const metrics = [
 					{
 						title: "Количество ППО",
@@ -195,18 +199,20 @@ function AnalyticsCommertialReportPage() {
 					},
 					{
 						title: "Средняя сумма сметы",
-						value: wonItems.reduce((acc: number, item) => {
-							if (item.stageId === "WON") {
-								return acc + Number(item[SalesCodes.estimateCost] || 0);
-							}
-							return acc;
+						value: kpItems.reduce((acc: number, item) => {
+							return (
+								acc + Number(item[SalesCodes.estimateCost]?.split("|")[0] || 0)
+							);
 						}, 0),
+						items: kpItems.filter((deal) => deal[SalesCodes.estimateCost]),
 					},
 					{
 						title: "Средняя сумма проданных смет",
 						value: wonItems.reduce((acc: number, item) => {
 							if (item.stageId === "WON") {
-								return acc + Number(item[SalesCodes.totalCost] || 0);
+								return (
+									acc + Number(item[SalesCodes.totalCost]?.split("|")[0] || 0)
+								);
 							}
 							return acc;
 						}, 0),
@@ -217,7 +223,10 @@ function AnalyticsCommertialReportPage() {
 							wonItems.length !== 0
 								? wonItems.reduce((acc: number, item) => {
 										if (item.stageId === "WON") {
-											return acc + Number(item[SalesCodes.totalCost] || 0);
+											return (
+												acc +
+												Number(item[SalesCodes.totalCost]?.split("|")[0] || 0)
+											);
 										}
 										return acc;
 									}, 0) / wonItems.length
