@@ -74,7 +74,7 @@ const periodLabels: Record<Period, string> = {
 	year: "Год",
 };
 
-function SegmentedControl({ value, onChange }: SegmentedControlProps) {
+export function SegmentedControl({ value, onChange }: SegmentedControlProps) {
 	const options: Period[] = ["week", "month", "quarter", "year"];
 
 	return (

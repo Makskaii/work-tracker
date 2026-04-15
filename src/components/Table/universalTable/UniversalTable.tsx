@@ -13,6 +13,7 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 	expandable = false,
 	renderExpandedRow,
 	isRowExpandable,
+	loading,
 }: UniversalTableProps<T>) => {
 	const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
@@ -37,7 +38,7 @@ export const UniversalTable = <T extends { id: string; parentId?: number }>({
 			}}
 		>
 			<div className={cls.container}>
-				{activeItems.length !== 0 ? (
+				{!loading ? (
 					<table>
 						<thead>
 							<tr>

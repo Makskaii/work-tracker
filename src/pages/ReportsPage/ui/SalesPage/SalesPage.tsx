@@ -5,7 +5,7 @@ import { UniversalTable } from "@/components/Table/universalTable/UniversalTable
 import { $api } from "@/shared/config";
 import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
-import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
+import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import type { Header } from "@/shared/types/table";
 import type { AnyObject, User } from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
@@ -17,6 +17,7 @@ import {
 	type SalesFields,
 	type SalesTableFields,
 } from "../../types/types";
+import { SegmentedControl } from "../AnalyticsReports/AnalyticsReports";
 import { SalesCard } from "./ui/SalesCard/SalesCard";
 
 export const headersForSales: Header<SalesTableFields>[] = [
@@ -128,17 +129,22 @@ export type Call = { id: string; assignedById: string };
 
 const getDealsCountByStages = async ({
 	categoryId = 0,
+	signal,
 }: {
 	start: string;
 	end: string;
 	categoryId?: number;
+	signal?: AbortSignal;
 }) => {
 	const responses = await Promise.all(
 		TARGET_STAGE_IDS.map((stageId) =>
-			getDeals({
-				categoryId,
-				stageId,
-			}),
+			getDeals(
+				{
+					categoryId,
+					stageId,
+				},
+				signal,
+			),
 		),
 	);
 
@@ -150,7 +156,9 @@ const toNumber = (value: string | number) => {
 	return Number(String(value).replace(/\s/g, "")) || 0;
 };
 
-export const getUsers = async (): Promise<
+export const getUsers = async (
+	signal?: AbortSignal,
+): Promise<
 	{
 		ID: string;
 		NAME: string;
@@ -175,6 +183,7 @@ export const getUsers = async (): Promise<
 					"PERSONAL_PHOTO",
 				],
 			},
+			signal,
 		});
 
 		const items = response.data?.result;
@@ -191,18 +200,45 @@ export const getUsers = async (): Promise<
 	}
 };
 
+const getPeriodStep = (period: "week" | "month" | "quarter" | "year") => {
+	switch (period) {
+		case "week":
+			return { value: 7, unit: "day" as const };
+		case "month":
+			return { value: 1, unit: "month" as const };
+		case "quarter":
+			return { value: 3, unit: "month" as const };
+		case "year":
+			return { value: 1, unit: "year" as const };
+		default:
+			return { value: 7, unit: "day" as const };
+	}
+};
+
+const periodLabelMap = {
+	week: "неделя",
+	month: "месяц",
+	quarter: "квартал",
+	year: "год",
+} as const;
+
 export const SalesPage = () => {
 	const [data, setData] = useState<SalesTableFields[]>([]);
 	const [rowItems, setRowItems] = useState<SalesTableFields>();
 	const [users, setUsers] = useState<User[]>([]);
 
-	const {
-		endOfTheWeek: end,
-		startOfTheWeek: start,
-		setDay,
-	} = useSprintBorders("workweek");
+	const { setPeriod, start, end, period, setDay } = usePeriodBorders(
+		"week",
+		"workweek",
+	);
 
-	const { data: callsData, setFilters } = useLoadAllData<{
+	const step = getPeriodStep(period);
+
+	const {
+		data: callsData,
+		setFilters,
+		loading,
+	} = useLoadAllData<{
 		ID: string;
 		PORTAL_USER_ID: string;
 	}>({
@@ -234,56 +270,75 @@ export const SalesPage = () => {
 	}, [end, start, setFilters]);
 
 	useEffect(() => {
+		const controller = new AbortController();
+		const { signal } = controller;
+
 		const fetchCallsAmount = async () => {
 			try {
 				const [items, ppoItems, kpItems, activeDealsCount, wonItems, users] =
 					await Promise.all([
-						await getDeals({
-							">=createdTime": start,
-							"<=createdTime": end,
-							categoryId: 0,
-						}),
-						getDeals({
-							">=createdTime": dayjs(start)
-								.subtract(30, "day")
-								.format("YYYY-MM-DD"),
-							"<=createdTime": end,
-							categoryId: 0,
-							[`>=${SalesCodes.ppoDay}`]: start,
-							[`<=${SalesCodes.ppoDay}`]: end,
-							[SalesCodes.ppoSuccess]: 390,
-						}),
-						getDeals({
-							">=createdTime": dayjs(start)
-								.subtract(30, "day")
-								.format("YYYY-MM-DD"),
-							"<=createdTime": end,
-							categoryId: 0,
-							[`>=${SalesCodes.kpday}`]: start,
-							[`<=${SalesCodes.kpday}`]: end,
-							[SalesCodes.kpSuccess]: 388,
-						}),
+						getDeals(
+							{
+								">=createdTime": start,
+								"<=createdTime": end,
+								categoryId: 0,
+							},
+							signal,
+						),
+						getDeals(
+							{
+								">=createdTime": dayjs(start)
+									.subtract(30, "day")
+									.format("YYYY-MM-DD"),
+								"<=createdTime": end,
+								categoryId: 0,
+								[`>=${SalesCodes.ppoDay}`]: start,
+								[`<=${SalesCodes.ppoDay}`]: end,
+								[SalesCodes.ppoSuccess]: 390,
+							},
+							signal,
+						),
+						getDeals(
+							{
+								">=createdTime": dayjs(start)
+									.subtract(30, "day")
+									.format("YYYY-MM-DD"),
+								"<=createdTime": end,
+								categoryId: 0,
+								[`>=${SalesCodes.kpday}`]: start,
+								[`<=${SalesCodes.kpday}`]: end,
+								[SalesCodes.kpSuccess]: 388,
+							},
+							signal,
+						),
 						getDealsCountByStages({
 							start: dayjs(start).subtract(17, "day").format("YYYY-MM-DD"),
 							end,
 							categoryId: 0,
+							signal,
 						}),
-						await getDeals({
-							">=movedTime": start,
-							"<=movedTime": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
-							categoryId: 0,
-							stageId: "WON",
-						}),
-
-						await getUsers(),
+						getDeals(
+							{
+								">=movedTime": start,
+								"<=movedTime": dayjs(end).add(1, "day").format("YYYY-MM-DD"),
+								categoryId: 0,
+								stageId: "WON",
+							},
+							signal,
+						),
+						getUsers(signal),
 					]);
+
+				if (signal.aborted) {
+					return;
+				}
 
 				setUsers(
 					users
 						.map((user) => ({
 							id: user.ID,
-							value: user.NAME + user.LAST_NAME,
-							title: user.NAME + " " + user.LAST_NAME,
+							value: `${user.NAME} ${user.LAST_NAME}`,
+							title: `${user.NAME} ${user.LAST_NAME}`,
 							position: user.WORK_POSITION,
 							photo: user.PERSONAL_PHOTO,
 							department: user.UF_DEPARTMENT[0],
@@ -328,6 +383,7 @@ export const SalesPage = () => {
 								})),
 							);
 							break;
+
 						case "2":
 							fact = stats.bidCount;
 							arr.push(
@@ -343,15 +399,14 @@ export const SalesPage = () => {
 										if (!acc[item.assignedById]) {
 											acc[item.assignedById] = [];
 										}
-
 										acc[item.assignedById].push(item);
-
 										return acc;
 									},
 									{} as Record<string, Deal[]>,
 								),
 							);
 							break;
+
 						case "3":
 							fact = stats.ppoCount;
 							arr.push(...ppoItems);
@@ -361,15 +416,14 @@ export const SalesPage = () => {
 										if (!acc[item.assignedById]) {
 											acc[item.assignedById] = [];
 										}
-
 										acc[item.assignedById].push(item);
-
 										return acc;
 									},
 									{} as Record<string, Deal[]>,
 								),
 							);
 							break;
+
 						case "4":
 							fact = stats.kpCount;
 							arr.push(...kpItems);
@@ -379,24 +433,24 @@ export const SalesPage = () => {
 										if (!acc[item.assignedById]) {
 											acc[item.assignedById] = [];
 										}
-
 										acc[item.assignedById].push(item);
-
 										return acc;
 									},
 									{} as Record<string, Deal[]>,
 								),
 							);
 							break;
+
 						case "5":
 							fact = stats.activeDeals;
 							arr.push(
-								...activeDealsCount.reduce(
+								...activeDealsCount.reduce<AnyObject[]>(
 									(acc, items) => acc.concat(items),
 									[],
 								),
 							);
 							break;
+
 						case "6":
 							fact = stats.salesCount;
 							arr.push(...wonItems);
@@ -406,15 +460,14 @@ export const SalesPage = () => {
 										if (!acc[item.assignedById]) {
 											acc[item.assignedById] = [];
 										}
-
 										acc[item.assignedById].push(item);
-
 										return acc;
 									},
 									{} as Record<string, Deal[]>,
 								),
 							);
 							break;
+
 						case "7":
 							fact = stats.totalSales;
 							arr.push(...wonItems);
@@ -424,9 +477,7 @@ export const SalesPage = () => {
 										if (!acc[item.assignedById]) {
 											acc[item.assignedById] = [];
 										}
-
 										acc[item.assignedById].push(item);
-
 										return acc;
 									},
 									{} as Record<string, Deal[]>,
@@ -448,14 +499,26 @@ export const SalesPage = () => {
 					};
 				});
 
+				if (signal.aborted) {
+					return;
+				}
+
 				setData(preparedData);
 			} catch (error) {
+				if (error instanceof DOMException && error.name === "AbortError") {
+					return;
+				}
+
 				console.error(error);
 			}
 		};
 
 		fetchCallsAmount();
-	}, [start, end, callsData.map, callsData.length]);
+
+		return () => {
+			controller.abort();
+		};
+	}, [start, end, callsData]);
 
 	return (
 		<div
@@ -465,23 +528,16 @@ export const SalesPage = () => {
 			}}
 		>
 			<div>
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						gap: "1rem",
-					}}
-				>
+				<div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+					<SegmentedControl onChange={setPeriod} value={period} />
+
 					<button
-						style={{
-							background: "white",
-							color: "#aeacac",
-						}}
+						style={{ background: "white", color: "#aeacac" }}
 						onClick={() => {
-							setDay((prev) => prev.subtract(7, "day"));
+							setDay((prev) => prev.subtract(step.value, step.unit));
 						}}
 					>
-						пред. неделя
+						пред. {periodLabelMap[period]}
 					</button>
 
 					<div
@@ -492,20 +548,17 @@ export const SalesPage = () => {
 						}}
 					>
 						<div>
-							{dayjs(start).format("DD.MM")}-{dayjs(end).format("DD.MM")}
+							{dayjs(start).format("DD.MM")} - {dayjs(end).format("DD.MM")}
 						</div>
 					</div>
 
 					<button
-						style={{
-							background: "white",
-							color: "#aeacac",
-						}}
+						style={{ background: "white", color: "#aeacac" }}
 						onClick={() => {
-							setDay((prev) => prev.add(7, "day"));
+							setDay((prev) => prev.add(step.value, step.unit));
 						}}
 					>
-						след. неделя
+						след. {periodLabelMap[period]}
 					</button>
 				</div>
 
@@ -516,6 +569,7 @@ export const SalesPage = () => {
 						setRow: setRowItems,
 					}}
 					fallbackText="Загружаем сделки..."
+					loading={loading}
 				/>
 			</div>
 

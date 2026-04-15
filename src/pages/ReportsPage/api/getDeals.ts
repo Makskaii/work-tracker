@@ -5,33 +5,40 @@ import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
 	filters?: Record<string, string | number | undefined>,
+	signal?: AbortSignal,
 ): Promise<Deal[]> => {
 	try {
-		const response = await $api.post(Endpoints.crmItems, {
-			entityTypeId: 2,
-			filter: {
-				...filters,
+		const response = await $api.post(
+			Endpoints.crmItems,
+			{
+				entityTypeId: 2,
+				filter: {
+					...filters,
+				},
+				select: [
+					"id",
+					"createdTime",
+					"opportunity",
+					"stageId",
+					"isNew",
+					"createdBy",
+					"movedTime",
+					"assignedById",
+					SalesCodes.kpSuccess,
+					SalesCodes.ppoSuccess,
+					SalesCodes.kpday,
+					SalesCodes.ppoDay,
+					SalesCodes.analytic,
+					SalesCodes.totalCost,
+					SalesCodes.costFile,
+					SalesCodes.estimateCost,
+					"title",
+				],
 			},
-			select: [
-				"id",
-				"createdTime",
-				"opportunity",
-				"stageId",
-				"isNew",
-				"createdBy",
-				"movedTime",
-				"assignedById",
-				SalesCodes.kpSuccess,
-				SalesCodes.ppoSuccess,
-				SalesCodes.kpday,
-				SalesCodes.ppoDay,
-				SalesCodes.analytic,
-				SalesCodes.totalCost,
-				SalesCodes.costFile,
-				SalesCodes.estimateCost,
-				"title",
-			],
-		});
+			{
+				signal,
+			},
+		);
 
 		const items = response.data?.result.items;
 

@@ -23,6 +23,7 @@ export type UniversalTableProps<T extends { id: string }> = {
 	expandable?: boolean;
 	renderExpandedRow?: (item: T) => ReactNode;
 	isRowExpandable?: (item: T) => boolean;
+	loading?: boolean;
 };
 
 export interface GroupedReportFields {
