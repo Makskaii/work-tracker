@@ -1,6 +1,6 @@
 import dayjs, { Dayjs } from "dayjs";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 dayjs.extend(quarterOfYear);
 
@@ -34,13 +34,64 @@ const getWorkWeekBorders = (date: Dayjs) => {
 	return { startDate, endDate };
 };
 
+const normalizeDayByPeriod = (
+	date: Dayjs,
+	period: Period,
+	weekMode: WeekMode,
+): Dayjs => {
+	if (period === "week") {
+		const range =
+			weekMode === "sprint" ? getSprintBorders(date) : getWorkWeekBorders(date);
+
+		return range.startDate.startOf("day");
+	}
+
+	if (period === "month") {
+		return date.startOf("month");
+	}
+
+	if (period === "quarter") {
+		return date.startOf("quarter");
+	}
+
+	return date.startOf("year");
+};
+
 export const usePeriodBorders = (
 	initialPeriod: Period = "week",
 	initialWeekMode: WeekMode = "sprint",
 ) => {
-	const [period, setPeriod] = useState<Period>(initialPeriod);
-	const [weekMode, setWeekMode] = useState<WeekMode>(initialWeekMode);
-	const [day, setDay] = useState<Dayjs>(dayjs());
+	const [period, setPeriodState] = useState<Period>(initialPeriod);
+	const [weekMode, setWeekModeState] = useState<WeekMode>(initialWeekMode);
+	const [day, setDayState] = useState<Dayjs>(() =>
+		normalizeDayByPeriod(dayjs(), initialPeriod, initialWeekMode),
+	);
+
+	const setPeriod = useCallback(
+		(nextPeriod: Period) => {
+			setPeriodState(nextPeriod);
+			setDayState((prev) => normalizeDayByPeriod(prev, nextPeriod, weekMode));
+		},
+		[weekMode],
+	);
+
+	const setWeekMode = useCallback(
+		(nextWeekMode: WeekMode) => {
+			setWeekModeState(nextWeekMode);
+			setDayState((prev) => normalizeDayByPeriod(prev, period, nextWeekMode));
+		},
+		[period],
+	);
+
+	const setDay = useCallback(
+		(value: Dayjs | ((prev: Dayjs) => Dayjs)) => {
+			setDayState((prev) => {
+				const nextDay = typeof value === "function" ? value(prev) : value;
+				return normalizeDayByPeriod(nextDay, period, weekMode);
+			});
+		},
+		[period, weekMode],
+	);
 
 	const borders = useMemo<DateBorders>(() => {
 		if (period === "week") {
