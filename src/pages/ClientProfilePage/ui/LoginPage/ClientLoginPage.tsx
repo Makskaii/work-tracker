@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { ability } from "@/shared/config/ability/casl";
@@ -27,10 +28,14 @@ export const ClientLoginPage = () => {
 
 	const navigate = useNavigate();
 
+	useEffect(() => {
+		if (sessionStorage.getItem("logged") === "true") {
+			navigate("/client-profile");
+		}
+	}, [navigate]);
+
 	const onSubmit = async (data: ClientLoginProps) => {
 		try {
-			console.log("login data", data);
-
 			const res = await $backendApi.post("auth/client", data);
 
 			const clientId = res.data.client.crmClientId;
@@ -41,6 +46,8 @@ export const ClientLoginPage = () => {
 					subject: `client-profile-${clientId}`,
 				},
 			]);
+
+			sessionStorage.setItem("logged", "true");
 
 			navigate(`/client-profile/${clientId}`);
 		} catch (error) {
