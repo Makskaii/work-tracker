@@ -215,7 +215,7 @@ const getPeriodStep = (period: "week" | "month" | "quarter" | "year") => {
 	}
 };
 
-const periodLabelMap = {
+export const periodLabelMap = {
 	week: "неделя",
 	month: "месяц",
 	quarter: "квартал",
