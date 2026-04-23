@@ -11,7 +11,6 @@ import {
 } from "@/pages";
 import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage";
 import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
-import { ClientProjectPage } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectPage";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
 import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
@@ -137,14 +136,6 @@ export const router = createBrowserRouter(
 			element: (
 				<Suspense fallback={<Spinner />}>
 					<ClientProfile />
-				</Suspense>
-			),
-		},
-		{
-			path: "/client-projects/:clientId/project/:projId",
-			element: (
-				<Suspense fallback={<Spinner />}>
-					<ClientProjectPage />
 				</Suspense>
 			),
 		},
