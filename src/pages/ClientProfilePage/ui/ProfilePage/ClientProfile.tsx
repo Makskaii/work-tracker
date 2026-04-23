@@ -1,50 +1,60 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
-import { TaskCodes } from "@/components/calendar/constants/const";
+import { FcConferenceCall, FcPlanner } from "react-icons/fc";
+import { MdAddTask } from "react-icons/md";
+import { useParams } from "react-router";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
 import { Spinner } from "@/components/spinner/Spinner";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
-import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
+import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import {
 	mapProjectsFromList,
 	type ProjectFromList,
 } from "@/pages/ReportsPage/ReportsPage";
+import { SegmentedControl } from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
+import { periodLabelMap } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import {
 	getClientsFromList,
 	getProjectsFromList,
 } from "@/shared/api/getCrmFields";
-import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	ClientsCodes,
+	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
+import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import type {
 	ClientListItems,
 	ClientProjectProps,
 	TaskProps,
 } from "@/shared/types/types";
-import { notify } from "@/shared/ui/NotificationPopup/notify";
-import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 import { classNames } from "@/shared/utils/utils";
+import brandLogo from "/logo_colored.png";
 import { TaskList } from "../TaskList/TaskList";
 import styles from "./ClientProfile.module.scss";
+import { TaskListByProject } from "./TaskListByProject";
+import { UpcomingMeetings } from "./UpcomingMeetings";
 
-const { VITE_BFF_API_URL } = import.meta.env;
+// const { VITE_BFF_API_URL } = import.meta.env;
 
-const formatDate = (date?: string) => {
-	if (!date) return "—";
+export type ViewMode = "list" | "projects";
 
-	const parsed = dayjs(date);
+// const formatDate = (date?: string) => {
+// 	if (!date) return "—";
 
-	if (!parsed.isValid()) return date;
+// 	const parsed = dayjs(date);
 
-	return parsed.format("DD.MM.YYYY");
-};
+// 	if (!parsed.isValid()) return date;
 
-const getTasksInWork = (tasks?: TaskProps[]) => {
+// 	return parsed.format("DD.MM.YYYY");
+// };
+
+export const getTasksInWork = (tasks?: TaskProps[]) => {
 	if (!tasks?.length) {
 		return {
 			text: "Нет задач",
@@ -72,127 +82,170 @@ const ClientProfile = () => {
 	const [normalizedProjects, setNormalizedProjects] = useState<
 		ProjectFromList[]
 	>([]);
-	const [loading, setLoading] = useState(false);
-	const [loadingReport, setLoadingReport] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [loadUrl, setLoadUrl] = useState("");
-	const [projectTasks, setProjectTasks] = useState<{
-		[projectId: number]: TaskProps[];
-	}>();
+	const [_loading, setLoading] = useState(false);
 
-	const [taskList, setTaskList] = useState<TaskProps[]>([]);
+	const [_error, setError] = useState<string | null>(null);
 
-	const [bundles, setBundles] = useState<{
-		[projectId: number]: TaskProps[];
-	}>();
+	const [taskList, _setTaskList] = useState<TaskProps[]>([]);
 
 	const [clientData, setClientData] = useState<ClientListItems>();
 
-	const borders = useMemo(() => getSprintWeekBorders(dayjs()), []);
-
 	const { clientId } = useParams<{ clientId: string }>();
+
+	const { setPeriod, start, end, period, goNext, goPrev } = usePeriodBorders(
+		"week",
+		"workweek",
+	);
+
+	const [viewMode, setViewMode] = useState<ViewMode>("projects");
 
 	const [open, setOpen] = useState<boolean>(false);
 
-	const navigate = useNavigate();
+	// const navigate = useNavigate();
 
-	const getReportPdf = async (
-		id: string,
-		startOfThePeriod: string,
-		endOfThePeriod: string,
-	) => {
-		try {
-			setLoadingReport(true);
-			const response = await $backendApi.post("doc-records/client-report", {
-				id,
-				startOfThePeriod,
-				endOfThePeriod,
-			});
+	// const getReportPdf = async (
+	// 	id: string,
+	// 	startOfThePeriod: string,
+	// 	endOfThePeriod: string,
+	// ) => {
+	// 	try {
+	// 		setLoadingReport(true);
+	// 		const response = await $backendApi.post("doc-records/client-report", {
+	// 			id,
+	// 			startOfThePeriod,
+	// 			endOfThePeriod,
+	// 		});
 
-			const downloadUrl = response.data.downloadUrl;
+	// 		const downloadUrl = response.data.downloadUrl;
 
-			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
+	// 		setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
 
-			notify({
-				message: "Отчет сформирован",
-				type: "success",
-			});
-		} catch (error) {
-			console.log(error);
+	// 		notify({
+	// 			message: "Отчет сформирован",
+	// 			type: "success",
+	// 		});
+	// 	} catch (error) {
+	// 		console.log(error);
 
-			notify({
-				message: "Ошибка загрузки отчёта",
-				type: "error",
-			});
-		} finally {
-			setLoadingReport(false);
-		}
-	};
+	// 		notify({
+	// 			message: "Ошибка загрузки отчёта",
+	// 			type: "error",
+	// 		});
+	// 	} finally {
+	// 		setLoadingReport(false);
+	// 	}
+	// };
 
-	useEffect(() => {
-		const fetchTasks = async () => {
-			const tasksInWork = await Promise.all(
-				projects.map(async (project) => ({
-					[project.id]: await getItems<TaskProps>({
-						typeId: EntityTypeIds.tasks,
-						filters: {
-							[TaskCodes.project]: normalizedProjects.find(
-								(p) => Number(p.projectId) === project.id,
-							)?.id,
-							"!@stageId": [
-								"DT1072_18:UC_6JNSDG",
-								"DT1072_18:UC_UZMTY8",
-								"DT1072_18:NEW",
-								"DT1072_18:UC_A9IWFS",
-								"DT1072_18:UC_YU7VRR",
-								"DT1072_18:UC_GEW05D",
-								"DT1072_18:SUCCESS",
-								"DT1072_18:FAIL",
-							],
-						},
-						select: TASK_SELECT_FIELDS,
-					}),
-				})),
-			);
+	const { data } = useLoadAllData<TaskProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.tasks,
+				filter: {
+					[TaskCodes.client]: clientId,
+				},
+				select: TASK_SELECT_FIELDS,
+			},
+		},
+	});
 
-			const tasksFlat = Object.entries(
-				tasksInWork.reduce((acc, item) => ({ ...acc, ...item }), {}),
-			).reduce((acc, [_id, tasks]) => {
-				if (tasks.length > 0) {
-					acc.push(...tasks);
-				}
+	const tasksByProject = useMemo(() => {
+		return groupTasksByProject(data);
+	}, [data]);
 
-				return acc;
-			}, [] as TaskProps[]);
+	const projectsWithActualIds = projects?.map((project) => ({
+		...project,
+		projectId:
+			normalizedProjects?.find((proj) => Number(proj.projectId) === project.id)
+				?.id ?? "",
+	}));
 
-			setTaskList(tasksFlat);
+	const { data: taskFromPeriod } = useLoadAllData<TaskProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.tasks,
+				filter: {
+					[TaskCodes.client]: clientId,
+					[`>=${TaskCodes.sprintDateStart}`]: start,
+					[`<=${TaskCodes.sprintDateStart}`]: end,
+				},
+				select: TASK_SELECT_FIELDS,
+			},
+		},
+	});
 
-			const bundlesAmount = await Promise.all(
-				projects.map(async (project) => ({
-					[project.id]: await getItems<TaskProps>({
-						typeId: EntityTypeIds.tasks,
-						filters: {
-							[TaskCodes.project]: normalizedProjects.find(
-								(p) => Number(p.projectId) === project.id,
-							)?.id,
-							stageId: "DT1072_18:UC_YU7VRR",
-						},
-						select: TASK_SELECT_FIELDS,
-					}),
-				})),
-			);
+	const { data: internalReports } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				filter: {
+					[ReportCodes.client]: clientId,
+					[ReportCodes.activityType]: "402",
+					">=begindate": start,
+					"<=begindate": end,
+				},
+				select: [
+					"id",
+					"title",
+					"begindate",
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+					`parentId${EntityTypeIds.tasks}`,
+				],
+			},
+		},
+	});
 
-			setProjectTasks(
-				tasksInWork.reduce((acc, item) => ({ ...acc, ...item }), {}),
-			);
+	const { data: externalReports } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: {
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				filter: {
+					[ReportCodes.client]: clientId,
+					[ReportCodes.activityType]: "417",
+					">=begindate": start,
+					"<=begindate": end,
+				},
+				select: [
+					"id",
+					"title",
+					"begindate",
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+					`parentId${EntityTypeIds.tasks}`,
+				],
+			},
+		},
+	});
 
-			setBundles(
-				bundlesAmount.reduce((acc, item) => ({ ...acc, ...item }), {}),
-			);
-		};
+	const totalTime = taskFromPeriod.reduce(
+		(acc, task) => acc + +task[TaskCodes.estimateTime],
+		0,
+	);
 
-		projects && fetchTasks();
-	}, [projects, normalizedProjects]);
+	const commsTotalInternal = internalReports.reduce((acc, report) => {
+		return acc + +report[ReportCodes.timeSpent];
+	}, 0);
+
+	const commsTotalExternal = externalReports.reduce((acc, report) => {
+		console.log({ report });
+		return acc + +report[ReportCodes.timeSpent];
+	}, 0);
 
 	useEffect(() => {
 		const fetchProjects = async () => {
@@ -231,26 +284,6 @@ const ClientProfile = () => {
 		fetchProjects();
 	}, [clientId]);
 
-	const totalProjects = projects.length;
-	const activeProjectsCount = Object.entries(projectTasks ?? {}).filter(
-		([_connectProjectIds, tasks]) => tasks.length > 0,
-	).length;
-
-	const doneProjects = Object.entries(projectTasks ?? {}).reduce(
-		(acc, [_connectProjectIds, tasks]) => {
-			if (
-				tasks.filter((task) => task.stageId === TASK_STAGE_IDS.DONE).length ===
-					tasks.length &&
-				tasks.length > 0
-			) {
-				acc += 1;
-			}
-
-			return acc;
-		},
-		0,
-	);
-
 	if (!clientId) return null;
 
 	return (
@@ -258,175 +291,302 @@ const ClientProfile = () => {
 		<div className={styles.page}>
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
-					<div className={styles.badge}>Кабинет клиента</div>
+					<div
+						style={{
+							display: "flex",
+						}}
+					>
+						<img src={brandLogo} alt="Логотип" width={"50px"} height={"50px"} />
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								gap: "10px",
+							}}
+						>
+							<h1 className={styles.pageTitle}>Evolutions Client's Desk</h1>
+							<div className={styles.badge}>Кабинет клиента</div>
+						</div>
+					</div>
 					<h1 className={styles.pageTitle}>
 						{clientData?.NAME ?? <Spinner onlySpin />}
 					</h1>
-				</div>
-
-				<div className={styles.headerStats}>
-					<div className={styles.statCard}>
-						<div className={styles.statValue}>{totalProjects}</div>
-						<div className={styles.statLabel}>Всего проектов</div>
-					</div>
-
-					<div className={styles.statCard}>
-						<div className={styles.statValue}>{activeProjectsCount}</div>
-						<div className={styles.statLabel}>Проекты в работе</div>
-					</div>
-
-					<div className={styles.statCard}>
-						<div className={styles.statValue}>{doneProjects}</div>
-						<div className={styles.statLabel}>Завершенных проектов</div>
-					</div>
 				</div>
 			</div>
 
 			<div className={styles.content}>
 				<div className={styles.mainColumn}>
 					<div className={styles.sectionCard}>
-						<div className={styles.sectionHeader}>
-							<div>
-								<h2
+						<h2
+							style={{
+								textAlign: "left",
+							}}
+						>
+							Общая информация
+						</h2>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr 1fr 1.5fr",
+								gap: "10px",
+							}}
+						>
+							<div className={styles.statCard}>
+								<div
 									style={{
-										textAlign: "left",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										gap: "1rem",
 									}}
-									className={styles.sectionTitle}
 								>
-									Проекты
-								</h2>
+									<div>
+										<FcPlanner
+											style={{
+												width: "50px",
+												height: "50px",
+											}}
+										/>
+									</div>
+									<div>
+										<div className={styles.statLabel}>План часов</div>
+										<div className={styles.statValue}>
+											{period === "week"
+												? 75
+												: period === "month"
+													? 75 * 4
+													: period === "quarter"
+														? 75 * 12
+														: 75 * 48}{" "}
+											ч.
+										</div>
+									</div>
+								</div>
 							</div>
-
-							{loadUrl === "" ? (
-								<button
-									disabled={loadingReport}
-									type="button"
-									className={classNames(styles.primaryButton, {
-										[styles.loadingPulse]: loadingReport,
-									})}
-									onClick={async () =>
-										await getReportPdf(
-											clientId,
-											borders.startOfTheWeek,
-											borders.endOfTheWeek,
-										)
-									}
-								>
-									{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
-								</button>
-							) : (
-								<button
-									type="button"
-									className={styles.primaryButton}
-									onClick={async () =>
-										loadUrl !== "" && window.open(loadUrl, "_blank")
-									}
+							<div className={styles.statCard}>
+								<div
 									style={{
-										background: "green",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										gap: "1rem",
 									}}
 								>
-									Скачать отчёт
-								</button>
-							)}
+									<div>
+										<MdAddTask
+											style={{
+												width: "50px",
+												height: "50px",
+												color: "blue",
+											}}
+										/>
+									</div>
+									<div>
+										<div className={styles.statLabel}>Факт по задачам</div>
+										<div className={styles.statValue}>{totalTime} ч.</div>
+										<div
+											style={{
+												color: "blue",
+											}}
+										>
+											Подробнее
+										</div>
+									</div>
+								</div>
+							</div>
+							<div className={styles.statCard}>
+								<div
+									style={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										gap: "1rem",
+									}}
+								>
+									<div>
+										<FcConferenceCall
+											style={{
+												width: "50px",
+												height: "50px",
+											}}
+										/>
+									</div>
+									<div>
+										<div className={styles.statLabel}>
+											Факт по коммуникациям
+										</div>
+										<div className={styles.statValue}>
+											{commsTotalInternal + commsTotalExternal} ч.
+										</div>
+										<div
+											style={{
+												color: "blue",
+											}}
+										>
+											Подробнее
+										</div>
+									</div>
+								</div>
+							</div>
+							<div className={styles.statCard}>
+								<div>
+									<div>Период</div>
+								</div>
+								<SegmentedControl onChange={setPeriod} value={period} />
+
+								<div
+									style={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-evenly",
+									}}
+								>
+									<button
+										style={{ background: "white", color: "#aeacac" }}
+										onClick={() => goPrev()}
+									>
+										пред. {periodLabelMap[period]}
+									</button>
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+											alignItems: "center",
+										}}
+									>
+										<div>
+											{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(end).format("DD.MM.YYYY")}`}
+										</div>
+									</div>
+									<button
+										style={{ background: "white", color: "#aeacac" }}
+										onClick={() => goNext()}
+									>
+										след. {periodLabelMap[period]}
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className={styles.sectionCard}>
+						<div className={styles.sectionHeader}>
+							<div
+								style={{
+									display: "flex",
+									justifyContent: "space-between",
+									width: "100%",
+								}}
+							>
+								<div
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "1rem",
+									}}
+								>
+									<h2
+										style={{
+											textAlign: "left",
+										}}
+										className={styles.sectionTitle}
+									>
+										Все задачи
+									</h2>
+									<div className={styles.badge}>Задач: {data.length} </div>
+								</div>
+
+								<div className={styles.toolbar}>
+									<div className={styles.viewModeSwitcher}>
+										<button
+											type="button"
+											className={classNames(styles.viewModeButton, {
+												[styles.viewModeButtonActive]: viewMode === "list",
+											})}
+											onClick={() => setViewMode("list")}
+										>
+											Режим список
+										</button>
+
+										<button
+											type="button"
+											className={classNames(styles.viewModeButton, {
+												[styles.viewModeButtonActive]: viewMode === "projects",
+											})}
+											onClick={() => setViewMode("projects")}
+										>
+											По проектам
+										</button>
+									</div>
+								</div>
+							</div>
 						</div>
 
-						{loading && (
-							<div className={styles.stateBox}>
-								<div className={styles.stateTitle}>Загрузка проектов...</div>
-								<div className={styles.stateText}>
-									Получаем список проектов клиента
-								</div>
-							</div>
-						)}
+						<TaskListByProject
+							normalizedProjects={normalizedProjects}
+							tasks={data ?? []}
+							onTaskClick={(task) => {
+								console.log("clicked task", task);
+							}}
+							clientsProjects={projects}
+							view={viewMode}
+						/>
+					</div>
+				</div>
 
-						{error && !loading && (
-							<div className={styles.stateBoxError}>
-								<div className={styles.stateTitle}>{error}</div>
-								<div className={styles.stateText}>
-									Попробуй обновить страницу или проверить доступ к данным
-								</div>
-							</div>
-						)}
+				<div className={styles.sideColumn}>
+					<UpcomingMeetings />
 
-						{!loading && !error && projects.length === 0 && (
-							<div className={styles.stateBox}>
-								<div className={styles.stateTitle}>Проекты не найдены</div>
-								<div className={styles.stateText}>
-									Для этого клиента пока нет доступных проектов
-								</div>
-							</div>
-						)}
+					<div className={styles.sectionCard}>
+						<h2
+							style={{
+								textAlign: "left",
+							}}
+						>
+							Проекты
+						</h2>
+						<div className={styles.projectsList}>
+							{projectsWithActualIds.map((project) => {
+								const projTasks = tasksByProject?.[project.projectId];
 
-						{!loading && !error && projects.length > 0 && (
-							<div className={styles.projectsList}>
-								{projects.map((project) => {
-									const projTasks = projectTasks?.[project.id];
+								const activity = getTasksInWork(projTasks);
 
-									const activity = getTasksInWork(projTasks);
+								const projReportsTime = internalReports
+									?.filter(
+										(report) =>
+											report[ReportCodes.project] === Number(project.projectId),
+									)
+									.reduce((acc, report) => {
+										if (report[ReportCodes.timeSpent]) {
+											acc += +report[ReportCodes.timeSpent];
+										}
 
-									const actualId = normalizedProjects.find(
-										(p) => Number(p.projectId) === project.id,
-									)?.id;
+										return acc;
+									}, 0);
 
-									return (
-										<div key={project.id} className={styles.projectCard}>
-											<div className={styles.projectTop}>
-												<div className={styles.projectMainInfo}>
-													<div className={styles.projectTitleRow}>
-														<h3 className={styles.projectTitle}>
-															{project.title}
-														</h3>
+								const projReportsTimeExternal = externalReports
+									?.filter(
+										(report) =>
+											report[ReportCodes.project] === Number(project.projectId),
+									)
+									.reduce((acc, report) => {
+										if (report[ReportCodes.timeSpent]) {
+											acc += +report[ReportCodes.timeSpent];
+										}
 
-														{projTasks && (
-															<span
-																className={`${styles.activityBadge} ${
-																	activity.type === "active"
-																		? styles.activityActive
-																		: activity.type === "warning"
-																			? styles.activityWarning
-																			: styles.activityIdle
-																}`}
-															>
-																{getProjectStatus(projTasks)}
-															</span>
-														)}
-													</div>
-												</div>
-												<div className={styles.projectBody}>
-													<div className={styles.projectInfoGrid}>
-														<div className={styles.infoTile}>
-															<div className={styles.infoTileLabel}>
-																Дата создания
-															</div>
-															<div className={styles.infoTileValue}>
-																{formatDate(project.createdTime)}
-															</div>
-														</div>
+										return acc;
+									}, 0);
 
-														{bundles?.[project.id] && (
-															<div className={styles.infoTile}>
-																<div className={styles.infoTileLabel}>
-																	Бандлов в проекте
-																</div>
-																<div className={styles.infoTileValue}>
-																	{bundles[project.id].length}
-																</div>
-															</div>
-														)}
+								return (
+									<div key={project.id} className={styles.projectCard}>
+										<div className={styles.projectTop}>
+											<div className={styles.projectMainInfo}>
+												<div className={styles.projectTitleRow}>
+													<h3 className={styles.projectTitle}>
+														{project.title}
+													</h3>
 
-														<div className={styles.infoTile}>
-															<div className={styles.infoTileLabel}>
-																Кол-во часов
-															</div>
-															<div className={styles.infoTileValue}>
-																{projTasks?.reduce((acc, task) => {
-																	return acc + +(task[TaskCodes.hours] ?? 0);
-																}, 0)}
-															</div>
-														</div>
-													</div>
-
-													<div className={styles.projectActions}>
+													{projTasks && (
 														<span
 															className={`${styles.activityBadge} ${
 																activity.type === "active"
@@ -436,90 +596,32 @@ const ClientProfile = () => {
 																		: styles.activityIdle
 															}`}
 														>
-															{activity.text}
+															{getProjectStatus(projTasks)}
 														</span>
-														<button
-															type="button"
-															className={styles.secondaryButton}
-															onClick={() =>
-																navigate(
-																	`/client-projects/${clientId}/project/${actualId}`,
-																	{
-																		state: project,
-																	},
-																)
-															}
-														>
-															Открыть карточку проекта
-														</button>
-													</div>
+													)}
 												</div>
 											</div>
 										</div>
-									);
-								})}
-							</div>
-						)}
-					</div>
-				</div>
+										<div className={styles.projectBody}>
+											<div className={styles.infoTileLabel}>
+												{"Кол-во часов по задачам:"}{" "}
+											</div>
+											<div className={styles.infoTileValue}>
+												{projTasks?.reduce((acc, task) => {
+													return acc + +(task[TaskCodes.hours] ?? 0);
+												}, 0)}
+											</div>
 
-				<div className={styles.sideColumn}>
-					<div className={styles.sectionCard}>
-						<h2 className={styles.sectionTitle}>Быстрые действия</h2>
-
-						<div className={styles.quickActions}>
-							<button
-								onClick={() => setOpen(true)}
-								type="button"
-								className={styles.secondaryButton}
-							>
-								Просмотреть все задачи
-							</button>
-							<button className={styles.ghostButton}>Оставить обращение</button>
-							<button
-								onClick={() => {
-									notify({
-										message: "Кнопки заработают в ближайшее время!",
-										type: "warning",
-									});
-								}}
-								type="button"
-								className={styles.ghostButton}
-							>
-								Запросить отчёт
-							</button>
-							<button
-								onClick={() => {
-									notify({
-										message: "Кнопки заработают в ближайшее время!",
-										type: "warning",
-									});
-								}}
-								type="button"
-								className={styles.ghostButton}
-							>
-								Запланировать встречу
-							</button>
-						</div>
-					</div>
-
-					<div className={styles.sectionCard}>
-						<h2 className={styles.sectionTitle}>Последняя активность</h2>
-
-						<div className={styles.meetingCard}>
-							<div className={styles.meetingTitle}>
-								Активности скоро появятся
-							</div>
-						</div>
-					</div>
-
-					<div className={styles.sectionCard}>
-						<h2 className={styles.sectionTitle}>Ближайшие встречи</h2>
-
-						<div className={styles.meetingsList}>
-							<div className={styles.meetingCard}>
-								<div className={styles.meetingTitle}>Нет ближайших встреч</div>
-							</div>
+											<div className={styles.infoTileLabel}>
+												Кол-во по коммуникациям:
+											</div>
+											<div className={styles.infoTileValue}>
+												{projReportsTime + projReportsTimeExternal}
+											</div>
+										</div>
+									</div>
+								);
+							})}
 						</div>
 					</div>
 				</div>

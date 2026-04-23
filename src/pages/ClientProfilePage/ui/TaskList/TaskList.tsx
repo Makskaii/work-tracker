@@ -85,12 +85,13 @@ export const TaskList = ({
 			<div className={cls.tableWrap}>
 				<div className={cls.table}>
 					<div className={`${cls.row} ${cls.headRow}`}>
-						<div className={`${cls.cell} ${cls.titleCol}`}>Задача</div>
+						<div className={`${cls.cell} ${cls.titleCol}`}>Название</div>
 
 						<div className={cls.cell}>Статус</div>
 						<div className={cls.cell}>Часы</div>
-						<div className={cls.cell}>Создана</div>
-						<div className={cls.cell}>Обновлена</div>
+						<div className={cls.cell}>Взято в работу</div>
+						<div className={cls.cell}>Дедлайн</div>
+
 						{!isProject && <div className={cls.cell}>Проект</div>}
 					</div>
 

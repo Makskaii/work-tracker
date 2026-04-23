@@ -15,16 +15,14 @@ type TaskFiltersProps = {
 	projectOptions: ClientProjectProps[];
 	total: number;
 	filteredTotal: number;
-	isProjectPage?: boolean
+	isProjectPage?: boolean;
 };
 
 export const TaskFilters = ({
 	value,
 	onChange,
 	projectOptions,
-	total,
-	filteredTotal,
-	isProjectPage = false
+	isProjectPage = false,
 }: TaskFiltersProps) => {
 	const setField = <K extends keyof TaskFilterValues>(
 		field: K,
@@ -48,13 +46,6 @@ export const TaskFilters = ({
 
 	return (
 		<div className={cls.filters}>
-			<div className={cls.filtersTop}>
-				<div className={cls.filtersTitle}>Tasks</div>
-				<div className={cls.filtersCounter}>
-					{filteredTotal} / {total}
-				</div>
-			</div>
-
 			<div className={cls.filtersGrid}>
 				<div className={cls.searchBox}>
 					<input
@@ -65,18 +56,20 @@ export const TaskFilters = ({
 					/>
 				</div>
 
-			{	!isProjectPage && <select
-					value={value.project}
-					onChange={(event) => setField("project", event.target.value)}
-					className={cls.select}
-				>
-					<option value="all">Все проекты</option>
-					{projectOptions.map((project) => (
-						<option key={project.id} value={project.projectId}>
-							{project.title}
-						</option>
-					))}
-				</select>}
+				{!isProjectPage && (
+					<select
+						value={value.project}
+						onChange={(event) => setField("project", event.target.value)}
+						className={cls.select}
+					>
+						<option value="all">Все проекты</option>
+						{projectOptions.map((project) => (
+							<option key={project.id} value={project.projectId}>
+								{project.title}
+							</option>
+						))}
+					</select>
+				)}
 
 				<button
 					type="button"

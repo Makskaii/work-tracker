@@ -267,7 +267,7 @@ export const ClientProjectPage = () => {
 			});
 
 			const downloadUrl = response.data.downloadUrl;
-			console.log({ response });
+
 			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
 
 			setView("task");
