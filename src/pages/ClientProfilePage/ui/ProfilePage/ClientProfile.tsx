@@ -33,6 +33,7 @@ import type {
 	ClientProjectProps,
 	TaskProps,
 } from "@/shared/types/types";
+import { getFixedNumber } from "@/shared/utils/getNumber";
 import { classNames } from "@/shared/utils/utils";
 import brandLogo from "/logo_colored.png";
 import { TaskList } from "../TaskList/TaskList";
@@ -416,7 +417,8 @@ const ClientProfile = () => {
 											Факт по коммуникациям
 										</div>
 										<div className={styles.statValue}>
-											{commsTotalInternal + commsTotalExternal} ч.
+											{getFixedNumber(commsTotalInternal + commsTotalExternal)}{" "}
+											ч.
 										</div>
 										<div
 											style={{
@@ -616,7 +618,9 @@ const ClientProfile = () => {
 												Кол-во по коммуникациям:
 											</div>
 											<div className={styles.infoTileValue}>
-												{projReportsTime + projReportsTimeExternal}
+												{getFixedNumber(
+													projReportsTime + projReportsTimeExternal,
+												)}
 											</div>
 										</div>
 									</div>
