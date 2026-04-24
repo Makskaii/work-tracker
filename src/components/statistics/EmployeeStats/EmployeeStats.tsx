@@ -225,7 +225,7 @@ export const EmployeeStats = ({
 		for (const report of allSprintReports) {
 			const activityId = String(report[ReportCodes.activityType] ?? "");
 			const timeSpent = Number(report[ReportCodes.timeSpent] ?? 0);
-			console.log({ report });
+
 			const activityName =
 				activities.find((item) => item.ID === activityId)?.NAME ||
 				"Без активности";

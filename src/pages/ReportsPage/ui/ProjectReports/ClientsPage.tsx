@@ -144,7 +144,7 @@ export const getProjectsWithStatuses = async ({
 				};
 			}),
 	);
-	console.log({ result });
+
 	return result;
 };
 

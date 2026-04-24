@@ -41,3 +41,38 @@ export const getDevelopers = async (): Promise<
 		return [];
 	}
 };
+
+export type BitrixUser = {
+	ID: string;
+	NAME: string;
+	LAST_NAME: string;
+};
+
+export const getUsersByIds = async (userIds: number[]) => {
+	try {
+		if (userIds.length === 0) {
+			return [];
+		}
+
+		const response = await $api.get(Endpoints.users, {
+			params: {
+				filter: {
+					"@ID": userIds,
+				},
+				select: ["NAME", "ID", "LAST_NAME"],
+			},
+		});
+
+		const items = response.data?.result;
+
+		if (!Array.isArray(items)) {
+			console.warn("Expected items to be an array, but got:", items);
+			return [];
+		}
+
+		return items as BitrixUser[];
+	} catch (error) {
+		console.error("Failed to fetch users by ids", error);
+		return [];
+	}
+};

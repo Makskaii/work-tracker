@@ -18,7 +18,6 @@ import type {
 	User,
 } from "@/shared/types/types";
 import {
-	getActivities,
 	getActivitiesList,
 	getClientsFromList,
 	getProjectsFromList,
@@ -149,15 +148,15 @@ const ReportsPage = () => {
 		fetchActivities();
 	}, []);
 
-	useEffect(() => {
-		const fetchActivities = async () => {
-			const fields = await getActivities();
+	// useEffect(() => {
+	// 	const fetchActivities = async () => {
+	// 		const fields = await getActivities();
 
-			console.log({ fields });
-		};
+	// 		console.log({ fields });
+	// 	};
 
-		fetchActivities();
-	}, []);
+	// 	fetchActivities();
+	// }, []);
 
 	useEffect(() => {
 		const fetchProjectsByClient = async (

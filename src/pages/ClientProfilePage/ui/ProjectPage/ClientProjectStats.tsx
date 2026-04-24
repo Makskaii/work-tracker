@@ -226,7 +226,6 @@ export const ClientProjectsStats = ({
 
 					<button
 						onClick={async () => {
-							console.log({ project });
 							await getReportPdf(
 								String(project.projectId),
 								startOfTheWeek,

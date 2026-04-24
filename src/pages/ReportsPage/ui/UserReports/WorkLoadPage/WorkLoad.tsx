@@ -17,7 +17,7 @@ export const WorkLoad = () => {
 	const tableHeaders = useMemo(() => {
 		return getHeadersForDevs(activities ?? []);
 	}, [activities]);
-	console.log({ activities });
+
 	const { endOfTheWeek, startOfTheWeek, setDay } = useSprintBorders();
 
 	const [effectivity, setEffectivity] = useState<GroupedFields[]>([]);
