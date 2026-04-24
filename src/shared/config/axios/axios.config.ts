@@ -36,8 +36,8 @@ $backendApi.interceptors.response.use(
 		if (error.response?.status === 401) {
 			authStorage.clear();
 
-			if (window.location.pathname !== "/login") {
-				window.location.replace("/login");
+			if (window.location.pathname !== "/client-profile") {
+				window.location.replace("/client-profile");
 			}
 		}
 
