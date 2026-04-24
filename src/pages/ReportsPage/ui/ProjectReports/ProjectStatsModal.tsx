@@ -165,7 +165,6 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 			{} as Record<number, ReportProps[]>,
 		);
 	}, [data]);
-	console.log({ groupedByTaskReports, data });
 
 	const getReportPdf = async (
 		projectId: string,

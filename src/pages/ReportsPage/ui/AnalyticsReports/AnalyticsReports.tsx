@@ -170,7 +170,6 @@ function AnalyticsCommertialReportPage() {
 						...analyticFilter,
 					}),
 				]);
-				console.log({ ppoItems, kpItems, wonItems });
 
 				const metrics = [
 					{
@@ -318,7 +317,6 @@ function AnalyticsCommertialReportPage() {
 										if (!metric.items) return;
 										setActiveItems(metric.items);
 										setOpen(true);
-										console.log("open drawer:", metric.title);
 									}}
 								/>
 							);

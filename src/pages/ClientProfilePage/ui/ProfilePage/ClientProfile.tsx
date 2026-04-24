@@ -3,10 +3,18 @@ import { useEffect, useMemo, useState } from "react";
 import { FcConferenceCall, FcPlanner } from "react-icons/fc";
 import { MdAddTask } from "react-icons/md";
 import { useParams } from "react-router";
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import {
+	ProjectCodes,
+	ReportCodes,
+	TaskCodes,
+} from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
 import { Spinner } from "@/components/spinner/Spinner";
+import {
+	type BitrixUser,
+	getUsersByIds,
+} from "@/pages/ReportsPage/api/getDevelopers";
 import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import {
@@ -55,6 +63,82 @@ export type ViewMode = "list" | "projects";
 // 	return parsed.format("DD.MM.YYYY");
 // };
 
+type RoleCode = keyof typeof ProjectCodes;
+
+type RawRoleItem = {
+	[key: string]: number | string | string[] | number[] | null;
+};
+
+type PreparedRoleUsers = {
+	roleCode: RoleCode;
+	userIds: number[];
+};
+
+const normalizeUserIds = (
+	value: number | string | string[] | number[] | null,
+): number[] => {
+	if (value === null) {
+		return [];
+	}
+
+	if (Array.isArray(value)) {
+		return value.map(Number).filter((id) => Number.isFinite(id) && id > 0);
+	}
+
+	const id = Number(value);
+
+	return Number.isFinite(id) && id > 0 ? [id] : [];
+};
+
+export const prepareRoleUsers = (
+	data: RawRoleItem[][],
+): PreparedRoleUsers[] => {
+	const items = data.flat();
+
+	return Object.entries(ProjectCodes).map(([roleCode, fieldCode]) => {
+		const userIds = items.flatMap((item) => normalizeUserIds(item[fieldCode]));
+
+		return {
+			roleCode: roleCode as RoleCode,
+			userIds: Array.from(new Set(userIds)),
+		};
+	});
+};
+
+export const getUniqueUserIds = (roles: PreparedRoleUsers[]): number[] => {
+	return Array.from(new Set(roles.flatMap((role) => role.userIds)));
+};
+
+type RoleWithUsers = PreparedRoleUsers & {
+	users: BitrixUser[];
+};
+
+export const attachUsersToRoles = (
+	roles: PreparedRoleUsers[],
+	users: BitrixUser[],
+): RoleWithUsers[] => {
+	const usersMap = new Map(users.map((user) => [Number(user.ID), user]));
+
+	return roles.map((role) => ({
+		...role,
+		users: role.userIds
+			.map((userId) => usersMap.get(userId))
+			.filter((user): user is BitrixUser => Boolean(user)),
+	}));
+};
+
+export const getRolesWithUsers = async (
+	rawData: RawRoleItem[][],
+): Promise<RoleWithUsers[]> => {
+	const preparedRoles = prepareRoleUsers(rawData);
+
+	const userIds = getUniqueUserIds(preparedRoles);
+
+	const users = await getUsersByIds(userIds);
+
+	return attachUsersToRoles(preparedRoles, users);
+};
+
 export const getTasksInWork = (tasks?: TaskProps[]) => {
 	if (!tasks?.length) {
 		return {
@@ -99,6 +183,8 @@ const ClientProfile = () => {
 	);
 
 	const [viewMode, setViewMode] = useState<ViewMode>("projects");
+
+	const [team, setTeam] = useState<RoleWithUsers[]>([]);
 
 	const [open, setOpen] = useState<boolean>(false);
 
@@ -327,9 +413,42 @@ const ClientProfile = () => {
 	}, 0);
 
 	const commsTotalExternal = externalReports.reduce((acc, report) => {
-		console.log({ report });
 		return acc + +report[ReportCodes.timeSpent];
 	}, 0);
+
+	useEffect(() => {
+		const fetchCrew = async () => {
+			const responses = await Promise.all(
+				projects.map(async (project) => {
+					const proj = await getItems<{
+						[ProjectCodes.analytic]: number | null;
+						[ProjectCodes.qa]: number[];
+						[ProjectCodes.pm]: number | null;
+						[ProjectCodes.devs]: number[];
+					}>({
+						typeId: EntityTypeIds.projects,
+						filters: {
+							id: project.id,
+						},
+						select: [
+							ProjectCodes.analytic,
+							ProjectCodes.devs,
+							ProjectCodes.pm,
+							ProjectCodes.qa,
+						],
+					});
+
+					return proj;
+				}),
+			);
+
+			const rolesWithUsers = await getRolesWithUsers(responses);
+
+			setTeam(rolesWithUsers);
+		};
+
+		fetchCrew();
+	}, [projects]);
 
 	useEffect(() => {
 		const fetchProjects = async () => {
@@ -648,6 +767,35 @@ const ClientProfile = () => {
 							})}
 						</div>
 					</div>
+
+					<div className={styles.sectionCard}>
+						<h2 className={styles.sectionTitle}>Команда</h2>
+
+						{team.map((item) => (
+							<div
+								style={{
+									textAlign: "left",
+								}}
+								key={item.roleCode}
+								className={styles.infoTile}
+							>
+								<div className={styles.infoTileLabel}>
+									{item.roleCode === "pm"
+										? "PM"
+										: item.roleCode === "analytic"
+											? "Аналитик"
+											: item.roleCode === "qa"
+												? "QA"
+												: "Разработчики"}
+								</div>
+								{item.users.map((user) => (
+									<div key={user.ID} className={styles.infoTileValue}>
+										{`${user.NAME} ${user.LAST_NAME}`}
+									</div>
+								))}
+							</div>
+						))}
+					</div>
 				</div>
 			</div>
 
@@ -664,7 +812,6 @@ const ClientProfile = () => {
 				/>
 			</Modal>
 		</div>
-		// </CheckPermission>
 	);
 };
 

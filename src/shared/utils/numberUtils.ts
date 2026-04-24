@@ -1,5 +1,4 @@
 export const convertNumberFormat = (value: string | number): number => {
-	console.log({ value });
 	if (typeof value === "number") {
 		return value;
 	}

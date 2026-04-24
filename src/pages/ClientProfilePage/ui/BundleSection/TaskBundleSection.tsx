@@ -39,7 +39,6 @@ const getBundleStatusLabel = (status: string) => {
 type TaskStatus = "In work" | "Done" | "Sprint" | "Backlog";
 
 const getTaskStatus = (task: TaskProps): TaskStatus => {
-	console.log({ task });
 	if (task.stageId === TASK_STAGE_IDS.DONE) {
 		return "Done";
 	}

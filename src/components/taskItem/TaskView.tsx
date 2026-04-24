@@ -175,7 +175,7 @@ export const TaskView = ({
 							}}
 							onClick={(e) => {
 								e.stopPropagation();
-								console.log("in");
+
 								onClose?.();
 							}}
 						>

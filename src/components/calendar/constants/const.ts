@@ -26,6 +26,13 @@ export enum ReportCodes {
 	show = "ufCrm11_1776177558677",
 }
 
+export enum ProjectCodes {
+	pm = "ufCrm20_1777028465",
+	analytic = "ufCrm20_1777028495",
+	devs = "ufCrm20_1777028537",
+	qa = "ufCrm20_1777028582",
+}
+
 export enum TaskCodes {
 	description = "ufCrm14_1770731622242",
 	stage = "ufCrm14_1770890673468",
