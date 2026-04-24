@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <to avoid biome errors> */
 import axios from "axios";
+import { authStorage } from "../auth/auth.sessions";
 
 const defaultConfig = {
 	timeout: 30000,
@@ -18,3 +19,28 @@ export const $backendApi = axios.create({
 	baseURL: import.meta.env.VITE_BFF_API_URL,
 	...defaultConfig,
 });
+
+$backendApi.interceptors.request.use((config) => {
+	const session = authStorage.get();
+
+	if (session?.accessToken) {
+		config.headers.Authorization = `Bearer ${session.accessToken}`;
+	}
+
+	return config;
+});
+
+$backendApi.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		if (error.response?.status === 401) {
+			authStorage.clear();
+
+			if (window.location.pathname !== "/login") {
+				window.location.replace("/login");
+			}
+		}
+
+		return Promise.reject(error);
+	},
+);

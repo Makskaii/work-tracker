@@ -18,6 +18,8 @@ import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsS
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 import { WorkLoad } from "@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad";
+import { ProtectedRoute, PublicOnlyRoute } from "../auth/AuthGuard";
+import { ClientAuthLayout } from "../auth/ClientAuthLayout";
 
 export const router = createBrowserRouter(
 	[
@@ -124,20 +126,35 @@ export const router = createBrowserRouter(
 			],
 		},
 		{
-			path: "/client-profile",
-			element: (
-				<Suspense fallback={<Spinner />}>
-					<ClientLoginPage />
-				</Suspense>
-			),
-		},
-		{
-			path: "/client-profile/:clientId",
-			element: (
-				<Suspense fallback={<Spinner />}>
-					<ClientProfile />
-				</Suspense>
-			),
+			element: <ClientAuthLayout />,
+			children: [
+				{
+					element: <PublicOnlyRoute />,
+					children: [
+						{
+							path: "/client-profile",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<ClientLoginPage />
+								</Suspense>
+							),
+						},
+					],
+				},
+				{
+					element: <ProtectedRoute />,
+					children: [
+						{
+							path: "/client-profile/:clientId",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<ClientProfile />
+								</Suspense>
+							),
+						},
+					],
+				},
+			],
 		},
 	],
 	{

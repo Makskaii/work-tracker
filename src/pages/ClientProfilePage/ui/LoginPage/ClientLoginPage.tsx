@@ -1,7 +1,6 @@
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
-import { ability } from "@/shared/config/ability/casl";
+import { useLocation, useNavigate } from "react-router";
+import { useAuth } from "@/shared/config/auth/AuthGuard";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import brandLogo from "/evolution/logo.jpg";
@@ -26,13 +25,11 @@ export const ClientLoginPage = () => {
 		},
 	});
 
+	const { login } = useAuth();
+
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		if (sessionStorage.getItem("logged") === "true") {
-			navigate("/client-profile");
-		}
-	}, [navigate]);
+	const location = useLocation();
 
 	const onSubmit = async (data: ClientLoginProps) => {
 		try {
@@ -40,16 +37,23 @@ export const ClientLoginPage = () => {
 
 			const clientId = res.data.client.crmClientId;
 
-			ability.update([
-				{
-					action: "read",
-					subject: `client-profile-${clientId}`,
-				},
-			]);
+			const session = {
+				accessToken: res.data.accessToken,
+				clientId: res.data.client.id,
+				crmClientId: res.data.client.crmClientId,
+				clientName: res.data.client.name,
+				email: res.data.client.email,
+			};
 
-			sessionStorage.setItem("logged", "true");
+			login(session);
 
-			navigate(`/client-profile/${clientId}`);
+			const fromLocation = location.state?.from;
+
+			const redirectTo = fromLocation?.pathname
+				? `${fromLocation.pathname}${fromLocation.search ?? ""}`
+				: `/client-profile/${clientId}`;
+
+			navigate(redirectTo, { replace: true });
 		} catch (error) {
 			if (error instanceof Error) {
 				notify({

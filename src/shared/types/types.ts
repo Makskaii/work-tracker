@@ -56,6 +56,7 @@ export interface TaskProps {
 	[UserCodes.project]: string;
 	[UserCodes.linkedTasks]?: number[];
 	[UserCodes.hours]: number;
+	[UserCodes.deadline]: string;
 }
 
 export interface User {

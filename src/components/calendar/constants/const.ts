@@ -38,6 +38,7 @@ export enum TaskCodes {
 	sprintDateStart = "ufCrm14_1771510367281",
 	linkedTasks = "ufCrm14_1775462592",
 	hours = "ufCrm14_1776177413413",
+	deadline = "ufCrm14_1775128557733",
 }
 
 export enum ActivityType {

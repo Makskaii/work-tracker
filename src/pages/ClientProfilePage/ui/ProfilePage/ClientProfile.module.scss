@@ -26,9 +26,50 @@
 
 .headerInfo {
     display: flex;
-    gap: 0.75rem;
+    align-items: center;
     justify-content: space-between;
+    gap: 1.5rem;
     width: 100%;
+    min-width: 0;
+}
+
+.brandLogo {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.brandText {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.clientBlock {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+    flex: 1;
+}
+
+.clientTitle {
+    margin: 0;
+    max-width: 100%;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.brandBlock {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    min-width: 0;
 }
 
 .badge {
@@ -46,6 +87,8 @@
     font-size: 2rem;
     font-weight: 700;
     color: #0f172a;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
 }
 
 .pageSubtitle {
@@ -557,4 +600,205 @@
     background: #6fbdc2;
     color: #000000;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+
+.infoTitle {
+    margin: 0 0 1rem;
+    text-align: left;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    align-items: stretch;
+}
+
+.statCardInner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    height: 100%;
+    min-width: 0;
+}
+
+.statIcon,
+.statIconBlue {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.statIconBlue {
+    color: blue;
+}
+
+.detailsButton {
+    margin-top: 0.25rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.detailsButton:hover {
+    text-decoration: underline;
+}
+
+.periodCard {
+    grid-column: span 2;
+    gap: 0.75rem;
+}
+
+.periodHeader {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    text-align: left;
+}
+
+.periodNavigation {
+    display: grid;
+    grid-template-columns: minmax(110px, max-content) 1fr minmax(110px, max-content);
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.periodButton {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #64748b;
+    padding: 0.65rem 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.periodButton:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #bfdbfe;
+}
+
+.periodDates {
+    text-align: center;
+    font-weight: 600;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+
+@media (max-width: 1100px) {
+    .periodCard {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 720px) {
+    .infoGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .statCard {
+        min-width: 0;
+    }
+
+    .statCardInner {
+        justify-content: flex-start;
+    }
+
+    .periodNavigation {
+        grid-template-columns: 1fr;
+    }
+
+    .periodDates {
+        order: -1;
+        white-space: normal;
+    }
+
+    .periodButton {
+        width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .sectionCard {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .statCardInner {
+        align-items: flex-start;
+    }
+
+    .statIcon,
+    .statIconBlue {
+        width: 42px;
+        height: 42px;
+    }
+
+    .statValue {
+        font-size: 1.45rem;
+    }
+}
+
+
+@media (max-width: 900px) {
+    .headerInfo {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .clientBlock {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .clientTitle {
+        text-align: left;
+        font-size: 1.6rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .headerCard {
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .brandBlock {
+        align-items: flex-start;
+    }
+
+    .brandLogo {
+        width: 42px;
+        height: 42px;
+    }
+
+    .pageTitle {
+        font-size: 1.45rem;
+    }
+
+    .clientTitle {
+        font-size: 1.35rem;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.65rem;
+    }
 }
