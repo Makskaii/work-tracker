@@ -388,15 +388,11 @@ export const TaskListByProject = ({
 						</span>
 					</div>
 
-					<div className={cls.cell}>
-						{formatHours(task[TaskCodes.estimateTime])}
-					</div>
+					<div className={cls.cell}>{formatHours(task[TaskCodes.hours])}</div>
 
 					<div className={cls.cell}>{formatDate(task.createdTime)}</div>
 
-					<div className={cls.cell}>
-						{formatDate(task.lastActivityTime || task.movedTime)}
-					</div>
+					<div className={cls.cell}>{formatDate(task[TaskCodes.deadline])}</div>
 
 					{!isProject && (
 						<div className={cls.cell}>
@@ -527,7 +523,12 @@ export const TaskListByProject = ({
 				</div>
 			</div>
 
-			<Modal isOpen={openTask} onClose={() => setOpenTask(false)} innerScroll>
+			<Modal
+				isOpen={openTask}
+				onClose={() => setOpenTask(false)}
+				innerScroll
+				size="covered"
+			>
 				<TaskView
 					taskId={activeTask?.id ?? ""}
 					onClose={() => setOpenTask(false)}

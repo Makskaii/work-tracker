@@ -264,7 +264,7 @@ export const TaskView = ({
 								color: "#334155",
 							}}
 						>
-							Активность
+							Результат
 						</div>
 
 						<div
@@ -284,7 +284,7 @@ export const TaskView = ({
 									<InfoCard label="Создано" value={report[ReportCodes.title]} />
 								))
 							) : (
-								<div>Нет активности</div>
+								<div>Нет результата</div>
 							)}
 						</div>
 					</div>

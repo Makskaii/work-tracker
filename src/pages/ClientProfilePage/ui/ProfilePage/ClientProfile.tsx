@@ -144,6 +144,7 @@ const ClientProfile = () => {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
 					[TaskCodes.client]: clientId,
+					">=createdTime": "2026-04-01",
 				},
 				select: TASK_SELECT_FIELDS,
 			},
@@ -161,7 +162,11 @@ const ClientProfile = () => {
 				?.id ?? "",
 	}));
 
-	const { data: taskFromPeriod } = useLoadAllData<TaskProps>({
+	const {
+		data: taskFromPeriod,
+		setFilters,
+		loading: loadingTasks,
+	} = useLoadAllData<TaskProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
@@ -176,7 +181,11 @@ const ClientProfile = () => {
 		},
 	});
 
-	const { data: internalReports } = useLoadAllData<ReportProps>({
+	const {
+		data: internalReports,
+		setFilters: setForInternal,
+		loading: loadingReports,
+	} = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
@@ -205,7 +214,11 @@ const ClientProfile = () => {
 		},
 	});
 
-	const { data: externalReports } = useLoadAllData<ReportProps>({
+	const {
+		data: externalReports,
+		setFilters: setForExternal,
+		loading: loadingExternal,
+	} = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
@@ -234,10 +247,80 @@ const ClientProfile = () => {
 		},
 	});
 
-	const totalTime = taskFromPeriod.reduce(
-		(acc, task) => acc + +task[TaskCodes.estimateTime],
-		0,
-	);
+	useEffect(() => {
+		setFilters({
+			params: {
+				entityTypeId: EntityTypeIds.tasks,
+				filter: {
+					[TaskCodes.client]: clientId,
+					[`>=${TaskCodes.sprintDateStart}`]: start,
+					[`<=${TaskCodes.sprintDateStart}`]: end,
+				},
+				select: TASK_SELECT_FIELDS,
+			},
+		});
+
+		setForInternal({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				filter: {
+					[ReportCodes.client]: clientId,
+					[ReportCodes.activityType]: "402",
+					">=begindate": start,
+					"<=begindate": end,
+				},
+				select: [
+					"id",
+					"title",
+					"begindate",
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+					`parentId${EntityTypeIds.tasks}`,
+				],
+			},
+		});
+
+		setForExternal({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				filter: {
+					[ReportCodes.client]: clientId,
+					[ReportCodes.activityType]: "402",
+					">=begindate": start,
+					"<=begindate": end,
+				},
+				select: [
+					"id",
+					"title",
+					"begindate",
+					ReportCodes.title,
+					ReportCodes.timeSpent,
+					ReportCodes.project,
+					ReportCodes.taskId,
+					ReportCodes.activityType,
+					"assignedById",
+					"createdTime",
+					"lastActivityTime",
+					`parentId${EntityTypeIds.tasks}`,
+				],
+			},
+		});
+	}, [start, end, clientId, setFilters, setForExternal, setForInternal]);
+
+	const totalTime = taskFromPeriod.reduce((acc, task) => {
+		if (task[TaskCodes.hours]) {
+			acc = acc + +task[TaskCodes.hours];
+		} else {
+			acc + 0;
+		}
+		return acc;
+	}, 0);
 
 	const commsTotalInternal = internalReports.reduce((acc, report) => {
 		return acc + +report[ReportCodes.timeSpent];
@@ -292,63 +375,35 @@ const ClientProfile = () => {
 		<div className={styles.page}>
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
-					<div
-						style={{
-							display: "flex",
-						}}
-					>
-						<img src={brandLogo} alt="Логотип" width={"50px"} height={"50px"} />
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								gap: "10px",
-							}}
-						>
-							<h1 className={styles.pageTitle}>Evolutions Client's Desk</h1>
+					<div className={styles.brandBlock}>
+						<img className={styles.brandLogo} src={brandLogo} alt="Логотип" />
+
+						<div className={styles.brandText}>
+							<h1 className={styles.pageTitle}>
+								Evolutions Client&apos;s Desk
+							</h1>
 							<div className={styles.badge}>Кабинет клиента</div>
 						</div>
 					</div>
-					<h1 className={styles.pageTitle}>
-						{clientData?.NAME ?? <Spinner onlySpin />}
-					</h1>
+
+					<div className={styles.clientBlock}>
+						<h1 className={styles.clientTitle}>
+							{clientData?.NAME ?? <Spinner onlySpin />}
+						</h1>
+					</div>
 				</div>
 			</div>
 
 			<div className={styles.content}>
 				<div className={styles.mainColumn}>
 					<div className={styles.sectionCard}>
-						<h2
-							style={{
-								textAlign: "left",
-							}}
-						>
-							Общая информация
-						</h2>
-						<div
-							style={{
-								display: "grid",
-								gridTemplateColumns: "1fr 1fr 1fr 1.5fr",
-								gap: "10px",
-							}}
-						>
+						<h2 className={styles.infoTitle}>Общая информация</h2>
+
+						<div className={styles.infoGrid}>
 							<div className={styles.statCard}>
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "center",
-										gap: "1rem",
-									}}
-								>
-									<div>
-										<FcPlanner
-											style={{
-												width: "50px",
-												height: "50px",
-											}}
-										/>
-									</div>
+								<div className={styles.statCardInner}>
+									<FcPlanner className={styles.statIcon} />
+
 									<div>
 										<div className={styles.statLabel}>План часов</div>
 										<div className={styles.statValue}>
@@ -364,104 +419,69 @@ const ClientProfile = () => {
 									</div>
 								</div>
 							</div>
+
 							<div className={styles.statCard}>
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "center",
-										gap: "1rem",
-									}}
-								>
-									<div>
-										<MdAddTask
-											style={{
-												width: "50px",
-												height: "50px",
-												color: "blue",
-											}}
-										/>
-									</div>
+								<div className={styles.statCardInner}>
+									<MdAddTask className={styles.statIconBlue} />
+
 									<div>
 										<div className={styles.statLabel}>Факт по задачам</div>
-										<div className={styles.statValue}>{totalTime} ч.</div>
-										<div
-											style={{
-												color: "blue",
-											}}
-										>
-											Подробнее
+										<div className={styles.statValue}>
+											{loadingTasks ? "..." : totalTime} ч.
 										</div>
+										<button type="button" className={styles.detailsButton}>
+											Подробнее
+										</button>
 									</div>
 								</div>
 							</div>
+
 							<div className={styles.statCard}>
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "center",
-										gap: "1rem",
-									}}
-								>
-									<div>
-										<FcConferenceCall
-											style={{
-												width: "50px",
-												height: "50px",
-											}}
-										/>
-									</div>
+								<div className={styles.statCardInner}>
+									<FcConferenceCall className={styles.statIcon} />
+
 									<div>
 										<div className={styles.statLabel}>
 											Факт по коммуникациям
 										</div>
 										<div className={styles.statValue}>
-											{getFixedNumber(commsTotalInternal + commsTotalExternal)}{" "}
+											{loadingReports && loadingExternal
+												? "..."
+												: getFixedNumber(
+														commsTotalInternal + commsTotalExternal,
+													)}{" "}
 											ч.
 										</div>
-										<div
-											style={{
-												color: "blue",
-											}}
-										>
+										<button type="button" className={styles.detailsButton}>
 											Подробнее
-										</div>
+										</button>
 									</div>
 								</div>
 							</div>
-							<div className={styles.statCard}>
-								<div>
-									<div>Период</div>
-								</div>
+
+							<div className={`${styles.statCard} ${styles.periodCard}`}>
+								<div className={styles.periodHeader}>Период</div>
+
 								<SegmentedControl onChange={setPeriod} value={period} />
 
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "space-evenly",
-									}}
-								>
+								<div className={styles.periodNavigation}>
 									<button
-										style={{ background: "white", color: "#aeacac" }}
+										type="button"
+										className={styles.periodButton}
 										onClick={() => goPrev()}
 									>
 										пред. {periodLabelMap[period]}
 									</button>
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											alignItems: "center",
-										}}
-									>
-										<div>
-											{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(end).format("DD.MM.YYYY")}`}
-										</div>
+
+									<div className={styles.periodDates}>
+										{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
+											end,
+										).format("DD.MM.YYYY")}`}
 									</div>
+
 									<button
-										style={{ background: "white", color: "#aeacac" }}
+										type="button"
+										className={styles.periodButton}
 										onClick={() => goNext()}
 									>
 										след. {periodLabelMap[period]}
