@@ -28,6 +28,7 @@ import {
 	getClientsFromList,
 	getProjectsFromList,
 } from "@/shared/api/getCrmFields";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	ClientsCodes,
 	Endpoints,
@@ -41,6 +42,7 @@ import type {
 	ClientProjectProps,
 	TaskProps,
 } from "@/shared/types/types";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { getFixedNumber } from "@/shared/utils/getNumber";
 import { classNames } from "@/shared/utils/utils";
 import brandLogo from "/logo_colored.png";
@@ -49,7 +51,7 @@ import styles from "./ClientProfile.module.scss";
 import { TaskListByProject } from "./TaskListByProject";
 import { UpcomingMeetings } from "./UpcomingMeetings";
 
-// const { VITE_BFF_API_URL } = import.meta.env;
+const { VITE_BFF_API_URL } = import.meta.env;
 
 export type ViewMode = "list" | "projects";
 
@@ -183,6 +185,8 @@ const ClientProfile = () => {
 	);
 
 	const [viewMode, setViewMode] = useState<ViewMode>("projects");
+	const [loadingReport, setLoadingReport] = useState(false);
+	const [loadUrl, setLoadUrl] = useState("");
 
 	const [team, setTeam] = useState<RoleWithUsers[]>([]);
 
@@ -190,38 +194,38 @@ const ClientProfile = () => {
 
 	// const navigate = useNavigate();
 
-	// const getReportPdf = async (
-	// 	id: string,
-	// 	startOfThePeriod: string,
-	// 	endOfThePeriod: string,
-	// ) => {
-	// 	try {
-	// 		setLoadingReport(true);
-	// 		const response = await $backendApi.post("doc-records/client-report", {
-	// 			id,
-	// 			startOfThePeriod,
-	// 			endOfThePeriod,
-	// 		});
+	const getReportPdf = async (
+		id: string,
+		startOfThePeriod: string,
+		endOfThePeriod: string,
+	) => {
+		try {
+			setLoadingReport(true);
+			const response = await $backendApi.post("doc-records/client-report", {
+				id,
+				startOfThePeriod,
+				endOfThePeriod,
+			});
 
-	// 		const downloadUrl = response.data.downloadUrl;
+			const downloadUrl = response.data.downloadUrl;
 
-	// 		setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
 
-	// 		notify({
-	// 			message: "Отчет сформирован",
-	// 			type: "success",
-	// 		});
-	// 	} catch (error) {
-	// 		console.log(error);
+			notify({
+				message: "Отчет сформирован",
+				type: "success",
+			});
+		} catch (error) {
+			console.log(error);
 
-	// 		notify({
-	// 			message: "Ошибка загрузки отчёта",
-	// 			type: "error",
-	// 		});
-	// 	} finally {
-	// 		setLoadingReport(false);
-	// 	}
-	// };
+			notify({
+				message: "Ошибка загрузки отчёта",
+				type: "error",
+			});
+		} finally {
+			setLoadingReport(false);
+		}
+	};
 
 	const { data } = useLoadAllData<TaskProps>({
 		initialEndpoint: Endpoints.crmItems,
@@ -635,6 +639,33 @@ const ClientProfile = () => {
 										Все задачи
 									</h2>
 									<div className={styles.badge}>Задач: {data.length} </div>
+									{loadUrl === "" ? (
+										<button
+											disabled={loadingReport}
+											type="button"
+											className={classNames(styles.primaryButton, {
+												[styles.loadingPulse]: loadingReport,
+											})}
+											onClick={async () =>
+												await getReportPdf(clientId, start, end)
+											}
+										>
+											{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
+										</button>
+									) : (
+										<button
+											type="button"
+											className={styles.primaryButton}
+											onClick={async () =>
+												loadUrl !== "" && window.open(loadUrl, "_blank")
+											}
+											style={{
+												background: "green",
+											}}
+										>
+											Скачать отчёт
+										</button>
+									)}
 								</div>
 
 								<div className={styles.toolbar}>
