@@ -4,7 +4,7 @@ import type { AnyObject } from "./types";
 type HeaderItem<T, K extends keyof T> = {
 	key: K;
 	title: string;
-	convertFn?: (value: T[K], additionalData?: AnyObject) => string;
+	convertFn?: (value: T[K], additionalData?: AnyObject) => string | number;
 	render?: (value: T[K], additionalData?: AnyObject) => React.ReactNode;
 };
 

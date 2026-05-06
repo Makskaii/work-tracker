@@ -1,15 +1,13 @@
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
-import uuid4 from "uuid4";
+import { useEffect, useMemo, useState } from "react";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $api } from "@/shared/config";
-import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
+import { Endpoints } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import type { Header } from "@/shared/types/table";
 import type { AnyObject, User } from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
-import { getFixedNumber } from "@/shared/utils/getNumber";
 import { getDeals } from "../../api/getDeals";
 import type { Deal } from "../../types/deals.types";
 import {
@@ -20,6 +18,24 @@ import {
 import { SegmentedControl } from "../AnalyticsReports/AnalyticsReports";
 import { SalesCard } from "./ui/SalesCard/SalesCard";
 
+const getPlanByPeriod = (
+	row: Omit<SalesTableFields, "fact" | "deviation" | "comment">,
+	period: string,
+) => {
+	if (row.id === "5") return row.plan;
+
+	if (row.id === "7") return row.plan;
+
+	if (period === "week") return row.plan;
+
+	if (period === "month") return Number(row.plan) * 4;
+
+	if (period === "quarter") return Number(row.plan) * 13;
+
+	if (period === "year") return Number(row.plan) * 52;
+
+	return row.plan;
+};
 export const headersForSales: Header<SalesTableFields>[] = [
 	{
 		title: "Данные",
@@ -28,6 +44,21 @@ export const headersForSales: Header<SalesTableFields>[] = [
 	{
 		title: "Плановые показатели",
 		key: "plan",
+		convertFn: (value, additionalData) => {
+			if (additionalData?.row.id === "5") return value;
+
+			if (additionalData?.row.id === "7") return value;
+
+			if (additionalData?.period === "week") return value;
+
+			if (additionalData?.period === "month") return Number(value) * 4;
+
+			if (additionalData?.period === "quarter") return Number(value) * 13;
+
+			if (additionalData?.period === "year") return Number(value) * 52;
+
+			return value;
+		},
 	},
 	{
 		title: "Фактические показатели",
@@ -36,8 +67,6 @@ export const headersForSales: Header<SalesTableFields>[] = [
 	{
 		title: "Отклонение",
 		key: "deviation",
-		convertFn: (value) =>
-			Number(value) > 0 ? `+${getFixedNumber(value)}` : getFixedNumber(value),
 	},
 	{
 		title: "Действия",
@@ -47,14 +76,16 @@ export const headersForSales: Header<SalesTableFields>[] = [
 
 			return (
 				<button
-					key={row?.id}
+					type="button"
 					style={{
 						background: "#ccc",
 					}}
 					onClick={() => {
-						additionalData?.setRow(row);
+						if (!row) return;
 
-						if (row?.items?.length === 0) {
+						additionalData?.setSelectedRowId?.(row.id);
+
+						if (!row.items?.length) {
 							notify({
 								message: `${row.title} равно 0`,
 								type: "warning",
@@ -109,7 +140,7 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Сумма продаж",
 		id: "7",
-		plan: 250000,
+		plan: 1000000,
 		type: "deal",
 	},
 ];
@@ -151,11 +182,6 @@ const getDealsCountByStages = async ({
 	return responses;
 };
 
-const toNumber = (value: string | number) => {
-	if (typeof value === "number") return value;
-	return Number(String(value).replace(/\s/g, "")) || 0;
-};
-
 export const getUsers = async (
 	signal?: AbortSignal,
 ): Promise<
@@ -171,9 +197,6 @@ export const getUsers = async (
 	try {
 		const response = await $api.get(Endpoints.users, {
 			params: {
-				filter: {
-					"@UF_DEPARTMENT": [DEPARTMENT_IDS.SALES],
-				},
 				select: [
 					"NAME",
 					"ID",
@@ -224,7 +247,11 @@ export const periodLabelMap = {
 
 export const SalesPage = () => {
 	const [data, setData] = useState<SalesTableFields[]>([]);
-	const [rowItems, setRowItems] = useState<SalesTableFields>();
+	const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
+	const selectedRow = useMemo(() => {
+		return data.find((row) => row.id === selectedRowId);
+	}, [data, selectedRowId]);
 	const [users, setUsers] = useState<User[]>([]);
 
 	const { setPeriod, start, end, period, setDay } = usePeriodBorders(
@@ -486,12 +513,13 @@ export const SalesPage = () => {
 							break;
 					}
 
-					const plan = toNumber(row.plan);
+					const plan = Number(getPlanByPeriod(row, period));
+
 					const deviation = `${fact - plan > 0 ? "+" : ""} ${fact - plan}`;
 
 					return {
 						...row,
-						id: uuid4(),
+						id: row.id,
 						fact,
 						deviation,
 						items: arr,
@@ -518,7 +546,7 @@ export const SalesPage = () => {
 		return () => {
 			controller.abort();
 		};
-	}, [start, end, callsData]);
+	}, [start, end, callsData, period]);
 
 	return (
 		<div
@@ -529,9 +557,14 @@ export const SalesPage = () => {
 		>
 			<div>
 				<div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-					<SegmentedControl onChange={setPeriod} value={period} />
+					<SegmentedControl
+						onChange={setPeriod}
+						value={period}
+						loading={loading}
+					/>
 
 					<button
+						disabled={loading}
 						style={{ background: "white", color: "#aeacac" }}
 						onClick={() => {
 							setDay((prev) => prev.subtract(step.value, step.unit));
@@ -566,42 +599,57 @@ export const SalesPage = () => {
 					headers={headersForSales}
 					activeItems={data}
 					additionalData={{
-						setRow: setRowItems,
+						setSelectedRowId,
+						period,
 					}}
 					fallbackText="Загружаем сделки..."
 					loading={loading}
 				/>
 			</div>
 
-			{rowItems?.items && (
-				<div key={rowItems.id}>
+			{selectedRow?.items?.length ? (
+				<div key={selectedRow.id}>
 					{Object.entries(
-						rowItems?.items?.reduce(
+						selectedRow.items.reduce(
 							(acc, item) => {
-								if (!acc[item.assignedById]) {
-									acc[item.assignedById] = [];
+								const assignedById = String(item.assignedById);
+
+								if (!acc[assignedById]) {
+									acc[assignedById] = [];
 								}
 
-								acc[item.assignedById].push(item);
+								acc[assignedById].push(item);
 
 								return acc;
 							},
-							{} as Record<string, Deal[]>,
-						) ?? {},
+							{} as Record<string, Array<Deal | Call>>,
+						),
 					).map(([id, items]) => {
-						const user = users.find((user) => user.id === id);
-						return rowItems.type === "deal" ? (
-							user && (
+						const user = users.find((user) => String(user.id) === String(id));
+
+						if (selectedRow.type === "deal") {
+							return (
 								<SalesCard
-									key={id}
-									user={user}
-									deals={items}
-									isTotal={rowItems?.title === "Сумма продаж"}
+									key={`${selectedRow.id}-${id}`}
+									user={
+										user ?? {
+											id,
+											value: "Неизвестный пользователь",
+											title: "Неизвестный пользователь",
+											position: "",
+											photo: "",
+											department: 0,
+										}
+									}
+									deals={items as Deal[]}
+									isTotal={selectedRow.title === "Сумма продаж"}
 								/>
-							)
-						) : (
+							);
+						}
+
+						return (
 							<div
-								key={rowItems.id + id}
+								key={`${selectedRow.id}-${id}`}
 								style={{
 									display: "flex",
 									flexDirection: "column",
@@ -614,6 +662,7 @@ export const SalesPage = () => {
 								}}
 							>
 								{user?.title ?? "Неизвестный пользователь"}
+
 								<div
 									style={{
 										display: "flex",
@@ -622,11 +671,7 @@ export const SalesPage = () => {
 										paddingBottom: "12px",
 									}}
 								>
-									<div
-										style={{
-											width: "100%",
-										}}
-									>
+									<div style={{ width: "100%" }}>
 										Кол-во звонков: {items.length}
 									</div>
 								</div>
@@ -634,7 +679,7 @@ export const SalesPage = () => {
 						);
 					})}
 				</div>
-			)}
+			) : null}
 		</div>
 	);
 };
