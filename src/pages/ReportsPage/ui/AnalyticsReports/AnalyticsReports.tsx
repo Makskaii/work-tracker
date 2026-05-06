@@ -65,6 +65,7 @@ type MetricCardProps = {
 type SegmentedControlProps = {
 	value: Period;
 	onChange: (value: Period) => void;
+	loading?: boolean;
 };
 
 const periodLabels: Record<Period, string> = {
@@ -74,13 +75,18 @@ const periodLabels: Record<Period, string> = {
 	year: "Год",
 };
 
-export function SegmentedControl({ value, onChange }: SegmentedControlProps) {
+export function SegmentedControl({
+	value,
+	onChange,
+	loading,
+}: SegmentedControlProps) {
 	const options: Period[] = ["week", "month", "quarter", "year"];
 
 	return (
 		<div className={styles.segmented}>
 			{options.map((option) => (
 				<button
+					disabled={loading}
 					key={option}
 					type="button"
 					className={`${styles.segmentedItem} ${
