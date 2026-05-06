@@ -110,31 +110,25 @@ const rows: Omit<SalesTableFields, "fact" | "deviation" | "comment">[] = [
 	{
 		title: "Количество созданных сделок",
 		id: "2",
-		plan: 22,
+		plan: 15,
 		type: "deal",
 	},
 	{
 		title: "Количество проведенных ППО",
 		id: "3",
-		plan: 10,
+		plan: 7,
 		type: "deal",
 	},
 	{
 		title: "Количество защит КП",
 		id: "4",
-		plan: 7,
+		plan: 5,
 		type: "deal",
 	},
 	{
 		title: "Количество активных карточек в работе",
 		id: "5",
 		plan: 40,
-		type: "deal",
-	},
-	{
-		title: "Количество продаж",
-		id: "6",
-		plan: 2,
 		type: "deal",
 	},
 	{
@@ -474,23 +468,6 @@ export const SalesPage = () => {
 								...activeDealsCount.reduce<AnyObject[]>(
 									(acc, items) => acc.concat(items),
 									[],
-								),
-							);
-							break;
-
-						case "6":
-							fact = stats.salesCount;
-							arr.push(...wonItems);
-							details.push(
-								wonItems.reduce(
-									(acc, item) => {
-										if (!acc[item.assignedById]) {
-											acc[item.assignedById] = [];
-										}
-										acc[item.assignedById].push(item);
-										return acc;
-									},
-									{} as Record<string, Deal[]>,
 								),
 							);
 							break;
