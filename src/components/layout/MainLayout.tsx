@@ -103,7 +103,10 @@ export const MainLayout = () => {
 					return;
 				}
 
-				if (currUser?.userId && data.has(String(currUser.userId))) {
+				if (
+					(currUser?.userId && data.has(String(currUser.userId))) ||
+					currUser?.userId === 16
+				) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
 						subject: "post",
@@ -112,6 +115,15 @@ export const MainLayout = () => {
 						action: "create-client",
 						subject: "client",
 					});
+				}
+
+				if (currUser?.userId === 10 || currUser?.userId === 16) {
+					addRuleIfMissing(nextRules, {
+						action: "read",
+						subject: `employee-${currUser?.userId}`,
+					});
+
+					redirectTo = `/employee/${currUser.userId}/stats`;
 				}
 
 				if (currUser?.departmentIds.includes(DEPARTMENT_IDS.ANALYTICS)) {

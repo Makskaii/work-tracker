@@ -188,10 +188,14 @@ describe("MainLayout", () => {
 						action: "create-client",
 						subject: "client",
 					},
+					{
+						action: "read",
+						subject: "employee-16",
+					},
 				]);
 			});
 
-			expect(mockNavigate).not.toHaveBeenCalled();
+			expect(mockNavigate).toHaveBeenCalledTimes(1);
 		});
 
 		it("должен выдать права сотруднику из департамента 25 и выполнить navigate", async () => {
@@ -314,6 +318,10 @@ describe("MainLayout", () => {
 					{
 						action: "create-client",
 						subject: "client",
+					},
+					{
+						action: "read",
+						subject: "employee-16",
 					},
 				]);
 			});

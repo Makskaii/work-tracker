@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import uuid4 from "uuid4";
 import { $api } from "@/shared/config";
+import type { AnyObject } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
 import { formatUserFields } from "../calendar/helpers/formatUserFilds";
-import styles from "./f.module.scss";
+import cls from "./f.module.scss";
 
 interface UserOption {
 	id: string;
@@ -20,12 +21,13 @@ export const AsyncSelect = ({
 	placeholder,
 	endpoint,
 	params,
+	styles,
 }: {
 	name: string;
 	placeholder: string;
 	endpoint: string;
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	params: any;
+	params: AnyObject;
+	styles?: CSSProperties;
 }) => {
 	const { register } = useFormContext();
 	const [options, setOptions] = useState<UserOption[]>([
@@ -42,7 +44,6 @@ export const AsyncSelect = ({
 		if (options.length > 1) return;
 		setLoading(true);
 
-		// await new Promise((resolve) => setTimeout(resolve, 2000)); //Задержка
 		try {
 			const response = await $api.get(endpoint, params);
 
@@ -79,14 +80,15 @@ export const AsyncSelect = ({
 	};
 
 	return (
-		<div className={styles.container}>
+		<div className={cls.container}>
 			<select
 				{...register(name)}
 				onClick={handleClick}
 				name={name}
-				className={classNames(styles.select, {
-					[styles.loadingselect]: loading,
+				className={classNames(cls.select, {
+					[cls.loadingselect]: loading,
 				})}
+				style={{ ...styles }}
 			>
 				<option value="" disabled selected>
 					{loading ? `${placeholder}...` : placeholder}
@@ -105,7 +107,7 @@ export const AsyncSelect = ({
 					</option>
 				))}
 			</select>
-			{loading && <div className={styles.spinner} />}
+			{loading && <div className={cls.spinner} />}
 		</div>
 	);
 };

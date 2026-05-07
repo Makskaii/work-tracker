@@ -29,10 +29,38 @@ type ActivityStat = {
 const DEV_HOURS_PER_DAY = 6;
 const FULL_HOURS_PER_DAY = 8;
 
-const formatHours = (value: number) => Number(value.toFixed(2));
+const getNumberValue = (value: unknown) => {
+	if (typeof value === "number") {
+		return Number.isFinite(value) ? value : 0;
+	}
+
+	if (typeof value === "string") {
+		const normalizedValue = value.trim().replace(",", ".");
+
+		if (!normalizedValue) {
+			return 0;
+		}
+
+		const numberValue = Number(normalizedValue);
+
+		return Number.isFinite(numberValue) ? numberValue : 0;
+	}
+
+	return 0;
+};
+
+const formatHours = (value: number) => {
+	if (!Number.isFinite(value)) {
+		return 0;
+	}
+
+	return Number(value.toFixed(2));
+};
 
 const getProgressDeg = (value: number, total: number) => {
-	if (total <= 0) return 0;
+	if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) {
+		return 0;
+	}
 
 	const percent = Math.min((value / total) * 100, 100);
 
@@ -152,7 +180,7 @@ export const EmployeeStats = ({
 		const totalTasksCount = tasks.length;
 
 		const taskEstimatedHours = tasks.reduce((sum, task) => {
-			return sum + Number(task[TaskCodes.estimateTime] ?? 0);
+			return sum + getNumberValue(task[TaskCodes.estimateTime]);
 		}, 0);
 
 		const taskSpentHours = tasks.reduce((sum, task) => {
@@ -161,13 +189,13 @@ export const EmployeeStats = ({
 			return (
 				sum +
 				reports.reduce((innerSum, report) => {
-					return innerSum + Number(report[ReportCodes.timeSpent] ?? 0);
+					return innerSum + getNumberValue(report[ReportCodes.timeSpent]);
 				}, 0)
 			);
 		}, 0);
 
 		const spentAllReports = allSprintReports.reduce((sum, report) => {
-			return sum + Number(report[ReportCodes.timeSpent] ?? 0);
+			return sum + getNumberValue(report[ReportCodes.timeSpent]);
 		}, 0);
 
 		const spentWithoutTask = allSprintReports.reduce((sum, report) => {
@@ -175,7 +203,7 @@ export const EmployeeStats = ({
 
 			if (taskId) return sum;
 
-			return sum + Number(report[ReportCodes.timeSpent] ?? 0);
+			return sum + getNumberValue(report[ReportCodes.timeSpent]);
 		}, 0);
 
 		const remainingTaskHours = Math.max(taskEstimatedHours - taskSpentHours, 0);
@@ -209,10 +237,10 @@ export const EmployeeStats = ({
 			const reports = taskReportsMap[String(task.id)] ?? [];
 
 			const spent = reports.reduce((sum, report) => {
-				return sum + Number(report[ReportCodes.timeSpent] ?? 0);
+				return sum + getNumberValue(report[ReportCodes.timeSpent]);
 			}, 0);
 
-			const estimated = Number(task[TaskCodes.estimateTime] ?? 0);
+			const estimated = getNumberValue(task[TaskCodes.estimateTime]);
 
 			if (spent > estimated) {
 				overrunTaskIds.push(String(task.id));
@@ -224,7 +252,7 @@ export const EmployeeStats = ({
 
 		for (const report of allSprintReports) {
 			const activityId = String(report[ReportCodes.activityType] ?? "");
-			const timeSpent = Number(report[ReportCodes.timeSpent] ?? 0);
+			const timeSpent = getNumberValue(report[ReportCodes.timeSpent]);
 
 			const activityName =
 				activities.find((item) => item.ID === activityId)?.NAME ||
@@ -317,9 +345,18 @@ export const EmployeeStats = ({
 
 	const devDeg = getProgressDeg(stats.spentAllReports, stats.devCapacity);
 	const fullDeg = getProgressDeg(stats.spentAllReports, stats.fullCapacity);
+	const hasStatsData = tasks.length > 0 || allSprintReports.length > 0;
+
+	if (!hasStatsData) {
+		return (
+			<div className={cls.statsEmptyState}>
+				Нет данных для статистики за выбранный спринт
+			</div>
+		);
+	}
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+		<div className={cls.statsStack}>
 			<div className={cls.container}>
 				<div className={cls.statCard}>
 					<div
@@ -378,14 +415,8 @@ export const EmployeeStats = ({
 					<div className={cls.statValue}>{stats.taskSpentHours}ч</div>
 					<button
 						type="button"
-						className={cls.statBadge}
-						style={{
-							border: "none",
-							cursor:
-								stats.overrunTaskIds.length > 0 && onOpenOverrunTasks
-									? "pointer"
-									: "default",
-						}}
+						className={`${cls.statBadge} ${cls.statBadgeButton}`}
+						disabled={!stats.overrunTaskIds.length || !onOpenOverrunTasks}
 						onClick={() => {
 							if (stats.overrunTaskIds.length && onOpenOverrunTasks) {
 								onOpenOverrunTasks(stats.overrunTaskIds);
@@ -411,90 +442,40 @@ export const EmployeeStats = ({
 				</div>
 			</div>
 
-			<div
-				style={{
-					background: "#f9fafb",
-					borderRadius: "24px",
-					padding: "1rem",
-				}}
-			>
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "space-between",
-						marginBottom: "1rem",
-						fontWeight: 600,
-					}}
-				>
+			<div className={cls.activitiesPanel}>
+				<div className={cls.activitiesHeader}>
 					<div>Активности за спринт</div>
 					<div>Часы / отчёты</div>
 				</div>
 
-				<div
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						gap: "10px",
-						maxHeight: "320px",
-						overflowY: "auto",
-					}}
-				>
+				<div className={cls.activitiesList}>
 					{stats.activitiesStats.length ? (
 						stats.activitiesStats.map((activity) => (
 							<div
 								key={activity.activityId || activity.activityName}
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									background: "white",
-									border: "1px solid #f0f0f0",
-									borderRadius: "16px",
-									padding: "12px 14px",
-									gap: "8px",
-								}}
+								className={cls.activityItem}
 							>
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										gap: "1rem",
-									}}
-								>
-									<div style={{ fontWeight: 600 }}>{activity.activityName}</div>
-									<div style={{ fontWeight: 700 }}>{activity.hours}ч</div>
+								<div className={cls.activityHeader}>
+									<div className={cls.activityName}>
+										{activity.activityName}
+									</div>
+									<div className={cls.activityHours}>{activity.hours}ч</div>
 								</div>
 
-								<div
-									style={{
-										height: "8px",
-										borderRadius: "999px",
-										background: "#e5e7eb",
-										overflow: "hidden",
-									}}
-								>
+								<div className={cls.activityBar}>
 									<div
+										className={cls.activityBarFill}
 										style={{
-											height: "100%",
 											width: `${Math.min(
 												(activity.hours / Math.max(stats.spentAllReports, 1)) *
 													100,
 												100,
 											)}%`,
-											background: "#3b82f6",
-											borderRadius: "999px",
 										}}
 									/>
 								</div>
 
-								<div
-									style={{
-										display: "flex",
-										gap: "8px",
-										flexWrap: "wrap",
-										fontSize: "12px",
-										color: "#4b5563",
-									}}
-								>
+								<div className={cls.activityBadges}>
 									<span className={cls.statBadge}>
 										Отчётов: {activity.reportsCount}
 									</span>
@@ -508,14 +489,7 @@ export const EmployeeStats = ({
 							</div>
 						))
 					) : (
-						<div
-							style={{
-								background: "white",
-								borderRadius: "16px",
-								padding: "16px",
-								color: "#6b7280",
-							}}
-						>
+						<div className={cls.emptyState}>
 							Нет отчётов за выбранный спринт
 						</div>
 					)}

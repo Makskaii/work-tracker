@@ -39,6 +39,32 @@ body.modal-open {
     }
 }
 
+@media (max-width: 768px) {
+    .modalContainer {
+        align-items: stretch;
+        padding: 8px;
+    }
+
+    .modal {
+        max-width: 100% !important;
+        max-height: calc(100vh - 16px);
+        padding: 14px;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 420px) {
+    .modalContainer {
+        padding: 0;
+    }
+
+    .modal {
+        max-height: 100vh;
+        padding: 10px;
+        border-radius: 0;
+    }
+}
+
 
 @keyframes fadeIn {
     from {

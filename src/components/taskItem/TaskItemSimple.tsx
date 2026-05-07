@@ -1,6 +1,7 @@
 import type { Status, TaskProps } from "@/shared/types/types";
 import { calcTimeDifference } from "@/shared/utils/calcTimeDifference";
 import { StatucBadge } from "../statusBadge/StatucBadge";
+import cls from "./TaskItemSimple.module.scss";
 
 export const TaskItem = ({
 	task,
@@ -16,50 +17,14 @@ export const TaskItem = ({
 	withTime?: boolean;
 }) => {
 	return (
-		<div
-			key={task.id}
-			style={{
-				display: "flex",
-				border: "1px solid #ccc",
-				padding: "10px",
-				borderRadius: "12px",
-				justifyContent: "space-between",
-			}}
-		>
-			<div
-				style={{
-					display: "flex",
-					maxWidth: "60%",
-					flexDirection: "column",
-					justifyContent: "space-between",
-					textAlign: "left",
-				}}
-			>
-				<span
-					style={{
-						overflow: "hidden",
-						textOverflow: "ellipsis",
-						whiteSpace: "nowrap",
-						minWidth: "80%",
-					}}
-				>
-					{task.title}
-				</span>
-				<div
-					style={{
-						fontSize: "12px",
-					}}
-				>
+		<div key={task.id} className={cls.taskItem}>
+			<div className={cls.taskInfo}>
+				<span className={cls.taskTitle}>{task.title}</span>
+				<div className={cls.taskDate}>
 					Обновлено {calcTimeDifference(task.lastActivityTime)}
 				</div>
 			</div>
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					textAlign: "right",
-				}}
-			>
+			<div className={cls.taskMeta}>
 				<StatucBadge statuses={statuses} status={task.stageId} />
 				{withTime && (
 					<span>

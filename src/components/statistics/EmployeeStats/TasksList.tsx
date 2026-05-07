@@ -4,6 +4,27 @@ import { TaskItem } from "@/components/taskItem/TaskItemSimple";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { Status, TaskProps } from "../../../shared/types/types";
+import cls from "./StatsModal.module.scss";
+
+const getNumberValue = (value: unknown) => {
+	if (typeof value === "number") {
+		return Number.isFinite(value) ? value : 0;
+	}
+
+	if (typeof value === "string") {
+		const normalizedValue = value.trim().replace(",", ".");
+
+		if (!normalizedValue) {
+			return 0;
+		}
+
+		const numberValue = Number(normalizedValue);
+
+		return Number.isFinite(numberValue) ? numberValue : 0;
+	}
+
+	return 0;
+};
 
 export const TasksList = ({
 	tasks,
@@ -18,17 +39,15 @@ export const TasksList = ({
 }) => {
 	const { openTask } = useBitrixSlider();
 
+	if (!tasks.length) {
+		return <div className={cls.tasksEmptyState}>Нет задач для отображения</div>;
+	}
+
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: "10px",
-			}}
-		>
+		<div className={cls.tasksList}>
 			{tasks.map((task) => {
 				const timespent = reports?.[task.id]?.reduce((acc, report) => {
-					return acc + Number(report[ReportCodes.timeSpent]);
+					return acc + getNumberValue(report[ReportCodes.timeSpent]);
 				}, 0);
 
 				return (
