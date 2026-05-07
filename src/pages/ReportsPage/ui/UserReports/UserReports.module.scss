@@ -1,4 +1,92 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+}
+
+.tabs {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f9fafb;
+}
+
+.tabButton {
+    min-height: 36px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    font: inherit;
+    white-space: nowrap;
+}
+
+.tabButtonActive {
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
 .container {
     height: calc(100vh * 0.75);
     display: flex;
+    min-height: 0;
+}
+
+.staffList {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    overflow-y: auto;
+}
+
+.staffHeader {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 2rem;
+    background: #ccc;
+}
+
+.staffHeader span {
+    min-width: 0;
+}
+
+.staffBody {
+    padding: 0.5rem;
+}
+
+.pieceworkTab {
+    min-height: calc(100vh * 0.75);
+}
+
+@media (max-width: 640px) {
+    .tabs {
+        width: 100%;
+    }
+
+    .tabButton {
+        flex: 1;
+        min-width: 0;
+        white-space: normal;
+    }
+
+    .staffHeader {
+        padding: 6px 0.75rem;
+        font-size: 12px;
+    }
 }

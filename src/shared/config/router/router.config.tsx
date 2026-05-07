@@ -16,6 +16,7 @@ import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsRepor
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
+import { PieceStatsEmployeeHrs } from "@/pages/ReportsPage/ui/UserReports/EmployeePieceStatsHrs";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 import { WorkLoad } from "@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad";
 import { ProtectedRoute, PublicOnlyRoute } from "../auth/AuthGuard";
@@ -120,6 +121,14 @@ export const router = createBrowserRouter(
 					element: (
 						<Suspense fallback={<Spinner />}>
 							<ClientForm />
+						</Suspense>
+					),
+				},
+				{
+					path: "/employee/:id/stats",
+					element: (
+						<Suspense fallback={<Spinner />}>
+							<PieceStatsEmployeeHrs />
 						</Suspense>
 					),
 				},

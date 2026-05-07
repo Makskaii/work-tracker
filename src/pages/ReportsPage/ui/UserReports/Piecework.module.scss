@@ -1,0 +1,248 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: calc(100vh * 0.75);
+    min-width: 0;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.title {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.2;
+    color: #111827;
+}
+
+.subtitle {
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.primaryButton,
+.secondaryButton {
+    min-height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.primaryButton {
+    border: 1px solid #1652f0;
+    background: #1652f0;
+    color: #ffffff;
+    padding: 8px 14px;
+}
+
+.secondaryButton {
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #374151;
+    padding: 8px 12px;
+}
+
+.content {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+    min-width: 0;
+}
+
+.form,
+.recordsSection {
+    min-width: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f9fafb;
+}
+
+.form {
+    padding: 16px;
+}
+
+.formHeader,
+.recordsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.formTitle,
+.sectionTitle {
+    font-weight: 700;
+    color: #111827;
+}
+
+.fieldsGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea {
+
+    min-width: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #111827;
+    font: inherit;
+    font-weight: 400;
+    outline: none;
+}
+
+.field input,
+.field select {
+    min-height: 38px;
+    padding: 8px 10px;
+}
+
+.field textarea {
+    resize: vertical;
+    padding: 10px;
+}
+
+.commentField {
+    grid-column: 1 / -1;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.recordsSection {
+    padding: 16px;
+}
+
+.recordsCounter,
+.hoursBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-weight: 700;
+}
+
+.recordsCounter {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+}
+
+.recordsList {
+    display: grid;
+    gap: 10px;
+}
+
+.recordCard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #edf0f3;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.recordTopline,
+.recordDetails {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.recordEmployee {
+    font-weight: 700;
+    color: #111827;
+    overflow-wrap: anywhere;
+}
+
+.recordMeta,
+.recordDetails {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.hoursBadge {
+    flex-shrink: 0;
+    height: 30px;
+    padding: 0 10px;
+}
+
+.recordComment {
+    color: #374151;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.emptyState {
+    padding: 18px;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #6b7280;
+    text-align: center;
+}
+
+@media (max-width: 1000px) {
+    .content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+
+    .toolbar,
+    .formHeader,
+    .recordTopline,
+    .recordDetails {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .primaryButton,
+    .secondaryButton {
+        width: 100%;
+    }
+
+    .form,
+    .recordsSection,
+    .toolbar {
+        padding: 12px;
+    }
+
+    .hoursBadge {
+        width: fit-content;
+    }
+}

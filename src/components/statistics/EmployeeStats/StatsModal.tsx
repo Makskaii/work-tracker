@@ -16,6 +16,7 @@ import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { UserCard } from "../../userCard/UserCard";
 import { DeveloperProjectsAccordion } from "./DeveloperProjectsList";
 import { EmployeeStats } from "./EmployeeStats";
+import cls from "./StatsModal.module.scss";
 import { TasksList } from "./TasksList";
 
 export const StatsModal = ({ user }: { user: User }) => {
@@ -185,52 +186,19 @@ export const StatsModal = ({ user }: { user: User }) => {
 	}, [user.id, startOfTheWeek, endOfTheWeek]);
 
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-			}}
-		>
-			<div
-				style={{
-					display: "flex",
-				}}
-			>
-				<div
-					style={{
-						display: "flex",
-						gap: "1rem",
-						flex: 1,
-						padding: "1rem",
-					}}
-				>
+		<div className={cls.modalContent}>
+			<div className={cls.header}>
+				<div className={cls.userSection}>
 					<UserCard user={user} />
-					<div
-						style={{
-							padding: "1rem",
-							cursor: "pointer",
-						}}
-						onClick={() => setUser(user.id)}
-					>
+					<div className={cls.calendarLink} onClick={() => setUser(user.id)}>
 						<Link to="/reports/calendar">Календарь отчетов</Link>
 					</div>
 				</div>
 
-				<div
-					style={{
-						display: "flex",
-						gap: "2rem",
-						flex: 1,
-						padding: "1rem",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
+				<div className={cls.sprintControls}>
 					<button
-						style={{
-							background: "white",
-							color: "#aeacac",
-						}}
+						type="button"
+						className={cls.sprintButton}
 						onClick={() => {
 							setDay((prev) => prev.subtract(7, "day"));
 						}}
@@ -238,16 +206,14 @@ export const StatsModal = ({ user }: { user: User }) => {
 						пред. спринт
 					</button>
 
-					<div>
+					<div className={cls.sprintPeriod}>
 						{dayjs(startOfTheWeek).format("DD.MM")}-
 						{dayjs(endOfTheWeek).format("DD.MM")}
 					</div>
 
 					<button
-						style={{
-							background: "white",
-							color: "#aeacac",
-						}}
+						type="button"
+						className={cls.sprintButton}
 						onClick={() => {
 							setDay((prev) => prev.add(7, "day"));
 						}}
@@ -257,40 +223,15 @@ export const StatsModal = ({ user }: { user: User }) => {
 				</div>
 			</div>
 
-			<div
-				style={{
-					display: "flex",
-				}}
-			>
-				<div
-					style={{
-						flex: 1,
-						padding: "0 1rem",
-						height: "calc(100vh * 0.65)",
-						overflowY: "auto",
-					}}
-				>
-					<div
-						style={{
-							marginBottom: "1rem",
-							position: "sticky",
-							top: 0,
-							background: "white",
-							padding: "0.5rem 0",
-							display: "flex",
-							justifyContent: "space-between",
-							zIndex: 2,
-						}}
-					>
-						<span>
+			<div className={cls.contentGrid}>
+				<section className={cls.tasksColumn}>
+					<div className={cls.tasksHeader}>
+						<span className={cls.tasksTitle}>
 							Задачи спринта:
 							{taskFilter === "overrun" && (
 								<button
-									style={{
-										marginLeft: "12px",
-										background: "#f3f4f6",
-										color: "#374151",
-									}}
+									type="button"
+									className={cls.resetFilterButton}
 									onClick={() => setTaskFilter("all")}
 								>
 									Сбросить фильтр
@@ -305,16 +246,9 @@ export const StatsModal = ({ user }: { user: User }) => {
 						reports={reportsByTask}
 						statuses={statuses}
 					/>
-				</div>
+				</section>
 
-				<div
-					style={{
-						flex: 1,
-						padding: "0 1rem",
-						overflowY: "auto",
-						height: "calc(100vh * 0.65)",
-					}}
-				>
+				<section className={cls.statsColumn}>
 					<EmployeeStats
 						tasks={tasks}
 						taskReportsMap={reportsByTask}
@@ -336,7 +270,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 							grouped={grouped}
 						/>
 					)}
-				</div>
+				</section>
 			</div>
 		</div>
 	);
