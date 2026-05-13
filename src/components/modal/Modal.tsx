@@ -1,7 +1,17 @@
+import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getModalHeight, getModalWidth } from "./helpers/getSize";
 import cls from "./Modal.module.scss";
+
+type ModalProps = {
+	innerScroll?: boolean;
+	isOpen?: boolean;
+	children: ReactNode;
+	size?: "full" | "covered" | "small";
+	closeOnBackdropClick?: boolean;
+	onClose?(): void;
+};
 
 export default function Modal({
 	children,
@@ -9,13 +19,8 @@ export default function Modal({
 	isOpen,
 	onClose,
 	innerScroll,
-}: {
-	innerScroll?: boolean;
-	isOpen?: boolean;
-	children: React.ReactNode;
-	size?: "full" | "covered" | "small";
-	onClose?(): void;
-}) {
+	closeOnBackdropClick = true,
+}: ModalProps) {
 	const [mounted, setMounted] = useState(false);
 	const modalRef = useRef<HTMLDialogElement>(null);
 
@@ -24,27 +29,27 @@ export default function Modal({
 	}, []);
 
 	useEffect(() => {
-		if (isOpen) {
-			document.body.classList.add("modal-open");
+		if (!isOpen) return;
 
-			document.body.dataset.scrollY = window.scrollY.toString();
-			document.body.style.top = `-${window.scrollY}px`;
+		document.body.classList.add("modal-open");
+		document.body.dataset.scrollY = window.scrollY.toString();
+		document.body.style.top = `-${window.scrollY}px`;
 
-			return () => {
-				document.body.classList.remove("modal-open");
-				const scrollY = document.body.dataset.scrollY;
-				document.body.style.top = "";
-				if (scrollY) {
-					window.scrollTo(0, parseInt(scrollY, 10));
-				}
-			};
-		}
+		return () => {
+			document.body.classList.remove("modal-open");
+			const scrollY = document.body.dataset.scrollY;
+			document.body.style.top = "";
+
+			if (scrollY) {
+				window.scrollTo(0, parseInt(scrollY, 10));
+			}
+		};
 	}, [isOpen]);
 
 	useEffect(() => {
-		const handleEscape = (e: KeyboardEvent) => {
-			if (e.key === "Escape" && onClose) {
-				onClose();
+		const handleEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				onClose?.();
 			}
 		};
 
@@ -57,12 +62,11 @@ export default function Modal({
 		};
 	}, [isOpen, onClose]);
 
-	if (!isOpen) return null;
-	if (!mounted) return null;
+	if (!isOpen || !mounted) return null;
 
-	const handleBackdropClick = (e: React.MouseEvent) => {
-		if (e.target === e.currentTarget && onClose) {
-			onClose();
+	const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+		if (closeOnBackdropClick && event.target === event.currentTarget) {
+			onClose?.();
 		}
 	};
 
@@ -77,17 +81,17 @@ export default function Modal({
 					maxWidth: getModalWidth(size),
 					overflow: innerScroll ? "auto" : "hidden",
 				}}
-				onClick={(e) => e.stopPropagation()}
+				onClick={(event) => event.stopPropagation()}
 			>
-				{size === "full" && (
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "flex-end",
-						}}
+				{onClose && (
+					<button
+						type="button"
+						className={cls.closeButton}
+						onClick={onClose}
+						aria-label="Закрыть"
 					>
-						<button onClick={() => onClose?.()}>Назад</button>
-					</div>
+						×
+					</button>
 				)}
 				{children}
 			</dialog>

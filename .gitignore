@@ -26,3 +26,5 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+.codex
