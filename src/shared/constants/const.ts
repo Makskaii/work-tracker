@@ -30,6 +30,7 @@ export const EntityTypeIds = {
 	tasks: 1072,
 	projects: 1092,
 	default: 2,
+	companies: 4,
 };
 
 export const TASK_SELECT_FIELDS = [
@@ -83,6 +84,7 @@ export const statsFields: {
 ];
 
 export enum ClientsCodes {
-	client = "ufCrm20_1773412189",
+	client = "ufCrm20_1774879746",
 	title = "ufCrm20_1771940818371",
+	parentProject = "ufCrm20_1774856819",
 }
