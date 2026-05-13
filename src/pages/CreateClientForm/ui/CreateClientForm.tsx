@@ -1,7 +1,8 @@
+import { EnumCrmEntityTypeId } from "@bitrix24/b24jssdk";
 import { useCallback, useEffect, useState } from "react";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
-import { getClientsFromList } from "@/shared/api/getCrmFields";
 import { $backendApi } from "@/shared/config/axios/axios.config";
+import { useB24 } from "@/shared/config/bitrixProvider/bitrixContext";
 import { ClientsTable } from "./ClientsTable/ClientsTable";
 import {
 	type ClientFilterValues,
@@ -16,6 +17,20 @@ import { PageHeader } from "./Header/PageHeader";
 const initialFilters: ClientFilterValues = {
 	search: "",
 	status: "all",
+};
+
+export type CompanyOption = {
+	id: string;
+	name: string;
+};
+
+type BitrixCompanyItem = {
+	id: number | string;
+	title?: string;
+};
+
+type BitrixCompanyListResponse = {
+	items?: BitrixCompanyItem[];
 };
 
 const buildClientQueryParams = (filters: ClientFilterValues) => {
@@ -37,14 +52,9 @@ const buildClientQueryParams = (filters: ClientFilterValues) => {
 };
 
 export const ClientForm = () => {
+	const { b24 } = useB24();
 	const [clients, setClients] = useState<ClientsTable[]>([]);
 	const [filters, setFilters] = useState<ClientFilterValues>(initialFilters);
-	const [projects, setProjects] = useState<
-		{
-			id: string;
-			name: string;
-		}[]
-	>([]);
 
 	const [clientForm, setClientForm] = useState<boolean>(false);
 
@@ -63,22 +73,53 @@ export const ClientForm = () => {
 		return fetchClients(filters);
 	}, [fetchClients, filters]);
 
-	useEffect(() => {
-		const fetchProjects = async () => {
-			const response = await getClientsFromList();
+	const searchCompanies = useCallback(
+		async (query: string): Promise<CompanyOption[]> => {
+			const search = query.trim();
 
-			setProjects(
-				response.map((proj) => {
-					return {
-						id: proj.ID,
-						name: proj.NAME,
-					};
-				}),
-			);
-		};
+			if (!b24 || search.length < 2) {
+				return [];
+			}
 
-		fetchProjects();
-	}, []);
+			const response =
+				await b24.actions.v2.call.make<BitrixCompanyListResponse>({
+					method: "crm.item.list",
+					params: {
+						entityTypeId: EnumCrmEntityTypeId.company,
+						select: ["id", "title"],
+						filter: {
+							"=%title": `%${search}%`,
+						},
+						order: {
+							title: "ASC",
+						},
+					},
+				});
+
+			if (!response.isSuccess) {
+				console.error(
+					"Failed to fetch Bitrix companies",
+					response.getErrorMessages(),
+				);
+				return [];
+			}
+
+			const items = response.getData()?.result?.items;
+
+			if (!Array.isArray(items)) {
+				return [];
+			}
+
+			return items
+				.filter((company) => company.title)
+				.slice(0, 20)
+				.map((company) => ({
+					id: String(company.id),
+					name: String(company.title),
+				}));
+		},
+		[b24],
+	);
 
 	useEffect(() => {
 		const timeoutId = window.setTimeout(() => {
@@ -118,7 +159,7 @@ export const ClientForm = () => {
 					clientForm={clientForm}
 					onClientCreated={refreshClients}
 					setClientForm={setClientForm}
-					projects={projects}
+					searchCompanies={searchCompanies}
 				/>
 			)}
 		</CheckPermission>

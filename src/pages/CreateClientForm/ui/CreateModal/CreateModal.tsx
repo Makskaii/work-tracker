@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import Modal from "@/components/modal/Modal";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
+import type { CompanyOption } from "../CreateClientForm";
 
 type ClientFormProps = {
 	name: string;
@@ -13,22 +15,68 @@ type ClientFormProps = {
 export const CreateModal = ({
 	clientForm,
 	setClientForm,
-	projects,
+	searchCompanies,
 	onClientCreated,
 }: {
 	clientForm: boolean;
 	setClientForm: (isOpen: boolean) => void;
-	projects: { id: string; name: string }[];
+	searchCompanies: (query: string) => Promise<CompanyOption[]>;
 	onClientCreated?: () => Promise<void> | void;
 }) => {
+	const [companySearch, setCompanySearch] = useState("");
+	const [companies, setCompanies] = useState<CompanyOption[]>([]);
+	const [isCompanySearchLoading, setIsCompanySearchLoading] = useState(false);
 	const {
 		handleSubmit,
 		register,
+		setValue,
 		formState: { errors },
 	} = useForm<ClientFormProps>({
 		mode: "onChange",
 		reValidateMode: "onChange",
+		defaultValues: {
+			crmId: "",
+		},
 	});
+
+	useEffect(() => {
+		const search = companySearch.trim();
+
+		if (search.length < 2) {
+			setCompanies([]);
+			setIsCompanySearchLoading(false);
+			return;
+		}
+
+		let isActual = true;
+		setIsCompanySearchLoading(true);
+
+		const timeoutId = window.setTimeout(() => {
+			searchCompanies(search)
+				.then((items) => {
+					if (isActual) {
+						setCompanies(items);
+					}
+				})
+				.catch((error) => {
+					console.error("Failed to search Bitrix companies", error);
+
+					if (isActual) {
+						setCompanies([]);
+					}
+				})
+				.finally(() => {
+					if (isActual) {
+						setIsCompanySearchLoading(false);
+					}
+				});
+		}, 350);
+
+		return () => {
+			isActual = false;
+			window.clearTimeout(timeoutId);
+		};
+	}, [companySearch, searchCompanies]);
 
 	const onSubmit = handleSubmit(async (data) => {
 		try {
@@ -53,7 +101,7 @@ export const CreateModal = ({
 	});
 
 	return (
-		<Modal isOpen={clientForm} onClose={() => setClientForm(false)}>
+		<Modal isOpen={clientForm} onClose={() => setClientForm(false)} closeOnBackdropClick={false}>
 			<div
 				style={{
 					display: "flex",
@@ -206,8 +254,45 @@ export const CreateModal = ({
 									margin: 0,
 								}}
 							>
-								Выбрите клиента для привязки
+								Выбeрите клиента для привязки
 							</h5>
+							<input
+								value={companySearch}
+								onChange={(event) => {
+									setCompanySearch(event.target.value);
+									setValue("crmId", "", {
+										shouldDirty: true,
+										shouldValidate: true,
+									});
+								}}
+								style={{
+									border: "none",
+									borderRadius: "0.5rem",
+									minWidth: "20rem",
+									padding: "0.5rem",
+									height: "2rem",
+									width: "stretch",
+									marginBottom: "0.5rem",
+								}}
+								type="text"
+								placeholder="Начните вводить название компании"
+								autoComplete="off"
+							/>
+							{isCompanySearchLoading && (
+								<div style={{ marginBottom: "0.5rem" }}>Поиск...</div>
+							)}
+							{companySearch.trim().length === 1 && (
+								<div style={{ marginBottom: "0.5rem" }}>
+									Введите минимум 2 символа
+								</div>
+							)}
+							{companySearch.trim().length >= 2 &&
+								!isCompanySearchLoading &&
+								companies.length === 0 && (
+									<div style={{ marginBottom: "0.5rem" }}>
+										Компании не найдены
+									</div>
+								)}
 							<select
 								{...register("crmId", {
 									required: "Обязательное поле",
@@ -218,8 +303,8 @@ export const CreateModal = ({
 									borderRadius: "10px",
 								}}
 							>
-								<option key={"default"}>Проект</option>
-								{projects.map((item) => (
+								<option value="">Выберите компанию</option>
+								{companies.map((item) => (
 									<option value={item.id ?? item.id} key={item.id}>
 										{item.name}
 									</option>
