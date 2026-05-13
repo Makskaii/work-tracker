@@ -101,6 +101,12 @@ export const NAV_ITEMS: NavItem[] = [
 		type: "link",
 	},
 	{
+		key: "client accounts",
+		label: "Client Accounts",
+		to: "/create-client-form",
+		type: "link",
+	},
+	{
 		key: "sprint-planner",
 		label: "Sprint Planner",
 		to: "/sprint-planner",
