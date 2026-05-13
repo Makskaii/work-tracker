@@ -1,28 +1,61 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import Modal from "@/components/modal/Modal";
+import { useCallback, useEffect, useState } from "react";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { getClientsFromList } from "@/shared/api/getCrmFields";
 import { $backendApi } from "@/shared/config/axios/axios.config";
-import { notify } from "@/shared/ui/NotificationPopup/notify";
+import { ClientsTable } from "./ClientsTable/ClientsTable";
+import {
+	type ClientFilterValues,
+	type ClientStatusFilter,
+	TableFilters,
+} from "./ClientsTable/TableFilters";
+import { Widgets } from "./ClientsWidgets/Clientwidgets";
+import styles from "./CreateClientForm.module.scss";
+import { CreateModal } from "./CreateModal/CreateModal";
+import { PageHeader } from "./Header/PageHeader";
 
-type ClientFormProps = {
-	name: string;
-	crmId: string;
-	password: string;
-	email: string;
+const mockData = [
+	{
+		id: "1",
+		name: "Neotech Solutions",
+		email: "romashka@example.com",
+		status: "active",
+		createdAt: "2023-01-01",
+	},
+	{
+		id: "2",
+		name: "Global Trade Ltd.",
+		email: "vasilek@example.com",
+		status: "inactive",
+		createdAt: "2023-02-15",
+	},
+] as ClientsTable[];
+
+const initialFilters: ClientFilterValues = {
+	search: "",
+	status: "all",
+};
+
+const buildClientQueryParams = (filters: ClientFilterValues) => {
+	const search = filters.search.trim();
+	const params: {
+		search?: string;
+		status?: Exclude<ClientStatusFilter, "all">;
+	} = {};
+
+	if (search) {
+		params.search = search;
+	}
+
+	if (filters.status !== "all") {
+		params.status = filters.status;
+	}
+
+	return params;
 };
 
 export const ClientForm = () => {
-	const {
-		handleSubmit,
-		register,
-		formState: { errors },
-	} = useForm<ClientFormProps>({
-		mode: "onChange",
-		reValidateMode: "onChange",
-	});
-
+	const [clients, setClients] = useState<ClientsTable[]>(mockData);
+	const [filters, setFilters] = useState<ClientFilterValues>(initialFilters);
 	const [projects, setProjects] = useState<
 		{
 			id: string;
@@ -31,6 +64,21 @@ export const ClientForm = () => {
 	>([]);
 
 	const [clientForm, setClientForm] = useState<boolean>(false);
+
+	const fetchClients = useCallback(
+		async (currentFilters: ClientFilterValues) => {
+			const response = await $backendApi.get<ClientsTable[]>("/clients", {
+				params: buildClientQueryParams(currentFilters),
+			});
+
+			setClients(response.data);
+		},
+		[],
+	);
+
+	const refreshClients = useCallback(() => {
+		return fetchClients(filters);
+	}, [fetchClients, filters]);
 
 	useEffect(() => {
 		const fetchProjects = async () => {
@@ -49,232 +97,47 @@ export const ClientForm = () => {
 		fetchProjects();
 	}, []);
 
-	const onSubmit = handleSubmit(async (data) => {
-		try {
-			await $backendApi.post("clients", data);
+	useEffect(() => {
+		const timeoutId = window.setTimeout(() => {
+			fetchClients(filters);
+		}, 300);
 
-			notify({
-				message: "Клиент успешно добавлен",
-				type: "success",
-			});
-		} catch (error) {
-			const err = error as Error;
-			const message = err.message;
-
-			notify({
-				message: message ?? "Ошибка при создании клиента",
-				type: "error",
-			});
-		} finally {
-			setClientForm(false);
-		}
-	});
+		return () => window.clearTimeout(timeoutId);
+	}, [fetchClients, filters]);
 
 	return (
 		<CheckPermission permission="create-client" subject="client">
-			<div
-				style={{
-					display: "flex",
-					minHeight: "90vh",
-					gap: "1rem",
-				}}
-			>
-				<div
-					style={{
-						flex: 1,
-						minWidth: 0,
-						display: "flex",
-						alignItems: "start",
-						gap: "2rem",
-					}}
-				>
-					<button onClick={() => setClientForm(true)}>Добавить клиента</button>
-					{clientForm && (
-						<Modal isOpen={clientForm} onClose={() => setClientForm(false)}>
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									gap: "1rem",
-								}}
-							>
-								<form id="client-form" onSubmit={onSubmit}>
-									<div
-										style={{
-											display: "flex",
-											gap: "1rem",
-											alignItems: "self-end",
-											justifyContent: "space-between",
-										}}
-									>
-										<div>
-											<div>
-												<h5
-													style={{
-														textAlign: "left",
-														margin: 0,
-													}}
-												>
-													Имя клиента
-												</h5>
-												<input
-													{...register("name", {
-														required: "Обязательное поле",
-													})}
-													style={{
-														border: "none",
-														borderRadius: "0.5rem",
-														minWidth: "20rem",
-														padding: "0.5rem",
-														height: "2rem",
-													}}
-													type="text"
-													placeholder="Клиент"
-													autoComplete="off"
-												/>
-											</div>
-											<div>
-												<div
-													style={{
-														display: "flex",
-														justifyContent: "space-between",
-													}}
-												>
-													<p
-														style={{
-															textAlign: "left",
-															margin: 0,
-														}}
-													>
-														Эл. почта
-													</p>
-													{errors.email && errors.email.type === "validate" && (
-														<span
-															style={{
-																color: "red",
-															}}
-														>
-															{errors.email?.message}
-														</span>
-													)}
-												</div>
+			<div className={styles.page}>
+				<div className={styles.content}>
+					<PageHeader setClientForm={setClientForm} />
 
-												<input
-													{...register("email", {
-														required: "Обязательное поле",
-														validate: (value) => {
-															const regExp = /^\S+@\S+\.\S+$/;
+					<Widgets clients={clients} />
 
-															if (!regExp.test(value)) {
-																return "Неверный формат email";
-															}
-														},
-													})}
-													style={{
-														border: "none",
-														borderRadius: "0.5rem",
-														minWidth: "20rem",
-														padding: "0.5rem",
-														height: "2rem",
-													}}
-													type="text"
-													placeholder="Почта клиента"
-													autoComplete="off"
-												/>
-											</div>
-
-											<div>
-												<div
-													style={{
-														display: "flex",
-														justifyContent: "space-between",
-													}}
-												>
-													<p
-														style={{
-															textAlign: "left",
-															margin: 0,
-														}}
-													>
-														Пароль
-													</p>
-													{errors.password &&
-														errors.password.type === "minLength" && (
-															<span
-																style={{
-																	color: "red",
-																}}
-															>
-																{errors.password?.message}
-															</span>
-														)}
-												</div>
-
-												<input
-													{...register("password", {
-														required: "Обязательное поле",
-														minLength: {
-															message: "Минимум 8 символов",
-															value: 8,
-														},
-													})}
-													style={{
-														border: "none",
-														borderRadius: "0.5rem",
-														minWidth: "20rem",
-														padding: "0.5rem",
-														height: "2rem",
-													}}
-													type="text"
-													placeholder="Введите пароль"
-													autoComplete="off"
-												/>
-											</div>
-
-											<div>
-												<h5
-													style={{
-														textAlign: "left",
-														margin: 0,
-													}}
-												>
-													Выбрите клиента для привязки
-												</h5>
-												<select
-													{...register("crmId", {
-														required: "Обязательное поле",
-													})}
-													style={{
-														width: "100%",
-														padding: "1rem",
-														borderRadius: "10px",
-													}}
-												>
-													{projects.map((item) => (
-														<option value={item.id ?? item.id} key={item.id}>
-															{item.name}
-														</option>
-													))}
-												</select>
-											</div>
-										</div>
-
-										<button
-											type="submit"
-											form="client-form"
-											style={{
-												maxWidth: "200px",
-											}}
-										>
-											Сохранить
-										</button>
-									</div>
-								</form>
+					<div className={styles.tableSection}>
+						<TableFilters filters={filters} onChange={setFilters} />
+						{clients.length > 0 ? (
+							<ClientsTable
+								activeItems={clients}
+								onDeleteClient={refreshClients}
+								onToggleClientStatus={refreshClients}
+							/>
+						) : (
+							<div>
+								<p className={styles.noClientsMessage}>No clients found.</p>
 							</div>
-						</Modal>
-					)}
+						)}
+					</div>
 				</div>
 			</div>
+
+			{clientForm && (
+				<CreateModal
+					clientForm={clientForm}
+					onClientCreated={refreshClients}
+					setClientForm={setClientForm}
+					projects={projects}
+				/>
+			)}
 		</CheckPermission>
 	);
 };
