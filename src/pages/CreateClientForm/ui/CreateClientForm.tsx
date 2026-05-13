@@ -13,23 +13,6 @@ import styles from "./CreateClientForm.module.scss";
 import { CreateModal } from "./CreateModal/CreateModal";
 import { PageHeader } from "./Header/PageHeader";
 
-const mockData = [
-	{
-		id: "1",
-		name: "Neotech Solutions",
-		email: "romashka@example.com",
-		status: "active",
-		createdAt: "2023-01-01",
-	},
-	{
-		id: "2",
-		name: "Global Trade Ltd.",
-		email: "vasilek@example.com",
-		status: "inactive",
-		createdAt: "2023-02-15",
-	},
-] as ClientsTable[];
-
 const initialFilters: ClientFilterValues = {
 	search: "",
 	status: "all",
@@ -54,7 +37,7 @@ const buildClientQueryParams = (filters: ClientFilterValues) => {
 };
 
 export const ClientForm = () => {
-	const [clients, setClients] = useState<ClientsTable[]>(mockData);
+	const [clients, setClients] = useState<ClientsTable[]>([]);
 	const [filters, setFilters] = useState<ClientFilterValues>(initialFilters);
 	const [projects, setProjects] = useState<
 		{
