@@ -3,36 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { FcConferenceCall, FcPlanner } from "react-icons/fc";
 import { MdAddTask } from "react-icons/md";
 import { useParams } from "react-router";
-import {
-	ProjectCodes,
-	ReportCodes,
-	TaskCodes,
-} from "@/components/calendar/constants/const";
-import type { ReportProps } from "@/components/calendar/types/types";
-import { Modal } from "@/components/modal";
+import { TaskCodes } from "@/components/calendar/constants/const";
+import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { Spinner } from "@/components/spinner/Spinner";
-import {
-	type BitrixUser,
-	getUsersByIds,
-} from "@/pages/ReportsPage/api/getDevelopers";
-import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
-import {
-	mapProjectsFromList,
-	type ProjectFromList,
-} from "@/pages/ReportsPage/ReportsPage";
 import { SegmentedControl } from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { periodLabelMap } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
-import { getProjectsFromList } from "@/shared/api/getCrmFields";
-import { $api } from "@/shared/config";
-import {
-	ClientsCodes,
-	Endpoints,
-	EntityTypeIds,
-	TASK_SELECT_FIELDS,
-} from "@/shared/constants/const";
-import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import type {
 	ClientListItems,
@@ -42,7 +20,6 @@ import type {
 import { getFixedNumber } from "@/shared/utils/getNumber";
 import { classNames } from "@/shared/utils/utils";
 import brandLogo from "/logo_colored.png";
-import { TaskList } from "../TaskList/TaskList";
 import styles from "./ClientProfile.module.scss";
 import { TaskListByProject } from "./TaskListByProject";
 import { UpcomingMeetings } from "./UpcomingMeetings";
@@ -61,80 +38,145 @@ export type ViewMode = "list" | "projects";
 // 	return parsed.format("DD.MM.YYYY");
 // };
 
-type RoleCode = keyof typeof ProjectCodes;
+const CLIENT_TASKS_CREATED_FROM = "2026-04-01";
 
-type RawRoleItem = {
-	[key: string]: number | string | string[] | number[] | null;
+type RoleCode = "pm" | "analytic" | "qa" | "devs";
+
+type ClientTeamUser = {
+	id?: string | number;
+
+	name?: string;
+	lastName?: string;
+
+	title?: string;
 };
 
-type PreparedRoleUsers = {
+type RoleWithUsers = {
 	roleCode: RoleCode;
-	userIds: number[];
+	users: ClientTeamUser[];
 };
 
-const normalizeUserIds = (
-	value: number | string | string[] | number[] | null,
-): number[] => {
-	if (value === null) {
-		return [];
-	}
+type ClientTeamDto = RoleWithUsers[] | Record<string, unknown>;
 
-	if (Array.isArray(value)) {
-		return value.map(Number).filter((id) => Number.isFinite(id) && id > 0);
-	}
-
-	const id = Number(value);
-
-	return Number.isFinite(id) && id > 0 ? [id] : [];
-};
-
-export const prepareRoleUsers = (
-	data: RawRoleItem[][],
-): PreparedRoleUsers[] => {
-	const items = data.flat();
-
-	return Object.entries(ProjectCodes).map(([roleCode, fieldCode]) => {
-		const userIds = items.flatMap((item) => normalizeUserIds(item[fieldCode]));
-
-		return {
-			roleCode: roleCode as RoleCode,
-			userIds: Array.from(new Set(userIds)),
+type ClientStatsDto = {
+	period: {
+		start: string;
+		end: string;
+	};
+	tasks: {
+		count: number;
+		totalTime: number;
+	};
+	communications: {
+		totalTime: number;
+		internal: {
+			activityType: "402";
+			count: number;
+			totalTime: number;
 		};
-	});
+		external: {
+			activityType: "417";
+			count: number;
+			totalTime: number;
+		};
+	};
 };
 
-export const getUniqueUserIds = (roles: PreparedRoleUsers[]): number[] => {
-	return Array.from(new Set(roles.flatMap((role) => role.userIds)));
+const ROLE_CODES: RoleCode[] = ["pm", "analytic", "qa", "devs"];
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
-type RoleWithUsers = PreparedRoleUsers & {
-	users: BitrixUser[];
+const isRoleCode = (value: unknown): value is RoleCode => {
+	return typeof value === "string" && ROLE_CODES.includes(value as RoleCode);
 };
 
-export const attachUsersToRoles = (
-	roles: PreparedRoleUsers[],
-	users: BitrixUser[],
-): RoleWithUsers[] => {
-	const usersMap = new Map(users.map((user) => [Number(user.ID), user]));
+const toStringOrNumber = (value: unknown) => {
+	if (typeof value === "string" || typeof value === "number") {
+		return value;
+	}
 
-	return roles.map((role) => ({
-		...role,
-		users: role.userIds
-			.map((userId) => usersMap.get(userId))
-			.filter((user): user is BitrixUser => Boolean(user)),
+	return undefined;
+};
+
+const toOptionalString = (value: unknown) => {
+	return typeof value === "string" ? value : undefined;
+};
+
+const normalizeTeamUser = (value: unknown): ClientTeamUser | null => {
+	if (typeof value === "string") {
+		return { name: value };
+	}
+
+	if (!isRecord(value)) {
+		return null;
+	}
+
+	return {
+		id: toStringOrNumber(value.id),
+		name: toOptionalString(value.name),
+		lastName: toOptionalString(value.lastName),
+		title: toOptionalString(value.title),
+	};
+};
+
+const normalizeTeamUsers = (value: unknown): ClientTeamUser[] => {
+	if (Array.isArray(value)) {
+		return value
+			.map((user) => normalizeTeamUser(user))
+			.filter((user): user is ClientTeamUser => Boolean(user));
+	}
+
+	if (isRecord(value) && Array.isArray(value.users)) {
+		return normalizeTeamUsers(value.users);
+	}
+
+	return [];
+};
+
+const normalizeTeam = (data: ClientTeamDto): RoleWithUsers[] => {
+	if (Array.isArray(data)) {
+		return data
+			.map((item) => {
+				if (!isRecord(item) || !isRoleCode(item.roleCode)) {
+					return null;
+				}
+
+				return {
+					roleCode: item.roleCode,
+					users: normalizeTeamUsers(item.users),
+				};
+			})
+			.filter((role): role is RoleWithUsers => Boolean(role));
+	}
+
+	return ROLE_CODES.map((roleCode) => ({
+		roleCode,
+		users: normalizeTeamUsers(data[roleCode]),
 	}));
 };
 
-export const getRolesWithUsers = async (
-	rawData: RawRoleItem[][],
-): Promise<RoleWithUsers[]> => {
-	const preparedRoles = prepareRoleUsers(rawData);
+const normalizeProjects = (
+	projects: ClientProjectProps[],
+): ClientProjectProps[] => {
+	return projects.map((project) => ({
+		...project,
+		id: Number(project.id),
+		projectId: String(project.projectId ?? project.id),
+	}));
+};
 
-	const userIds = getUniqueUserIds(preparedRoles);
+const getTeamUserKey = (user: ClientTeamUser, index: number) => {
+	return String(user.id ?? user.name ?? user.title ?? index);
+};
 
-	const users = await getUsersByIds(userIds);
+const getTeamUserName = (user: ClientTeamUser) => {
+	if (user.title) {
+		return user.title;
+	}
 
-	return attachUsersToRoles(preparedRoles, users);
+	return [user.name, user.lastName].filter(Boolean).join(" ");
 };
 
 export const getTasksInWork = (tasks?: TaskProps[]) => {
@@ -162,15 +204,14 @@ export const getTasksInWork = (tasks?: TaskProps[]) => {
 
 const ClientProfile = () => {
 	const [projects, setProjects] = useState<ClientProjectProps[]>([]);
-	const [normalizedProjects, setNormalizedProjects] = useState<
-		ProjectFromList[]
-	>([]);
 
-	const [_loading, setLoading] = useState(false);
+	const [loadingStats, setLoadingStats] = useState(false);
 
-	const [_error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
-	const [taskList, _setTaskList] = useState<TaskProps[]>([]);
+	const [tasks, setTasks] = useState<TaskProps[]>([]);
+
+	const [clientStats, setClientStats] = useState<ClientStatsDto>();
 
 	const [clientData, setClientData] = useState<ClientListItems>();
 
@@ -186,8 +227,6 @@ const ClientProfile = () => {
 	// const [loadUrl, setLoadUrl] = useState("");
 
 	const [team, setTeam] = useState<RoleWithUsers[]>([]);
-
-	const [open, setOpen] = useState<boolean>(false);
 
 	// const navigate = useNavigate();
 
@@ -225,197 +264,115 @@ const ClientProfile = () => {
 	// };
 
 	useEffect(() => {
-		const fetchCompany = async () => {
-			const response = await $api.get(Endpoints.item, {
-				params: {
-					entityTypeId: EntityTypeIds.companies,
-					id: companyId,
-				},
-			});
+		if (!companyId) {
+			return;
+		}
 
-			setClientData(response.data.result.item);
+		let ignore = false;
+
+		const fetchClientData = async () => {
+			try {
+				setError(null);
+
+				const [companyResponse, projectsResponse, tasksResponse, teamResponse] =
+					await Promise.all([
+						$backendApi.get<ClientListItems>("clients/me/company"),
+						$backendApi.get<ClientProjectProps[]>("clients/me/projects"),
+						$backendApi.get<TaskProps[]>("clients/me/tasks", {
+							params: {
+								createdFrom: CLIENT_TASKS_CREATED_FROM,
+							},
+						}),
+						$backendApi.get<ClientTeamDto>("clients/me/team"),
+					]);
+
+				if (ignore) {
+					return;
+				}
+
+				setClientData(companyResponse.data);
+				setProjects(normalizeProjects(projectsResponse.data ?? []));
+				setTasks(tasksResponse.data ?? []);
+				setTeam(normalizeTeam(teamResponse.data));
+			} catch (err) {
+				console.error(err);
+				setError("Не удалось загрузить данные клиента");
+			}
 		};
 
-		fetchCompany();
+		fetchClientData();
+
+		return () => {
+			ignore = true;
+		};
 	}, [companyId]);
 
-	const { data } = useLoadAllData<TaskProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: {
-			params: {
-				entityTypeId: EntityTypeIds.tasks,
-				filter: {
-					[TaskCodes.company]: companyId,
-					">=createdTime": "2026-04-01",
-				},
-				select: TASK_SELECT_FIELDS,
-			},
-		},
-	});
+	useEffect(() => {
+		if (!companyId) {
+			return;
+		}
+
+		let ignore = false;
+
+		const fetchClientStats = async () => {
+			try {
+				setLoadingStats(true);
+
+				const response = await $backendApi.get<ClientStatsDto>(
+					"clients/me/stats",
+					{
+						params: {
+							start,
+							end,
+						},
+					},
+				);
+
+				if (!ignore) {
+					setClientStats(response.data);
+				}
+			} catch (err) {
+				console.error(err);
+
+				if (!ignore) {
+					setError("Не удалось загрузить статистику клиента");
+				}
+			} finally {
+				if (!ignore) {
+					setLoadingStats(false);
+				}
+			}
+		};
+
+		fetchClientStats();
+
+		return () => {
+			ignore = true;
+		};
+	}, [companyId, end, start]);
 
 	const tasksByProject = useMemo(() => {
-		return groupTasksByProject(data);
-	}, [data]);
+		return groupTasksByProject(tasks);
+	}, [tasks]);
 
-	const projectsWithActualIds = projects?.map((project) => ({
-		...project,
-		projectId:
-			normalizedProjects?.find((proj) => Number(proj.projectId) === project.id)
-				?.id ?? "",
-	}));
+	const taskFromPeriod = useMemo(() => {
+		const startDate = dayjs(start).startOf("day").valueOf();
+		const endDate = dayjs(end).endOf("day").valueOf();
 
-	const {
-		data: taskFromPeriod,
-		setFilters,
-		loading: loadingTasks,
-	} = useLoadAllData<TaskProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: {
-			params: {
-				entityTypeId: EntityTypeIds.tasks,
-				filter: {
-					[TaskCodes.client]: companyId,
-					[`>=${TaskCodes.sprintDateStart}`]: start,
-					[`<=${TaskCodes.sprintDateStart}`]: end,
-				},
-				select: TASK_SELECT_FIELDS,
-			},
-		},
-	});
+		return tasks.filter((task) => {
+			const sprintStart = task[TaskCodes.sprintDateStart];
 
-	const {
-		data: internalReports,
-		setFilters: setForInternal,
-		loading: loadingReports,
-	} = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: {
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				filter: {
-					[ReportCodes.client]: companyId,
-					[ReportCodes.activityType]: "402",
-					">=begindate": start,
-					"<=begindate": end,
-				},
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-			},
-		},
-	});
+			if (!sprintStart) {
+				return false;
+			}
 
-	const {
-		data: externalReports,
-		setFilters: setForExternal,
-		loading: loadingExternal,
-	} = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: {
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				filter: {
-					[ReportCodes.client]: companyId,
-					[ReportCodes.activityType]: "417",
-					">=begindate": start,
-					"<=begindate": end,
-				},
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-			},
-		},
-	});
+			const sprintStartDate = dayjs(sprintStart).valueOf();
 
-	useEffect(() => {
-		setFilters({
-			params: {
-				entityTypeId: EntityTypeIds.tasks,
-				filter: {
-					[TaskCodes.client]: companyId,
-					[`>=${TaskCodes.sprintDateStart}`]: start,
-					[`<=${TaskCodes.sprintDateStart}`]: end,
-				},
-				select: TASK_SELECT_FIELDS,
-			},
+			return sprintStartDate >= startDate && sprintStartDate <= endDate;
 		});
+	}, [end, start, tasks]);
 
-		setForInternal({
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				filter: {
-					[ReportCodes.client]: companyId,
-					[ReportCodes.activityType]: "402",
-					">=begindate": start,
-					"<=begindate": end,
-				},
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-			},
-		});
-
-		setForExternal({
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				filter: {
-					[ReportCodes.client]: companyId,
-					[ReportCodes.activityType]: "402",
-					">=begindate": start,
-					"<=begindate": end,
-				},
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-			},
-		});
-	}, [start, end, companyId, setFilters, setForExternal, setForInternal]);
-
-	const totalTime = taskFromPeriod.reduce((acc, task) => {
+	const totalTimeFromTasks = taskFromPeriod.reduce((acc, task) => {
 		if (task[TaskCodes.hours]) {
 			acc = acc + +task[TaskCodes.hours];
 		} else {
@@ -424,232 +381,168 @@ const ClientProfile = () => {
 		return acc;
 	}, 0);
 
-	const commsTotalInternal = internalReports.reduce((acc, report) => {
-		return acc + +report[ReportCodes.timeSpent];
-	}, 0);
+	const totalTime = clientStats?.tasks.totalTime ?? totalTimeFromTasks;
 
-	const commsTotalExternal = externalReports.reduce((acc, report) => {
-		return acc + +report[ReportCodes.timeSpent];
-	}, 0);
+	const commsTotalInternal =
+		clientStats?.communications.internal.totalTime ?? 0;
 
-	useEffect(() => {
-		const fetchCrew = async () => {
-			const responses = await Promise.all(
-				projects.map(async (project) => {
-					const proj = await getItems<{
-						[ProjectCodes.analytic]: number | null;
-						[ProjectCodes.qa]: number[];
-						[ProjectCodes.pm]: number | null;
-						[ProjectCodes.devs]: number[];
-					}>({
-						typeId: EntityTypeIds.projects,
-						filters: {
-							id: project.id,
-						},
-						select: [
-							ProjectCodes.analytic,
-							ProjectCodes.devs,
-							ProjectCodes.pm,
-							ProjectCodes.qa,
-						],
-					});
-
-					return proj;
-				}),
-			);
-
-			const rolesWithUsers = await getRolesWithUsers(responses);
-
-			setTeam(rolesWithUsers);
-		};
-
-		fetchCrew();
-	}, [projects]);
-
-	useEffect(() => {
-		const fetchProjects = async () => {
-			if (!companyId) return;
-
-			try {
-				setLoading(true);
-				setError(null);
-
-				const response = await getItems<ClientProjectProps>({
-					typeId: EntityTypeIds.projects,
-					filters: {
-						[ClientsCodes.client]: companyId,
-					},
-				});
-
-				const projectsList = await getProjectsFromList();
-
-				const normalizedProjects = mapProjectsFromList(projectsList);
-
-				setNormalizedProjects(normalizedProjects);
-
-				setProjects(response ?? []);
-			} catch (err) {
-				console.error(err);
-				setError("Не удалось загрузить проекты клиента");
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchProjects();
-	}, [companyId]);
+	const commsTotalExternal =
+		clientStats?.communications.external.totalTime ?? 0;
 
 	const isTeamExists = team.filter((item) => item.users.length > 0).length > 0;
 
 	if (!companyId) return null;
 
 	return (
-		// <CheckPermission permission="read" subject={`client-profile-${companyId}`}>
-		<div className={styles.page}>
-			<div className={styles.headerCard}>
-				<div className={styles.headerInfo}>
-					<div className={styles.brandBlock}>
-						<img className={styles.brandLogo} src={brandLogo} alt="Логотип" />
+		<CheckPermission permission="read" subject={`client-profile-${companyId}`}>
+			<div className={styles.page}>
+				<div className={styles.headerCard}>
+					<div className={styles.headerInfo}>
+						<div className={styles.brandBlock}>
+							<img className={styles.brandLogo} src={brandLogo} alt="Логотип" />
 
-						<div className={styles.brandText}>
-							<h1 className={styles.pageTitle}>
-								Evolutions Client&apos;s Desk
-							</h1>
-							<div className={styles.badge}>Кабинет клиента</div>
+							<div className={styles.brandText}>
+								<h1 className={styles.pageTitle}>
+									Evolutions Client&apos;s Desk
+								</h1>
+								<div className={styles.badge}>Кабинет клиента</div>
+							</div>
 						</div>
-					</div>
 
-					<div className={styles.clientBlock}>
-						<h1 className={styles.clientTitle}>
-							{clientData?.title ?? <Spinner onlySpin />}
-						</h1>
+						<div className={styles.clientBlock}>
+							<h1 className={styles.clientTitle}>
+								{clientData?.title ?? clientData?.NAME ?? <Spinner onlySpin />}
+							</h1>
+							{error && <div className={styles.badge}>{error}</div>}
+						</div>
 					</div>
 				</div>
-			</div>
 
-			<div className={styles.content}>
-				<div className={styles.mainColumn}>
-					<div className={styles.sectionCard}>
-						<h2 className={styles.infoTitle}>Общая информация</h2>
+				<div className={styles.content}>
+					<div className={styles.mainColumn}>
+						<div className={styles.sectionCard}>
+							<h2 className={styles.infoTitle}>Общая информация</h2>
 
-						<div className={styles.infoGrid}>
-							<div className={styles.statCard}>
-								<div className={styles.statCardInner}>
-									<FcPlanner className={styles.statIcon} />
+							<div className={styles.infoGrid}>
+								<div className={styles.statCard}>
+									<div className={styles.statCardInner}>
+										<FcPlanner className={styles.statIcon} />
 
-									<div>
-										<div className={styles.statLabel}>План часов</div>
-										<div className={styles.statValue}>
-											{period === "week"
-												? 75
-												: period === "month"
-													? 75 * 4
-													: period === "quarter"
-														? 75 * 12
-														: 75 * 48}{" "}
-											ч.
+										<div>
+											<div className={styles.statLabel}>План часов</div>
+											<div className={styles.statValue}>
+												{period === "week"
+													? 75
+													: period === "month"
+														? 75 * 4
+														: period === "quarter"
+															? 75 * 12
+															: 75 * 48}{" "}
+												ч.
+											</div>
 										</div>
 									</div>
 								</div>
-							</div>
 
-							<div className={styles.statCard}>
-								<div className={styles.statCardInner}>
-									<MdAddTask className={styles.statIconBlue} />
+								<div className={styles.statCard}>
+									<div className={styles.statCardInner}>
+										<MdAddTask className={styles.statIconBlue} />
 
-									<div>
-										<div className={styles.statLabel}>Факт по задачам</div>
-										<div className={styles.statValue}>
-											{loadingTasks ? "..." : totalTime} ч.
+										<div>
+											<div className={styles.statLabel}>Факт по задачам</div>
+											<div className={styles.statValue}>
+												{loadingStats ? "..." : totalTime} ч.
+											</div>
+											<button type="button" className={styles.detailsButton}>
+												Подробнее
+											</button>
 										</div>
-										<button type="button" className={styles.detailsButton}>
-											Подробнее
+									</div>
+								</div>
+
+								<div className={styles.statCard}>
+									<div className={styles.statCardInner}>
+										<FcConferenceCall className={styles.statIcon} />
+
+										<div>
+											<div className={styles.statLabel}>
+												Факт по коммуникациям
+											</div>
+											<div className={styles.statValue}>
+												{loadingStats
+													? "..."
+													: getFixedNumber(
+															commsTotalInternal + commsTotalExternal,
+														)}{" "}
+												ч.
+											</div>
+											<button type="button" className={styles.detailsButton}>
+												Подробнее
+											</button>
+										</div>
+									</div>
+								</div>
+
+								<div className={`${styles.statCard} ${styles.periodCard}`}>
+									<div className={styles.periodHeader}>Период</div>
+
+									<SegmentedControl onChange={setPeriod} value={period} />
+
+									<div className={styles.periodNavigation}>
+										<button
+											type="button"
+											className={styles.periodButton}
+											onClick={() => goPrev()}
+										>
+											пред. {periodLabelMap[period]}
+										</button>
+
+										<div className={styles.periodDates}>
+											{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
+												end,
+											).format("DD.MM.YYYY")}`}
+										</div>
+
+										<button
+											type="button"
+											className={styles.periodButton}
+											onClick={() => goNext()}
+										>
+											след. {periodLabelMap[period]}
 										</button>
 									</div>
-								</div>
-							</div>
-
-							<div className={styles.statCard}>
-								<div className={styles.statCardInner}>
-									<FcConferenceCall className={styles.statIcon} />
-
-									<div>
-										<div className={styles.statLabel}>
-											Факт по коммуникациям
-										</div>
-										<div className={styles.statValue}>
-											{loadingReports && loadingExternal
-												? "..."
-												: getFixedNumber(
-														commsTotalInternal + commsTotalExternal,
-													)}{" "}
-											ч.
-										</div>
-										<button type="button" className={styles.detailsButton}>
-											Подробнее
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<div className={`${styles.statCard} ${styles.periodCard}`}>
-								<div className={styles.periodHeader}>Период</div>
-
-								<SegmentedControl onChange={setPeriod} value={period} />
-
-								<div className={styles.periodNavigation}>
-									<button
-										type="button"
-										className={styles.periodButton}
-										onClick={() => goPrev()}
-									>
-										пред. {periodLabelMap[period]}
-									</button>
-
-									<div className={styles.periodDates}>
-										{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
-											end,
-										).format("DD.MM.YYYY")}`}
-									</div>
-
-									<button
-										type="button"
-										className={styles.periodButton}
-										onClick={() => goNext()}
-									>
-										след. {periodLabelMap[period]}
-									</button>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div className={styles.sectionCard}>
-						<div className={styles.sectionHeader}>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									width: "100%",
-								}}
-							>
+						<div className={styles.sectionCard}>
+							<div className={styles.sectionHeader}>
 								<div
 									style={{
 										display: "flex",
-										alignItems: "center",
-										gap: "1rem",
+										justifyContent: "space-between",
+										width: "100%",
 									}}
 								>
-									<h2
+									<div
 										style={{
-											textAlign: "left",
+											display: "flex",
+											alignItems: "center",
+											gap: "1rem",
 										}}
-										className={styles.sectionTitle}
 									>
-										Все задачи
-									</h2>
-									<div className={styles.badge}>Задач: {data.length} </div>
-									{/* {loadUrl === "" ? (
+										<h2
+											style={{
+												textAlign: "left",
+											}}
+											className={styles.sectionTitle}
+										>
+											Все задачи
+										</h2>
+										<div className={styles.badge}>
+											Задач: {clientStats?.tasks.count ?? tasks.length}{" "}
+										</div>
+										{/* {loadUrl === "" ? (
 										<button
 											disabled={loadingReport}
 											type="button"
@@ -676,190 +569,157 @@ const ClientProfile = () => {
 											Скачать отчёт
 										</button>
 									)} */}
-								</div>
+									</div>
 
-								<div className={styles.toolbar}>
-									<div className={styles.viewModeSwitcher}>
-										<button
-											type="button"
-											className={classNames(styles.viewModeButton, {
-												[styles.viewModeButtonActive]: viewMode === "list",
-											})}
-											onClick={() => setViewMode("list")}
-										>
-											Режим список
-										</button>
+									<div className={styles.toolbar}>
+										<div className={styles.viewModeSwitcher}>
+											<button
+												type="button"
+												className={classNames(styles.viewModeButton, {
+													[styles.viewModeButtonActive]: viewMode === "list",
+												})}
+												onClick={() => setViewMode("list")}
+											>
+												Режим список
+											</button>
 
-										<button
-											type="button"
-											className={classNames(styles.viewModeButton, {
-												[styles.viewModeButtonActive]: viewMode === "projects",
-											})}
-											onClick={() => setViewMode("projects")}
-										>
-											По проектам
-										</button>
+											<button
+												type="button"
+												className={classNames(styles.viewModeButton, {
+													[styles.viewModeButtonActive]:
+														viewMode === "projects",
+												})}
+												onClick={() => setViewMode("projects")}
+											>
+												По проектам
+											</button>
+										</div>
 									</div>
 								</div>
 							</div>
-						</div>
 
-						<TaskListByProject
-							normalizedProjects={normalizedProjects}
-							tasks={data ?? []}
-							onTaskClick={(task) => {
-								console.log("clicked task", task);
-							}}
-							clientsProjects={projects}
-							view={viewMode}
-						/>
-					</div>
-				</div>
-
-				<div className={styles.sideColumn}>
-					<UpcomingMeetings />
-
-					{projectsWithActualIds.length > 0 && (
-						<div className={styles.sectionCard}>
-							<h2
-								style={{
-									textAlign: "left",
+							<TaskListByProject
+								tasks={tasks}
+								onTaskClick={(task) => {
+									console.log("clicked task", task);
 								}}
-							>
-								Проекты
-							</h2>
+								clientsProjects={projects}
+								view={viewMode}
+							/>
+						</div>
+					</div>
 
-							<div className={styles.projectsList}>
-								{projectsWithActualIds.map((project) => {
-									const projTasks = tasksByProject?.[project.projectId];
+					<div className={styles.sideColumn}>
+						<UpcomingMeetings />
 
-									const activity = getTasksInWork(projTasks);
+						{projects.length > 0 && (
+							<div className={styles.sectionCard}>
+								<h2
+									style={{
+										textAlign: "left",
+									}}
+								>
+									Проекты
+								</h2>
 
-									const projReportsTime = internalReports
-										?.filter(
-											(report) =>
-												report[ReportCodes.project] ===
-												Number(project.projectId),
-										)
-										.reduce((acc, report) => {
-											if (report[ReportCodes.timeSpent]) {
-												acc += +report[ReportCodes.timeSpent];
-											}
+								<div className={styles.projectsList}>
+									{projects.map((project) => {
+										const projTasks = tasksByProject?.[project.projectId];
 
-											return acc;
-										}, 0);
+										const activity = getTasksInWork(projTasks);
 
-									const projReportsTimeExternal = externalReports
-										?.filter(
-											(report) =>
-												report[ReportCodes.project] ===
-												Number(project.projectId),
-										)
-										.reduce((acc, report) => {
-											if (report[ReportCodes.timeSpent]) {
-												acc += +report[ReportCodes.timeSpent];
-											}
+										const projReportsTime = 0;
 
-											return acc;
-										}, 0);
+										const projReportsTimeExternal = 0;
 
-									return (
-										<div key={project.id} className={styles.projectCard}>
-											<div className={styles.projectTop}>
-												<div className={styles.projectMainInfo}>
-													<div className={styles.projectTitleRow}>
-														<h3 className={styles.projectTitle}>
-															{project.title}
-														</h3>
+										return (
+											<div key={project.id} className={styles.projectCard}>
+												<div className={styles.projectTop}>
+													<div className={styles.projectMainInfo}>
+														<div className={styles.projectTitleRow}>
+															<h3 className={styles.projectTitle}>
+																{project.title}
+															</h3>
 
-														{projTasks && (
-															<span
-																className={`${styles.activityBadge} ${
-																	activity.type === "active"
-																		? styles.activityActive
-																		: activity.type === "warning"
-																			? styles.activityWarning
-																			: styles.activityIdle
-																}`}
-															>
-																{getProjectStatus(projTasks)}
-															</span>
+															{projTasks && (
+																<span
+																	className={`${styles.activityBadge} ${
+																		activity.type === "active"
+																			? styles.activityActive
+																			: activity.type === "warning"
+																				? styles.activityWarning
+																				: styles.activityIdle
+																	}`}
+																>
+																	{getProjectStatus(projTasks)}
+																</span>
+															)}
+														</div>
+													</div>
+												</div>
+												<div className={styles.projectBody}>
+													<div className={styles.infoTileLabel}>
+														{"Кол-во часов по задачам:"}{" "}
+													</div>
+													<div className={styles.infoTileValue}>
+														{projTasks?.reduce((acc, task) => {
+															return acc + +(task[TaskCodes.hours] ?? 0);
+														}, 0)}
+													</div>
+
+													<div className={styles.infoTileLabel}>
+														Кол-во по коммуникациям:
+													</div>
+													<div className={styles.infoTileValue}>
+														{getFixedNumber(
+															projReportsTime + projReportsTimeExternal,
 														)}
 													</div>
 												</div>
 											</div>
-											<div className={styles.projectBody}>
-												<div className={styles.infoTileLabel}>
-													{"Кол-во часов по задачам:"}{" "}
-												</div>
-												<div className={styles.infoTileValue}>
-													{projTasks?.reduce((acc, task) => {
-														return acc + +(task[TaskCodes.hours] ?? 0);
-													}, 0)}
-												</div>
-
-												<div className={styles.infoTileLabel}>
-													Кол-во по коммуникациям:
-												</div>
-												<div className={styles.infoTileValue}>
-													{getFixedNumber(
-														projReportsTime + projReportsTimeExternal,
-													)}
-												</div>
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						</div>
-					)}
-
-					{isTeamExists && (
-						<div className={styles.sectionCard}>
-							<h2 className={styles.sectionTitle}>Команда</h2>
-
-							{team.map((item) => (
-								<div
-									style={{
-										textAlign: "left",
-									}}
-									key={item.roleCode}
-									className={styles.infoTile}
-								>
-									<div className={styles.infoTileLabel}>
-										{item.roleCode === "pm"
-											? "PM"
-											: item.roleCode === "analytic"
-												? "Аналитик"
-												: item.roleCode === "qa"
-													? "QA"
-													: "Разработчики"}
-									</div>
-									{item.users.map((user) => (
-										<div key={user.ID} className={styles.infoTileValue}>
-											{`${user.NAME} ${user.LAST_NAME}`}
-										</div>
-									))}
+										);
+									})}
 								</div>
-							))}
-						</div>
-					)}
+							</div>
+						)}
+
+						{isTeamExists && (
+							<div className={styles.sectionCard}>
+								<h2 className={styles.sectionTitle}>Команда</h2>
+
+								{team.map((item) => (
+									<div
+										style={{
+											textAlign: "left",
+										}}
+										key={item.roleCode}
+										className={styles.infoTile}
+									>
+										<div className={styles.infoTileLabel}>
+											{item.roleCode === "pm"
+												? "PM"
+												: item.roleCode === "analytic"
+													? "Аналитик"
+													: item.roleCode === "qa"
+														? "QA"
+														: "Разработчики"}
+										</div>
+										{item.users.map((user, index) => (
+											<div
+												key={getTeamUserKey(user, index)}
+												className={styles.infoTileValue}
+											>
+												{getTeamUserName(user)}
+											</div>
+										))}
+									</div>
+								))}
+							</div>
+						)}
+					</div>
 				</div>
 			</div>
-
-			<Modal
-				isOpen={open}
-				onClose={() => setOpen(false)}
-				innerScroll
-				size="full"
-			>
-				<TaskList
-					tasks={taskList}
-					normalizedProjects={normalizedProjects}
-					clientsProjects={projects}
-				/>
-			</Modal>
-		</div>
+		</CheckPermission>
 	);
 };
 

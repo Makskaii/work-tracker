@@ -52,7 +52,7 @@ export enum TaskCodes {
 	hours = "ufCrm14_1776177413413",
 	deadline = "ufCrm14_1775128557733",
 	company = "ufCrm14_1775127945",
-	parentprojec = "PARENT_ID_1092",
+	parentproject = "parentId1092",
 	taskType = "ufCrm14_1775231676",
 }
 

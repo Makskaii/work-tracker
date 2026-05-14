@@ -1,7 +1,4 @@
-import {
-	TaskCodes,
-	TaskCodes as UserCodes,
-} from "../../components/calendar/constants/const";
+import { TaskCodes } from "../../components/calendar/constants/const";
 import type { TaskProps } from "../types/types";
 
 export const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
@@ -42,16 +39,19 @@ export const TASK_SELECT_FIELDS = [
 	"stageId",
 	"createdBy",
 	"movedTime",
-	UserCodes.client,
-	UserCodes.estimateTime,
-	UserCodes.description,
-	UserCodes.stage,
-	UserCodes.comment,
-	UserCodes.reportDate,
-	UserCodes.timeSpent,
-	UserCodes.sprintDateStart,
-	UserCodes.project,
-	UserCodes.linkedTasks,
+	TaskCodes.client,
+	TaskCodes.estimateTime,
+	TaskCodes.description,
+	TaskCodes.stage,
+	TaskCodes.comment,
+	TaskCodes.reportDate,
+	TaskCodes.timeSpent,
+	TaskCodes.sprintDateStart,
+	TaskCodes.project,
+	TaskCodes.linkedTasks,
+	TaskCodes.hours,
+	TaskCodes.deadline,
+	TaskCodes.parentproject,
 ] as const;
 
 export const statsFields: {

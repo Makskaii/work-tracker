@@ -38,8 +38,9 @@ export type Activity = {
 
 export type ProjectFromList = {
 	id: string;
-	name: string;
-	projectId: string;
+	title: string;
+	[ClientsCodes.client]: string;
+	name?: string;
 };
 
 const getSinglePropertyValue = (
@@ -58,10 +59,10 @@ export const mapProjectsFromList = (
 	return items
 		.map((element) => ({
 			id: String(element.ID),
-			name: String(element.NAME ?? ""),
-			projectId: getSinglePropertyValue(element.PROPERTY_87),
+			title: String(element.NAME ?? ""),
+			[ClientsCodes.client]: getSinglePropertyValue(element.PROPERTY_87),
 		}))
-		.filter((item) => item.projectId);
+		.filter((item) => item[ClientsCodes.client]);
 };
 
 const ReportsPage = () => {
@@ -182,7 +183,7 @@ const ReportsPage = () => {
 
 							const matchedProject = projectsFromList.find(
 								(listProject) =>
-									listProject.name.trim().toLowerCase() === projectTitle,
+									listProject.title.trim().toLowerCase() === projectTitle,
 							);
 
 							return {

@@ -7,7 +7,6 @@ import {
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Modal } from "@/components/modal";
 import { TaskView } from "@/components/taskItem/TaskView";
-import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
@@ -52,7 +51,6 @@ type TaskListProps = {
 	tasks: TaskProps[];
 	onTaskClick?: (task: TaskProps) => void;
 	className?: string;
-	normalizedProjects?: ProjectFromList[];
 	clientsProjects?: ClientProjectProps[];
 	isProject?: boolean;
 	view: ViewMode;
@@ -83,9 +81,9 @@ const compareDates = (a?: string, b?: string) => {
 
 const getProjectNameByTask = (
 	task: TaskProps,
-	normalizedProjects?: ProjectFromList[],
+	normalizedProjects?: ClientProjectProps[],
 ) => {
-	const rawProjectId = task[TaskCodes.project];
+	const rawProjectId = task[TaskCodes.parentproject];
 	const projectId = rawProjectId ? String(rawProjectId) : "unknown";
 
 	if (projectId === "unknown") {
@@ -93,16 +91,16 @@ const getProjectNameByTask = (
 	}
 
 	return (
-		normalizedProjects?.find((proj) => proj.id === projectId)?.name ??
+		normalizedProjects?.find((proj) => proj.id === Number(projectId))?.title ??
 		"Без названия"
 	);
 };
 
 const prepareTaskRow = (
 	task: TaskProps,
-	normalizedProjects?: ProjectFromList[],
+	normalizedProjects?: ClientProjectProps[],
 ): PreparedTaskRow => {
-	const rawProjectId = task[TaskCodes.project];
+	const rawProjectId = task[TaskCodes.parentproject];
 	const projectId = rawProjectId ? String(rawProjectId) : "unknown";
 
 	return {
@@ -261,7 +259,6 @@ const EmptyState = () => (
 export const TaskListByProject = ({
 	tasks,
 	className,
-	normalizedProjects,
 	clientsProjects,
 	isProject = false,
 	view,
@@ -274,13 +271,6 @@ export const TaskListByProject = ({
 		key: null,
 		direction: null,
 	});
-
-	const projectsWithActualIds = clientsProjects?.map((project) => ({
-		...project,
-		projectId:
-			normalizedProjects?.find((proj) => Number(proj.projectId) === project.id)
-				?.id ?? "",
-	}));
 
 	const handleSort = (key: SortKey) => {
 		setSort((prev) => {
@@ -305,10 +295,8 @@ export const TaskListByProject = ({
 	}, [tasks, filters]);
 
 	const preparedRows = useMemo(() => {
-		return filteredTasks.map((task) =>
-			prepareTaskRow(task, normalizedProjects),
-		);
-	}, [filteredTasks, normalizedProjects]);
+		return filteredTasks.map((task) => prepareTaskRow(task, clientsProjects));
+	}, [filteredTasks, clientsProjects]);
 
 	const sortedRows = useMemo(() => {
 		return sortPreparedRows(preparedRows, sort);
@@ -347,10 +335,16 @@ export const TaskListByProject = ({
 		setActiveTask(task);
 		setOpenTask(true);
 	};
-
+	console.log({
+		clientsProjects,
+		tasks,
+		preparedRows,
+		sortedRows,
+		groupedTasks,
+	});
 	const renderTaskRow = (task: TaskProps) => {
 		const taskStatus = getTaskStatus(task);
-		const projectName = getProjectNameByTask(task, normalizedProjects);
+		const projectName = getProjectNameByTask(task, clientsProjects);
 
 		return (
 			<div
@@ -413,7 +407,7 @@ export const TaskListByProject = ({
 			<TaskFilters
 				value={filters}
 				onChange={setFilters}
-				projectOptions={projectsWithActualIds ?? []}
+				projectOptions={clientsProjects ?? []}
 				total={tasks.length}
 				filteredTotal={filteredTasks.length}
 				isProjectPage={isProject}

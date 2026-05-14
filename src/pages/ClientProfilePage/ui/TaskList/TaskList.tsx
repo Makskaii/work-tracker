@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Modal } from "@/components/modal";
 import { TaskView } from "@/components/taskItem/TaskView";
-import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
 import { getTaskStatus } from "../ProjectPage/ProjectTaskCard";
@@ -13,7 +12,7 @@ type TaskListProps = {
 	tasks: TaskProps[];
 	onTaskClick?: (task: TaskProps) => void;
 	className?: string;
-	normalizedProjects?: ProjectFromList[];
+	projects?: ClientProjectProps[];
 	clientsProjects?: ClientProjectProps[];
 	isProject?: boolean;
 };
@@ -29,7 +28,7 @@ const DEFAULT_FILTERS: TaskFilterValues = {
 export const TaskList = ({
 	tasks,
 	className,
-	normalizedProjects,
+	projects,
 	clientsProjects,
 	isProject = false,
 }: TaskListProps) => {
@@ -38,13 +37,6 @@ export const TaskList = ({
 	const [openTask, setOpenTask] = useState<boolean>(false);
 
 	const [activeTask, setActiveTask] = useState<TaskProps | null>(null);
-
-	const projectsWithActualIds = clientsProjects?.map((project) => ({
-		...project,
-		projectId:
-			normalizedProjects?.find((proj) => Number(proj.projectId) === project.id)
-				?.id ?? "",
-	}));
 
 	const filteredTasks = useMemo(() => {
 		return tasks.filter((task) => {
@@ -76,7 +68,7 @@ export const TaskList = ({
 			<TaskFilters
 				value={filters}
 				onChange={setFilters}
-				projectOptions={projectsWithActualIds ?? []}
+				projectOptions={clientsProjects ?? []}
 				total={tasks.length}
 				filteredTotal={filteredTasks.length}
 				isProjectPage={isProject}
@@ -153,10 +145,10 @@ export const TaskList = ({
 												<div className={cls.cell}>
 													{task[TaskCodes.project] ? (
 														<span className={cls.badge}>
-															{normalizedProjects?.find(
+															{projects?.find(
 																(proj) =>
-																	proj.id === String(task[TaskCodes.project]),
-															)?.name ?? ""}
+																	proj.id === Number(task[TaskCodes.project]),
+															)?.title ?? ""}
 														</span>
 													) : (
 														<span className={cls.emptyValue}>—</span>
