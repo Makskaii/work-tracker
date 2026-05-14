@@ -174,7 +174,7 @@ const ClientProfile = () => {
 
 	const [clientData, setClientData] = useState<ClientListItems>();
 
-	const { clientId } = useParams<{ clientId: string }>();
+	const { companyId } = useParams<{ companyId: string }>();
 
 	const { setPeriod, start, end, period, goNext, goPrev } = usePeriodBorders(
 		"week",
@@ -229,8 +229,7 @@ const ClientProfile = () => {
 			const response = await $api.get(Endpoints.item, {
 				params: {
 					entityTypeId: EntityTypeIds.companies,
-
-					id: clientId,
+					id: companyId,
 				},
 			});
 
@@ -238,7 +237,7 @@ const ClientProfile = () => {
 		};
 
 		fetchCompany();
-	}, [clientId]);
+	}, [companyId]);
 
 	const { data } = useLoadAllData<TaskProps>({
 		initialEndpoint: Endpoints.crmItems,
@@ -246,7 +245,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
-					[TaskCodes.company]: clientId,
+					[TaskCodes.company]: companyId,
 					">=createdTime": "2026-04-01",
 				},
 				select: TASK_SELECT_FIELDS,
@@ -275,7 +274,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
-					[TaskCodes.client]: clientId,
+					[TaskCodes.client]: companyId,
 					[`>=${TaskCodes.sprintDateStart}`]: start,
 					[`<=${TaskCodes.sprintDateStart}`]: end,
 				},
@@ -294,7 +293,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "402",
 					">=begindate": start,
 					"<=begindate": end,
@@ -327,7 +326,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "417",
 					">=begindate": start,
 					"<=begindate": end,
@@ -355,7 +354,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
-					[TaskCodes.client]: clientId,
+					[TaskCodes.client]: companyId,
 					[`>=${TaskCodes.sprintDateStart}`]: start,
 					[`<=${TaskCodes.sprintDateStart}`]: end,
 				},
@@ -367,7 +366,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "402",
 					">=begindate": start,
 					"<=begindate": end,
@@ -393,7 +392,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "402",
 					">=begindate": start,
 					"<=begindate": end,
@@ -414,7 +413,7 @@ const ClientProfile = () => {
 				],
 			},
 		});
-	}, [start, end, clientId, setFilters, setForExternal, setForInternal]);
+	}, [start, end, companyId, setFilters, setForExternal, setForInternal]);
 
 	const totalTime = taskFromPeriod.reduce((acc, task) => {
 		if (task[TaskCodes.hours]) {
@@ -469,7 +468,7 @@ const ClientProfile = () => {
 
 	useEffect(() => {
 		const fetchProjects = async () => {
-			if (!clientId) return;
+			if (!companyId) return;
 
 			try {
 				setLoading(true);
@@ -478,7 +477,7 @@ const ClientProfile = () => {
 				const response = await getItems<ClientProjectProps>({
 					typeId: EntityTypeIds.projects,
 					filters: {
-						[ClientsCodes.client]: clientId,
+						[ClientsCodes.client]: companyId,
 					},
 				});
 
@@ -498,12 +497,14 @@ const ClientProfile = () => {
 		};
 
 		fetchProjects();
-	}, [clientId]);
+	}, [companyId]);
 
-	if (!clientId) return null;
+	const isTeamExists = team.filter((item) => item.users.length > 0).length > 0;
+
+	if (!companyId) return null;
 
 	return (
-		// <CheckPermission permission="read" subject={`client-profile-${clientId}`}>
+		// <CheckPermission permission="read" subject={`client-profile-${companyId}`}>
 		<div className={styles.page}>
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
@@ -656,7 +657,7 @@ const ClientProfile = () => {
 												[styles.loadingPulse]: loadingReport,
 											})}
 											onClick={async () =>
-												await getReportPdf(clientId, start, end)
+												await getReportPdf(companyId, start, end)
 											}
 										>
 											{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
@@ -813,7 +814,7 @@ const ClientProfile = () => {
 						</div>
 					)}
 
-					{team.length > 0 && (
+					{isTeamExists && (
 						<div className={styles.sectionCard}>
 							<h2 className={styles.sectionTitle}>Команда</h2>
 

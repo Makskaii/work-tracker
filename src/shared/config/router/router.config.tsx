@@ -154,7 +154,7 @@ export const router = createBrowserRouter(
 					element: <PublicOnlyRoute />,
 					children: [
 						{
-							path: "/client-profile/:clientId",
+							path: "/client-profile/:companyId",
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<ClientProfile />
