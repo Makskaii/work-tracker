@@ -101,7 +101,11 @@ export const CreateModal = ({
 	});
 
 	return (
-		<Modal isOpen={clientForm} onClose={() => setClientForm(false)} closeOnBackdropClick={false}>
+		<Modal
+			isOpen={clientForm}
+			onClose={() => setClientForm(false)}
+			closeOnBackdropClick={false}
+		>
 			<div
 				style={{
 					display: "flex",
