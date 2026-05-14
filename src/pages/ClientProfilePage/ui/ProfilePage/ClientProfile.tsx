@@ -24,10 +24,8 @@ import {
 import { SegmentedControl } from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { periodLabelMap } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
-import {
-	getClientsFromList,
-	getProjectsFromList,
-} from "@/shared/api/getCrmFields";
+import { getProjectsFromList } from "@/shared/api/getCrmFields";
+import { $api } from "@/shared/config";
 import {
 	ClientsCodes,
 	Endpoints,
@@ -167,6 +165,7 @@ const ClientProfile = () => {
 	const [normalizedProjects, setNormalizedProjects] = useState<
 		ProjectFromList[]
 	>([]);
+
 	const [_loading, setLoading] = useState(false);
 
 	const [_error, setError] = useState<string | null>(null);
@@ -175,7 +174,7 @@ const ClientProfile = () => {
 
 	const [clientData, setClientData] = useState<ClientListItems>();
 
-	const { clientId } = useParams<{ clientId: string }>();
+	const { companyId } = useParams<{ companyId: string }>();
 
 	const { setPeriod, start, end, period, goNext, goPrev } = usePeriodBorders(
 		"week",
@@ -225,13 +224,28 @@ const ClientProfile = () => {
 	// 	}
 	// };
 
+	useEffect(() => {
+		const fetchCompany = async () => {
+			const response = await $api.get(Endpoints.item, {
+				params: {
+					entityTypeId: EntityTypeIds.companies,
+					id: companyId,
+				},
+			});
+
+			setClientData(response.data.result.item);
+		};
+
+		fetchCompany();
+	}, [companyId]);
+
 	const { data } = useLoadAllData<TaskProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
-					[TaskCodes.client]: clientId,
+					[TaskCodes.company]: companyId,
 					">=createdTime": "2026-04-01",
 				},
 				select: TASK_SELECT_FIELDS,
@@ -260,7 +274,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
-					[TaskCodes.client]: clientId,
+					[TaskCodes.client]: companyId,
 					[`>=${TaskCodes.sprintDateStart}`]: start,
 					[`<=${TaskCodes.sprintDateStart}`]: end,
 				},
@@ -279,7 +293,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "402",
 					">=begindate": start,
 					"<=begindate": end,
@@ -312,7 +326,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "417",
 					">=begindate": start,
 					"<=begindate": end,
@@ -340,7 +354,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.tasks,
 				filter: {
-					[TaskCodes.client]: clientId,
+					[TaskCodes.client]: companyId,
 					[`>=${TaskCodes.sprintDateStart}`]: start,
 					[`<=${TaskCodes.sprintDateStart}`]: end,
 				},
@@ -352,7 +366,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "402",
 					">=begindate": start,
 					"<=begindate": end,
@@ -378,7 +392,7 @@ const ClientProfile = () => {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
 				filter: {
-					[ReportCodes.client]: clientId,
+					[ReportCodes.client]: companyId,
 					[ReportCodes.activityType]: "402",
 					">=begindate": start,
 					"<=begindate": end,
@@ -399,7 +413,7 @@ const ClientProfile = () => {
 				],
 			},
 		});
-	}, [start, end, clientId, setFilters, setForExternal, setForInternal]);
+	}, [start, end, companyId, setFilters, setForExternal, setForInternal]);
 
 	const totalTime = taskFromPeriod.reduce((acc, task) => {
 		if (task[TaskCodes.hours]) {
@@ -454,7 +468,7 @@ const ClientProfile = () => {
 
 	useEffect(() => {
 		const fetchProjects = async () => {
-			if (!clientId) return;
+			if (!companyId) return;
 
 			try {
 				setLoading(true);
@@ -463,7 +477,7 @@ const ClientProfile = () => {
 				const response = await getItems<ClientProjectProps>({
 					typeId: EntityTypeIds.projects,
 					filters: {
-						[ClientsCodes.client]: clientId,
+						[ClientsCodes.client]: companyId,
 					},
 				});
 
@@ -472,10 +486,6 @@ const ClientProfile = () => {
 				const normalizedProjects = mapProjectsFromList(projectsList);
 
 				setNormalizedProjects(normalizedProjects);
-
-				const fetchclientData = await getClientsFromList();
-
-				setClientData(fetchclientData.find((client) => client.ID === clientId));
 
 				setProjects(response ?? []);
 			} catch (err) {
@@ -487,12 +497,14 @@ const ClientProfile = () => {
 		};
 
 		fetchProjects();
-	}, [clientId]);
+	}, [companyId]);
 
-	if (!clientId) return null;
+	const isTeamExists = team.filter((item) => item.users.length > 0).length > 0;
+
+	if (!companyId) return null;
 
 	return (
-		// <CheckPermission permission="read" subject={`client-profile-${clientId}`}>
+		// <CheckPermission permission="read" subject={`client-profile-${companyId}`}>
 		<div className={styles.page}>
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
@@ -509,7 +521,7 @@ const ClientProfile = () => {
 
 					<div className={styles.clientBlock}>
 						<h1 className={styles.clientTitle}>
-							{clientData?.NAME ?? <Spinner onlySpin />}
+							{clientData?.title ?? <Spinner onlySpin />}
 						</h1>
 					</div>
 				</div>
@@ -645,7 +657,7 @@ const ClientProfile = () => {
 												[styles.loadingPulse]: loadingReport,
 											})}
 											onClick={async () =>
-												await getReportPdf(clientId, start, end)
+												await getReportPdf(companyId, start, end)
 											}
 										>
 											{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
@@ -707,124 +719,131 @@ const ClientProfile = () => {
 				<div className={styles.sideColumn}>
 					<UpcomingMeetings />
 
-					<div className={styles.sectionCard}>
-						<h2
-							style={{
-								textAlign: "left",
-							}}
-						>
-							Проекты
-						</h2>
-						<div className={styles.projectsList}>
-							{projectsWithActualIds.map((project) => {
-								const projTasks = tasksByProject?.[project.projectId];
+					{projectsWithActualIds.length > 0 && (
+						<div className={styles.sectionCard}>
+							<h2
+								style={{
+									textAlign: "left",
+								}}
+							>
+								Проекты
+							</h2>
 
-								const activity = getTasksInWork(projTasks);
+							<div className={styles.projectsList}>
+								{projectsWithActualIds.map((project) => {
+									const projTasks = tasksByProject?.[project.projectId];
 
-								const projReportsTime = internalReports
-									?.filter(
-										(report) =>
-											report[ReportCodes.project] === Number(project.projectId),
-									)
-									.reduce((acc, report) => {
-										if (report[ReportCodes.timeSpent]) {
-											acc += +report[ReportCodes.timeSpent];
-										}
+									const activity = getTasksInWork(projTasks);
 
-										return acc;
-									}, 0);
+									const projReportsTime = internalReports
+										?.filter(
+											(report) =>
+												report[ReportCodes.project] ===
+												Number(project.projectId),
+										)
+										.reduce((acc, report) => {
+											if (report[ReportCodes.timeSpent]) {
+												acc += +report[ReportCodes.timeSpent];
+											}
 
-								const projReportsTimeExternal = externalReports
-									?.filter(
-										(report) =>
-											report[ReportCodes.project] === Number(project.projectId),
-									)
-									.reduce((acc, report) => {
-										if (report[ReportCodes.timeSpent]) {
-											acc += +report[ReportCodes.timeSpent];
-										}
+											return acc;
+										}, 0);
 
-										return acc;
-									}, 0);
+									const projReportsTimeExternal = externalReports
+										?.filter(
+											(report) =>
+												report[ReportCodes.project] ===
+												Number(project.projectId),
+										)
+										.reduce((acc, report) => {
+											if (report[ReportCodes.timeSpent]) {
+												acc += +report[ReportCodes.timeSpent];
+											}
 
-								return (
-									<div key={project.id} className={styles.projectCard}>
-										<div className={styles.projectTop}>
-											<div className={styles.projectMainInfo}>
-												<div className={styles.projectTitleRow}>
-													<h3 className={styles.projectTitle}>
-														{project.title}
-													</h3>
+											return acc;
+										}, 0);
 
-													{projTasks && (
-														<span
-															className={`${styles.activityBadge} ${
-																activity.type === "active"
-																	? styles.activityActive
-																	: activity.type === "warning"
-																		? styles.activityWarning
-																		: styles.activityIdle
-															}`}
-														>
-															{getProjectStatus(projTasks)}
-														</span>
+									return (
+										<div key={project.id} className={styles.projectCard}>
+											<div className={styles.projectTop}>
+												<div className={styles.projectMainInfo}>
+													<div className={styles.projectTitleRow}>
+														<h3 className={styles.projectTitle}>
+															{project.title}
+														</h3>
+
+														{projTasks && (
+															<span
+																className={`${styles.activityBadge} ${
+																	activity.type === "active"
+																		? styles.activityActive
+																		: activity.type === "warning"
+																			? styles.activityWarning
+																			: styles.activityIdle
+																}`}
+															>
+																{getProjectStatus(projTasks)}
+															</span>
+														)}
+													</div>
+												</div>
+											</div>
+											<div className={styles.projectBody}>
+												<div className={styles.infoTileLabel}>
+													{"Кол-во часов по задачам:"}{" "}
+												</div>
+												<div className={styles.infoTileValue}>
+													{projTasks?.reduce((acc, task) => {
+														return acc + +(task[TaskCodes.hours] ?? 0);
+													}, 0)}
+												</div>
+
+												<div className={styles.infoTileLabel}>
+													Кол-во по коммуникациям:
+												</div>
+												<div className={styles.infoTileValue}>
+													{getFixedNumber(
+														projReportsTime + projReportsTimeExternal,
 													)}
 												</div>
 											</div>
 										</div>
-										<div className={styles.projectBody}>
-											<div className={styles.infoTileLabel}>
-												{"Кол-во часов по задачам:"}{" "}
-											</div>
-											<div className={styles.infoTileValue}>
-												{projTasks?.reduce((acc, task) => {
-													return acc + +(task[TaskCodes.hours] ?? 0);
-												}, 0)}
-											</div>
-
-											<div className={styles.infoTileLabel}>
-												Кол-во по коммуникациям:
-											</div>
-											<div className={styles.infoTileValue}>
-												{getFixedNumber(
-													projReportsTime + projReportsTimeExternal,
-												)}
-											</div>
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					</div>
-
-					<div className={styles.sectionCard}>
-						<h2 className={styles.sectionTitle}>Команда</h2>
-
-						{team.map((item) => (
-							<div
-								style={{
-									textAlign: "left",
-								}}
-								key={item.roleCode}
-								className={styles.infoTile}
-							>
-								<div className={styles.infoTileLabel}>
-									{item.roleCode === "pm"
-										? "PM"
-										: item.roleCode === "analytic"
-											? "Аналитик"
-											: item.roleCode === "qa"
-												? "QA"
-												: "Разработчики"}
-								</div>
-								{item.users.map((user) => (
-									<div key={user.ID} className={styles.infoTileValue}>
-										{`${user.NAME} ${user.LAST_NAME}`}
-									</div>
-								))}
+									);
+								})}
 							</div>
-						))}
-					</div>
+						</div>
+					)}
+
+					{isTeamExists && (
+						<div className={styles.sectionCard}>
+							<h2 className={styles.sectionTitle}>Команда</h2>
+
+							{team.map((item) => (
+								<div
+									style={{
+										textAlign: "left",
+									}}
+									key={item.roleCode}
+									className={styles.infoTile}
+								>
+									<div className={styles.infoTileLabel}>
+										{item.roleCode === "pm"
+											? "PM"
+											: item.roleCode === "analytic"
+												? "Аналитик"
+												: item.roleCode === "qa"
+													? "QA"
+													: "Разработчики"}
+									</div>
+									{item.users.map((user) => (
+										<div key={user.ID} className={styles.infoTileValue}>
+											{`${user.NAME} ${user.LAST_NAME}`}
+										</div>
+									))}
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 			</div>
 

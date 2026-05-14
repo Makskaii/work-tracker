@@ -253,7 +253,7 @@ const EmptyState = () => (
 	<div className={cls.emptyState}>
 		<div className={cls.emptyTitle}>Ничего не найдено</div>
 		<div className={cls.emptyText}>
-			Попробуй изменить фильтры или строку поиска.
+			Попробуйте изменить фильтры или строку поиска.
 		</div>
 	</div>
 );

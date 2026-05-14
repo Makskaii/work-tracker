@@ -24,13 +24,18 @@ export enum ReportCodes {
 	activityType = "ufCrm11_1774427281",
 	parentId = "parentId1072",
 	show = "ufCrm11_1776177558677",
+	company = "ufCrm11_1775128268",
+	parentproject = "ufCrm11_1775128299",
+	taskType = "ufCrm11_1778666750123",
 }
 
 export enum ProjectCodes {
-	pm = "ufCrm20_1777028465",
+	pm = "ASSIGNED_BY_ID",
 	analytic = "ufCrm20_1777028495",
 	devs = "ufCrm20_1777028537",
 	qa = "ufCrm20_1777028582",
+	company = "ufCrm20_177487974",
+	parentproject = "ufCrm20_1774856819",
 }
 
 export enum TaskCodes {
@@ -46,6 +51,9 @@ export enum TaskCodes {
 	linkedTasks = "ufCrm14_1775462592",
 	hours = "ufCrm14_1776177413413",
 	deadline = "ufCrm14_1775128557733",
+	company = "ufCrm14_1775127945",
+	parentprojec = "PARENT_ID_1092",
+	taskType = "ufCrm14_1775231676",
 }
 
 export enum ActivityType {

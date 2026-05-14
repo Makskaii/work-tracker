@@ -11,6 +11,8 @@ export type AnyObject = {
 export type ClientListItems = {
 	ID: string;
 	NAME: string;
+	id?: string;
+	title?: string;
 };
 
 export type ProjectListDto = {
