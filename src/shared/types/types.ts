@@ -2,7 +2,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
-import { TaskCodes as UserCodes } from "../../components/calendar/constants/const";
+import { TaskCodes } from "../../components/calendar/constants/const";
 import type { ClientsCodes } from "../constants/const";
 export type AnyObject = {
 	[key: string]: any;
@@ -50,15 +50,18 @@ export interface TaskProps {
 	lastActivityTime: string;
 	stageId: string;
 	movedTime: string;
-	[UserCodes.client]: number;
-	[UserCodes.estimateTime]: string;
-	[UserCodes.description]: string;
-	[UserCodes.stage]: string;
-	[UserCodes.timeSpent]: string;
-	[UserCodes.project]: string;
-	[UserCodes.linkedTasks]?: number[];
-	[UserCodes.hours]: number;
-	[UserCodes.deadline]: string;
+	[TaskCodes.client]: number;
+	[TaskCodes.estimateTime]: string;
+	[TaskCodes.description]: string;
+	[TaskCodes.stage]: string;
+	[TaskCodes.timeSpent]: string;
+	[TaskCodes.sprintDateStart]: string;
+	[TaskCodes.project]: string;
+	[TaskCodes.linkedTasks]?: number[];
+	[TaskCodes.hours]: number;
+	[TaskCodes.deadline]: string;
+	[TaskCodes.comment]: string;
+	[TaskCodes.parentproject]: string;
 }
 
 export interface User {

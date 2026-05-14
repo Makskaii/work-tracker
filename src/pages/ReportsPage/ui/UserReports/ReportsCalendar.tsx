@@ -108,7 +108,7 @@ export const groupReportsByClientsProjectsAndActivities = ({
 		if (!projectGroup) {
 			projectGroup = {
 				projectId,
-				projectTitle: project.name,
+				projectTitle: project.name ?? "Без названия",
 				timeSpent: 0,
 				categories: {
 					0: {
