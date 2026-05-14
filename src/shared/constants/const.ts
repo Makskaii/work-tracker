@@ -52,6 +52,8 @@ export const TASK_SELECT_FIELDS = [
 	TaskCodes.hours,
 	TaskCodes.deadline,
 	TaskCodes.parentproject,
+	TaskCodes.taskType,
+	TaskCodes.company,
 ] as const;
 
 export const statsFields: {

@@ -83,6 +83,7 @@ export const selectFields = [
 	ReportCodes.activityType,
 	ReportCodes.parentId,
 	ReportCodes.client,
+	ReportCodes.company,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",

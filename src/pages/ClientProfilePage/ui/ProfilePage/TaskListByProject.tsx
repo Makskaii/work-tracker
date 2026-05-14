@@ -132,7 +132,7 @@ const filterTasks = (tasks: TaskProps[], filters: TaskFilterValues) => {
 
 		const matchesProject =
 			filters.project === "all" ||
-			String(task[TaskCodes.project] ?? "") === String(filters.project);
+			String(task[TaskCodes.parentproject] ?? "") === String(filters.project);
 
 		const matchesClient =
 			filters.client === "all" ||
@@ -390,7 +390,7 @@ export const TaskListByProject = ({
 
 					{!isProject && (
 						<div className={cls.cell}>
-							{task[TaskCodes.project] ? (
+							{task[TaskCodes.parentproject] ? (
 								<span className={cls.badge}>{projectName}</span>
 							) : (
 								<span className={cls.emptyValue}>—</span>

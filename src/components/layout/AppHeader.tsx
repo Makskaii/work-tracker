@@ -117,7 +117,7 @@ export const AppHeader = () => {
 									{item.label}
 								</NavLink>
 							) : (
-								<div> {item.label}</div>
+								<div key={item.key}> {item.label}</div>
 							);
 						}
 
