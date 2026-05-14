@@ -298,7 +298,9 @@ export const CreateModal = ({
 									</div>
 								)}
 							<select
-								{...register("crmId")}
+								{...register("crmId", {
+									required: "Обязательное поле",
+								})}
 								style={{
 									width: "100%",
 									padding: "1rem",
