@@ -263,7 +263,7 @@ export const CreateModal = ({
 							<input
 								value={companySearch}
 								onChange={(event) => {
-									setCompanySearch(event.target.value ?? 665);
+									setCompanySearch(event.target.value);
 									setValue("crmId", "", {
 										shouldDirty: true,
 										shouldValidate: true,
@@ -304,9 +304,8 @@ export const CreateModal = ({
 									padding: "1rem",
 									borderRadius: "10px",
 								}}
-								defaultValue={665}
 							>
-								<option value="665">Выберите компанию</option>
+								<option value="">Выберите компанию</option>
 								{companies.map((item) => (
 									<option value={item.id ?? item.id} key={item.id}>
 										{item.name}
