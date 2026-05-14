@@ -19,7 +19,7 @@ import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { PieceStatsEmployeeHrs } from "@/pages/ReportsPage/ui/UserReports/EmployeePieceStatsHrs";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 import { WorkLoad } from "@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad";
-import { PublicOnlyRoute } from "../auth/AuthGuard";
+import { ProtectedRoute, PublicOnlyRoute } from "../auth/AuthGuard";
 import { ClientAuthLayout } from "../auth/ClientAuthLayout";
 
 export const router = createBrowserRouter(
@@ -151,7 +151,7 @@ export const router = createBrowserRouter(
 					],
 				},
 				{
-					element: <PublicOnlyRoute />,
+					element: <ProtectedRoute />,
 					children: [
 						{
 							path: "/client-profile/:companyId",

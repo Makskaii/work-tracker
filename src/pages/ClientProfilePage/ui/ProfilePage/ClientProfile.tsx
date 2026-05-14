@@ -4,7 +4,6 @@ import { FcConferenceCall, FcPlanner } from "react-icons/fc";
 import { MdAddTask } from "react-icons/md";
 import { useParams } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
-import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { Spinner } from "@/components/spinner/Spinner";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import { SegmentedControl } from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
@@ -394,155 +393,155 @@ const ClientProfile = () => {
 	if (!companyId) return null;
 
 	return (
-		<CheckPermission permission="read" subject={`client-profile-${companyId}`}>
-			<div className={styles.page}>
-				<div className={styles.headerCard}>
-					<div className={styles.headerInfo}>
-						<div className={styles.brandBlock}>
-							<img className={styles.brandLogo} src={brandLogo} alt="Логотип" />
+		// <CheckPermission permission="read" subject={`client-profile-${companyId}`}>
+		<div className={styles.page}>
+			<div className={styles.headerCard}>
+				<div className={styles.headerInfo}>
+					<div className={styles.brandBlock}>
+						<img className={styles.brandLogo} src={brandLogo} alt="Логотип" />
 
-							<div className={styles.brandText}>
-								<h1 className={styles.pageTitle}>
-									Evolutions Client&apos;s Desk
-								</h1>
-								<div className={styles.badge}>Кабинет клиента</div>
-							</div>
-						</div>
-
-						<div className={styles.clientBlock}>
-							<h1 className={styles.clientTitle}>
-								{clientData?.title ?? clientData?.NAME ?? <Spinner onlySpin />}
+						<div className={styles.brandText}>
+							<h1 className={styles.pageTitle}>
+								Evolutions Client&apos;s Desk
 							</h1>
-							{error && <div className={styles.badge}>{error}</div>}
+							<div className={styles.badge}>Кабинет клиента</div>
 						</div>
 					</div>
+
+					<div className={styles.clientBlock}>
+						<h1 className={styles.clientTitle}>
+							{clientData?.title ?? clientData?.NAME ?? <Spinner onlySpin />}
+						</h1>
+						{error && <div className={styles.badge}>{error}</div>}
+					</div>
 				</div>
+			</div>
 
-				<div className={styles.content}>
-					<div className={styles.mainColumn}>
-						<div className={styles.sectionCard}>
-							<h2 className={styles.infoTitle}>Общая информация</h2>
+			<div className={styles.content}>
+				<div className={styles.mainColumn}>
+					<div className={styles.sectionCard}>
+						<h2 className={styles.infoTitle}>Общая информация</h2>
 
-							<div className={styles.infoGrid}>
-								<div className={styles.statCard}>
-									<div className={styles.statCardInner}>
-										<FcPlanner className={styles.statIcon} />
+						<div className={styles.infoGrid}>
+							<div className={styles.statCard}>
+								<div className={styles.statCardInner}>
+									<FcPlanner className={styles.statIcon} />
 
-										<div>
-											<div className={styles.statLabel}>План часов</div>
-											<div className={styles.statValue}>
-												{period === "week"
-													? 75
-													: period === "month"
-														? 75 * 4
-														: period === "quarter"
-															? 75 * 12
-															: 75 * 48}{" "}
-												ч.
-											</div>
+									<div>
+										<div className={styles.statLabel}>План часов</div>
+										<div className={styles.statValue}>
+											{period === "week"
+												? 75
+												: period === "month"
+													? 75 * 4
+													: period === "quarter"
+														? 75 * 12
+														: 75 * 48}{" "}
+											ч.
 										</div>
 									</div>
 								</div>
+							</div>
 
-								<div className={styles.statCard}>
-									<div className={styles.statCardInner}>
-										<MdAddTask className={styles.statIconBlue} />
+							<div className={styles.statCard}>
+								<div className={styles.statCardInner}>
+									<MdAddTask className={styles.statIconBlue} />
 
-										<div>
-											<div className={styles.statLabel}>Факт по задачам</div>
-											<div className={styles.statValue}>
-												{loadingStats ? "..." : totalTime} ч.
-											</div>
-											<button type="button" className={styles.detailsButton}>
-												Подробнее
-											</button>
+									<div>
+										<div className={styles.statLabel}>Факт по задачам</div>
+										<div className={styles.statValue}>
+											{loadingStats ? "..." : totalTime} ч.
 										</div>
-									</div>
-								</div>
-
-								<div className={styles.statCard}>
-									<div className={styles.statCardInner}>
-										<FcConferenceCall className={styles.statIcon} />
-
-										<div>
-											<div className={styles.statLabel}>
-												Факт по коммуникациям
-											</div>
-											<div className={styles.statValue}>
-												{loadingStats
-													? "..."
-													: getFixedNumber(
-															commsTotalInternal + commsTotalExternal,
-														)}{" "}
-												ч.
-											</div>
-											<button type="button" className={styles.detailsButton}>
-												Подробнее
-											</button>
-										</div>
-									</div>
-								</div>
-
-								<div className={`${styles.statCard} ${styles.periodCard}`}>
-									<div className={styles.periodHeader}>Период</div>
-
-									<SegmentedControl onChange={setPeriod} value={period} />
-
-									<div className={styles.periodNavigation}>
-										<button
-											type="button"
-											className={styles.periodButton}
-											onClick={() => goPrev()}
-										>
-											пред. {periodLabelMap[period]}
-										</button>
-
-										<div className={styles.periodDates}>
-											{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
-												end,
-											).format("DD.MM.YYYY")}`}
-										</div>
-
-										<button
-											type="button"
-											className={styles.periodButton}
-											onClick={() => goNext()}
-										>
-											след. {periodLabelMap[period]}
+										<button type="button" className={styles.detailsButton}>
+											Подробнее
 										</button>
 									</div>
 								</div>
 							</div>
-						</div>
 
-						<div className={styles.sectionCard}>
-							<div className={styles.sectionHeader}>
+							<div className={styles.statCard}>
+								<div className={styles.statCardInner}>
+									<FcConferenceCall className={styles.statIcon} />
+
+									<div>
+										<div className={styles.statLabel}>
+											Факт по коммуникациям
+										</div>
+										<div className={styles.statValue}>
+											{loadingStats
+												? "..."
+												: getFixedNumber(
+														commsTotalInternal + commsTotalExternal,
+													)}{" "}
+											ч.
+										</div>
+										<button type="button" className={styles.detailsButton}>
+											Подробнее
+										</button>
+									</div>
+								</div>
+							</div>
+
+							<div className={`${styles.statCard} ${styles.periodCard}`}>
+								<div className={styles.periodHeader}>Период</div>
+
+								<SegmentedControl onChange={setPeriod} value={period} />
+
+								<div className={styles.periodNavigation}>
+									<button
+										type="button"
+										className={styles.periodButton}
+										onClick={() => goPrev()}
+									>
+										пред. {periodLabelMap[period]}
+									</button>
+
+									<div className={styles.periodDates}>
+										{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
+											end,
+										).format("DD.MM.YYYY")}`}
+									</div>
+
+									<button
+										type="button"
+										className={styles.periodButton}
+										onClick={() => goNext()}
+									>
+										след. {periodLabelMap[period]}
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className={styles.sectionCard}>
+						<div className={styles.sectionHeader}>
+							<div
+								style={{
+									display: "flex",
+									justifyContent: "space-between",
+									width: "100%",
+								}}
+							>
 								<div
 									style={{
 										display: "flex",
-										justifyContent: "space-between",
-										width: "100%",
+										alignItems: "center",
+										gap: "1rem",
 									}}
 								>
-									<div
+									<h2
 										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "1rem",
+											textAlign: "left",
 										}}
+										className={styles.sectionTitle}
 									>
-										<h2
-											style={{
-												textAlign: "left",
-											}}
-											className={styles.sectionTitle}
-										>
-											Все задачи
-										</h2>
-										<div className={styles.badge}>
-											Задач: {clientStats?.tasks.count ?? tasks.length}{" "}
-										</div>
-										{/* {loadUrl === "" ? (
+										Все задачи
+									</h2>
+									<div className={styles.badge}>
+										Задач: {clientStats?.tasks.count ?? tasks.length}{" "}
+									</div>
+									{/* {loadUrl === "" ? (
 										<button
 											disabled={loadingReport}
 											type="button"
@@ -569,157 +568,156 @@ const ClientProfile = () => {
 											Скачать отчёт
 										</button>
 									)} */}
-									</div>
+								</div>
 
-									<div className={styles.toolbar}>
-										<div className={styles.viewModeSwitcher}>
-											<button
-												type="button"
-												className={classNames(styles.viewModeButton, {
-													[styles.viewModeButtonActive]: viewMode === "list",
-												})}
-												onClick={() => setViewMode("list")}
-											>
-												Режим список
-											</button>
+								<div className={styles.toolbar}>
+									<div className={styles.viewModeSwitcher}>
+										<button
+											type="button"
+											className={classNames(styles.viewModeButton, {
+												[styles.viewModeButtonActive]: viewMode === "list",
+											})}
+											onClick={() => setViewMode("list")}
+										>
+											Режим список
+										</button>
 
-											<button
-												type="button"
-												className={classNames(styles.viewModeButton, {
-													[styles.viewModeButtonActive]:
-														viewMode === "projects",
-												})}
-												onClick={() => setViewMode("projects")}
-											>
-												По проектам
-											</button>
-										</div>
+										<button
+											type="button"
+											className={classNames(styles.viewModeButton, {
+												[styles.viewModeButtonActive]: viewMode === "projects",
+											})}
+											onClick={() => setViewMode("projects")}
+										>
+											По проектам
+										</button>
 									</div>
 								</div>
 							</div>
-
-							<TaskListByProject
-								tasks={tasks}
-								onTaskClick={(task) => {
-									console.log("clicked task", task);
-								}}
-								clientsProjects={projects}
-								view={viewMode}
-							/>
 						</div>
+
+						<TaskListByProject
+							tasks={tasks}
+							onTaskClick={(task) => {
+								console.log("clicked task", task);
+							}}
+							clientsProjects={projects}
+							view={viewMode}
+						/>
 					</div>
+				</div>
 
-					<div className={styles.sideColumn}>
-						<UpcomingMeetings />
+				<div className={styles.sideColumn}>
+					<UpcomingMeetings />
 
-						{projects.length > 0 && (
-							<div className={styles.sectionCard}>
-								<h2
-									style={{
-										textAlign: "left",
-									}}
-								>
-									Проекты
-								</h2>
+					{projects.length > 0 && (
+						<div className={styles.sectionCard}>
+							<h2
+								style={{
+									textAlign: "left",
+								}}
+							>
+								Проекты
+							</h2>
 
-								<div className={styles.projectsList}>
-									{projects.map((project) => {
-										const projTasks = tasksByProject?.[project.projectId];
+							<div className={styles.projectsList}>
+								{projects.map((project) => {
+									const projTasks = tasksByProject?.[project.projectId];
 
-										const activity = getTasksInWork(projTasks);
+									const activity = getTasksInWork(projTasks);
 
-										const projReportsTime = 0;
+									const projReportsTime = 0;
 
-										const projReportsTimeExternal = 0;
+									const projReportsTimeExternal = 0;
 
-										return (
-											<div key={project.id} className={styles.projectCard}>
-												<div className={styles.projectTop}>
-													<div className={styles.projectMainInfo}>
-														<div className={styles.projectTitleRow}>
-															<h3 className={styles.projectTitle}>
-																{project.title}
-															</h3>
+									return (
+										<div key={project.id} className={styles.projectCard}>
+											<div className={styles.projectTop}>
+												<div className={styles.projectMainInfo}>
+													<div className={styles.projectTitleRow}>
+														<h3 className={styles.projectTitle}>
+															{project.title}
+														</h3>
 
-															{projTasks && (
-																<span
-																	className={`${styles.activityBadge} ${
-																		activity.type === "active"
-																			? styles.activityActive
-																			: activity.type === "warning"
-																				? styles.activityWarning
-																				: styles.activityIdle
-																	}`}
-																>
-																	{getProjectStatus(projTasks)}
-																</span>
-															)}
-														</div>
-													</div>
-												</div>
-												<div className={styles.projectBody}>
-													<div className={styles.infoTileLabel}>
-														{"Кол-во часов по задачам:"}{" "}
-													</div>
-													<div className={styles.infoTileValue}>
-														{projTasks?.reduce((acc, task) => {
-															return acc + +(task[TaskCodes.hours] ?? 0);
-														}, 0)}
-													</div>
-
-													<div className={styles.infoTileLabel}>
-														Кол-во по коммуникациям:
-													</div>
-													<div className={styles.infoTileValue}>
-														{getFixedNumber(
-															projReportsTime + projReportsTimeExternal,
+														{projTasks && (
+															<span
+																className={`${styles.activityBadge} ${
+																	activity.type === "active"
+																		? styles.activityActive
+																		: activity.type === "warning"
+																			? styles.activityWarning
+																			: styles.activityIdle
+																}`}
+															>
+																{getProjectStatus(projTasks)}
+															</span>
 														)}
 													</div>
 												</div>
 											</div>
-										);
-									})}
-								</div>
-							</div>
-						)}
+											<div className={styles.projectBody}>
+												<div className={styles.infoTileLabel}>
+													{"Кол-во часов по задачам:"}{" "}
+												</div>
+												<div className={styles.infoTileValue}>
+													{projTasks?.reduce((acc, task) => {
+														return acc + +(task[TaskCodes.hours] ?? 0);
+													}, 0)}
+												</div>
 
-						{isTeamExists && (
-							<div className={styles.sectionCard}>
-								<h2 className={styles.sectionTitle}>Команда</h2>
-
-								{team.map((item) => (
-									<div
-										style={{
-											textAlign: "left",
-										}}
-										key={item.roleCode}
-										className={styles.infoTile}
-									>
-										<div className={styles.infoTileLabel}>
-											{item.roleCode === "pm"
-												? "PM"
-												: item.roleCode === "analytic"
-													? "Аналитик"
-													: item.roleCode === "qa"
-														? "QA"
-														: "Разработчики"}
-										</div>
-										{item.users.map((user, index) => (
-											<div
-												key={getTeamUserKey(user, index)}
-												className={styles.infoTileValue}
-											>
-												{getTeamUserName(user)}
+												<div className={styles.infoTileLabel}>
+													Кол-во по коммуникациям:
+												</div>
+												<div className={styles.infoTileValue}>
+													{getFixedNumber(
+														projReportsTime + projReportsTimeExternal,
+													)}
+												</div>
 											</div>
-										))}
-									</div>
-								))}
+										</div>
+									);
+								})}
 							</div>
-						)}
-					</div>
+						</div>
+					)}
+
+					{isTeamExists && (
+						<div className={styles.sectionCard}>
+							<h2 className={styles.sectionTitle}>Команда</h2>
+
+							{team.map((item) => (
+								<div
+									style={{
+										textAlign: "left",
+									}}
+									key={item.roleCode}
+									className={styles.infoTile}
+								>
+									<div className={styles.infoTileLabel}>
+										{item.roleCode === "pm"
+											? "PM"
+											: item.roleCode === "analytic"
+												? "Аналитик"
+												: item.roleCode === "qa"
+													? "QA"
+													: "Разработчики"}
+									</div>
+									{item.users.map((user, index) => (
+										<div
+											key={getTeamUserKey(user, index)}
+											className={styles.infoTileValue}
+										>
+											{getTeamUserName(user)}
+										</div>
+									))}
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 			</div>
-		</CheckPermission>
+		</div>
+		// </CheckPermission>
 	);
 };
 

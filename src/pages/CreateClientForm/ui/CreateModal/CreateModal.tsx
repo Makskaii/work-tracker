@@ -101,7 +101,11 @@ export const CreateModal = ({
 	});
 
 	return (
-		<Modal isOpen={clientForm} onClose={() => setClientForm(false)} closeOnBackdropClick={false}>
+		<Modal
+			isOpen={clientForm}
+			onClose={() => setClientForm(false)}
+			closeOnBackdropClick={false}
+		>
 			<div
 				style={{
 					display: "flex",
@@ -259,7 +263,7 @@ export const CreateModal = ({
 							<input
 								value={companySearch}
 								onChange={(event) => {
-									setCompanySearch(event.target.value);
+									setCompanySearch(event.target.value ?? 665);
 									setValue("crmId", "", {
 										shouldDirty: true,
 										shouldValidate: true,
@@ -294,16 +298,15 @@ export const CreateModal = ({
 									</div>
 								)}
 							<select
-								{...register("crmId", {
-									required: "Обязательное поле",
-								})}
+								{...register("crmId")}
 								style={{
 									width: "100%",
 									padding: "1rem",
 									borderRadius: "10px",
 								}}
+								defaultValue={665}
 							>
-								<option value="">Выберите компанию</option>
+								<option value="665">Выберите компанию</option>
 								{companies.map((item) => (
 									<option value={item.id ?? item.id} key={item.id}>
 										{item.name}
