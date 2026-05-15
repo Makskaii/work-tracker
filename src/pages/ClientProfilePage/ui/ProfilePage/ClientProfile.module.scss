@@ -150,6 +150,179 @@
     min-width: 0;
 }
 
+.approvalBanner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid #fde68a;
+    border-radius: 16px;
+    background: #fffbeb;
+    box-shadow: 0 10px 24px rgba(180, 83, 9, 0.08);
+    text-align: left;
+}
+
+.approvalBannerHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.approvalBannerTitle {
+    margin: 0;
+    color: #92400e;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.approvalBannerText {
+    margin: 0.3rem 0 0;
+    color: #78350f;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.approvalCounter {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.approvalTaskList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.approvalTaskButton {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #0f172a;
+    cursor: pointer;
+    text-align: left;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.approvalTaskButton:hover,
+.approvalTaskButtonActive {
+    border-color: #f59e0b;
+    background: #fff7ed;
+    box-shadow: 0 4px 12px rgba(180, 83, 9, 0.08);
+}
+
+.approvalTaskTitle {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.approvalTaskHours {
+    flex: 0 0 auto;
+    color: #92400e;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.approvalTaskDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #fde68a;
+}
+
+.approvalDetailsTitle {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.approvalDetailsMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    color: #92400e;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.approvalDescription {
+    max-height: 180px;
+    overflow: auto;
+    color: #475569;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.approvalError {
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.approvalApproveButton {
+    height: 42px;
+    border: 0;
+    border-radius: 8px;
+    background: #16a34a;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 0.92rem;
+    font-weight: 800;
+    transition:
+        background 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.approvalApproveButton:hover {
+    background: #15803d;
+}
+
+.approvalApproveButtonConfirm {
+    background: #b45309;
+}
+
+.approvalApproveButtonConfirm:hover {
+    background: #92400e;
+}
+
+.approvalApproveButton:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
+
 .sectionCard {
     padding: 1.25rem;
     border-radius: 24px;

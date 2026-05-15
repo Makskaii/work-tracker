@@ -45,6 +45,7 @@ export const ClientTaskStatuses = {
 	done: "Done",
 	inWork: "In work",
 	backlog: "Backlog",
+	newProposal: "New proposal",
 	approval: "Approval",
 } as const;
 

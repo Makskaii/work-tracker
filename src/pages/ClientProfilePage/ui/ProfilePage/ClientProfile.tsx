@@ -53,6 +53,10 @@ const getClientTasks = async (statusFilter: TaskStatusFilter = "all") => {
 	return response.data ?? [];
 };
 
+const approveClientTask = async (taskId: string | number) => {
+	await $backendApi.patch(`clients/me/tasks/${taskId}/approve`);
+};
+
 type RoleCode = "pm" | "analytic" | "qa" | "devs";
 
 type ClientTeamUser = {
@@ -193,6 +197,121 @@ const getTeamUserName = (user: ClientTeamUser) => {
 	return [user.name, user.lastName].filter(Boolean).join(" ");
 };
 
+const formatTaskHours = (value?: string | number | null) => {
+	if (value === undefined || value === null || value === "") {
+		return "0 ч.";
+	}
+
+	const numericValue = Number(value);
+
+	if (Number.isNaN(numericValue)) {
+		return `${value} ч.`;
+	}
+
+	return `${getFixedNumber(numericValue)} ч.`;
+};
+
+type ApprovalTasksBannerProps = {
+	tasks: ClientTaskProps[];
+	selectedTask: ClientTaskProps | null;
+	approvingTaskId: string | null;
+	confirmingTaskId: string | null;
+	error: string | null;
+	onSelectTask: (taskId: string) => void;
+	onRequestApproveTask: (taskId: string) => void;
+	onApproveTask: (task: ClientTaskProps) => void;
+};
+
+const ApprovalTasksBanner = ({
+	tasks,
+	selectedTask,
+	approvingTaskId,
+	confirmingTaskId,
+	error,
+	onSelectTask,
+	onRequestApproveTask,
+	onApproveTask,
+}: ApprovalTasksBannerProps) => {
+	if (!tasks.length) {
+		return null;
+	}
+
+	return (
+		<section className={styles.approvalBanner}>
+			<div className={styles.approvalBannerHeader}>
+				<div>
+					<h2 className={styles.approvalBannerTitle}>Задачи требуют внимания</h2>
+					<p className={styles.approvalBannerText}>
+						Подтвердите задачи, которые команда готова взять в работу.
+					</p>
+				</div>
+
+				<span className={styles.approvalCounter}>{tasks.length}</span>
+			</div>
+
+			<div className={styles.approvalTaskList}>
+				{tasks.map((task) => (
+					<button
+						key={task.id}
+						type="button"
+						className={`${styles.approvalTaskButton} ${
+							selectedTask?.id === task.id ? styles.approvalTaskButtonActive : ""
+						}`}
+						onClick={() => onSelectTask(task.id)}
+					>
+						<span className={styles.approvalTaskTitle}>{task.title}</span>
+						<span className={styles.approvalTaskHours}>
+							{formatTaskHours(task[TaskCodes.hours])}
+						</span>
+					</button>
+				))}
+			</div>
+
+			{selectedTask && (
+				<div className={styles.approvalTaskDetails}>
+					<h3 className={styles.approvalDetailsTitle}>{selectedTask.title}</h3>
+
+					<div className={styles.approvalDetailsMeta}>
+						<span>План: {formatTaskHours(selectedTask[TaskCodes.hours])}</span>
+					</div>
+
+					<div className={styles.approvalDescription}>
+						{selectedTask[TaskCodes.description]
+							? String(selectedTask[TaskCodes.description])
+							: "Описание отсутствует"}
+					</div>
+
+					{error && <div className={styles.approvalError}>{error}</div>}
+
+					<button
+						type="button"
+						className={`${styles.approvalApproveButton} ${
+							confirmingTaskId === selectedTask.id
+								? styles.approvalApproveButtonConfirm
+								: ""
+						}`}
+						disabled={approvingTaskId === selectedTask.id}
+						onClick={() => {
+							if (confirmingTaskId !== selectedTask.id) {
+								onRequestApproveTask(selectedTask.id);
+								return;
+							}
+
+							onApproveTask(selectedTask);
+						}}
+					>
+						{approvingTaskId === selectedTask.id
+							? "Подтверждаем..."
+							: confirmingTaskId === selectedTask.id
+								? "Точно подтвердить?"
+							: "Подтвердить"}
+					</button>
+				</div>
+			)}
+		</section>
+	);
+};
+
 export const getTasksInWork = (tasks?: ClientTaskProps[]) => {
 	if (!tasks?.length) {
 		return {
@@ -202,9 +321,7 @@ export const getTasksInWork = (tasks?: ClientTaskProps[]) => {
 	}
 
 	const inWorkTasks = tasks.filter(
-		(task) =>
-			task.status === ClientTaskStatuses.inWork ||
-			task.status === ClientTaskStatuses.approval,
+		(task) => task.status === ClientTaskStatuses.inWork,
 	);
 
 	return {
@@ -218,14 +335,16 @@ const getClientProjectStatus = (tasks?: ClientTaskProps[]) => {
 		return "Отсутствуют задачи";
 	}
 
-	if (
-		tasks.some(
-			(task) =>
-				task.status === ClientTaskStatuses.inWork ||
-				task.status === ClientTaskStatuses.approval,
-		)
-	) {
+	if (tasks.some((task) => task.status === ClientTaskStatuses.approval)) {
+		return "Требует внимания";
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.inWork)) {
 		return "Активен";
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.newProposal)) {
+		return "Новая заявка";
 	}
 
 	if (tasks.some((task) => task.status === ClientTaskStatuses.backlog)) {
@@ -247,6 +366,20 @@ const ClientProfile = () => {
 	const [error, setError] = useState<string | null>(null);
 
 	const [tasks, setTasks] = useState<ClientTaskProps[]>([]);
+
+	const [approvalTasks, setApprovalTasks] = useState<ClientTaskProps[]>([]);
+
+	const [selectedApprovalTaskId, setSelectedApprovalTaskId] = useState<
+		string | null
+	>(null);
+
+	const [approvingTaskId, setApprovingTaskId] = useState<string | null>(null);
+
+	const [confirmingApprovalTaskId, setConfirmingApprovalTaskId] = useState<
+		string | null
+	>(null);
+
+	const [approvalError, setApprovalError] = useState<string | null>(null);
 
 	const [clientStats, setClientStats] = useState<ClientStatsDto>();
 
@@ -272,7 +405,13 @@ const ClientProfile = () => {
 
 	const refreshClientTasks = async () => {
 		const nextTasks = await getClientTasks(taskStatusFilter);
+		const nextApprovalTasks =
+			taskStatusFilter === "approval"
+				? nextTasks
+				: await getClientTasks("approval");
+
 		setTasks(nextTasks);
+		setApprovalTasks(nextApprovalTasks);
 	};
 
 	// const navigate = useNavigate();
@@ -358,9 +497,14 @@ const ClientProfile = () => {
 		const fetchClientTasks = async () => {
 			try {
 				const nextTasks = await getClientTasks(taskStatusFilter);
+				const nextApprovalTasks =
+					taskStatusFilter === "approval"
+						? nextTasks
+						: await getClientTasks("approval");
 
 				if (!ignore) {
 					setTasks(nextTasks);
+					setApprovalTasks(nextApprovalTasks);
 				}
 			} catch (err) {
 				console.error(err);
@@ -429,6 +573,44 @@ const ClientProfile = () => {
 			return String(task[TaskCodes.parentproject] ?? "unknown");
 		});
 	}, [tasks]);
+
+	const selectedApprovalTask = useMemo(() => {
+		if (!approvalTasks.length) {
+			return null;
+		}
+
+		return (
+			approvalTasks.find((task) => task.id === selectedApprovalTaskId) ??
+			approvalTasks[0]
+		);
+	}, [approvalTasks, selectedApprovalTaskId]);
+
+	const handleApproveTask = async (task: ClientTaskProps) => {
+		const numericTaskId = Number(task.id);
+
+		if (!Number.isFinite(numericTaskId)) {
+			setApprovalError("Не удалось определить задачу для подтверждения.");
+			return;
+		}
+
+		try {
+			setApprovalError(null);
+			setApprovingTaskId(task.id);
+
+			await approveClientTask(numericTaskId);
+			await refreshClientTasks();
+
+			setSelectedApprovalTaskId(null);
+			setConfirmingApprovalTaskId(null);
+		} catch (err) {
+			console.error(err);
+			setApprovalError(
+				"Не удалось подтвердить задачу. Попробуйте обновить страницу позже.",
+			);
+		} finally {
+			setApprovingTaskId(null);
+		}
+	};
 
 	// const taskFromPeriod = useMemo(() => {
 	// 	const startDate = dayjs(start).startOf("day").valueOf();
@@ -638,6 +820,24 @@ const ClientProfile = () => {
 				</div>
 
 				<div className={styles.sideColumn}>
+					<ApprovalTasksBanner
+						tasks={approvalTasks}
+						selectedTask={selectedApprovalTask}
+						approvingTaskId={approvingTaskId}
+						confirmingTaskId={confirmingApprovalTaskId}
+						error={approvalError}
+						onSelectTask={(taskId) => {
+							setSelectedApprovalTaskId(taskId);
+							setApprovalError(null);
+							setConfirmingApprovalTaskId(null);
+						}}
+						onRequestApproveTask={(taskId) => {
+							setApprovalError(null);
+							setConfirmingApprovalTaskId(taskId);
+						}}
+						onApproveTask={handleApproveTask}
+					/>
+
 					<UpcomingMeetings />
 
 					{projects.length > 0 && (
@@ -655,6 +855,7 @@ const ClientProfile = () => {
 									const projTasks = tasksByProject?.[project.projectId];
 
 									const activity = getTasksInWork(projTasks);
+									const projectStatus = getClientProjectStatus(projTasks);
 
 									const projReportsTime = 0;
 
@@ -672,14 +873,17 @@ const ClientProfile = () => {
 														{projTasks && (
 															<span
 																className={`${styles.activityBadge} ${
-																	activity.type === "active"
+																	projectStatus === "Требует внимания" ||
+																	projectStatus === "Новая заявка"
+																		? styles.activityWarning
+																		: activity.type === "active"
 																		? styles.activityActive
 																		: activity.type === "warning"
 																			? styles.activityWarning
 																			: styles.activityIdle
 																}`}
 															>
-																{getClientProjectStatus(projTasks)}
+																{projectStatus}
 															</span>
 														)}
 													</div>

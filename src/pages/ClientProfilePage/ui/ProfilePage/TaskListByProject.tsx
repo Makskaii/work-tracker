@@ -20,6 +20,8 @@ import cls from "./TaskListByProject.module.scss";
 
 const PROJECT_STATUSES = {
 	active: "Активен",
+	approval: "Требует внимания",
+	newProposal: "Новая заявка",
 	backlog: "Беклог",
 	done: "Завершен",
 	empty: "Отсутствуют задачи",
@@ -238,14 +240,16 @@ const getClientProjectStatus = (
 		return PROJECT_STATUSES.empty;
 	}
 
-	if (
-		tasks.some(
-			(task) =>
-				task.status === ClientTaskStatuses.inWork ||
-				task.status === ClientTaskStatuses.approval,
-		)
-	) {
+	if (tasks.some((task) => task.status === ClientTaskStatuses.approval)) {
+		return PROJECT_STATUSES.approval;
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.inWork)) {
 		return PROJECT_STATUSES.active;
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.newProposal)) {
+		return PROJECT_STATUSES.newProposal;
 	}
 
 	if (tasks.some((task) => task.status === ClientTaskStatuses.backlog)) {
@@ -408,6 +412,7 @@ export const TaskListByProject = ({
 								[cls.inWork]: taskStatus === "In work",
 								[cls.done]: taskStatus === "Done",
 								[cls.backlog]: taskStatus === "Backlog",
+								[cls.newProposal]: taskStatus === "New proposal",
 								[cls.approval]: taskStatus === "Approval",
 							})}
 						>
@@ -522,6 +527,12 @@ export const TaskListByProject = ({
 														className={classNames(cls.activityBadge, {
 															[cls.inWork]:
 																group.projectStatus === PROJECT_STATUSES.active,
+															[cls.approval]:
+																group.projectStatus ===
+																PROJECT_STATUSES.approval,
+															[cls.newProposal]:
+																group.projectStatus ===
+																PROJECT_STATUSES.newProposal,
 															[cls.done]:
 																group.projectStatus === PROJECT_STATUSES.done,
 															[cls.backlog]:

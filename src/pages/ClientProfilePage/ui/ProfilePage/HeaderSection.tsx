@@ -4,6 +4,7 @@ import styles from "./ClientProfile.module.scss";
 
 export type TaskStatusFilter =
 	| "approval"
+	| "newProposal"
 	| "inWork"
 	| "backlog"
 	| "done"
@@ -13,7 +14,8 @@ const TASK_STATUS_FILTERS: Array<{
 	label: string;
 	value: TaskStatusFilter;
 }> = [
-	{ label: "Согласование", value: "approval" },
+	{ label: "Новые заявки", value: "newProposal" },
+	{ label: "На подтверждение", value: "approval" },
 	{ label: "В работе", value: "inWork" },
 	{ label: "Завершенные", value: "done" },
 	{ label: "Все задачи", value: "all" },
