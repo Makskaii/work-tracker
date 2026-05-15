@@ -394,7 +394,6 @@ const ClientProfile = () => {
 	if (!companyId) return null;
 
 	return (
-		// <CheckPermission permission="read" subject={`client-profile-${companyId}`}>
 		<div className={styles.page}>
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
@@ -745,7 +744,6 @@ const ClientProfile = () => {
 				</div>
 			</div>
 		</div>
-		// </CheckPermission>
 	);
 };
 

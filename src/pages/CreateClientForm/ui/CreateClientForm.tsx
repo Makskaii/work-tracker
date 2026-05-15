@@ -142,9 +142,8 @@ export const ClientForm = () => {
 						{clients.length > 0 ? (
 							<ClientsTable
 								activeItems={clients}
+								onClientUpdated={refreshClients}
 								onDeleteClient={refreshClients}
-								onPurchasedHoursChanged={refreshClients}
-								onToggleClientStatus={refreshClients}
 							/>
 						) : (
 							<div>
