@@ -706,9 +706,6 @@ const ClientProfile = () => {
 										<div className={styles.statValue}>
 											{loadingStats ? "..." : clientStats?.tasks.totalTime} ч.
 										</div>
-										<button type="button" className={styles.detailsButton}>
-											Подробнее
-										</button>
 									</div>
 								</div>
 							</div>
@@ -730,9 +727,6 @@ const ClientProfile = () => {
 														)}{" "}
 												ч.
 											</div>
-											<button type="button" className={styles.detailsButton}>
-												Подробнее
-											</button>
 										</div>
 									</div>
 								) : (
@@ -750,9 +744,6 @@ const ClientProfile = () => {
 														)}{" "}
 												ч.
 											</div>
-											<button type="button" className={styles.detailsButton}>
-												Подробнее
-											</button>
 										</div>
 									</div>
 								)}
