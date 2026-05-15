@@ -5,21 +5,21 @@ import { MdAddTask } from "react-icons/md";
 import { useParams } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Spinner } from "@/components/spinner/Spinner";
-import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import { SegmentedControl } from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
-import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { periodLabelMap } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
-import type {
-	ClientListItems,
-	ClientProjectProps,
-	TaskProps,
+import {
+	type ClientListItems,
+	type ClientProjectProps,
+	type ClientTaskProps,
+	ClientTaskStatuses,
 } from "@/shared/types/types";
 import { getFixedNumber } from "@/shared/utils/getNumber";
-import { classNames } from "@/shared/utils/utils";
 import brandLogo from "/logo_colored.png";
 import styles from "./ClientProfile.module.scss";
+import { CreateTaskProposalModal } from "./CreateTaskProposalModal";
+import { HeaderSection, type TaskStatusFilter } from "./HeaderSection";
 import { TaskListByProject } from "./TaskListByProject";
 import { UpcomingMeetings } from "./UpcomingMeetings";
 
@@ -38,6 +38,20 @@ export type ViewMode = "list" | "projects";
 // };
 
 const CLIENT_TASKS_CREATED_FROM = "2026-04-01";
+
+const getClientTasks = async (statusFilter: TaskStatusFilter = "all") => {
+	const response = await $backendApi.get<ClientTaskProps[]>(
+		"clients/me/tasks",
+		{
+			params: {
+				createdFrom: CLIENT_TASKS_CREATED_FROM,
+				status: statusFilter === "all" ? undefined : statusFilter,
+			},
+		},
+	);
+
+	return response.data ?? [];
+};
 
 type RoleCode = "pm" | "analytic" | "qa" | "devs";
 
@@ -179,7 +193,7 @@ const getTeamUserName = (user: ClientTeamUser) => {
 	return [user.name, user.lastName].filter(Boolean).join(" ");
 };
 
-export const getTasksInWork = (tasks?: TaskProps[]) => {
+export const getTasksInWork = (tasks?: ClientTaskProps[]) => {
 	if (!tasks?.length) {
 		return {
 			text: "Нет задач",
@@ -189,17 +203,40 @@ export const getTasksInWork = (tasks?: TaskProps[]) => {
 
 	const inWorkTasks = tasks.filter(
 		(task) =>
-			task.stageId === "DT1072_18:PREPARATION" ||
-			task.stageId === "DT1072_18:CLIENT" ||
-			task.stageId === "DT1072_18:UC_EW15HA" ||
-			task.stageId === "DT1072_18:UC_6BH5MH" ||
-			task.stageId === "DT1072_18:UC_5GG9S1",
+			task.status === ClientTaskStatuses.inWork ||
+			task.status === ClientTaskStatuses.approval,
 	);
 
 	return {
 		text: `Задач в работе: ${inWorkTasks.length}`,
-		type: "active",
+		type: inWorkTasks.length > 0 ? "active" : "idle",
 	};
+};
+
+const getClientProjectStatus = (tasks?: ClientTaskProps[]) => {
+	if (!tasks?.length) {
+		return "Отсутствуют задачи";
+	}
+
+	if (
+		tasks.some(
+			(task) =>
+				task.status === ClientTaskStatuses.inWork ||
+				task.status === ClientTaskStatuses.approval,
+		)
+	) {
+		return "Активен";
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.backlog)) {
+		return "Беклог";
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.done)) {
+		return "Завершен";
+	}
+
+	return "Отсутствуют задачи";
 };
 
 const ClientProfile = () => {
@@ -209,7 +246,7 @@ const ClientProfile = () => {
 
 	const [error, setError] = useState<string | null>(null);
 
-	const [tasks, setTasks] = useState<TaskProps[]>([]);
+	const [tasks, setTasks] = useState<ClientTaskProps[]>([]);
 
 	const [clientStats, setClientStats] = useState<ClientStatsDto>();
 
@@ -223,10 +260,20 @@ const ClientProfile = () => {
 	);
 
 	const [viewMode, setViewMode] = useState<ViewMode>("projects");
+
+	const [taskStatusFilter, setTaskStatusFilter] =
+		useState<TaskStatusFilter>("all");
+
+	const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 	// const [loadingReport, setLoadingReport] = useState(false);
 	// const [loadUrl, setLoadUrl] = useState("");
 
 	const [team, setTeam] = useState<RoleWithUsers[]>([]);
+
+	const refreshClientTasks = async () => {
+		const nextTasks = await getClientTasks(taskStatusFilter);
+		setTasks(nextTasks);
+	};
 
 	// const navigate = useNavigate();
 
@@ -274,15 +321,10 @@ const ClientProfile = () => {
 			try {
 				setError(null);
 
-				const [companyResponse, projectsResponse, tasksResponse, teamResponse] =
+				const [companyResponse, projectsResponse, teamResponse] =
 					await Promise.all([
 						$backendApi.get<ClientListItems>("clients/me/company"),
 						$backendApi.get<ClientProjectProps[]>("clients/me/projects"),
-						$backendApi.get<TaskProps[]>("clients/me/tasks", {
-							params: {
-								createdFrom: CLIENT_TASKS_CREATED_FROM,
-							},
-						}),
 						$backendApi.get<ClientTeamDto>("clients/me/team"),
 					]);
 
@@ -292,7 +334,6 @@ const ClientProfile = () => {
 
 				setClientData(companyResponse.data);
 				setProjects(normalizeProjects(projectsResponse.data ?? []));
-				setTasks(tasksResponse.data ?? []);
 				setTeam(normalizeTeam(teamResponse.data));
 			} catch (err) {
 				console.error(err);
@@ -306,6 +347,38 @@ const ClientProfile = () => {
 			ignore = true;
 		};
 	}, [companyId]);
+
+	useEffect(() => {
+		if (!companyId) {
+			return;
+		}
+
+		let ignore = false;
+
+		const fetchClientTasks = async () => {
+			try {
+				const nextTasks = await getClientTasks(taskStatusFilter);
+
+				if (!ignore) {
+					setTasks(nextTasks);
+				}
+			} catch (err) {
+				console.error(err);
+
+				if (!ignore) {
+					setError(
+						"Не удалось загрузить задачи клиента. Попробуйте обновить страницу позже.",
+					);
+				}
+			}
+		};
+
+		fetchClientTasks();
+
+		return () => {
+			ignore = true;
+		};
+	}, [companyId, taskStatusFilter]);
 
 	useEffect(() => {
 		if (!companyId) {
@@ -352,7 +425,9 @@ const ClientProfile = () => {
 	}, [companyId, end, start]);
 
 	const tasksByProject = useMemo(() => {
-		return groupTasksByProject(tasks);
+		return Object.groupBy(tasks, (task) => {
+			return String(task[TaskCodes.parentproject] ?? "unknown");
+		});
 	}, [tasks]);
 
 	// const taskFromPeriod = useMemo(() => {
@@ -542,86 +617,14 @@ const ClientProfile = () => {
 					</div>
 
 					<div className={styles.sectionCard}>
-						<div className={styles.sectionHeader}>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									width: "100%",
-								}}
-							>
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										gap: "1rem",
-									}}
-								>
-									<h2
-										style={{
-											textAlign: "left",
-										}}
-										className={styles.sectionTitle}
-									>
-										Все задачи
-									</h2>
-									<div className={styles.badge}>
-										Задач: {clientStats?.tasks.count ?? tasks.length}{" "}
-									</div>
-									{/* {loadUrl === "" ? (
-										<button
-											disabled={loadingReport}
-											type="button"
-											className={classNames(styles.primaryButton, {
-												[styles.loadingPulse]: loadingReport,
-											})}
-											onClick={async () =>
-												await getReportPdf(companyId, start, end)
-											}
-										>
-											{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
-										</button>
-									) : (
-										<button
-											type="button"
-											className={styles.primaryButton}
-											onClick={async () =>
-												loadUrl !== "" && window.open(loadUrl, "_blank")
-											}
-											style={{
-												background: "green",
-											}}
-										>
-											Скачать отчёт
-										</button>
-									)} */}
-								</div>
-
-								<div className={styles.toolbar}>
-									<div className={styles.viewModeSwitcher}>
-										<button
-											type="button"
-											className={classNames(styles.viewModeButton, {
-												[styles.viewModeButtonActive]: viewMode === "list",
-											})}
-											onClick={() => setViewMode("list")}
-										>
-											Режим список
-										</button>
-
-										<button
-											type="button"
-											className={classNames(styles.viewModeButton, {
-												[styles.viewModeButtonActive]: viewMode === "projects",
-											})}
-											onClick={() => setViewMode("projects")}
-										>
-											По проектам
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
+						<HeaderSection
+							setViewMode={setViewMode}
+							viewMode={viewMode}
+							taskStatusFilter={taskStatusFilter}
+							setTaskStatusFilter={setTaskStatusFilter}
+							onCreateTask={() => setIsCreateTaskModalOpen(true)}
+							tasksCount={tasks.length}
+						/>
 
 						<TaskListByProject
 							tasks={tasks}
@@ -676,7 +679,7 @@ const ClientProfile = () => {
 																			: styles.activityIdle
 																}`}
 															>
-																{getProjectStatus(projTasks)}
+																{getClientProjectStatus(projTasks)}
 															</span>
 														)}
 													</div>
@@ -743,6 +746,13 @@ const ClientProfile = () => {
 					)}
 				</div>
 			</div>
+
+			<CreateTaskProposalModal
+				isOpen={isCreateTaskModalOpen}
+				onClose={() => setIsCreateTaskModalOpen(false)}
+				onCreated={refreshClientTasks}
+				projects={projects}
+			/>
 		</div>
 	);
 };
