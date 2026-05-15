@@ -879,9 +879,7 @@ const ClientProfile = () => {
 													{"Кол-во часов по задачам:"}{" "}
 												</div>
 												<div className={styles.infoTileValue}>
-													{projTasks?.reduce((acc, task) => {
-														return acc + +(task[TaskCodes.hours] ?? 0);
-													}, 0)}
+													{clientStats?.tasks.totalTime}
 												</div>
 
 												<div className={styles.infoTileLabel}>
