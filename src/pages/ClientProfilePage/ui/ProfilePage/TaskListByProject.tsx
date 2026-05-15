@@ -7,19 +7,29 @@ import {
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Modal } from "@/components/modal";
 import { TaskView } from "@/components/taskItem/TaskView";
-import { getProjectStatus } from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
-import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
+import {
+	type ClientProjectProps,
+	type ClientTaskProps,
+	type ClientTaskStatus,
+	ClientTaskStatuses,
+} from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
-import { getTaskStatus } from "../ProjectPage/ProjectTaskCard";
 import { TaskFilters, type TaskFilterValues } from "../TaskList/TaskFilters";
 import type { ViewMode } from "./ClientProfile";
 import cls from "./TaskListByProject.module.scss";
 
+const PROJECT_STATUSES = {
+	active: "Активен",
+	backlog: "Беклог",
+	done: "Завершен",
+	empty: "Отсутствуют задачи",
+} as const;
+
 type GroupedProjectTasks = {
 	projectId: string;
 	projectName: string;
-	projectStatus: string;
-	tasks: TaskProps[];
+	projectStatus: (typeof PROJECT_STATUSES)[keyof typeof PROJECT_STATUSES];
+	tasks: ClientTaskProps[];
 };
 
 type SortDirection = "asc" | "desc" | null;
@@ -38,18 +48,18 @@ type SortState = {
 };
 
 type PreparedTaskRow = {
-	task: TaskProps;
+	task: ClientTaskProps;
 	projectId: string;
 	projectName: string;
-	taskStatus: string;
+	taskStatus: ClientTaskStatus;
 	hoursValue: number;
 	startDateValue?: string;
 	deadlineValue?: string;
 };
 
 type TaskListProps = {
-	tasks: TaskProps[];
-	onTaskClick?: (task: TaskProps) => void;
+	tasks: ClientTaskProps[];
+	onTaskClick?: (task: ClientTaskProps) => void;
 	className?: string;
 	clientsProjects?: ClientProjectProps[];
 	isProject?: boolean;
@@ -80,7 +90,7 @@ const compareDates = (a?: string, b?: string) => {
 };
 
 const getProjectNameByTask = (
-	task: TaskProps,
+	task: ClientTaskProps,
 	normalizedProjects?: ClientProjectProps[],
 ) => {
 	const rawProjectId = task[TaskCodes.parentproject];
@@ -91,13 +101,15 @@ const getProjectNameByTask = (
 	}
 
 	return (
-		normalizedProjects?.find((proj) => proj.id === Number(projectId))?.title ??
-		"Без названия"
+		normalizedProjects?.find(
+			(proj) =>
+				String(proj.projectId) === projectId || String(proj.id) === projectId,
+		)?.title ?? "Без названия"
 	);
 };
 
 const prepareTaskRow = (
-	task: TaskProps,
+	task: ClientTaskProps,
 	normalizedProjects?: ClientProjectProps[],
 ): PreparedTaskRow => {
 	const rawProjectId = task[TaskCodes.parentproject];
@@ -107,14 +119,14 @@ const prepareTaskRow = (
 		task,
 		projectId,
 		projectName: getProjectNameByTask(task, normalizedProjects),
-		taskStatus: getTaskStatus(task),
-		hoursValue: Number(task[TaskCodes.estimateTime] ?? 0) || 0,
+		taskStatus: task.status,
+		hoursValue: Number(task[TaskCodes.hours] ?? 0) || 0,
 		startDateValue: task.createdTime,
-		deadlineValue: task.lastActivityTime || task.movedTime,
+		deadlineValue: task[TaskCodes.deadline] ?? undefined,
 	};
 };
 
-const filterTasks = (tasks: TaskProps[], filters: TaskFilterValues) => {
+const filterTasks = (tasks: ClientTaskProps[], filters: TaskFilterValues) => {
 	return tasks.filter((task) => {
 		const searchValue = filters.search.trim().toLowerCase();
 
@@ -128,7 +140,7 @@ const filterTasks = (tasks: TaskProps[], filters: TaskFilterValues) => {
 			descriptionValue.includes(searchValue);
 
 		const matchesStage =
-			filters.stage === "all" || task.stageId === filters.stage;
+			filters.stage === "all" || task.status === filters.stage;
 
 		const matchesProject =
 			filters.project === "all" ||
@@ -214,12 +226,40 @@ const groupPreparedRowsByProject = (
 	return Array.from(map.entries()).map(([projectId, group]) => ({
 		projectId,
 		projectName: group.projectName,
-		projectStatus: getProjectStatus(group.rows.map((row) => row.task)),
+		projectStatus: getClientProjectStatus(group.rows.map((row) => row.task)),
 		tasks: group.rows.map((row) => row.task),
 	}));
 };
 
-const formatDate = (value?: string) => {
+const getClientProjectStatus = (
+	tasks: ClientTaskProps[],
+): (typeof PROJECT_STATUSES)[keyof typeof PROJECT_STATUSES] => {
+	if (!tasks.length) {
+		return PROJECT_STATUSES.empty;
+	}
+
+	if (
+		tasks.some(
+			(task) =>
+				task.status === ClientTaskStatuses.inWork ||
+				task.status === ClientTaskStatuses.approval,
+		)
+	) {
+		return PROJECT_STATUSES.active;
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.backlog)) {
+		return PROJECT_STATUSES.backlog;
+	}
+
+	if (tasks.some((task) => task.status === ClientTaskStatuses.done)) {
+		return PROJECT_STATUSES.done;
+	}
+
+	return PROJECT_STATUSES.empty;
+};
+
+const formatDate = (value?: string | null) => {
 	if (!value) return "—";
 
 	const date = new Date(value);
@@ -235,7 +275,7 @@ const formatDate = (value?: string) => {
 	}).format(date);
 };
 
-const formatHours = (value?: string | number) => {
+const formatHours = (value?: string | number | null) => {
 	if (value === undefined || value === null || value === "") return "0ч";
 
 	const numeric = Number(value);
@@ -266,7 +306,7 @@ export const TaskListByProject = ({
 }: TaskListProps) => {
 	const [filters, setFilters] = useState<TaskFilterValues>(DEFAULT_FILTERS);
 	const [openTask, setOpenTask] = useState(false);
-	const [activeTask, setActiveTask] = useState<TaskProps | null>(null);
+	const [activeTask, setActiveTask] = useState<ClientTaskProps | null>(null);
 	const [sort, setSort] = useState<SortState>({
 		key: null,
 		direction: null,
@@ -330,20 +370,13 @@ export const TaskListByProject = ({
 		return <HiMiniChevronDown className={cls.sortIconActive} />;
 	};
 
-	const openTaskModal = (task: TaskProps) => {
+	const openTaskModal = (task: ClientTaskProps) => {
 		onTaskClick?.(task);
 		setActiveTask(task);
 		setOpenTask(true);
 	};
-	console.log({
-		clientsProjects,
-		tasks,
-		preparedRows,
-		sortedRows,
-		groupedTasks,
-	});
-	const renderTaskRow = (task: TaskProps) => {
-		const taskStatus = getTaskStatus(task);
+	const renderTaskRow = (task: ClientTaskProps) => {
+		const taskStatus = task.status;
 		const projectName = getProjectNameByTask(task, clientsProjects);
 
 		return (
@@ -375,7 +408,7 @@ export const TaskListByProject = ({
 								[cls.inWork]: taskStatus === "In work",
 								[cls.done]: taskStatus === "Done",
 								[cls.backlog]: taskStatus === "Backlog",
-								[cls.sprint]: taskStatus === "Sprint",
+								[cls.approval]: taskStatus === "Approval",
 							})}
 						>
 							{taskStatus}
@@ -487,9 +520,13 @@ export const TaskListByProject = ({
 
 													<span
 														className={classNames(cls.activityBadge, {
-															[cls.inWork]: group.projectStatus === "Активен",
-															[cls.done]: group.projectStatus === "Завершен",
-															[cls.backlog]: group.projectStatus === "Беклог",
+															[cls.inWork]:
+																group.projectStatus === PROJECT_STATUSES.active,
+															[cls.done]:
+																group.projectStatus === PROJECT_STATUSES.done,
+															[cls.backlog]:
+																group.projectStatus ===
+																PROJECT_STATUSES.backlog,
 														})}
 													>
 														{group.projectStatus}

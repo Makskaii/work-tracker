@@ -41,9 +41,39 @@ export interface ClientProjectProps {
 	projectId: string;
 }
 
+export const ClientTaskStatuses = {
+	done: "Done",
+	inWork: "In work",
+	backlog: "Backlog",
+	approval: "Approval",
+} as const;
+
+export type ClientTaskStatus =
+	(typeof ClientTaskStatuses)[keyof typeof ClientTaskStatuses];
+
+export type ClientTaskStatusFilter = keyof typeof ClientTaskStatuses;
+
+export interface ClientTaskProps {
+	id: string;
+	title: string;
+	status: ClientTaskStatus;
+	createdTime?: string;
+	lastActivityTime?: string;
+	movedTime?: string;
+	stageId?: string;
+	[TaskCodes.hours]?: string | number | null;
+	[TaskCodes.client]?: string | number | null;
+	[TaskCodes.parentproject]?: string | number | null;
+	[TaskCodes.description]?: string | null;
+	[TaskCodes.comment]?: string | null;
+	[TaskCodes.deadline]?: string | null;
+	[TaskCodes.linkedTasks]?: number[];
+}
+
 export interface TaskProps {
 	id: string;
 	title: string;
+	status?: ClientTaskStatus;
 	createdBy: string;
 	assignedById: number;
 	createdTime: string;
