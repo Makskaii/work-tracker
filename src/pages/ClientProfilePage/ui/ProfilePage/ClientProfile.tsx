@@ -58,6 +58,7 @@ type RoleWithUsers = {
 type ClientTeamDto = RoleWithUsers[] | Record<string, unknown>;
 
 type ClientStatsDto = {
+	purchasedHours: number | null;
 	period: {
 		start: string;
 		end: string;
@@ -430,13 +431,17 @@ const ClientProfile = () => {
 									<div>
 										<div className={styles.statLabel}>План часов</div>
 										<div className={styles.statValue}>
-											{period === "week"
-												? 75
-												: period === "month"
-													? 75 * 4
-													: period === "quarter"
-														? 75 * 12
-														: 75 * 48}{" "}
+											{loadingStats
+												? "..."
+												: clientStats?.purchasedHours
+													? clientStats?.purchasedHours
+													: period === "week"
+														? 75
+														: period === "month"
+															? 75 * 4
+															: period === "quarter"
+																? 75 * 12
+																: 75 * 48}
 											ч.
 										</div>
 									</div>
@@ -460,57 +465,80 @@ const ClientProfile = () => {
 							</div>
 
 							<div className={styles.statCard}>
-								<div className={styles.statCardInner}>
-									<FcConferenceCall className={styles.statIcon} />
+								{!clientStats?.purchasedHours ? (
+									<div className={styles.statCardInner}>
+										<FcConferenceCall className={styles.statIcon} />
 
-									<div>
-										<div className={styles.statLabel}>
-											Факт по коммуникациям
+										<div>
+											<div className={styles.statLabel}>
+												{loadingStats ? "..." : "Факт по коммуникациям"}
+											</div>
+											<div className={styles.statValue}>
+												{loadingStats
+													? "..."
+													: getFixedNumber(
+															commsTotalInternal + commsTotalExternal,
+														)}{" "}
+												ч.
+											</div>
+											<button type="button" className={styles.detailsButton}>
+												Подробнее
+											</button>
 										</div>
-										<div className={styles.statValue}>
-											{loadingStats
-												? "..."
-												: getFixedNumber(
-														commsTotalInternal + commsTotalExternal,
-													)}{" "}
-											ч.
+									</div>
+								) : (
+									<div className={styles.statCardInner}>
+										<FcConferenceCall className={styles.statIcon} />
+
+										<div>
+											<div className={styles.statLabel}>Остаток</div>
+											<div className={styles.statValue}>
+												{loadingStats
+													? "..."
+													: getFixedNumber(
+															clientStats.purchasedHours - totalTime,
+														)}{" "}
+												ч.
+											</div>
+											<button type="button" className={styles.detailsButton}>
+												Подробнее
+											</button>
 										</div>
-										<button type="button" className={styles.detailsButton}>
-											Подробнее
+									</div>
+								)}
+							</div>
+
+							{!clientStats?.purchasedHours && !loadingStats && (
+								<div className={`${styles.statCard} ${styles.periodCard}`}>
+									<div className={styles.periodHeader}>Период</div>
+
+									<SegmentedControl onChange={setPeriod} value={period} />
+
+									<div className={styles.periodNavigation}>
+										<button
+											type="button"
+											className={styles.periodButton}
+											onClick={() => goPrev()}
+										>
+											пред. {periodLabelMap[period]}
+										</button>
+
+										<div className={styles.periodDates}>
+											{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
+												end,
+											).format("DD.MM.YYYY")}`}
+										</div>
+
+										<button
+											type="button"
+											className={styles.periodButton}
+											onClick={() => goNext()}
+										>
+											след. {periodLabelMap[period]}
 										</button>
 									</div>
 								</div>
-							</div>
-
-							<div className={`${styles.statCard} ${styles.periodCard}`}>
-								<div className={styles.periodHeader}>Период</div>
-
-								<SegmentedControl onChange={setPeriod} value={period} />
-
-								<div className={styles.periodNavigation}>
-									<button
-										type="button"
-										className={styles.periodButton}
-										onClick={() => goPrev()}
-									>
-										пред. {periodLabelMap[period]}
-									</button>
-
-									<div className={styles.periodDates}>
-										{`${dayjs(start).format("DD.MM.YYYY")} - ${dayjs(
-											end,
-										).format("DD.MM.YYYY")}`}
-									</div>
-
-									<button
-										type="button"
-										className={styles.periodButton}
-										onClick={() => goNext()}
-									>
-										след. {periodLabelMap[period]}
-									</button>
-								</div>
-							</div>
+							)}
 						</div>
 					</div>
 
