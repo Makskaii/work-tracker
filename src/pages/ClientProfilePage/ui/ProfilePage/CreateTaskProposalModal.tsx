@@ -138,7 +138,7 @@ export const CreateTaskProposalModal = ({
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} size="small">
+		<Modal isOpen={isOpen} onClose={onClose} size="small" innerScroll>
 			<form className={styles.taskModal} onSubmit={handleSubmit(onSubmit)}>
 				<div className={styles.taskModalHeader}>
 					<h2 className={styles.taskModalTitle}>Новая задача</h2>
