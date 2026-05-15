@@ -240,7 +240,9 @@ const ApprovalTasksBanner = ({
 		<section className={styles.approvalBanner}>
 			<div className={styles.approvalBannerHeader}>
 				<div>
-					<h2 className={styles.approvalBannerTitle}>Задачи требуют внимания</h2>
+					<h2 className={styles.approvalBannerTitle}>
+						Задачи требуют внимания
+					</h2>
 					<p className={styles.approvalBannerText}>
 						Подтвердите задачи, которые команда готова взять в работу.
 					</p>
@@ -255,7 +257,9 @@ const ApprovalTasksBanner = ({
 						key={task.id}
 						type="button"
 						className={`${styles.approvalTaskButton} ${
-							selectedTask?.id === task.id ? styles.approvalTaskButtonActive : ""
+							selectedTask?.id === task.id
+								? styles.approvalTaskButtonActive
+								: ""
 						}`}
 						onClick={() => onSelectTask(task.id)}
 					>
@@ -304,7 +308,7 @@ const ApprovalTasksBanner = ({
 							? "Подтверждаем..."
 							: confirmingTaskId === selectedTask.id
 								? "Точно подтвердить?"
-							: "Подтвердить"}
+								: "Подтвердить"}
 					</button>
 				</div>
 			)}
@@ -539,8 +543,8 @@ const ClientProfile = () => {
 					"clients/me/stats",
 					{
 						params: {
-							start,
-							end,
+							start: CLIENT_TASKS_CREATED_FROM,
+							end: dayjs().endOf("day").toISOString(),
 						},
 					},
 				);
@@ -566,7 +570,7 @@ const ClientProfile = () => {
 		return () => {
 			ignore = true;
 		};
-	}, [companyId, end, start]);
+	}, [companyId]);
 
 	const tasksByProject = useMemo(() => {
 		return Object.groupBy(tasks, (task) => {
@@ -628,17 +632,6 @@ const ClientProfile = () => {
 	// 		return sprintStartDate >= startDate && sprintStartDate <= endDate;
 	// 	});
 	// }, [end, start, tasks]);
-
-	const totalTimeFromTasks = tasks.reduce((acc, task) => {
-		if (task[TaskCodes.hours]) {
-			acc = acc + +task[TaskCodes.hours];
-		} else {
-			acc + 0;
-		}
-		return acc;
-	}, 0);
-
-	const totalTime = totalTimeFromTasks;
 
 	const commsTotalInternal =
 		clientStats?.communications.internal.totalTime ?? 0;
@@ -711,11 +704,8 @@ const ClientProfile = () => {
 									<div>
 										<div className={styles.statLabel}>Факт по задачам</div>
 										<div className={styles.statValue}>
-											{loadingStats ? "..." : totalTime} ч.
+											{loadingStats ? "..." : clientStats?.tasks.totalTime} ч.
 										</div>
-										<button type="button" className={styles.detailsButton}>
-											Подробнее
-										</button>
 									</div>
 								</div>
 							</div>
@@ -737,9 +727,6 @@ const ClientProfile = () => {
 														)}{" "}
 												ч.
 											</div>
-											<button type="button" className={styles.detailsButton}>
-												Подробнее
-											</button>
 										</div>
 									</div>
 								) : (
@@ -752,13 +739,11 @@ const ClientProfile = () => {
 												{loadingStats
 													? "..."
 													: getFixedNumber(
-															clientStats.purchasedHours - totalTime,
+															clientStats.purchasedHours -
+																clientStats.tasks.totalTime,
 														)}{" "}
 												ч.
 											</div>
-											<button type="button" className={styles.detailsButton}>
-												Подробнее
-											</button>
 										</div>
 									</div>
 								)}
@@ -877,10 +862,10 @@ const ClientProfile = () => {
 																	projectStatus === "Новая заявка"
 																		? styles.activityWarning
 																		: activity.type === "active"
-																		? styles.activityActive
-																		: activity.type === "warning"
-																			? styles.activityWarning
-																			: styles.activityIdle
+																			? styles.activityActive
+																			: activity.type === "warning"
+																				? styles.activityWarning
+																				: styles.activityIdle
 																}`}
 															>
 																{projectStatus}
