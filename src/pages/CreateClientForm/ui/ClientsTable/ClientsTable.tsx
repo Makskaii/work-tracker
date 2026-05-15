@@ -1,4 +1,11 @@
-import { type CSSProperties, type MouseEvent, useState } from "react";
+import {
+	type CSSProperties,
+	type MouseEvent,
+	useEffect,
+	useState,
+} from "react";
+import { useForm } from "react-hook-form";
+import Modal from "@/components/modal/Modal";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import type { Header } from "@/shared/types/table";
@@ -9,28 +16,41 @@ export type ClientsTable = {
 	id: string;
 	name: string;
 	email: string;
+	crmClientId?: null | number | string;
 	status: string;
 	createdAt: string;
 	purchasedHours: null | number;
 	lastLogin: string;
 };
 
-type ClientAction = "toggleStatus" | "delete" | "addHours" | "removeHours";
+type ClientAction = "delete";
+
+type UpdateClientFormValues = {
+	name: string;
+	email: string;
+	crmId: string;
+	status: string;
+	purchasedHours: string;
+};
+
+type UpdateClientPayload = {
+	name: string;
+	email: string;
+	crmId?: number;
+	status: string;
+	purchasedHours: number | null;
+};
 
 type ClientsTableAdditionalData = {
 	row?: ClientsTable;
+	onEditClient?: (client: ClientsTable) => void;
 	onDeleteClient?: () => Promise<void> | void;
-	onToggleClientStatus?: () => Promise<void> | void;
-	onPurchasedHoursChanged?: () => Promise<void> | void;
 };
 
 type ClientRowActionsProps = {
-	clientId: string;
-	isInactive?: boolean;
-	purchasedHours?: null | number;
+	client: ClientsTable;
+	onEditClient?: (client: ClientsTable) => void;
 	onDeleteClient?: () => Promise<void> | void;
-	onToggleClientStatus?: () => Promise<void> | void;
-	onPurchasedHoursChanged?: () => Promise<void> | void;
 };
 
 const actionsStyle: CSSProperties = {
@@ -52,18 +72,11 @@ const baseButtonStyle: CSSProperties = {
 	transition: "transform 0.15s ease, opacity 0.15s ease",
 };
 
-const deactivateButtonStyle: CSSProperties = {
+const editButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "rgba(245, 158, 11, 0.12)",
-	color: "#b45309",
-	border: "1px solid rgba(245, 158, 11, 0.28)",
-};
-
-const activateButtonStyle: CSSProperties = {
-	...baseButtonStyle,
-	background: "rgba(22, 163, 74, 0.12)",
-	color: "#15803d",
-	border: "1px solid rgba(22, 163, 74, 0.26)",
+	background: "rgba(37, 99, 235, 0.12)",
+	color: "#1d4ed8",
+	border: "1px solid rgba(37, 99, 235, 0.26)",
 };
 
 const deleteButtonStyle: CSSProperties = {
@@ -73,18 +86,58 @@ const deleteButtonStyle: CSSProperties = {
 	border: "1px solid rgba(239, 68, 68, 0.26)",
 };
 
-const addHoursButtonStyle: CSSProperties = {
-	...baseButtonStyle,
-	background: "rgba(37, 99, 235, 0.12)",
-	color: "#1d4ed8",
-	border: "1px solid rgba(37, 99, 235, 0.26)",
+const formStyle: CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: "0.85rem",
 };
 
-const removeHoursButtonStyle: CSSProperties = {
+const fieldStyle: CSSProperties = {
+	display: "flex",
+	flexDirection: "column",
+	gap: "0.35rem",
+};
+
+const labelStyle: CSSProperties = {
+	fontSize: "0.85rem",
+	fontWeight: 700,
+	color: "#334155",
+};
+
+const inputStyle: CSSProperties = {
+	border: "1px solid #cbd5e1",
+	borderRadius: "8px",
+	padding: "0.65rem 0.75rem",
+	fontSize: "0.95rem",
+	color: "#0f172a",
+	background: "#fff",
+};
+
+const errorTextStyle: CSSProperties = {
+	margin: 0,
+	color: "#dc2626",
+	fontSize: "0.78rem",
+};
+
+const modalActionsStyle: CSSProperties = {
+	display: "flex",
+	justifyContent: "flex-end",
+	gap: "0.75rem",
+	marginTop: "0.5rem",
+};
+
+const cancelButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "rgba(124, 58, 237, 0.12)",
-	color: "#6d28d9",
-	border: "1px solid rgba(124, 58, 237, 0.26)",
+	background: "#f1f5f9",
+	color: "#334155",
+	border: "1px solid #cbd5e1",
+};
+
+const saveButtonStyle: CSSProperties = {
+	...baseButtonStyle,
+	background: "#2563eb",
+	color: "#fff",
+	border: "1px solid #2563eb",
 };
 
 const disabledButtonStyle: CSSProperties = {
@@ -100,89 +153,24 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
 	return fallbackMessage;
 };
 
-const preparePurchasedHoursPayload = (
-	actionText: string,
-	currentPurchasedHours?: null | number,
-) => {
-	const hoursInput = window.prompt(`Сколько часов ${actionText}?`);
-	if (hoursInput === null) return null;
-
-	const normalizedHoursInput = hoursInput.trim().replace(",", ".");
-	const hours = Number(normalizedHoursInput);
-	const decimalPart = normalizedHoursInput.split(".")[1];
-
-	if (
-		!normalizedHoursInput ||
-		Number.isNaN(hours) ||
-		hours < 0.01 ||
-		(decimalPart?.length ?? 0) > 2
-	) {
-		notify({
-			message: "Введите число от 0.01, максимум с двумя знаками после запятой",
-			type: "error",
-		});
-		return null;
-	}
-
-	if (
-		currentPurchasedHours !== undefined &&
-		hours > (currentPurchasedHours ?? 0)
-	) {
-		notify({
-			message: "Нельзя удалить больше часов, чем сейчас куплено",
-			type: "error",
-		});
-		return null;
-	}
-
-	const comment = window.prompt(
-		"Комментарий к изменению часов (необязательно)",
-	);
-
-	return {
-		hours,
-		...(comment?.trim() ? { comment: comment.trim() } : {}),
-	};
+const getClientCrmId = (client: ClientsTable) => {
+	return client.crmClientId == null ? "" : String(client.crmClientId);
 };
 
 const ClientRowActions = ({
-	clientId,
-	isInactive,
-	purchasedHours,
+	client,
+	onEditClient,
 	onDeleteClient,
-	onToggleClientStatus,
-	onPurchasedHoursChanged,
 }: ClientRowActionsProps) => {
 	const [pendingAction, setPendingAction] = useState<ClientAction | null>(null);
 	const isPending = pendingAction !== null;
-	const statusActionText = isInactive ? "Активировать" : "Деактивировать";
 
-	const handleToggleStatus = async (event: MouseEvent<HTMLButtonElement>) => {
+	const handleEdit = (event: MouseEvent<HTMLButtonElement>) => {
 		event.stopPropagation();
 
 		if (isPending) return;
 
-		const confirmed = window.confirm(`${statusActionText} клиента?`);
-		if (!confirmed) return;
-
-		setPendingAction("toggleStatus");
-
-		try {
-			await $backendApi.patch(`clients/${clientId}/status/toggle`);
-			await onToggleClientStatus?.();
-
-			notify({
-				message: isInactive ? "Клиент активирован" : "Клиент деактивирован",
-				type: "success",
-			});
-		} catch (error) {
-			notify({
-				message: getErrorMessage(error, "Ошибка при изменении статуса клиента"),
-				type: "error",
-			});
-		} finally {
-			setPendingAction(null);
-		}
+		onEditClient?.(client);
 	};
 
 	const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -196,7 +184,7 @@ const ClientRowActions = ({
 		setPendingAction("delete");
 
 		try {
-			await $backendApi.delete(`clients/${clientId}`);
+			await $backendApi.delete(`clients/${client.id}`);
 			await onDeleteClient?.();
 
 			notify({
@@ -213,104 +201,18 @@ const ClientRowActions = ({
 		}
 	};
 
-	const handleAddPurchasedHours = async (
-		event: MouseEvent<HTMLButtonElement>,
-	) => {
-		event.stopPropagation();
-
-		if (isPending) return;
-
-		const payload = preparePurchasedHoursPayload("добавить");
-		if (!payload) return;
-
-		setPendingAction("addHours");
-
-		try {
-			await $backendApi.post(`clients/${clientId}/purchased-hours`, payload);
-			await onPurchasedHoursChanged?.();
-
-			notify({
-				message: "Часы добавлены",
-				type: "success",
-			});
-		} catch (error) {
-			notify({
-				message: getErrorMessage(error, "Ошибка при добавлении часов"),
-				type: "error",
-			});
-		} finally {
-			setPendingAction(null);
-		}
-	};
-
-	const handleRemovePurchasedHours = async (
-		event: MouseEvent<HTMLButtonElement>,
-	) => {
-		event.stopPropagation();
-
-		if (isPending) return;
-
-		const payload = preparePurchasedHoursPayload("удалить", purchasedHours);
-		if (!payload) return;
-
-		setPendingAction("removeHours");
-
-		try {
-			await $backendApi.delete(`clients/${clientId}/purchased-hours`, {
-				data: payload,
-			});
-			await onPurchasedHoursChanged?.();
-
-			notify({
-				message: "Часы удалены",
-				type: "success",
-			});
-		} catch (error) {
-			notify({
-				message: getErrorMessage(error, "Ошибка при удалении часов"),
-				type: "error",
-			});
-		} finally {
-			setPendingAction(null);
-		}
-	};
-
 	return (
 		<div style={actionsStyle}>
 			<button
 				type="button"
 				style={{
-					...addHoursButtonStyle,
+					...editButtonStyle,
 					...(isPending ? disabledButtonStyle : {}),
 				}}
-				onClick={handleAddPurchasedHours}
+				onClick={handleEdit}
 				disabled={isPending}
 			>
-				{pendingAction === "addHours" ? "..." : "+ часы"}
-			</button>
-
-			<button
-				type="button"
-				style={{
-					...removeHoursButtonStyle,
-					...(isPending ? disabledButtonStyle : {}),
-				}}
-				onClick={handleRemovePurchasedHours}
-				disabled={isPending}
-			>
-				{pendingAction === "removeHours" ? "..." : "- часы"}
-			</button>
-
-			<button
-				type="button"
-				style={{
-					...(isInactive ? activateButtonStyle : deactivateButtonStyle),
-					...(isPending ? disabledButtonStyle : {}),
-				}}
-				onClick={handleToggleStatus}
-				disabled={isPending}
-			>
-				{pendingAction === "toggleStatus" ? "..." : statusActionText}
+				Редактировать
 			</button>
 
 			<button
@@ -325,6 +227,191 @@ const ClientRowActions = ({
 				{pendingAction === "delete" ? "..." : "Удалить"}
 			</button>
 		</div>
+	);
+};
+
+const EditClientModal = ({
+	client,
+	onClose,
+	onClientUpdated,
+}: {
+	client: ClientsTable | null;
+	onClose: () => void;
+	onClientUpdated?: () => Promise<void> | void;
+}) => {
+	const [isSaving, setIsSaving] = useState(false);
+	const {
+		handleSubmit,
+		register,
+		reset,
+		formState: { errors },
+	} = useForm<UpdateClientFormValues>({
+		mode: "onChange",
+		reValidateMode: "onChange",
+	});
+
+	useEffect(() => {
+		if (!client) return;
+
+		reset({
+			name: client.name ?? "",
+			email: client.email ?? "",
+			crmId: getClientCrmId(client),
+			status: client.status ?? "active",
+			purchasedHours:
+				client.purchasedHours === null ? "" : String(client.purchasedHours),
+		});
+	}, [client, reset]);
+
+	const onSubmit = handleSubmit(async (data) => {
+		if (!client) return;
+
+		const crmId = data.crmId.trim();
+		const purchasedHours = data.purchasedHours.trim().replace(",", ".");
+		const payload: UpdateClientPayload = {
+			name: data.name.trim(),
+			email: data.email.trim(),
+			status: data.status,
+			purchasedHours: purchasedHours === "" ? null : Number(purchasedHours),
+		};
+
+		if (crmId) {
+			payload.crmId = Number(crmId);
+		}
+
+		setIsSaving(true);
+
+		try {
+			await $backendApi.patch(`clients/${client.id}`, payload);
+			await onClientUpdated?.();
+
+			notify({
+				message: "Клиент обновлён",
+				type: "success",
+			});
+			onClose();
+		} catch (error) {
+			notify({
+				message: getErrorMessage(error, "Ошибка при обновлении клиента"),
+				type: "error",
+			});
+		} finally {
+			setIsSaving(false);
+		}
+	});
+
+	return (
+		<Modal
+			isOpen={Boolean(client)}
+			onClose={onClose}
+			closeOnBackdropClick={false}
+		>
+			<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+				<h2 style={{ margin: 0, paddingRight: "2rem" }}>
+					Редактирование клиента
+				</h2>
+
+				<form id="edit-client-form" onSubmit={onSubmit} style={formStyle}>
+					<label style={fieldStyle}>
+						<span style={labelStyle}>Название компании</span>
+						<input
+							{...register("name", {
+								required: "Обязательное поле",
+								validate: (value) =>
+									value.trim().length > 0 || "Название не может быть пустым",
+							})}
+							style={inputStyle}
+							type="text"
+							autoComplete="off"
+						/>
+						{errors.name && <p style={errorTextStyle}>{errors.name.message}</p>}
+					</label>
+
+					<label style={fieldStyle}>
+						<span style={labelStyle}>Эл. почта</span>
+						<input
+							{...register("email", {
+								required: "Обязательное поле",
+								pattern: {
+									value: /^\S+@\S+\.\S+$/,
+									message: "Неверный формат email",
+								},
+							})}
+							style={inputStyle}
+							type="email"
+							autoComplete="off"
+						/>
+						{errors.email && (
+							<p style={errorTextStyle}>{errors.email.message}</p>
+						)}
+					</label>
+
+					<label style={fieldStyle}>
+						<span style={labelStyle}>Статус</span>
+						<select {...register("status")} style={inputStyle}>
+							<option value="active">active</option>
+							<option value="inactive">inactive</option>
+						</select>
+					</label>
+
+					<label style={fieldStyle}>
+						<span style={labelStyle}>Купленные часы</span>
+						<input
+							{...register("purchasedHours", {
+								validate: (value) => {
+									const preparedValue = value.trim().replace(",", ".");
+
+									if (preparedValue === "") return true;
+
+									const decimalPart = preparedValue.split(".")[1];
+									const hours = Number(preparedValue);
+
+									if (Number.isNaN(hours) || hours < 0) {
+										return "Введите число от 0";
+									}
+
+									if ((decimalPart?.length ?? 0) > 2) {
+										return "Максимум 2 знака после запятой";
+									}
+
+									return true;
+								},
+							})}
+							style={inputStyle}
+							type="text"
+							inputMode="decimal"
+							placeholder="Без часов"
+							autoComplete="off"
+						/>
+						{errors.purchasedHours && (
+							<p style={errorTextStyle}>{errors.purchasedHours.message}</p>
+						)}
+					</label>
+
+					<div style={modalActionsStyle}>
+						<button
+							type="button"
+							style={cancelButtonStyle}
+							onClick={onClose}
+							disabled={isSaving}
+						>
+							Отмена
+						</button>
+
+						<button
+							type="submit"
+							style={{
+								...saveButtonStyle,
+								...(isSaving ? disabledButtonStyle : {}),
+							}}
+							disabled={isSaving}
+						>
+							{isSaving ? "Сохранение..." : "Сохранить"}
+						</button>
+					</div>
+				</form>
+			</div>
+		</Modal>
 	);
 };
 
@@ -358,20 +445,19 @@ const headers: Header<ClientsTable>[] = [
 	{
 		title: "Действия",
 		key: "id",
-		render: (value, additionalData) => {
+		render: (_value, additionalData) => {
 			const tableAdditionalData = additionalData as
 				| ClientsTableAdditionalData
 				| undefined;
 			const row = tableAdditionalData?.row;
 
+			if (!row) return null;
+
 			return (
 				<ClientRowActions
-					clientId={String(value)}
-					isInactive={row?.status === "inactive"}
-					purchasedHours={row?.purchasedHours}
+					client={row}
+					onEditClient={tableAdditionalData?.onEditClient}
 					onDeleteClient={tableAdditionalData?.onDeleteClient}
-					onToggleClientStatus={tableAdditionalData?.onToggleClientStatus}
-					onPurchasedHoursChanged={tableAdditionalData?.onPurchasedHoursChanged}
 				/>
 			);
 		},
@@ -381,24 +467,29 @@ const headers: Header<ClientsTable>[] = [
 export const ClientsTable = ({
 	activeItems,
 	onDeleteClient,
-	onToggleClientStatus,
-	onPurchasedHoursChanged,
+	onClientUpdated,
 }: {
 	activeItems: ClientsTable[];
 	onDeleteClient?: () => Promise<void> | void;
-	onToggleClientStatus?: () => Promise<void> | void;
-	onPurchasedHoursChanged?: () => Promise<void> | void;
+	onClientUpdated?: () => Promise<void> | void;
 }) => {
+	const [editingClient, setEditingClient] = useState<ClientsTable | null>(null);
+
 	return (
 		<div>
 			<UniversalTable<ClientsTable>
 				activeItems={activeItems}
 				additionalData={{
+					onEditClient: setEditingClient,
 					onDeleteClient,
-					onToggleClientStatus,
-					onPurchasedHoursChanged,
 				}}
 				headers={headers}
+			/>
+
+			<EditClientModal
+				client={editingClient}
+				onClose={() => setEditingClient(null)}
+				onClientUpdated={onClientUpdated}
 			/>
 		</div>
 	);
