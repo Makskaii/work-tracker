@@ -355,24 +355,24 @@ const ClientProfile = () => {
 		return groupTasksByProject(tasks);
 	}, [tasks]);
 
-	const taskFromPeriod = useMemo(() => {
-		const startDate = dayjs(start).startOf("day").valueOf();
-		const endDate = dayjs(end).endOf("day").valueOf();
+	// const taskFromPeriod = useMemo(() => {
+	// 	const startDate = dayjs(start).startOf("day").valueOf();
+	// 	const endDate = dayjs(end).endOf("day").valueOf();
 
-		return tasks.filter((task) => {
-			const sprintStart = task[TaskCodes.sprintDateStart];
+	// 	return tasks.filter((task) => {
+	// 		const sprintStart = task[TaskCodes.sprintDateStart];
 
-			if (!sprintStart) {
-				return false;
-			}
+	// 		if (!sprintStart) {
+	// 			return false;
+	// 		}
 
-			const sprintStartDate = dayjs(sprintStart).valueOf();
+	// 		const sprintStartDate = dayjs(sprintStart).valueOf();
 
-			return sprintStartDate >= startDate && sprintStartDate <= endDate;
-		});
-	}, [end, start, tasks]);
+	// 		return sprintStartDate >= startDate && sprintStartDate <= endDate;
+	// 	});
+	// }, [end, start, tasks]);
 
-	const totalTimeFromTasks = taskFromPeriod.reduce((acc, task) => {
+	const totalTimeFromTasks = tasks.reduce((acc, task) => {
 		if (task[TaskCodes.hours]) {
 			acc = acc + +task[TaskCodes.hours];
 		} else {
@@ -381,7 +381,7 @@ const ClientProfile = () => {
 		return acc;
 	}, 0);
 
-	const totalTime = clientStats?.tasks.totalTime ?? totalTimeFromTasks;
+	const totalTime = totalTimeFromTasks;
 
 	const commsTotalInternal =
 		clientStats?.communications.internal.totalTime ?? 0;
