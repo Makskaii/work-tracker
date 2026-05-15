@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: test mocks */
 
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -101,10 +101,33 @@ describe("MainLayout", () => {
 
 			expect(mockInitializeB24Frame).not.toHaveBeenCalled();
 			expect(mockCallMake).not.toHaveBeenCalled();
+			expect(mockGetDepartmentsHeads).not.toHaveBeenCalled();
 		});
 	});
 
 	describe("production mode", () => {
+		it("blocks main pages when the app is opened without a Bitrix24 frame", async () => {
+			vi.stubEnv("DEV", false);
+
+			mockInitializeB24Frame.mockRejectedValue(new Error("No Bitrix frame"));
+
+			let view!: ReturnType<typeof render>;
+
+			await act(async () => {
+				view = await renderComponent();
+			});
+
+			await waitFor(() => {
+				expect(view.container.textContent).toContain("Битрикс24");
+			});
+
+			expect(mockAbilityUpdate).toHaveBeenCalledWith([]);
+			expect(mockInitializeB24Frame).toHaveBeenCalledTimes(1);
+			expect(mockGetDepartmentsHeads).not.toHaveBeenCalled();
+			expect(mockCallMake).not.toHaveBeenCalled();
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
+
 		it("должен инициализировать B24Frame при монтировании", async () => {
 			vi.stubEnv("DEV", false);
 

@@ -20,6 +20,8 @@ type AbilityRule = {
 	subject: string;
 };
 
+type BitrixFrameStatus = "loading" | "ready" | "unavailable";
+
 const addRuleIfMissing = (rules: AbilityRule[], rule: AbilityRule) => {
 	const exists = rules.some(
 		(item) => item.action === rule.action && item.subject === rule.subject,
@@ -30,10 +32,37 @@ const addRuleIfMissing = (rules: AbilityRule[], rule: AbilityRule) => {
 	}
 };
 
+const BitrixFrameUnavailable = () => (
+	<div
+		style={{
+			alignItems: "center",
+			background: "#f8fafc",
+			color: "#1f2937",
+			display: "flex",
+			height: "100%",
+			justifyContent: "center",
+			minHeight: "100vh",
+			padding: "24px",
+			textAlign: "center",
+		}}
+	>
+		<div style={{ maxWidth: 520 }}>
+			<h1 style={{ fontSize: 24, lineHeight: 1.25, margin: "0 0 12px" }}>
+				Приложение доступно только внутри Битрикс24
+			</h1>
+			<p style={{ fontSize: 16, lineHeight: 1.5, margin: 0 }}>
+				Откройте его из вашего портала Битрикс24. Прямой переход по публичной
+				ссылке заблокирован.
+			</p>
+		</div>
+	</div>
+);
+
 export const MainLayout = () => {
 	const b24Ref = useRef<B24Frame | null>(null);
 	const [b24, setB24] = useState<B24Frame | null>(null);
-	const [isReady, setIsReady] = useState(false);
+	const [frameStatus, setFrameStatus] =
+		useState<BitrixFrameStatus>("loading");
 	const navigate = useNavigate();
 
 	useEffect(() => {
@@ -61,8 +90,6 @@ export const MainLayout = () => {
 
 		const init = async () => {
 			try {
-				const data = new Set((await getDepartmentsHeads()).filter(Boolean));
-
 				const nextRules: AbilityRule[] = [];
 				let redirectTo: string | null = null;
 
@@ -80,15 +107,27 @@ export const MainLayout = () => {
 					ability.update(nextRules);
 
 					if (isMounted) {
-						setIsReady(true);
+						setFrameStatus("ready");
 					}
 
 					return;
 				}
 
-				const frame = await initializeB24Frame();
+				let frame: B24Frame;
 
-				const currUser = await getCurrentUserDepartmentInfo(frame);
+				try {
+					frame = await initializeB24Frame();
+				} catch (error) {
+					$logger.error("Failed to initialize Bitrix24 frame", { error });
+
+					if (isMounted) {
+						ability.update([]);
+						setB24(null);
+						setFrameStatus("unavailable");
+					}
+
+					return;
+				}
 
 				if (!isMounted) {
 					frame.destroy();
@@ -96,7 +135,10 @@ export const MainLayout = () => {
 				}
 
 				b24Ref.current = frame;
-				setB24(frame);
+
+				const data = new Set((await getDepartmentsHeads()).filter(Boolean));
+
+				const currUser = await getCurrentUserDepartmentInfo(frame);
 
 				if (!isMounted) {
 					frame.destroy();
@@ -145,7 +187,8 @@ export const MainLayout = () => {
 				ability.update(nextRules);
 
 				if (isMounted) {
-					setIsReady(true);
+					setB24(frame);
+					setFrameStatus("ready");
 
 					if (redirectTo) {
 						navigate(redirectTo, { replace: true });
@@ -156,7 +199,7 @@ export const MainLayout = () => {
 
 				if (isMounted) {
 					ability.update([]);
-					setIsReady(true);
+					setFrameStatus("ready");
 				}
 			}
 		};
@@ -166,11 +209,16 @@ export const MainLayout = () => {
 		return () => {
 			isMounted = false;
 			b24Ref.current?.destroy();
+			b24Ref.current = null;
 		};
 	}, [navigate]);
 
-	if (!isReady) {
+	if (frameStatus === "loading") {
 		return <Spinner />;
+	}
+
+	if (frameStatus === "unavailable") {
+		return <BitrixFrameUnavailable />;
 	}
 
 	return (
