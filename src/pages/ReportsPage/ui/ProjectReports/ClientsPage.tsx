@@ -256,6 +256,9 @@ const ClientTasksModal = ({
 		() => new Map(tasks.map((task) => [String(task.id), task])),
 		[tasks],
 	);
+	const [loadingReport, setLoadingReport] = useState(false);
+	const [loadUrl, setLoadUrl] = useState("");
+
 	const reportsByTask = useMemo(() => {
 		return reports.reduce<Record<string, ReportProps[]>>((acc, report) => {
 			const taskId = getReportTaskId(report);
@@ -265,6 +268,39 @@ const ClientTasksModal = ({
 			return acc;
 		}, {});
 	}, [reports]);
+
+	const getReportPdf = async (
+		id: string,
+		startOfThePeriod: string,
+		endOfThePeriod: string,
+	) => {
+		try {
+			setLoadingReport(true);
+			const response = await $backendApi.post("doc-records/client-report", {
+				id,
+				startOfThePeriod,
+				endOfThePeriod,
+			});
+
+			const downloadUrl = response.data.downloadUrl;
+
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
+
+			notify({
+				message: "Отчет сформирован",
+				type: "success",
+			});
+		} catch (error) {
+			console.log(error);
+
+			notify({
+				message: "Ошибка загрузки отчёта",
+				type: "error",
+			});
+		} finally {
+			setLoadingReport(false);
+		}
+	};
 
 	const projectsWithTasks = useMemo(() => {
 		return (client.projects ?? [])
@@ -318,7 +354,33 @@ const ClientTasksModal = ({
 				}}
 			>
 				<div style={{ fontSize: "20px", fontWeight: 700 }}>{client.NAME}</div>
-
+				{loadUrl === "" ? (
+					<button
+						disabled={loadingReport}
+						type="button"
+						className={classNames(styles.primaryButton, {
+							[styles.loadingPulse]: loadingReport,
+						})}
+						onClick={async () =>
+							await getReportPdf(client.ID, startOfTheWeek, endOfTheWeek)
+						}
+					>
+						{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
+					</button>
+				) : (
+					<button
+						type="button"
+						className={styles.primaryButton}
+						onClick={async () =>
+							loadUrl !== "" && window.open(loadUrl, "_blank")
+						}
+						style={{
+							background: "green",
+						}}
+					>
+						Скачать отчёт
+					</button>
+				)}
 				<div
 					style={{
 						display: "flex",
@@ -390,9 +452,6 @@ const ProjectsReports = () => {
 	const [clientOpen, setClientOpen] = useState<boolean>(false);
 	const { clientsList } = useOutletContext<ReportsContext>();
 	const clients = (clientsList ?? []) as ClientWithProjects[];
-
-	const [loadingReport, setLoadingReport] = useState(false);
-	const [loadUrl, setLoadUrl] = useState("");
 
 	const [activeProject, setActiveProject] = useState<ClientProjectProps>();
 	const [activeClient, setActiveClient] = useState<ClientWithProjects>();
@@ -493,39 +552,6 @@ const ProjectsReports = () => {
 		return projectsWithStatus.find((item) => item.id === Number(projectId));
 	};
 
-	const getReportPdf = async (
-		id: string,
-		startOfThePeriod: string,
-		endOfThePeriod: string,
-	) => {
-		try {
-			setLoadingReport(true);
-			const response = await $backendApi.post("doc-records/client-report", {
-				id,
-				startOfThePeriod,
-				endOfThePeriod,
-			});
-
-			const downloadUrl = response.data.downloadUrl;
-
-			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
-
-			notify({
-				message: "Отчет сформирован",
-				type: "success",
-			});
-		} catch (error) {
-			console.log(error);
-
-			notify({
-				message: "Ошибка загрузки отчёта",
-				type: "error",
-			});
-		} finally {
-			setLoadingReport(false);
-		}
-	};
-
 	return (
 		<>
 			<div className={styles.header}>Клиенты:</div>
@@ -562,37 +588,6 @@ const ProjectsReports = () => {
 											>
 												Открыть
 											</button>
-											{loadUrl === "" ? (
-												<button
-													disabled={loadingReport}
-													type="button"
-													className={classNames(styles.primaryButton, {
-														[styles.loadingPulse]: loadingReport,
-													})}
-													onClick={async () =>
-														await getReportPdf(
-															client.ID,
-															startOfTheWeek,
-															endOfTheWeek,
-														)
-													}
-												>
-													{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
-												</button>
-											) : (
-												<button
-													type="button"
-													className={styles.primaryButton}
-													onClick={async () =>
-														loadUrl !== "" && window.open(loadUrl, "_blank")
-													}
-													style={{
-														background: "green",
-													}}
-												>
-													Скачать отчёт
-												</button>
-											)}
 
 											<span className={styles.arrow}>
 												{isExpanded ? "▲" : "▼"}
