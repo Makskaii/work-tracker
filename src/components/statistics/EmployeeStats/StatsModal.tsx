@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import { ReportCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
 import type { TGroupedTasks } from "@/pages/ReportsPage/ui/ProgressReports/types";
@@ -18,6 +18,84 @@ import { DeveloperProjectsAccordion } from "./DeveloperProjectsList";
 import { EmployeeStats } from "./EmployeeStats";
 import cls from "./StatsModal.module.scss";
 import { TasksList } from "./TasksList";
+
+type CrmItemListResponse<T> = {
+	result?: {
+		items?: T[];
+	};
+	next?: number | null;
+};
+
+const REPORT_SELECT_FIELDS = [
+	"id",
+	"title",
+	"begindate",
+	ReportCodes.title,
+	ReportCodes.timeSpent,
+	ReportCodes.project,
+	ReportCodes.taskId,
+	ReportCodes.activityType,
+	"assignedById",
+	"createdTime",
+	"lastActivityTime",
+	`parentId${EntityTypeIds.tasks}`,
+] as const;
+
+const fetchAllCrmItems = async <T,>({
+	entityTypeId,
+	select,
+	filter,
+}: {
+	entityTypeId: number;
+	select: readonly string[];
+	filter: Record<string, unknown>;
+}) => {
+	const limit = 50;
+	let start = 0;
+	let next: number | null | undefined = 0;
+	const items: T[] = [];
+
+	while (next !== null) {
+		const response = await $api.get<CrmItemListResponse<T>>(
+			Endpoints.crmItems,
+			{
+				params: {
+					entityTypeId,
+					select,
+					filter,
+					start,
+				},
+			},
+		);
+
+		items.push(...(response.data.result?.items ?? []));
+
+		next = response.data.next ?? null;
+		start = next ?? start + limit;
+	}
+
+	return items;
+};
+
+const getReportTaskId = (report: ReportProps) => {
+	const taskId = report[ReportCodes.parentId] ?? report[ReportCodes.taskId];
+
+	return taskId === null || taskId === undefined ? "" : String(taskId).trim();
+};
+
+const groupReportsByTask = (reports: ReportProps[]) => {
+	return reports.reduce<Record<string, ReportProps[]>>((acc, report) => {
+		const taskId = getReportTaskId(report);
+
+		if (!taskId) {
+			return acc;
+		}
+
+		acc[taskId] = [...(acc[taskId] ?? []), report];
+
+		return acc;
+	}, {});
+};
 
 export const StatsModal = ({ user }: { user: User }) => {
 	const { setUser, projects, statuses, activities } =
@@ -41,148 +119,79 @@ export const StatsModal = ({ user }: { user: User }) => {
 		return tasks;
 	}, [tasks, taskFilter, overrunTaskIds]);
 
-	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders();
+	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders("workweek");
 
 	useEffect(() => {
-		const getTasks = async () => {
+		let isCancelled = false;
+
+		const getReportsAndTasks = async () => {
 			try {
-				const response = await $api.get<{
-					result: {
-						items: TaskProps[];
-					};
-				}>(Endpoints.crmItems, {
-					params: {
-						entityTypeId: EntityTypeIds.tasks,
-						select: TASK_SELECT_FIELDS,
-						filter: {
-							[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
-							[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
-							assignedById: user.id,
-						},
+				const reports = await fetchAllCrmItems<ReportProps>({
+					entityTypeId: EntityTypeIds.reports,
+					select: REPORT_SELECT_FIELDS,
+					filter: {
+						assignedById: user.id,
+						">=begindate": startOfTheWeek,
+						"<=begindate": endOfTheWeek,
+						stageId: "DT1060_15:PREPARATION",
 					},
 				});
 
-				const items = response.data.result.items.toSorted((a, b) =>
-					a.stageId.localeCompare(b.stageId),
-				);
+				if (isCancelled) {
+					return;
+				}
 
-				setTasks(items);
-				setGrouped(groupTasksByProject(items));
-			} catch (error) {
-				console.log("Ошибка при получении задач сотрудника", error);
-			}
-		};
+				const reportsMap = groupReportsByTask(reports);
+				const taskIds = Object.keys(reportsMap);
 
-		if (user.id) {
-			getTasks();
-		}
-	}, [user.id, startOfTheWeek, endOfTheWeek]);
+				setAllSprintReports(reports);
+				setReportsByTask(reportsMap);
 
-	useEffect(() => {
-		const getReportsByTask = async () => {
-			try {
-				if (!tasks.length) {
+				if (!taskIds.length) {
+					setTasks([]);
+					setGrouped({});
 					setReportsByTask({});
 					return;
 				}
 
-				const responses = await Promise.all(
-					tasks.map((task) =>
-						$api.get(Endpoints.crmItems, {
-							params: {
-								entityTypeId: EntityTypeIds.reports,
-								select: [
-									"id",
-									"title",
-									"begindate",
-									ReportCodes.title,
-									ReportCodes.timeSpent,
-									ReportCodes.project,
-									ReportCodes.taskId,
-									ReportCodes.activityType,
-									"assignedById",
-									"createdTime",
-									"lastActivityTime",
-									`parentId1072`,
-								],
-								filter: {
-									[ReportCodes.parentId]: task.id,
-									assignedById: user.id,
-									">=begindate": startOfTheWeek,
-									"<=begindate": endOfTheWeek,
-								},
-							},
-						}),
-					),
-				);
-
-				const nextMap: Record<string, ReportProps[]> = {};
-
-				for (const response of responses) {
-					const items = response.data.result.items as ReportProps[];
-					if (!items.length) continue;
-
-					const taskId =
-						String(items[0]?.parentId1072) ??
-						String(items[0]?.[ReportCodes.taskId]);
-
-					if (taskId) {
-						nextMap[taskId] = items;
-					}
-				}
-
-				setReportsByTask(nextMap);
-			} catch (error) {
-				console.log("Ошибка при получении отчетов по задачам", error);
-			}
-		};
-
-		if (user.id) {
-			getReportsByTask();
-		}
-	}, [tasks, user.id, startOfTheWeek, endOfTheWeek]);
-
-	useEffect(() => {
-		const getAllSprintReports = async () => {
-			try {
-				const response = await $api.get<{
-					result: {
-						items: ReportProps[];
-					};
-				}>(Endpoints.crmItems, {
-					params: {
-						entityTypeId: EntityTypeIds.reports,
-						select: [
-							"id",
-							"title",
-							"begindate",
-							ReportCodes.title,
-							ReportCodes.timeSpent,
-							ReportCodes.project,
-							ReportCodes.taskId,
-							ReportCodes.activityType,
-							"assignedById",
-							"createdTime",
-							"lastActivityTime",
-							`parentId${EntityTypeIds.tasks}`,
-						],
-						filter: {
-							assignedById: user.id,
-							">=begindate": startOfTheWeek,
-							"<=begindate": endOfTheWeek,
-						},
+				const items = await fetchAllCrmItems<TaskProps>({
+					entityTypeId: EntityTypeIds.tasks,
+					select: TASK_SELECT_FIELDS,
+					filter: {
+						"@id": taskIds,
 					},
 				});
 
-				setAllSprintReports(response.data.result.items ?? []);
+				if (isCancelled) {
+					return;
+				}
+
+				const sortedItems = items.toSorted((a, b) =>
+					a.stageId.localeCompare(b.stageId),
+				);
+
+				setTasks(sortedItems);
+				setGrouped(groupTasksByProject(sortedItems));
 			} catch (error) {
-				console.log("Ошибка при получении всех отчетов сотрудника", error);
+				if (isCancelled) {
+					return;
+				}
+
+				setAllSprintReports([]);
+				setReportsByTask({});
+				setTasks([]);
+				setGrouped({});
+				console.log("Ошибка при получении отчетов и задач сотрудника", error);
 			}
 		};
 
 		if (user.id) {
-			getAllSprintReports();
+			getReportsAndTasks();
 		}
+
+		return () => {
+			isCancelled = true;
+		};
 	}, [user.id, startOfTheWeek, endOfTheWeek]);
 
 	return (

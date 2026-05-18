@@ -3,9 +3,14 @@ import { FormProvider, useForm } from "react-hook-form";
 import { useOutletContext } from "react-router";
 
 import { getActivitiesList } from "@/shared/api/getCrmFields";
-import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
+import {
+	ClientsCodes,
+	DEPARTMENT_IDS,
+	Endpoints,
+} from "@/shared/constants/const";
 import type { GroupedReportFields } from "@/shared/types/table";
 import { Calendar } from "../../../../components/calendar/Calendar";
+import { ProjectCodes } from "../../../../components/calendar/constants/const";
 import { AsyncSelect } from "../../../../components/form/SelectField";
 import type {
 	ClientListItems,
@@ -35,6 +40,10 @@ const parseTimeSpent = (value: string | number | null | undefined): number => {
 	return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+const getProjectCompanyId = (project: ClientProjectProps) => {
+	return Number(project[ProjectCodes.company] ?? 0);
+};
+
 export const groupReportsByClientsProjectsAndActivities = ({
 	reports,
 	projects,
@@ -46,14 +55,32 @@ export const groupReportsByClientsProjectsAndActivities = ({
 	activities: ActivityListItem[];
 	clients: (ClientListItems & { projects: ClientProjectProps[] })[];
 }): GroupedClientItem[] => {
-	const projectsMap = new Map<number, ProjectFromList>();
+	const projectTitleMap = new Map<number, string>();
 	for (const project of projects) {
-		projectsMap.set(Number(project.id), project);
+		const projectTitle =
+			project.title || project.name || `Проект #${project.id}`;
+
+		projectTitleMap.set(Number(project.id), projectTitle);
+		projectTitleMap.set(Number(project[ClientsCodes.client]), projectTitle);
 	}
 
-	const clientsMap = new Map<number, ClientListItems>();
+	const clientTitleMap = new Map<number, string>();
 	for (const client of clients) {
-		clientsMap.set(Number(client.ID), client);
+		clientTitleMap.set(Number(client.ID), client.NAME);
+
+		for (const project of client.projects ?? []) {
+			projectTitleMap.set(Number(project.id), project.title);
+
+			if (project.projectId) {
+				projectTitleMap.set(Number(project.projectId), project.title);
+			}
+
+			const companyId = getProjectCompanyId(project);
+
+			if (companyId) {
+				clientTitleMap.set(companyId, client.NAME);
+			}
+		}
 	}
 
 	const activitiesMap = new Map<
@@ -76,24 +103,22 @@ export const groupReportsByClientsProjectsAndActivities = ({
 	const resultMap = new Map<number, GroupedClientItem>();
 
 	for (const report of reports) {
-		const clientId = Number(report.client);
-		const projectId = Number(report.project);
+		const clientId = Number(report.company ?? report.client);
+		const projectId = Number(report.parentproject ?? report.project);
 		const activityId = Number(report.activity);
 
 		if (!clientId || !projectId || !activityId) continue;
 
-		const client = clientsMap.get(clientId);
-		const project = projectsMap.get(projectId);
 		const activity = activitiesMap.get(activityId);
 
-		if (!client || !project || !activity) continue;
+		if (!activity) continue;
 
 		const timeSpent = parseTimeSpent(report.timeSpent);
 
 		if (!resultMap.has(clientId)) {
 			resultMap.set(clientId, {
 				clientId,
-				clientTitle: client.NAME,
+				clientTitle: clientTitleMap.get(clientId) ?? `Компания #${clientId}`,
 				timeSpent: 0,
 				projects: [],
 			});
@@ -108,7 +133,7 @@ export const groupReportsByClientsProjectsAndActivities = ({
 		if (!projectGroup) {
 			projectGroup = {
 				projectId,
-				projectTitle: project.name ?? "Без названия",
+				projectTitle: projectTitleMap.get(projectId) ?? `Проект #${projectId}`,
 				timeSpent: 0,
 				categories: {
 					0: {

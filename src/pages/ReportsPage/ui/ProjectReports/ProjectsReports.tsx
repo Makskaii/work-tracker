@@ -1,27 +1,71 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import {
+	ProjectCodes,
+	ReportCodes,
+	TaskCodes,
+} from "@/components/calendar/constants/const";
+import type { ReportProps } from "@/components/calendar/types/types";
 import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
+import { ClientProjectsStats } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectStats";
 import { $api } from "@/shared/config";
-import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "@/shared/constants/const";
+import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { Header } from "@/shared/types/table";
 import { getFixedNumber } from "@/shared/utils/getNumber";
 import { Modal } from "../../../../components/modal";
 import type {
 	ClientListItems,
+	ClientProjectProps,
 	ReportsContext,
 	TaskProps,
 } from "../../../../shared/types/types";
 import { getItems } from "../../api/getTasks";
 import type { ProjectTableRow } from "../../types/types";
-import { ProjectsStats } from "./ProjectStatsModal";
 import styles from "./ProjectsReports.module.scss";
 
-type ProjectWithStatus = ClientListItems & {
+type ClientWithProjects = ClientListItems & {
+	projects?: ClientProjectProps[];
+};
+
+type ProjectWithClient = ClientProjectProps & {
+	clientId: string;
+	clientName: string;
+	projectId: string;
+};
+
+type ProjectWithStatus = ProjectWithClient & {
 	status: string;
 	tasksCount: number;
 };
+
+type CrmItemListResponse<T> = {
+	result?: {
+		items?: T[];
+	};
+	next?: number | null;
+};
+
+const REPORT_SELECT_FIELDS = [
+	"id",
+	"title",
+	"begindate",
+	ReportCodes.title,
+	ReportCodes.timeSpent,
+	ReportCodes.company,
+	ReportCodes.parentproject,
+	ReportCodes.taskId,
+	ReportCodes.activityType,
+	"assignedById",
+	"createdTime",
+	"lastActivityTime",
+	`parentId${EntityTypeIds.tasks}`,
+] as const;
 
 const TASK_STAGE_IDS = {
 	BACKLOG: "DT1072_18:NEW",
@@ -72,7 +116,70 @@ const getProjectPlanHours = (tasks: TaskProps[]) => {
 	}, 0);
 };
 
-const getReportsByProject = async ({ projectId }: { projectId: string }) => {
+const getProjectCompanyId = (project: ClientProjectProps) => {
+	return String(project[ProjectCodes.company] ?? "").trim();
+};
+
+const getReportTaskId = (report: ReportProps) => {
+	const taskId = report[ReportCodes.parentId] ?? report[ReportCodes.taskId];
+
+	return taskId === null || taskId === undefined ? "" : String(taskId).trim();
+};
+
+const fetchAllCrmItems = async <T,>({
+	entityTypeId,
+	select,
+	filter,
+}: {
+	entityTypeId: number;
+	select: readonly string[];
+	filter: Record<string, unknown>;
+}) => {
+	const limit = 50;
+	let start = 0;
+	let next: number | null | undefined = 0;
+	const items: T[] = [];
+
+	while (next !== null) {
+		const response = await $api.get<CrmItemListResponse<T>>(
+			Endpoints.crmItems,
+			{
+				params: {
+					entityTypeId,
+					select,
+					filter,
+					start,
+				},
+			},
+		);
+
+		items.push(...(response.data.result?.items ?? []));
+
+		next = response.data.next ?? null;
+		start = next ?? start + limit;
+	}
+
+	return items;
+};
+
+const getFlattenedProjects = (clients: ClientWithProjects[]) => {
+	return clients.flatMap((client) =>
+		(client.projects ?? []).map((project) => ({
+			...project,
+			clientId: client.ID,
+			clientName: client.NAME,
+			projectId: String(project.projectId ?? project.id),
+		})),
+	);
+};
+
+const getReportsByProject = async ({
+	projectId,
+	companyId,
+}: {
+	projectId: string;
+	companyId?: string;
+}) => {
 	const response = await $api.get(Endpoints.crmItems, {
 		params: {
 			entityTypeId: EntityTypeIds.reports,
@@ -82,7 +189,8 @@ const getReportsByProject = async ({ projectId }: { projectId: string }) => {
 				"begindate",
 				ReportCodes.title,
 				ReportCodes.timeSpent,
-				ReportCodes.project,
+				ReportCodes.company,
+				ReportCodes.parentproject,
 				ReportCodes.taskId,
 				ReportCodes.activityType,
 				"assignedById",
@@ -91,7 +199,9 @@ const getReportsByProject = async ({ projectId }: { projectId: string }) => {
 				`parentId${EntityTypeIds.tasks}`,
 			],
 			filter: {
-				[ReportCodes.client]: projectId,
+				[ReportCodes.parentproject]: projectId,
+				...(companyId ? { [ReportCodes.company]: companyId } : {}),
+				stageId: "DT1060_15:PREPARATION",
 			},
 		},
 	});
@@ -110,21 +220,28 @@ const getProjectRisk = (planHours: number, spentHours: number) => {
 };
 
 export const getProjectsTableData = async ({
-	projects,
+	clients,
 }: {
-	projects: ClientListItems[];
+	clients: ClientWithProjects[];
 }): Promise<ProjectTableRow[]> => {
+	const projects = getFlattenedProjects(clients);
+
 	const result = await Promise.all(
 		projects.map(async (project) => {
+			const projectId = String(project.projectId ?? project.id);
+			const companyId = getProjectCompanyId(project);
+
 			const tasks = await getItems<TaskProps>({
 				typeId: EntityTypeIds.tasks,
 				filters: {
-					[TaskCodes.client]: project.ID,
+					[TaskCodes.parentproject]: projectId,
+					...(companyId ? { [TaskCodes.company]: companyId } : {}),
 				},
 			});
 
 			const reports = await getReportsByProject({
-				projectId: project.ID,
+				projectId,
+				companyId,
 			});
 
 			const planHours = getProjectPlanHours(tasks ?? []);
@@ -134,8 +251,8 @@ export const getProjectsTableData = async ({
 			const purchasedHours = "-";
 
 			return {
-				id: project.ID,
-				title: project.NAME,
+				id: projectId,
+				title: project.title,
 				status: getProjectStatus(tasks ?? []),
 				planHours,
 				spentHours,
@@ -192,65 +309,145 @@ export const headersForProjects: Header<ProjectTableRow>[] = [
 	},
 ];
 
-export const getProjectsWithStatuses = async ({
+export const getProjectsWithStatuses = ({
 	projects,
-	startOfTheWeek,
-	endOfTheWeek,
+	reports,
+	tasks,
 }: {
-	projects: ClientListItems[];
-	startOfTheWeek: string;
-	endOfTheWeek: string;
-}): Promise<ProjectWithStatus[]> => {
-	const result = await Promise.all(
-		projects.map(async (project) => {
-			const response = await getItems<TaskProps>({
-				typeId: EntityTypeIds.tasks,
-				filters: {
-					[TaskCodes.client]: project.ID,
-					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
-					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
-				},
-			});
+	projects: ProjectWithClient[];
+	reports: ReportProps[];
+	tasks: TaskProps[];
+}): ProjectWithStatus[] => {
+	const tasksMap = new Map(tasks.map((task) => [String(task.id), task]));
 
-			const tasks = response ?? [];
+	return projects.map((project) => {
+		const projectId = String(project.projectId ?? project.id);
+		const companyId = getProjectCompanyId(project);
 
-			return {
-				...project,
-				tasksCount: tasks.length,
-				status: getProjectStatus(tasks),
-			};
-		}),
-	);
+		const projectTaskIds = new Set(
+			reports
+				.filter((report) => {
+					const taskId = getReportTaskId(report);
+					const task = tasksMap.get(taskId);
+					const reportProjectId = String(
+						report[ReportCodes.parentproject] ?? "",
+					).trim();
+					const reportCompanyId = String(
+						report[ReportCodes.company] ?? "",
+					).trim();
+					const taskProjectId = String(
+						task?.[TaskCodes.parentproject] ?? "",
+					).trim();
+					const taskCompanyId = String(task?.[TaskCodes.company] ?? "").trim();
 
-	return result;
+					const isProjectReport = reportProjectId
+						? reportProjectId === projectId
+						: taskProjectId === projectId;
+					const isCompanyReport =
+						!companyId ||
+						(reportCompanyId
+							? reportCompanyId === companyId
+							: taskCompanyId === companyId);
+
+					return Boolean(taskId) && isProjectReport && isCompanyReport;
+				})
+				.map(getReportTaskId),
+		);
+
+		const projectTasks = Array.from(projectTaskIds)
+			.map((taskId) => tasksMap.get(taskId))
+			.filter((task): task is TaskProps => Boolean(task));
+
+		return {
+			...project,
+			tasksCount: projectTasks.length,
+			status: getProjectStatus(projectTasks),
+		};
+	});
 };
 
 const ProjectsReports = () => {
 	const [open, setOpen] = useState<boolean>(false);
-	const [activeProject, setActiveProject] = useState<{
-		ID: string;
-		NAME: string;
-	}>();
+	const [activeProject, setActiveProject] = useState<ProjectWithClient>();
+	const [tasks, setTasks] = useState<TaskProps[]>([]);
 
 	const { clientsList } = useOutletContext<ReportsContext>();
-	const { startOfTheWeek, endOfTheWeek } = useSprintBorders();
-	const [projWithStatus, setProjWithStatus] = useState<ProjectWithStatus[]>([]);
+	const projects = useMemo(
+		() => getFlattenedProjects(clientsList ?? []),
+		[clientsList],
+	);
+	const { startOfTheWeek, endOfTheWeek } = useSprintBorders("workweek");
+
+	const { data: reports, setFilters: setReportsFilters } =
+		useLoadAllData<ReportProps>({
+			initialEndpoint: Endpoints.crmItems,
+			initialFilters: {
+				params: {
+					entityTypeId: EntityTypeIds.reports,
+					select: REPORT_SELECT_FIELDS,
+					filter: {
+						">=begindate": startOfTheWeek,
+						"<=begindate": endOfTheWeek,
+						stageId: "DT1060_15:PREPARATION",
+					},
+				},
+			},
+		});
+
+	const reportTaskIds = useMemo(() => {
+		return Array.from(new Set(reports.map(getReportTaskId).filter(Boolean)));
+	}, [reports]);
 
 	useEffect(() => {
-		const fetchData = async () => {
-			const result = await getProjectsWithStatuses({
-				projects: clientsList,
-				startOfTheWeek: startOfTheWeek,
-				endOfTheWeek: endOfTheWeek,
+		setReportsFilters({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				select: REPORT_SELECT_FIELDS,
+				filter: {
+					">=begindate": startOfTheWeek,
+					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
+				},
+			},
+		});
+	}, [endOfTheWeek, setReportsFilters, startOfTheWeek]);
+
+	useEffect(() => {
+		let isCancelled = false;
+
+		const fetchTasksByReports = async () => {
+			if (!reportTaskIds.length) {
+				setTasks([]);
+				return;
+			}
+
+			const response = await fetchAllCrmItems<TaskProps>({
+				entityTypeId: EntityTypeIds.tasks,
+				filter: {
+					"@id": reportTaskIds,
+				},
+				select: TASK_SELECT_FIELDS,
 			});
 
-			setProjWithStatus(result);
+			if (!isCancelled) {
+				setTasks(response ?? []);
+			}
 		};
 
-		if (clientsList) {
-			fetchData();
-		}
-	}, [endOfTheWeek, startOfTheWeek, clientsList]);
+		fetchTasksByReports();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [reportTaskIds]);
+
+	const projWithStatus = useMemo(() => {
+		return getProjectsWithStatuses({
+			projects,
+			reports,
+			tasks,
+		});
+	}, [projects, reports, tasks]);
 
 	return (
 		<>
@@ -261,7 +458,7 @@ const ProjectsReports = () => {
 						.toSorted((a, b) => a.status.localeCompare(b.status))
 						.map((proj) => (
 							<div
-								key={proj.ID}
+								key={proj.projectId}
 								className={styles.projectItem}
 								onClick={() => {
 									setActiveProject(proj);
@@ -275,7 +472,7 @@ const ProjectsReports = () => {
 										width: "100%",
 									}}
 								>
-									<div className={styles.projectTitle}> {proj.NAME}</div>
+									<div className={styles.projectTitle}> {proj.title}</div>
 									<div>
 										<div>{proj.status}</div>
 									</div>
@@ -292,7 +489,7 @@ const ProjectsReports = () => {
 					innerScroll
 					size="covered"
 				>
-					<ProjectsStats project={activeProject} />
+					<ClientProjectsStats project={activeProject} />
 				</Modal>
 			)}
 		</>

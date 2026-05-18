@@ -64,6 +64,7 @@ export const TaskView = ({
 							filter: {
 								[ReportCodes.parentId]: taskId,
 								[`!${ReportCodes.show}`]: "N",
+								stageId: "DT1060_15:PREPARATION",
 							},
 						},
 					},

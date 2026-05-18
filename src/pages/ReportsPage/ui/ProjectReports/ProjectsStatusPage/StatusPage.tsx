@@ -12,7 +12,7 @@ export const ProjectStatuses = () => {
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await getProjectsTableData({
-				projects: clientsList,
+				clients: clientsList,
 			});
 
 			setTableData(result);

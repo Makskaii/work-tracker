@@ -2,6 +2,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
+import type { ProjectCodes } from "../../components/calendar/constants/const";
 import { TaskCodes } from "../../components/calendar/constants/const";
 import type { ClientsCodes } from "../constants/const";
 export type AnyObject = {
@@ -37,7 +38,7 @@ export interface ClientProjectProps {
 	lastActivityBy: number;
 	lastActivityTime: string;
 	[ClientsCodes.title]: string;
-	[ClientsCodes.client]: number;
+	[ProjectCodes.company]?: string | number | null;
 	projectId: string;
 }
 
@@ -93,6 +94,7 @@ export interface TaskProps {
 	[TaskCodes.deadline]: string;
 	[TaskCodes.comment]: string;
 	[TaskCodes.parentproject]: string;
+	[TaskCodes.company]?: string | number | null;
 }
 
 export interface User {

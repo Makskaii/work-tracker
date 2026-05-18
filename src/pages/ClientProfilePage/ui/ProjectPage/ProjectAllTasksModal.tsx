@@ -12,13 +12,19 @@ type Props = {
 	open: boolean;
 	onClose: () => void;
 	projectId: string;
+	companyId?: string;
 	projectName: string;
 	users: User[];
 	statuses: Status[];
 	reports: ReportProps[];
 };
 
-export const ProjectAllTasksModal = ({ open, onClose, projectId }: Props) => {
+export const ProjectAllTasksModal = ({
+	open,
+	onClose,
+	projectId,
+	companyId,
+}: Props) => {
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 
 	useEffect(() => {
@@ -29,7 +35,8 @@ export const ProjectAllTasksModal = ({ open, onClose, projectId }: Props) => {
 				const response = await getItems<TaskProps>({
 					typeId: EntityTypeIds.tasks,
 					filters: {
-						[TaskCodes.project]: projectId,
+						[TaskCodes.parentproject]: projectId,
+						...(companyId ? { [TaskCodes.company]: companyId } : {}),
 						"!stageId": TASK_STAGE_IDS.BUNDLE,
 					},
 					select: TASK_SELECT_FIELDS,
@@ -42,7 +49,7 @@ export const ProjectAllTasksModal = ({ open, onClose, projectId }: Props) => {
 		};
 
 		fetchTasks();
-	}, [open, projectId]);
+	}, [open, projectId, companyId]);
 
 	return (
 		<Modal isOpen={open} onClose={onClose} size="full" innerScroll>

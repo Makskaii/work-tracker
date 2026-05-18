@@ -37,11 +37,28 @@ export const ClientProjectPage = () => {
 	const [loadUrl, setLoadUrl] = useState("");
 	const [activities, setActivities] = useState<ActivityListItem[]>([]);
 	const [users, setUsers] = useState<User[]>([]);
-	const { projId } = useParams<{ projId: string }>();
+	const { companyId, projId } = useParams<{
+		companyId?: string;
+		projId: string;
+	}>();
 	const [statuses, setStatuses] = useState<Status[]>([]);
 	const [reportsOpen, setReportsOpen] = useState(false);
 	const [allTasksOpen, setAllTasksOpen] = useState(false);
 	const [bundle, setBundles] = useState<TaskBundle[]>([]);
+	const projectTaskFilter = useMemo(
+		() => ({
+			[TaskCodes.parentproject]: projId,
+			...(companyId ? { [TaskCodes.company]: companyId } : {}),
+		}),
+		[projId, companyId],
+	);
+	const projectReportFilter = useMemo(
+		() => ({
+			[ReportCodes.parentproject]: projId,
+			...(companyId ? { [ReportCodes.company]: companyId } : {}),
+		}),
+		[projId, companyId],
+	);
 
 	const { state } = useLocation();
 
@@ -58,11 +75,13 @@ export const ClientProjectPage = () => {
 	}, []);
 
 	useEffect(() => {
+		if (!projId) return;
+
 		const fetchTasks = async () => {
 			const response = await getItems<TaskProps>({
 				typeId: EntityTypeIds.tasks,
 				filters: {
-					[TaskCodes.project]: projId,
+					...projectTaskFilter,
 					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
 					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
 				},
@@ -73,18 +92,20 @@ export const ClientProjectPage = () => {
 		};
 
 		fetchTasks();
-	}, [projId, startOfTheWeek, endOfTheWeek]);
+	}, [projId, projectTaskFilter, startOfTheWeek, endOfTheWeek]);
 
 	const devsIds = useMemo(() => {
 		return new Set(tasks.map((task) => task.assignedById));
 	}, [tasks]);
 
 	useEffect(() => {
+		if (!projId) return;
+
 		const fetchBundles = async () => {
 			const bundleTask = await getItems<TaskProps>({
 				typeId: EntityTypeIds.tasks,
 				filters: {
-					[TaskCodes.project]: projId,
+					...projectTaskFilter,
 					[`!${TaskCodes.linkedTasks}`]: false,
 				},
 				select: TASK_SELECT_FIELDS,
@@ -122,7 +143,7 @@ export const ClientProjectPage = () => {
 		};
 
 		fetchBundles();
-	}, [projId]);
+	}, [projId, projectTaskFilter]);
 
 	useEffect(() => {
 		const fetchActivities = async () => {
@@ -145,7 +166,8 @@ export const ClientProjectPage = () => {
 					"begindate",
 					ReportCodes.title,
 					ReportCodes.timeSpent,
-					ReportCodes.client,
+					ReportCodes.company,
+					ReportCodes.parentproject,
 					ReportCodes.taskId,
 					ReportCodes.activityType,
 					"assignedById",
@@ -154,9 +176,10 @@ export const ClientProjectPage = () => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[ReportCodes.project]: projId,
+					...projectReportFilter,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -173,7 +196,8 @@ export const ClientProjectPage = () => {
 					"begindate",
 					ReportCodes.title,
 					ReportCodes.timeSpent,
-					ReportCodes.client,
+					ReportCodes.company,
+					ReportCodes.parentproject,
 					ReportCodes.taskId,
 					ReportCodes.activityType,
 					"assignedById",
@@ -182,7 +206,8 @@ export const ClientProjectPage = () => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[ReportCodes.project]: projId,
+					...projectReportFilter,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -198,7 +223,8 @@ export const ClientProjectPage = () => {
 					"begindate",
 					ReportCodes.title,
 					ReportCodes.timeSpent,
-					ReportCodes.client,
+					ReportCodes.company,
+					ReportCodes.parentproject,
 					ReportCodes.taskId,
 					ReportCodes.activityType,
 					"assignedById",
@@ -207,13 +233,14 @@ export const ClientProjectPage = () => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					[ReportCodes.project]: projId,
+					...projectReportFilter,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		});
-	}, [endOfTheWeek, projId, setFilters, startOfTheWeek]);
+	}, [endOfTheWeek, projectReportFilter, setFilters, startOfTheWeek]);
 
 	const sprintSpentTime = useMemo(() => {
 		return tasks.reduce((acc, task) => {
@@ -306,7 +333,7 @@ export const ClientProjectPage = () => {
 					</button>
 				</div>
 
-				<DoneTasksList projectId={projId} />
+				<DoneTasksList projectId={projId} companyId={companyId} />
 			</div>
 		);
 	}
@@ -486,6 +513,7 @@ export const ClientProjectPage = () => {
 				open={allTasksOpen}
 				onClose={() => setAllTasksOpen(false)}
 				projectId={projId}
+				companyId={companyId}
 				projectName={state.title}
 				users={users}
 				statuses={statuses}

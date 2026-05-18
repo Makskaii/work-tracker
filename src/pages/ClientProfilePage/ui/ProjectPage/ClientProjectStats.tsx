@@ -1,12 +1,15 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import {
+	ProjectCodes,
+	ReportCodes,
+	TaskCodes,
+} from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
-import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import { ProjectActivityChart } from "@/pages/ReportsPage/ui/ProjectReports/ActivityChart";
 import { DoneTasksList } from "@/pages/ReportsPage/ui/ProjectReports/DoneTasksList";
 import { $backendApi } from "@/shared/config/axios/axios.config";
@@ -17,6 +20,7 @@ import {
 } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { useLoadCrmItemsByIds } from "@/shared/hooks/useLoadCrmItemsByIds";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type {
 	ClientProjectProps,
@@ -27,68 +31,77 @@ import { convertNumberFormat } from "@/shared/utils";
 
 const { VITE_BFF_API_URL } = import.meta.env;
 
+const REPORT_SELECT_FIELDS = [
+	"id",
+	"title",
+	"begindate",
+	ReportCodes.title,
+	ReportCodes.timeSpent,
+	ReportCodes.company,
+	ReportCodes.parentproject,
+	ReportCodes.taskId,
+	ReportCodes.activityType,
+	"assignedById",
+	"createdTime",
+	"lastActivityTime",
+	`parentId${EntityTypeIds.tasks}`,
+] as const;
+
+const getReportTaskId = (report: ReportProps) => {
+	const taskId = report[ReportCodes.parentId] ?? report[ReportCodes.taskId];
+	const normalizedTaskId =
+		taskId === null || taskId === undefined ? "" : String(taskId).trim();
+
+	return /^\d+$/.test(normalizedTaskId) ? normalizedTaskId : "";
+};
+
 export const ClientProjectsStats = ({
 	project,
 }: {
 	project: ClientProjectProps;
 }) => {
 	const { users, statuses, activities } = useOutletContext<ReportsContext>();
-	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [view, setView] = useState<"task" | "stats">("stats");
 	const [loading, setLoading] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
 
 	const { openTask } = useBitrixSlider();
 
-	const { startOfTheWeek, endOfTheWeek, setDay } = useSprintBorders();
-
-	useEffect(() => {
-		const fetchTasks = async () => {
-			const response = await getItems<TaskProps>({
-				typeId: EntityTypeIds.tasks,
-				filters: {
-					[TaskCodes.project]: project.projectId,
-					[`<=${TaskCodes.sprintDateStart}`]: endOfTheWeek,
-					[`>=${TaskCodes.sprintDateStart}`]: startOfTheWeek,
-				},
-				select: TASK_SELECT_FIELDS,
-			});
-			setTasks(response.sort((a, b) => a.stageId.localeCompare(b.stageId)));
-		};
-
-		fetchTasks();
-	}, [project.projectId, startOfTheWeek, endOfTheWeek]);
-
-	const devsIds = useMemo(() => {
-		return new Set(tasks.map((task) => task.assignedById));
-	}, [tasks]);
+	const { startOfTheWeek, endOfTheWeek, setDay } = useSprintBorders("workweek");
+	const projectId = String(project.projectId ?? project.id);
+	const companyId = String(project[ProjectCodes.company] ?? "").trim();
+	const projectReportFilter = useMemo(
+		() => ({
+			[ReportCodes.parentproject]: projectId,
+			...(companyId ? { [ReportCodes.company]: companyId } : {}),
+		}),
+		[projectId, companyId],
+	);
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
+				select: REPORT_SELECT_FIELDS,
 				filter: {
-					[ReportCodes.project]: project.projectId,
+					...projectReportFilter,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
+	});
+
+	const reportTaskIds = useMemo(() => {
+		return Array.from(new Set(data.map(getReportTaskId).filter(Boolean)));
+	}, [data]);
+
+	const { data: loadedTasks } = useLoadCrmItemsByIds<TaskProps>({
+		entityTypeId: EntityTypeIds.tasks,
+		ids: reportTaskIds,
+		select: TASK_SELECT_FIELDS,
 	});
 
 	const { data: allReports } = useLoadAllData<ReportProps>({
@@ -96,22 +109,10 @@ export const ClientProjectsStats = ({
 		initialFilters: {
 			params: {
 				entityTypeId: EntityTypeIds.reports,
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
+				select: REPORT_SELECT_FIELDS,
 				filter: {
-					[ReportCodes.project]: project.projectId,
+					...projectReportFilter,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -121,28 +122,24 @@ export const ClientProjectsStats = ({
 		setFilters({
 			params: {
 				entityTypeId: EntityTypeIds.reports,
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.taskId,
-					ReportCodes.activityType,
-					"assignedById",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
+				select: REPORT_SELECT_FIELDS,
 				filter: {
-					[ReportCodes.project]: project.projectId,
+					...projectReportFilter,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		});
-	}, [endOfTheWeek, project.projectId, setFilters, startOfTheWeek]);
+	}, [endOfTheWeek, projectReportFilter, setFilters, startOfTheWeek]);
+
+	const tasks = useMemo(() => {
+		return loadedTasks.toSorted((a, b) => a.stageId.localeCompare(b.stageId));
+	}, [loadedTasks]);
+
+	const devsIds = useMemo(() => {
+		return new Set(tasks.map((task) => task.assignedById));
+	}, [tasks]);
 
 	const totalSpentTime = allReports.reduce(
 		(acc, report) => acc + convertNumberFormat(report[ReportCodes.timeSpent]),
@@ -152,19 +149,19 @@ export const ClientProjectsStats = ({
 	const groupedByTaskReports = useMemo(() => {
 		return data.reduce(
 			(acc, report) => {
-				const parentId = Number(report[ReportCodes.parentId]);
+				const taskId = getReportTaskId(report);
 
-				if (!parentId) return acc;
+				if (!taskId) return acc;
 
-				if (!acc[parentId]) {
-					acc[parentId] = [report];
+				if (!acc[taskId]) {
+					acc[taskId] = [report];
 				} else {
-					acc[parentId].push(report);
+					acc[taskId].push(report);
 				}
 
 				return acc;
 			},
-			{} as Record<number, ReportProps[]>,
+			{} as Record<string, ReportProps[]>,
 		);
 	}, [data]);
 
@@ -226,11 +223,7 @@ export const ClientProjectsStats = ({
 
 					<button
 						onClick={async () => {
-							await getReportPdf(
-								String(project.projectId),
-								startOfTheWeek,
-								endOfTheWeek,
-							);
+							await getReportPdf(projectId, startOfTheWeek, endOfTheWeek);
 							setView("task");
 						}}
 						style={{
@@ -267,7 +260,7 @@ export const ClientProjectsStats = ({
 								setDay((prev) => prev.subtract(7, "day"));
 							}}
 						>
-							пред. спринт
+							пред. неделя
 						</button>
 						<div
 							style={{
@@ -276,7 +269,7 @@ export const ClientProjectsStats = ({
 								alignItems: "center",
 							}}
 						>
-							<span>Cпринт</span>
+							<span>Неделя</span>
 							<div>
 								{dayjs(startOfTheWeek).format("DD.MM")}-
 								{dayjs(endOfTheWeek).format("DD.MM")}
@@ -291,7 +284,7 @@ export const ClientProjectsStats = ({
 								setDay((prev) => prev.add(7, "day"));
 							}}
 						>
-							след. спринт
+							след. неделя
 						</button>
 					</div>
 
@@ -347,7 +340,7 @@ export const ClientProjectsStats = ({
 								marginBottom: "1rem",
 							}}
 						>
-							Задач в спринте: {tasks.length}
+							Задач за неделю: {tasks.length}
 						</div>
 						<div
 							style={{
@@ -361,7 +354,7 @@ export const ClientProjectsStats = ({
 						>
 							{tasks.map((task) => {
 								const timespent = groupedByTaskReports?.[
-									Number(task.id)
+									String(task.id)
 								]?.reduce((acc, report) => {
 									return acc + Number(report[ReportCodes.timeSpent]);
 								}, 0);
@@ -400,7 +393,7 @@ export const ClientProjectsStats = ({
 										whiteSpace: "nowrap",
 									}}
 								>
-									Всего затрачено за спринт:{" "}
+									Всего затрачено за неделю:{" "}
 									{data.reduce((acc, report) => {
 										return (
 											acc + parseFloat(String(report[ReportCodes.timeSpent]))
@@ -515,7 +508,7 @@ export const ClientProjectsStats = ({
 						height: "75vh",
 					}}
 				>
-					Нет задач в этом спринте
+					Нет задач на этой неделе
 				</div>
 			)}
 		</div>
@@ -551,7 +544,7 @@ export const ClientProjectsStats = ({
 				</button>
 			</div>
 
-			<DoneTasksList projectId={String(project.projectId)} />
+			<DoneTasksList projectId={projectId} companyId={companyId} />
 		</div>
 	);
 };

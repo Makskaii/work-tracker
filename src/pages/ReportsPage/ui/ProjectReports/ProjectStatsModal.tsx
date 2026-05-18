@@ -84,6 +84,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					[ReportCodes.client]: project.ID,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -110,6 +111,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 				],
 				filter: {
 					[ReportCodes.client]: project.ID,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -137,6 +139,7 @@ export const ProjectsStats = ({ project }: { project: ClientListItems }) => {
 					[ReportCodes.client]: project.ID,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		});

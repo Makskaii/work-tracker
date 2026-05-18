@@ -13,6 +13,8 @@ export interface ReportProps {
 	[ReportCodes.activityType]: number;
 	[ReportCodes.parentId]: number;
 	[ReportCodes.client]: number;
+	[ReportCodes.company]?: number;
+	[ReportCodes.parentproject]?: number;
 	assignedById: number;
 	lastActivityTime: string;
 }

@@ -3,9 +3,11 @@ import { useState } from "react";
 import { useOutletContext } from "react-router";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
+import { ClientsCodes } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { GroupedReportFields, Header } from "@/shared/types/table";
 import type {
+	ClientProjectProps,
 	ClientsWithPropjects,
 	ReportsContext,
 } from "@/shared/types/types";
@@ -19,8 +21,12 @@ import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
 // import { ReportsActivitySection } from "../Table/reportsTable/TableMonthModal";
 import { UniversalTable } from "../Table/universalTable/UniversalTable";
 import cls from "./Calendar.module.scss";
-import { months, years } from "./constants/const";
+import { months, ProjectCodes, years } from "./constants/const";
 import type { MonthDays } from "./types/types";
+
+const getProjectCompanyId = (project: ClientProjectProps) => {
+	return Number(project[ProjectCodes.company] ?? 0);
+};
 
 export const headers: Header<GroupedReportFields>[] = [
 	{
@@ -31,22 +37,47 @@ export const headers: Header<GroupedReportFields>[] = [
 		title: "Клиент",
 		key: "client",
 		convertFn: (value, additionalData) => {
-			return (
-				additionalData?.clients?.find(
-					(clients: ClientsWithPropjects) => Number(clients.ID) === value,
-				)?.NAME || ""
+			const clients = (additionalData?.clients ??
+				[]) as ClientsWithPropjects[];
+			const directClient = clients.find(
+				(client) => Number(client.ID) === value,
 			);
+
+			if (directClient) {
+				return directClient.NAME;
+			}
+
+			const clientByProjectCompany = clients.find((client) =>
+				client.projects?.some((project) => getProjectCompanyId(project) === value),
+			);
+
+			return clientByProjectCompany?.NAME || `Компания #${value}`;
 		},
 	},
 	{
 		title: "Проект",
 		key: "project",
 		convertFn: (value, additionalData) => {
-			return (
-				additionalData?.projects?.find(
-					(project: ProjectFromList) => Number(project.id) === value,
-				)?.name || ""
+			const clients = (additionalData?.clients ??
+				[]) as ClientsWithPropjects[];
+			const clientProject = clients
+				.flatMap((client) => client.projects ?? [])
+				.find(
+					(project) =>
+						Number(project.id) === value || Number(project.projectId) === value,
+				);
+
+			if (clientProject?.title) {
+				return clientProject.title;
+			}
+
+			const listProject = (additionalData?.projects ?? []).find(
+				(project: ProjectFromList) =>
+					Number(project[ClientsCodes.client]) === value ||
+					Number(project.id) === value,
 			);
+
+			return listProject?.title || listProject?.name || `Проект #${value}`;
 		},
 	},
 	{

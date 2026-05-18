@@ -17,7 +17,7 @@ export const DeveloperProjectsAccordion = ({
 	projects,
 }: DeveloperProjectsAccordionProps) => {
 	const [openProjectId, setOpenProjectId] = useState<string | null>(null);
-
+	console.log({ projects });
 	const { openTask } = useBitrixSlider();
 
 	if (tasks.length === 0) {
@@ -35,6 +35,7 @@ export const DeveloperProjectsAccordion = ({
 			<div className={cls.projectsList}>
 				{Object.entries(grouped).map(([projectId, projectTasks]) => {
 					const isOpen = openProjectId === projectId;
+
 					const projectName =
 						projects.find((project) => String(project.id) === String(projectId))
 							?.name ?? "Без проекта";

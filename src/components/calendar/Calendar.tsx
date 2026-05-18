@@ -9,6 +9,39 @@ import { months, ReportCodes, selectFields } from "./constants/const";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
 
+const getReportRelationId = (
+	newValue: string | number | null | undefined,
+	legacyValue: string | number | null | undefined,
+) => {
+	return Number(newValue ?? legacyValue ?? 0);
+};
+
+const mapReportToGroupedFields = (report: ReportProps): GroupedReportFields => {
+	const companyId = getReportRelationId(
+		report[ReportCodes.company],
+		report[ReportCodes.client],
+	);
+	const parentProjectId = getReportRelationId(
+		report[ReportCodes.parentproject],
+		report[ReportCodes.project],
+	);
+
+	return {
+		id: report.id,
+		title: report[ReportCodes.title],
+		timeSpent: report[ReportCodes.timeSpent],
+		taskId: report[ReportCodes.taskId],
+		parentId: report[ReportCodes.parentId],
+		day: report.begindate,
+		project: parentProjectId,
+		parentproject: parentProjectId,
+		activity: report[ReportCodes.activityType],
+		assignedById: String(report.assignedById),
+		client: companyId,
+		company: companyId,
+	};
+};
+
 export const Calendar = ({
 	view,
 	userId,
@@ -39,6 +72,7 @@ export const Calendar = ({
 						1,
 					).toISOString(),
 					assignedById: userId,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -64,6 +98,7 @@ export const Calendar = ({
 							1,
 						).toISOString(),
 						assignedById: userId,
+						stageId: "DT1060_15:PREPARATION",
 					},
 				},
 			});
@@ -71,35 +106,10 @@ export const Calendar = ({
 
 	useEffect(() => {
 		if (data) {
-			setReports(
-				data.map((report) => ({
-					id: report.id,
-					title: report[ReportCodes.title],
-					timeSpent: report[ReportCodes.timeSpent],
-					taskId: report[ReportCodes.taskId],
-					parentId: report[ReportCodes.parentId],
-					day: report.begindate,
-					project: report[ReportCodes.project],
-					activity: report[ReportCodes.activityType],
-					assignedById: String(report.assignedById),
-					client: report[ReportCodes.client],
-				})),
-			);
+			const normalizedReports = data.map(mapReportToGroupedFields);
 
-			setGroupByActivity(
-				data.map((report) => ({
-					id: report.id,
-					title: report[ReportCodes.title],
-					timeSpent: report[ReportCodes.timeSpent],
-					taskId: report[ReportCodes.taskId],
-					parentId: report[ReportCodes.parentId],
-					day: report.begindate,
-					project: report[ReportCodes.project],
-					activity: report[ReportCodes.activityType],
-					assignedById: String(report.assignedById),
-					client: report[ReportCodes.client],
-				})),
-			);
+			setReports(normalizedReports);
+			setGroupByActivity(normalizedReports);
 		}
 	}, [data, setGroupByActivity]);
 

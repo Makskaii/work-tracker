@@ -1,26 +1,30 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Outlet } from "react-router";
-import { TaskCodes as UserCodes } from "@/components/calendar/constants/const";
+import {
+	ProjectCodes,
+	TaskCodes as UserCodes,
+} from "@/components/calendar/constants/const";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
+import { $api } from "@/shared/config";
 import {
 	ClientsCodes,
+	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import type {
+	AnyObject,
 	ClientListItems,
 	ClientProjectProps,
-	ProjectListDto,
 	ReportsContext,
 	Status,
 	TaskProps,
 	User,
 } from "@/shared/types/types";
 import {
+	getActivities,
 	getActivitiesList,
-	getClientsFromList,
-	getProjectsFromList,
 } from "../../shared/api/getCrmFields";
 import { getSrartEndMonthDate } from "../../shared/utils/utils";
 import { getDevelopers } from "./api/getDevelopers";
@@ -43,26 +47,87 @@ export type ProjectFromList = {
 	name?: string;
 };
 
-const getSinglePropertyValue = (
-	property?: Record<string, string> | null,
-): string => {
-	if (!property) return "";
-
-	const value = Object.values(property)[0];
-
-	return value ? String(value) : "";
+type CompanyFromCrm = {
+	id: string | number;
+	title?: string;
 };
 
-export const mapProjectsFromList = (
-	items: ProjectListDto[],
+type CrmItemListResponse<T> = {
+	result?: {
+		items?: T[];
+	};
+	next?: number | null;
+	total?: number;
+};
+
+const fetchAllCrmItems = async <T extends AnyObject>({
+	entityTypeId,
+	select,
+	filter = {},
+}: {
+	entityTypeId: number;
+	select: readonly string[];
+	filter?: AnyObject;
+}) => {
+	const limit = 50;
+	let start = 0;
+	let next: number | null | undefined = 0;
+	const items: T[] = [];
+
+	while (next !== null) {
+		const response = await $api.get<CrmItemListResponse<T>>(
+			Endpoints.crmItems,
+			{
+				params: {
+					entityTypeId,
+					select,
+					filter,
+					start,
+				},
+			},
+		);
+
+		const pageItems = response.data.result?.items ?? [];
+		items.push(...pageItems);
+
+		next = response.data.next ?? null;
+		start = next ?? start + limit;
+	}
+
+	return items;
+};
+
+const mapCompanyFromCrm = (company: CompanyFromCrm): ClientListItems => {
+	const id = String(company.id);
+	const title = String(company.title ?? `Компания #${id}`);
+
+	return {
+		ID: id,
+		NAME: title,
+		id,
+		title,
+	};
+};
+
+const getUniqueProjectCompanyIds = (projects: ClientProjectProps[]) => {
+	return Array.from(
+		new Set(
+			projects
+				.map((project) => String(project[ProjectCodes.company] ?? "").trim())
+				.filter(Boolean),
+		),
+	);
+};
+
+export const mapProjectsFromSmartProcess = (
+	items: ClientProjectProps[],
 ): ProjectFromList[] => {
-	return items
-		.map((element) => ({
-			id: String(element.ID),
-			title: String(element.NAME ?? ""),
-			[ClientsCodes.client]: getSinglePropertyValue(element.PROPERTY_87),
-		}))
-		.filter((item) => item[ClientsCodes.client]);
+	return items.map((project) => ({
+		id: String(project.id),
+		title: String(project.title ?? ""),
+		name: String(project.title ?? ""),
+		[ClientsCodes.client]: String(project[ProjectCodes.company] ?? ""),
+	}));
 };
 
 const ReportsPage = () => {
@@ -115,7 +180,7 @@ const ReportsPage = () => {
 			const response = await getItems<TaskProps>({
 				typeId: EntityTypeIds.tasks,
 				filters: {
-					[UserCodes.client]: currProject === "" ? null : currProject,
+					[UserCodes.company]: currProject === "" ? null : currProject,
 
 					">=createdTime": getSrartEndMonthDate("start", month, year),
 					"<=createdTime": getSrartEndMonthDate("end", month, year),
@@ -149,80 +214,67 @@ const ReportsPage = () => {
 		fetchActivities();
 	}, []);
 
-	// useEffect(() => {
-	// 	const fetchActivities = async () => {
-	// 		const fields = await getActivities();
-
-	// 		console.log({ fields });
-	// 	};
-
-	// 	fetchActivities();
-	// }, []);
-
 	useEffect(() => {
-		const fetchProjectsByClient = async (
-			clients: ClientListItems[],
-			projectsFromList: ProjectFromList[],
-		) => {
-			if (!clients) return [];
+		const fetchActivities = async () => {
+			const fields = await getActivities();
 
-			try {
-				const response = await Promise.all(
-					clients.map(async (client) => {
-						const projects = await getItems<ClientProjectProps>({
-							typeId: EntityTypeIds.projects,
-							filters: {
-								[ClientsCodes.client]: client.ID,
-							},
-						});
-
-						const projectsWithRealId = (projects ?? []).map((project) => {
-							const projectTitle = String(project.title ?? "")
-								.trim()
-								.toLowerCase();
-
-							const matchedProject = projectsFromList.find(
-								(listProject) =>
-									listProject.title.trim().toLowerCase() === projectTitle,
-							);
-
-							return {
-								...project,
-								projectId: matchedProject?.id ?? "",
-							};
-						});
-
-						return {
-							...client,
-							projects: projectsWithRealId,
-						};
-					}),
-				);
-
-				return response;
-			} catch (error) {
-				console.log(error);
-				return [];
-			}
+			console.log({ fields });
 		};
 
+		fetchActivities();
+	}, []);
+
+	useEffect(() => {
 		const fetchClients = async () => {
 			try {
-				const [clientsResponse, projectsListResponse] = await Promise.all([
-					getClientsFromList(),
-					getProjectsFromList(),
-				]);
+				const projectsResponse = await fetchAllCrmItems<ClientProjectProps>({
+					entityTypeId: EntityTypeIds.projects,
+					select: [
+						"id",
+						"title",
+						"assignedById",
+						"createdTime",
+						"updatedTime",
+						"movedTime",
+						"categoryId",
+						ProjectCodes.company,
+						ProjectCodes.parentproject,
+					],
+				});
 
-				const normalizedProjects = mapProjectsFromList(projectsListResponse);
+				const projectCompanyIds = getUniqueProjectCompanyIds(projectsResponse);
+
+				console.log({ projectCompanyIds });
+				const companiesResponse = projectCompanyIds.length
+					? await fetchAllCrmItems<CompanyFromCrm>({
+							entityTypeId: EntityTypeIds.companies,
+							select: ["id", "title"],
+							filter: {
+								"@id": projectCompanyIds,
+							},
+						})
+					: [];
+
+				const companies = companiesResponse.map(mapCompanyFromCrm);
+				const normalizedProjects =
+					mapProjectsFromSmartProcess(projectsResponse);
 
 				setProjects(normalizedProjects);
 
-				const data = await fetchProjectsByClient(
-					clientsResponse,
-					normalizedProjects,
-				);
+				const data = companies.map((company) => ({
+					...company,
+					projects: projectsResponse
+						.filter(
+							(project) =>
+								String(project[ProjectCodes.company] ?? "") === company.ID,
+						)
+						.map((project) => ({
+							...project,
+							projectId: String(project.id),
+						})),
+				}));
 
-				setClietnsList(data ?? []);
+				setClietnsList(data);
 			} catch (error) {
 				console.log(error);
 			}
