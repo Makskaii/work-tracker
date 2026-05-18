@@ -10,6 +10,7 @@ import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
 import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { ClientProjectsStats } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectStats";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	Endpoints,
 	EntityTypeIds,
@@ -20,6 +21,7 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { useLoadCrmItemsByIds } from "@/shared/hooks/useLoadCrmItemsByIds";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
+import { classNames } from "@/shared/utils/utils";
 import type {
 	ClientListItems,
 	ClientProjectProps,
@@ -378,6 +380,8 @@ const ClientTasksModal = ({
 	);
 };
 
+const { VITE_BFF_API_URL } = import.meta.env;
+
 const ProjectsReports = () => {
 	const [expandedClients, setExpandedClients] = useState<
 		Record<string, boolean>
@@ -386,6 +390,9 @@ const ProjectsReports = () => {
 	const [clientOpen, setClientOpen] = useState<boolean>(false);
 	const { clientsList } = useOutletContext<ReportsContext>();
 	const clients = (clientsList ?? []) as ClientWithProjects[];
+
+	const [loadingReport, setLoadingReport] = useState(false);
+	const [loadUrl, setLoadUrl] = useState("");
 
 	const [activeProject, setActiveProject] = useState<ClientProjectProps>();
 	const [activeClient, setActiveClient] = useState<ClientWithProjects>();
@@ -486,6 +493,39 @@ const ProjectsReports = () => {
 		return projectsWithStatus.find((item) => item.id === Number(projectId));
 	};
 
+	const getReportPdf = async (
+		id: string,
+		startOfThePeriod: string,
+		endOfThePeriod: string,
+	) => {
+		try {
+			setLoadingReport(true);
+			const response = await $backendApi.post("doc-records/client-report", {
+				id,
+				startOfThePeriod,
+				endOfThePeriod,
+			});
+
+			const downloadUrl = response.data.downloadUrl;
+
+			setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
+
+			notify({
+				message: "Отчет сформирован",
+				type: "success",
+			});
+		} catch (error) {
+			console.log(error);
+
+			notify({
+				message: "Ошибка загрузки отчёта",
+				type: "error",
+			});
+		} finally {
+			setLoadingReport(false);
+		}
+	};
+
 	return (
 		<>
 			<div className={styles.header}>Клиенты:</div>
@@ -522,6 +562,38 @@ const ProjectsReports = () => {
 											>
 												Открыть
 											</button>
+											{loadUrl === "" ? (
+												<button
+													disabled={loadingReport}
+													type="button"
+													className={classNames(styles.primaryButton, {
+														[styles.loadingPulse]: loadingReport,
+													})}
+													onClick={async () =>
+														await getReportPdf(
+															client.ID,
+															startOfTheWeek,
+															endOfTheWeek,
+														)
+													}
+												>
+													{loadingReport ? "Генерация..." : "Отчёт за 2 недели"}
+												</button>
+											) : (
+												<button
+													type="button"
+													className={styles.primaryButton}
+													onClick={async () =>
+														loadUrl !== "" && window.open(loadUrl, "_blank")
+													}
+													style={{
+														background: "green",
+													}}
+												>
+													Скачать отчёт
+												</button>
+											)}
+
 											<span className={styles.arrow}>
 												{isExpanded ? "▲" : "▼"}
 											</span>
