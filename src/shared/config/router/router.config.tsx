@@ -12,6 +12,7 @@ import {
 import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage";
 import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
+import { MigratePage } from "@/pages/MigratePage";
 import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage";
@@ -111,6 +112,14 @@ export const router = createBrowserRouter(
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<AnalyticsCommertialReportPage />
+								</Suspense>
+							),
+						},
+						{
+							path: "migrate",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<MigratePage />
 								</Suspense>
 							),
 						},

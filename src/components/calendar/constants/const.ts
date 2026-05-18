@@ -34,7 +34,7 @@ export enum ProjectCodes {
 	analytic = "ufCrm20_1777028495",
 	devs = "ufCrm20_1777028537",
 	qa = "ufCrm20_1777028582",
-	company = "ufCrm20_177487974",
+	company = "ufCrm20_1774879746",
 	parentproject = "ufCrm20_1774856819",
 }
 
@@ -84,6 +84,7 @@ export const selectFields = [
 	ReportCodes.parentId,
 	ReportCodes.client,
 	ReportCodes.company,
+	ReportCodes.parentproject,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",

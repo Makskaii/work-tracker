@@ -96,6 +96,7 @@ const getReportsByUser = async ({
 				assignedById: userId,
 				">=begindate": startOfTheWeek,
 				"<=begindate": endOfTheWeek,
+				stageId: "DT1060_15:PREPARATION",
 			},
 		},
 	});

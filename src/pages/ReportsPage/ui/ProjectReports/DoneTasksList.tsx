@@ -11,7 +11,13 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { TaskProps } from "@/shared/types/types";
 import { getSprintWeekBorders } from "@/shared/utils/statisticUtils/generateWeekBorders";
 
-export const DoneTasksList = ({ projectId }: { projectId: string }) => {
+export const DoneTasksList = ({
+	projectId,
+	companyId,
+}: {
+	projectId: string;
+	companyId?: string;
+}) => {
 	const borders = useMemo(() => getSprintWeekBorders(dayjs()), []);
 
 	const { openTask } = useBitrixSlider();
@@ -28,7 +34,8 @@ export const DoneTasksList = ({ projectId }: { projectId: string }) => {
 						.format("YYYY-MM-DD"),
 					[`<=${TaskCodes.sprintDateStart}`]: borders.endOfTheWeek,
 					stageId: "DT1072_18:UC_6JNSDG",
-					[TaskCodes.client]: projectId,
+					[TaskCodes.parentproject]: projectId,
+					...(companyId ? { [TaskCodes.company]: companyId } : {}),
 				},
 			},
 		},

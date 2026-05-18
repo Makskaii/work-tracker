@@ -44,6 +44,7 @@ const WeekCalendar = () => {
 					assignedById: user,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
+					stageId: "DT1060_15:PREPARATION",
 				},
 			},
 		},
@@ -72,6 +73,7 @@ const WeekCalendar = () => {
 						assignedById: user,
 						">=begindate": startOfTheWeek,
 						"<=begindate": endOfTheWeek,
+						stageId: "DT1060_15:PREPARATION",
 					},
 				},
 			});

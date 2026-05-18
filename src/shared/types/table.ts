@@ -35,6 +35,8 @@ export interface GroupedReportFields {
 	day: string;
 	project: number;
 	client: number;
+	parentproject?: number;
+	company?: number;
 	activity: number;
 	assignedById: string;
 }

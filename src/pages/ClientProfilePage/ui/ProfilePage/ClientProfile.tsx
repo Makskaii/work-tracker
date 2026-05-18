@@ -23,8 +23,6 @@ import { HeaderSection, type TaskStatusFilter } from "./HeaderSection";
 import { TaskListByProject } from "./TaskListByProject";
 import { UpcomingMeetings } from "./UpcomingMeetings";
 
-// const { VITE_BFF_API_URL } = import.meta.env;
-
 export type ViewMode = "list" | "projects";
 
 // const formatDate = (date?: string) => {
@@ -402,8 +400,6 @@ const ClientProfile = () => {
 		useState<TaskStatusFilter>("all");
 
 	const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
-	// const [loadingReport, setLoadingReport] = useState(false);
-	// const [loadUrl, setLoadUrl] = useState("");
 
 	const [team, setTeam] = useState<RoleWithUsers[]>([]);
 
@@ -417,41 +413,6 @@ const ClientProfile = () => {
 		setTasks(nextTasks);
 		setApprovalTasks(nextApprovalTasks);
 	};
-
-	// const navigate = useNavigate();
-
-	// const getReportPdf = async (
-	// 	id: string,
-	// 	startOfThePeriod: string,
-	// 	endOfThePeriod: string,
-	// ) => {
-	// 	try {
-	// 		setLoadingReport(true);
-	// 		const response = await $backendApi.post("doc-records/client-report", {
-	// 			id,
-	// 			startOfThePeriod,
-	// 			endOfThePeriod,
-	// 		});
-
-	// 		const downloadUrl = response.data.downloadUrl;
-
-	// 		setLoadUrl(`${VITE_BFF_API_URL}${downloadUrl}`);
-
-	// 		notify({
-	// 			message: "Отчет сформирован",
-	// 			type: "success",
-	// 		});
-	// 	} catch (error) {
-	// 		console.log(error);
-
-	// 		notify({
-	// 			message: "Ошибка загрузки отчёта",
-	// 			type: "error",
-	// 		});
-	// 	} finally {
-	// 		setLoadingReport(false);
-	// 	}
-	// };
 
 	useEffect(() => {
 		if (!companyId) {
@@ -791,6 +752,9 @@ const ClientProfile = () => {
 							setTaskStatusFilter={setTaskStatusFilter}
 							onCreateTask={() => setIsCreateTaskModalOpen(true)}
 							tasksCount={tasks.length}
+							companyId={companyId}
+							start={start}
+							end={end}
 						/>
 
 						<TaskListByProject

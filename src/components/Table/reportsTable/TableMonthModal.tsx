@@ -15,7 +15,8 @@ export const ReportsActivitySection = ({
 	type: string;
 	index: number;
 }) => {
-	const { projects, activities } = useOutletContext<ReportsContext>();
+	const { projects, activities, clientsList } =
+		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 	const [expanded, setExpanded] = useState(index === 0 ? true : false);
 
@@ -154,6 +155,7 @@ export const ReportsActivitySection = ({
 							additionalData={{
 								projects,
 								activities,
+								clients: clientsList,
 								openTask,
 							}}
 							fallbackText="Нет отчетов по активности"

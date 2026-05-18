@@ -28,6 +28,9 @@ type HeaderSectionProps = {
 	setTaskStatusFilter: (filter: TaskStatusFilter) => void;
 	onCreateTask: () => void;
 	tasksCount: number;
+	companyId: string;
+	start: string;
+	end: string;
 };
 
 export const HeaderSection = ({
