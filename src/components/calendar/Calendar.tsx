@@ -5,7 +5,12 @@ import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { GroupedReportFields } from "@/shared/types/table";
 import { CalendarMonth, WeekCalendar } from ".";
-import { months, ReportCodes, selectFields } from "./constants/const";
+import {
+	months,
+	ReportCodes,
+	ReportStageIds,
+	selectFields,
+} from "./constants/const";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
 
@@ -39,6 +44,7 @@ const mapReportToGroupedFields = (report: ReportProps): GroupedReportFields => {
 		assignedById: String(report.assignedById),
 		client: companyId,
 		company: companyId,
+		stageId: report.stageId,
 	};
 };
 
@@ -72,7 +78,7 @@ export const Calendar = ({
 						1,
 					).toISOString(),
 					assignedById: userId,
-					stageId: "DT1060_15:PREPARATION",
+					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
 				},
 			},
 		},
@@ -98,7 +104,7 @@ export const Calendar = ({
 							1,
 						).toISOString(),
 						assignedById: userId,
-						stageId: "DT1060_15:PREPARATION",
+						"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
 					},
 				},
 			});
@@ -107,9 +113,12 @@ export const Calendar = ({
 	useEffect(() => {
 		if (data) {
 			const normalizedReports = data.map(mapReportToGroupedFields);
+			const confirmedReports = normalizedReports.filter(
+				(report) => report.stageId === ReportStageIds.confirmed,
+			);
 
 			setReports(normalizedReports);
-			setGroupByActivity(normalizedReports);
+			setGroupByActivity(confirmedReports);
 		}
 	}, [data, setGroupByActivity]);
 

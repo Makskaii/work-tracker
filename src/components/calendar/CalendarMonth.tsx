@@ -21,11 +21,38 @@ import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
 // import { ReportsActivitySection } from "../Table/reportsTable/TableMonthModal";
 import { UniversalTable } from "../Table/universalTable/UniversalTable";
 import cls from "./Calendar.module.scss";
-import { months, ProjectCodes, years } from "./constants/const";
+import { ActivityType, months, ProjectCodes, years } from "./constants/const";
+import { getColorAndBorderByActivity } from "./helpers/getReportItemColors";
 import type { MonthDays } from "./types/types";
 
 const getProjectCompanyId = (project: ClientProjectProps) => {
 	return Number(project[ProjectCodes.company] ?? 0);
+};
+
+const isNotAtWorkDay = (day: MonthDays) => {
+	return (
+		!!day.confirmedReports?.length &&
+		day.confirmedReports.every(
+			(report) => report.activity === ActivityType.notAtWork,
+		)
+	);
+};
+
+const getDayActivitySegments = (day: MonthDays) => {
+	const segments = new Map<number, number>();
+
+	for (const report of day.confirmedReports ?? []) {
+		const timeSpent = Number(report.timeSpent);
+
+		if (!timeSpent) continue;
+
+		segments.set(report.activity, (segments.get(report.activity) ?? 0) + timeSpent);
+	}
+
+	return Array.from(segments.entries()).map(([activity, hours]) => ({
+		activity,
+		hours,
+	}));
 };
 
 export const headers: Header<GroupedReportFields>[] = [
@@ -145,6 +172,28 @@ const CalendarMonth = ({
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 
+	const renderWorkedHoursBackground = (day: MonthDays) => {
+		const activitySegments = getDayActivitySegments(day);
+
+		return (
+			<div className={cls["worked-hours-bg"]}>
+				{activitySegments.map((segment) => (
+					<div
+						key={segment.activity}
+						className={cls.workedHoursSegment}
+						style={{
+							width: `${(segment.hours / 8) * 100}%`,
+							backgroundColor: getColorAndBorderByActivity(
+								segment.activity,
+								activities,
+							).background,
+						}}
+					/>
+				))}
+			</div>
+		);
+	};
+
 	// const groupedByActivity = activeReport.reduce(
 	// 	(acc, report) => {
 	// 		if (report.activity) {
@@ -233,6 +282,9 @@ const CalendarMonth = ({
 
 							[cls.overTime]:
 								day.totalHours && day.totalHours > 8 ? true : false,
+							[cls.hasUnconfirmedReports]:
+								!!day.unconfirmedReports?.length,
+							[cls.notAtWorkDay]: isNotAtWorkDay(day),
 						})}
 						onClick={() => {
 							day.reports && setActiveReports(day.reports);
@@ -265,14 +317,13 @@ const CalendarMonth = ({
 								>
 									{day.totalHours.toFixed(2)} ч.
 								</div>
-								<div
-									className={cls["worked-hours-bg"]}
-									style={{
-										width: `${((day.totalHours || 0) / 8) * 100}%`,
-										maxWidth: "100%",
-									}}
-								/>
+								{renderWorkedHoursBackground(day)}
 							</>
+						)}
+						{!!day.unconfirmedReports?.length && (
+							<div className={cls.unconfirmedBadge}>
+								На проверку: {day.unconfirmedReports.length}
+							</div>
 						)}
 					</div>
 				))}

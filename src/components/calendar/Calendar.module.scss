@@ -135,11 +135,21 @@
         position: absolute;
         bottom: 0;
         left: 0;
-        right: 0;
+        width: 100%;
+        max-width: 100%;
         height: 100%;
-        background-color: rgb(76, 175, 80, 0.3);
+        display: flex;
+        overflow: hidden;
         transition: width 0.3s ease-out;
         border-radius: none;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .workedHoursSegment {
+        height: 100%;
+        flex: 0 0 auto;
+        transition: width 0.3s ease-out;
     }
 
     &.empty {
@@ -195,6 +205,14 @@
         color: #d400ff
     }
 
+    &.hasUnconfirmedReports {
+        border-color: #f59e0b;
+    }
+
+    &.notAtWorkDay {
+        border-color: rgba(148, 163, 184, 0.45);
+        color: #475569;
+    }
 
 }
 
@@ -203,6 +221,8 @@
     font-weight: bold;
     margin-bottom: 5px;
     align-self: flex-start;
+    position: relative;
+    z-index: 1;
 }
 
 .day-name {
@@ -210,6 +230,27 @@
     color: #666;
     margin-bottom: 10px;
     align-self: flex-start;
+    position: relative;
+    z-index: 1;
+}
+
+.unconfirmedBadge {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    z-index: 1;
+    max-width: calc(100% - 16px);
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: #fff7ed;
+    border: 1px solid #f97316;
+    color: #c2410c;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(194, 65, 12, 0.12);
 }
 
 .day-reports {

@@ -17,7 +17,7 @@ const WeekCalendar = () => {
 	const HOUR_HEIGHT = 800 / 8;
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReport, setActiveReport] = useState<ReportProps>();
-	const { user } = useOutletContext<ReportsContext>();
+	const { user, activities } = useOutletContext<ReportsContext>();
 
 	const { startOfTheWeek, endOfTheWeek, setDay, day } = useSprintBorders();
 
@@ -209,7 +209,7 @@ const WeekCalendar = () => {
 											maxHeight: HOUR_HEIGHT * +report[ReportCodes.timeSpent],
 											height: HOUR_HEIGHT * +report[ReportCodes.timeSpent],
 											maxWidth: "200px",
-											...getColorAdnBorder(report),
+											...getColorAdnBorder(report, activities),
 											display: "flex",
 											flexDirection: "row",
 											justifyContent: "space-between",
@@ -257,7 +257,7 @@ const WeekCalendar = () => {
 					>
 						<div
 							style={{
-								...getColorAdnBorder(activeReport),
+								...getColorAdnBorder(activeReport, activities),
 								padding: "1rem",
 								display: "flex",
 								justifyContent: "space-between",

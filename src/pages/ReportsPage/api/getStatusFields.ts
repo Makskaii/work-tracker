@@ -7,7 +7,7 @@ export const getStatuses = async (): Promise<Status[]> => {
 	try {
 		const response = await $api.post(Endpoints.status, {
 			filter: {
-				ENTITY_ID: "DYNAMIC_1072_STAGE_18",
+				ENTITY_ID: "DYNAMIC_1060_STAGE_15",
 			},
 		});
 
