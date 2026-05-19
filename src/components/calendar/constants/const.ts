@@ -62,7 +62,16 @@ export enum ActivityType {
 	analitycsCall = 271,
 	dash = 272,
 	devsCall = 275,
+	notAtWork = 404,
 }
+
+export const ReportStageIds = {
+	unconfirmed: "DT1060_15:NEW",
+	confirmed: "DT1060_15:PREPARATION",
+} as const;
+
+export type ReportStageId =
+	(typeof ReportStageIds)[keyof typeof ReportStageIds];
 
 export const ActivityTitle: { [key: number]: string } = {
 	[ActivityType.development]: "Разработка",
@@ -88,4 +97,5 @@ export const selectFields = [
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",
+	"stageId",
 ];

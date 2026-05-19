@@ -39,4 +39,5 @@ export interface GroupedReportFields {
 	company?: number;
 	activity: number;
 	assignedById: string;
+	stageId: string;
 }

@@ -1,4 +1,5 @@
 import type { GroupedReportFields } from "@/shared/types/table";
+import { ReportStageIds } from "../constants/const";
 
 const getDaysInMonth = (year: number, month: number) => {
 	return new Date(year, month + 1, 0).getDate();
@@ -13,7 +14,10 @@ export const groupReportsByDate = (
 ): {
 	[key: string]: {
 		reports: GroupedReportFields[];
-		total: number;
+		confirmedReports: GroupedReportFields[];
+		unconfirmedReports: GroupedReportFields[];
+		confirmedTotal: number;
+		unconfirmedTotal: number;
 	};
 } => {
 	return reports.reduce(
@@ -21,7 +25,10 @@ export const groupReportsByDate = (
 			groups: {
 				[key: string]: {
 					reports: GroupedReportFields[];
-					total: number;
+					confirmedReports: GroupedReportFields[];
+					unconfirmedReports: GroupedReportFields[];
+					confirmedTotal: number;
+					unconfirmedTotal: number;
 				};
 			},
 			report,
@@ -31,12 +38,24 @@ export const groupReportsByDate = (
 			if (!groups[dateStr]) {
 				groups[dateStr] = {
 					reports: [],
-					total: 0,
+					confirmedReports: [],
+					unconfirmedReports: [],
+					confirmedTotal: 0,
+					unconfirmedTotal: 0,
 				};
 			}
 
+			const timeSpent = Number(report.timeSpent);
+
 			groups[dateStr].reports.push(report);
-			groups[dateStr].total += Number(report.timeSpent);
+
+			if (report.stageId === ReportStageIds.unconfirmed) {
+				groups[dateStr].unconfirmedReports.push(report);
+				groups[dateStr].unconfirmedTotal += timeSpent;
+			} else {
+				groups[dateStr].confirmedReports.push(report);
+				groups[dateStr].confirmedTotal += timeSpent;
+			}
 
 			return groups;
 		},
@@ -96,8 +115,11 @@ export const generateMonthDays = ({
 			isWeekend: isWeekend,
 			isCurrentMonth: true,
 			isEmpty: false,
-			totalHours: groupedReports[dateKey]?.total || null,
+			totalHours: groupedReports[dateKey]?.confirmedTotal || null,
+			unconfirmedHours: groupedReports[dateKey]?.unconfirmedTotal || null,
 			reports: groupedReports[dateKey]?.reports || null,
+			confirmedReports: groupedReports[dateKey]?.confirmedReports || null,
+			unconfirmedReports: groupedReports[dateKey]?.unconfirmedReports || null,
 		});
 	}
 

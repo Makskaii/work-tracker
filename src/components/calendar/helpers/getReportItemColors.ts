@@ -1,8 +1,35 @@
+import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
 import { ActivityType, ReportCodes } from "../constants/const";
 import type { ReportProps } from "../types/types";
 
-export const getColorAdnBorder = (report: ReportProps) => {
-	switch (report[ReportCodes.activityType]) {
+const isNotAtWorkActivity = (
+	activityType: number,
+	activities: ActivityListItem[] = [],
+) => {
+	if (activityType === ActivityType.notAtWork) {
+		return true;
+	}
+
+	const activity = activities.find((item) => Number(item.ID) === activityType);
+	const searchableText = `${activity?.NAME ?? ""} ${activity?.CODE ?? ""}`
+		.toLowerCase()
+		.replace(/[_-]/g, " ");
+
+	return searchableText.includes("not at work");
+};
+
+export const getColorAndBorderByActivity = (
+	activityType: number,
+	activities?: ActivityListItem[],
+) => {
+	if (isNotAtWorkActivity(activityType, activities)) {
+		return {
+			background: "rgba(148, 163, 184, 0.2)",
+			borderLeft: "4px solid #94a3b8",
+		};
+	}
+
+	switch (activityType) {
 		case ActivityType.development:
 			return {
 				background: "rgba(76, 175, 80, 0.2)",
@@ -30,4 +57,14 @@ export const getColorAdnBorder = (report: ReportProps) => {
 			};
 		}
 	}
+};
+
+export const getColorAdnBorder = (
+	report: ReportProps,
+	activities?: ActivityListItem[],
+) => {
+	return getColorAndBorderByActivity(
+		report[ReportCodes.activityType],
+		activities,
+	);
 };

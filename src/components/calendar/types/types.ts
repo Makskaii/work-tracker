@@ -1,5 +1,5 @@
 import type { GroupedReportFields } from "@/shared/types/table";
-import type { ReportCodes } from "../constants/const";
+import type { ReportCodes, ReportStageId } from "../constants/const";
 
 export interface ReportProps {
 	id: string;
@@ -17,6 +17,7 @@ export interface ReportProps {
 	[ReportCodes.parentproject]?: number;
 	assignedById: number;
 	lastActivityTime: string;
+	stageId: ReportStageId;
 }
 
 export interface MonthDays {
@@ -30,7 +31,10 @@ export interface MonthDays {
 	isCurrentMonth: boolean;
 	isEmpty: boolean;
 	totalHours?: number | null;
-	reports?: GroupedReportFields[];
+	reports?: GroupedReportFields[] | null;
+	confirmedReports?: GroupedReportFields[] | null;
+	unconfirmedReports?: GroupedReportFields[] | null;
+	unconfirmedHours?: number | null;
 }
 
 export interface DayProps {
@@ -45,4 +49,7 @@ export interface DayProps {
 	isEmpty: boolean;
 	totalHours?: number | null;
 	reports?: GroupedReportFields[] | null;
+	confirmedReports?: GroupedReportFields[] | null;
+	unconfirmedReports?: GroupedReportFields[] | null;
+	unconfirmedHours?: number | null;
 }
