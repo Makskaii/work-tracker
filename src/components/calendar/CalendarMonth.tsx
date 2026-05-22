@@ -365,7 +365,7 @@ const CalendarMonth = ({
 									return acc;
 								}
 								return acc;
-							}, 0)}
+							}, 0).toFixed(2)}
 						</div>
 					}
 				/>
