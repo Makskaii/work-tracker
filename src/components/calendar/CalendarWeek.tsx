@@ -118,8 +118,9 @@ const WeekCalendar = () => {
 				>
 					<button
 						style={{
-							background: "white",
-							color: "#aeacac",
+							background: "var(--color-surface-soft)",
+							color: "var(--color-text)",
+							border: "1px solid var(--color-border)",
 						}}
 						onClick={() => {
 							setDay((prev) => prev.subtract(7, "day"));
@@ -142,8 +143,9 @@ const WeekCalendar = () => {
 					</div>
 					<button
 						style={{
-							background: "white",
-							color: "#aeacac",
+							background: "var(--color-surface-soft)",
+							color: "var(--color-text)",
+							border: "1px solid var(--color-border)",
 						}}
 						onClick={() => {
 							setDay((prev) => prev.add(7, "day"));

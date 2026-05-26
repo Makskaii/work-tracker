@@ -35,10 +35,11 @@ export const SalesCard = ({
 				display: "flex",
 				flexDirection: "column",
 				gap: "16px",
-				border: "1px solid #e5e7eb",
+				border: "1px solid var(--color-border)",
 				borderRadius: "16px",
-				background: "#ffffff",
-				boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+				background: "var(--color-surface)",
+				boxShadow: "0 16px 36px rgba(1, 8, 14, 0.28)",
+				color: "var(--color-text)",
 				position: "relative",
 				overflowY: "auto",
 				maxHeight: "50vh",
@@ -53,7 +54,7 @@ export const SalesCard = ({
 					position: "sticky",
 					padding: "1rem",
 					top: 0,
-					background: "white",
+					background: "var(--color-surface)",
 				}}
 			>
 				<div
@@ -72,8 +73,8 @@ export const SalesCard = ({
 							style={{
 								fontSize: "18px",
 								fontWeight: 600,
-								color: "#111827",
-								background: "white",
+								color: "var(--color-text)",
+								background: "var(--color-surface)",
 							}}
 						>
 							{user?.title}
@@ -86,8 +87,8 @@ export const SalesCard = ({
 											whiteSpace: "nowrap",
 											fontSize: "13px",
 											fontWeight: 600,
-											color: "#0f766e",
-											background: "#ecfeff",
+											color: "var(--color-accent)",
+											background: "#063d43",
 											padding: "4px 8px",
 											borderRadius: "999px",
 										}}
@@ -102,7 +103,7 @@ export const SalesCard = ({
 
 					<div
 						style={{
-							color: "#6b7280",
+							color: "var(--color-text)",
 							marginTop: "4px",
 							textAlign: "left",
 							display: "flex",
@@ -117,7 +118,7 @@ export const SalesCard = ({
 							style={{
 								transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
 								transition: "transform 0.2s ease",
-								color: "#646cff",
+								color: "var(--color-accent)",
 								fontSize: "0.85rem",
 								flexShrink: 0,
 							}}
@@ -134,7 +135,7 @@ export const SalesCard = ({
 						display: "flex",
 						flexDirection: "column",
 						gap: "12px",
-						borderTop: "1px solid #ccc",
+						borderTop: "1px solid var(--color-border)",
 						padding: "1rem",
 					}}
 				>

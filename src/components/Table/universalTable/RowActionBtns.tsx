@@ -8,7 +8,7 @@ type ReportRowActionsProps = {
 };
 
 const baseButtonStyle: CSSProperties = {
-	border: "none",
+	border: "1px solid var(--color-border)",
 	borderRadius: "8px",
 	padding: "0.4rem 0.7rem",
 	fontSize: "0.82rem",
@@ -20,16 +20,16 @@ const baseButtonStyle: CSSProperties = {
 
 const reportButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "rgba(100, 108, 255, 0.12)",
-	color: "#4c54d2",
-	border: "1px solid rgba(100, 108, 255, 0.22)",
+	background: "#063d43",
+	color: "var(--color-accent)",
+	border: "1px solid var(--color-accent)",
 };
 
 const taskButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "rgba(76, 175, 80, 0.12)",
-	color: "#2e7d32",
-	border: "1px solid rgba(76, 175, 80, 0.24)",
+	background: "#102036",
+	color: "var(--color-text)",
+	border: "1px solid var(--color-border)",
 };
 
 export const ReportRowActions = ({

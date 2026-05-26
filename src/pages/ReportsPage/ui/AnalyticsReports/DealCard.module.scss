@@ -5,7 +5,7 @@
     padding: 18px;
     border: 1px solid #d9dee7;
     border-radius: 14px;
-    background: #fff;
+    background: var(--color-surface);
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
     transition:
         transform 0.15s ease,
@@ -14,7 +14,7 @@
 }
 
 .card:hover {
-    border-color: #b8c2d1;
+    border-color: var(--color-accent);
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
     transform: translateY(-1px);
 }
@@ -45,7 +45,7 @@
     font-size: 18px;
     font-weight: 600;
     line-height: 1.3;
-    color: #1f2937;
+    color: var(--color-text);
     word-break: break-word;
 }
 
@@ -67,7 +67,7 @@
 
 .id {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .stageBadge {
@@ -95,8 +95,8 @@
 }
 
 .neutral {
-    color: #374151;
-    background: #e5e7eb;
+    color: var(--color-text);
+    background: var(--color-border);
 }
 
 .amountBlock {
@@ -109,13 +109,13 @@
 
 .amountLabel {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .amountValue {
     font-size: 20px;
     font-weight: 700;
-    color: #111827;
+    color: var(--color-text);
     white-space: nowrap;
 }
 
@@ -142,13 +142,13 @@
 
 .label {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .value {
     font-size: 14px;
     font-weight: 500;
-    color: #111827;
+    color: var(--color-text);
     word-break: break-word;
 }
 
@@ -173,7 +173,7 @@
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
-    color: #475569;
+    color: var(--color-muted);
     background: #e2e8f0;
 }
 
@@ -184,5 +184,5 @@
 
 .files {
     font-size: 13px;
-    color: #475569;
+    color: var(--color-muted);
 }

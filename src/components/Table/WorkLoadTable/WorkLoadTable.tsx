@@ -43,15 +43,15 @@ export type UniversalTableProps<T extends { id: string }> = {
 const ACTIVITY_GROUPS: Record<string, { title: string; background: string }> = {
 	"0": {
 		title: "Clients paid",
-		background: "#e8f5e9",
+		background: "#063d43",
 	},
 	"1": {
 		title: "Company paid",
-		background: "#e3f2fd",
+		background: "#102036",
 	},
 	"2": {
 		title: "Unpaid",
-		background: "#fff3e0",
+		background: "rgba(247, 163, 19, 0.14)",
 	},
 };
 
@@ -67,7 +67,7 @@ const getActivityGroupMeta = (sort: string) => {
 	return (
 		ACTIVITY_GROUPS[sort] ?? {
 			title: "Other",
-			background: "#f5f5f5",
+			background: "var(--color-surface-hover)",
 		}
 	);
 };

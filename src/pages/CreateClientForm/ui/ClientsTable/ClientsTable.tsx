@@ -62,7 +62,7 @@ const actionsStyle: CSSProperties = {
 };
 
 const baseButtonStyle: CSSProperties = {
-	border: "none",
+	border: "1px solid var(--color-border)",
 	borderRadius: "8px",
 	padding: "0.4rem 0.7rem",
 	fontSize: "0.82rem",
@@ -74,9 +74,9 @@ const baseButtonStyle: CSSProperties = {
 
 const editButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "rgba(37, 99, 235, 0.12)",
-	color: "#1d4ed8",
-	border: "1px solid rgba(37, 99, 235, 0.26)",
+	background: "#063d43",
+	color: "var(--color-accent)",
+	border: "1px solid var(--color-accent)",
 };
 
 const deleteButtonStyle: CSSProperties = {
@@ -101,16 +101,16 @@ const fieldStyle: CSSProperties = {
 const labelStyle: CSSProperties = {
 	fontSize: "0.85rem",
 	fontWeight: 700,
-	color: "#334155",
+	color: "var(--color-text)",
 };
 
 const inputStyle: CSSProperties = {
-	border: "1px solid #cbd5e1",
+	border: "1px solid var(--color-border)",
 	borderRadius: "8px",
 	padding: "0.65rem 0.75rem",
 	fontSize: "0.95rem",
-	color: "#0f172a",
-	background: "#fff",
+	color: "var(--color-text)",
+	background: "var(--color-surface-soft)",
 };
 
 const errorTextStyle: CSSProperties = {
@@ -128,16 +128,16 @@ const modalActionsStyle: CSSProperties = {
 
 const cancelButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "#f1f5f9",
-	color: "#334155",
-	border: "1px solid #cbd5e1",
+	background: "#102036",
+	color: "var(--color-text)",
+	border: "1px solid var(--color-border)",
 };
 
 const saveButtonStyle: CSSProperties = {
 	...baseButtonStyle,
-	background: "#2563eb",
-	color: "#fff",
-	border: "1px solid #2563eb",
+	background: "#063d43",
+	color: "var(--color-accent)",
+	border: "1px solid var(--color-accent)",
 };
 
 const disabledButtonStyle: CSSProperties = {

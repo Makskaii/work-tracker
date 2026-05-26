@@ -14,7 +14,7 @@
     padding: 14px;
     border: 1px solid #e7e5e4;
     border-radius: 16px;
-    background: #ffffff;
+    background: var(--color-surface);
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 
 }
@@ -58,7 +58,7 @@
     min-width: 0;
     border: 1px solid #e7e5e4;
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--color-surface);
     color: #292524;
     padding: 0 12px;
     outline: none;
@@ -76,7 +76,7 @@
 .select:focus {
     border-color: #cbd5e1;
     box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15);
-    background: #fff;
+    background: var(--color-surface);
 }
 
 .checkbox {
@@ -87,7 +87,7 @@
     padding: 0 12px;
     border: 1px solid #e7e5e4;
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--color-surface);
     color: #44403c;
     font-size: 14px;
     white-space: nowrap;
@@ -121,7 +121,7 @@
     overflow: auto;
     border: 1px solid #e7e5e4;
     border-radius: 18px;
-    background: #ffffff;
+    background: var(--color-surface);
     box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
 }
 
@@ -159,7 +159,7 @@
     min-height: 66px;
     border-bottom: 1px solid #f0eeeb;
     transition: background 0.2s ease;
-    background: #ffffff;
+    background: var(--color-surface);
 }
 
 .cell {
@@ -282,7 +282,7 @@
 }
 
 .statusTodo {
-    background: #fffbeb;
+    background: rgba(247, 163, 19, 0.14);
     border-color: #fde68a;
     color: #b45309;
 }

@@ -139,7 +139,7 @@ export const CreateModal = ({
 									required: "Обязательное поле",
 								})}
 								style={{
-									border: "none",
+									border: "1px solid var(--color-border)",
 									borderRadius: "0.5rem",
 									minWidth: "20rem",
 									padding: "0.5rem",
@@ -170,7 +170,7 @@ export const CreateModal = ({
 								{errors.email && errors.email.type === "validate" && (
 									<span
 										style={{
-											color: "red",
+											color: "var(--color-danger)",
 										}}
 									>
 										{errors.email?.message}
@@ -190,7 +190,7 @@ export const CreateModal = ({
 									},
 								})}
 								style={{
-									border: "none",
+									border: "1px solid var(--color-border)",
 									borderRadius: "0.5rem",
 									minWidth: "20rem",
 									padding: "0.5rem",
@@ -221,7 +221,7 @@ export const CreateModal = ({
 								{errors.password && errors.password.type === "minLength" && (
 									<span
 										style={{
-											color: "red",
+											color: "var(--color-danger)",
 										}}
 									>
 										{errors.password?.message}
@@ -238,7 +238,7 @@ export const CreateModal = ({
 									},
 								})}
 								style={{
-									border: "none",
+									border: "1px solid var(--color-border)",
 									borderRadius: "0.5rem",
 									minWidth: "20rem",
 									padding: "0.5rem",
@@ -270,7 +270,7 @@ export const CreateModal = ({
 									});
 								}}
 								style={{
-									border: "none",
+									border: "1px solid var(--color-border)",
 									borderRadius: "0.5rem",
 									minWidth: "20rem",
 									padding: "0.5rem",
@@ -322,9 +322,9 @@ export const CreateModal = ({
 							style={{
 								maxWidth: "200px",
 								alignSelf: "self-end",
-								background: "blue",
-								color: "white",
-								border: "none",
+								background: "#063d43",
+								color: "var(--color-accent)",
+								border: "1px solid var(--color-border)",
 							}}
 						>
 							Сохранить

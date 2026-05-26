@@ -1,5 +1,7 @@
 .container {
-	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 12px 28px rgba(1, 8, 14, 0.28);
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
 	width: 100%;
 	overflow-x: auto;
 	overflow-y: hidden;
@@ -8,19 +10,19 @@
 }
 
 .weekHeader {
-	background: #f5f5f5;
-	border-bottom: 2px solid #e0e0e0;
+	background: var(--color-surface-soft);
+	border-bottom: 2px solid var(--color-border);
 	text-align: center;
 
 	&[data-today="true"] {
-		background: #e3f2fd;
-		border: 1px solid #2196f3;
+		background: rgba(57, 214, 238, 0.12);
+		border: 1px solid var(--color-accent);
 	}
 
 
 	&[data-weekend="true"] {
-		background: #fff3e0;
-		color: #ff9800;
+		background: rgba(247, 163, 19, 0.12);
+		color: var(--color-warning);
 	}
 }
 
@@ -29,7 +31,7 @@
 	font-size: 14px;
 	font-weight: 600;
 	text-transform: uppercase;
-	color: #666;
+	color: var(--color-muted);
 }
 
 
@@ -44,11 +46,11 @@
 	display: flex;
 	position: relative;
 	overflow-x: auto;
-	border-right: 1px solid #e0e0e0;
+	border-right: 1px solid var(--color-border);
 	background: linear-gradient(to bottom,
 			transparent 0%,
 			transparent 99%,
-			#e0e0e0 100%);
+			var(--color-border) 100%);
 	background-size: 100% 60px;
 
 
@@ -60,11 +62,11 @@
 	}
 
 	&[data-today="true"] {
-		background-color: rgba(33, 150, 243, 0.02);
+		background-color: rgba(57, 214, 238, 0.04);
 	}
 
 	&[data-weekend="true"] {
-		background-color: rgba(255, 152, 0, 0.02);
+		background-color: rgba(247, 163, 19, 0.05);
 	}
 
 }
@@ -72,7 +74,8 @@
 
 .reportItem {
 	box-sizing: border-box;
-
+	color: var(--color-text);
+	border: 1px solid var(--color-border);
 	border-radius: 4px;
 	font-size: 12px;
 	overflow: hidden;
@@ -85,6 +88,7 @@
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
 	&:hover {
+		border-color: var(--color-accent);
 		transform: scale(1.02);
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 		z-index: 100;

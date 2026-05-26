@@ -25,7 +25,7 @@
     padding: 10px 12px;
     cursor: pointer;
     border-radius: 8px;
-    background: #f9fafb;
+    background: var(--color-surface-soft);
 
     a {
         color: #2563eb;
@@ -45,10 +45,10 @@
 
 .sprintButton,
 .resetFilterButton {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: #ffffff;
-    color: #6b7280;
+    background: var(--color-surface);
+    color: var(--color-muted);
     cursor: pointer;
     font: inherit;
     line-height: 1.2;
@@ -62,7 +62,7 @@
 .sprintPeriod {
     min-width: max-content;
     font-weight: 700;
-    color: #111827;
+    color: var(--color-text);
     text-align: center;
 }
 
@@ -91,13 +91,13 @@
     gap: 12px;
     margin-bottom: 12px;
     padding: 8px 0;
-    background: #ffffff;
+    background: var(--color-surface);
     font-weight: 600;
 }
 
 .tasksHeader > span:last-child {
     flex-shrink: 0;
-    color: #6b7280;
+    color: var(--color-muted);
     text-align: right;
 }
 
@@ -111,8 +111,8 @@
 
 .resetFilterButton {
     padding: 6px 10px;
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--color-surface-soft);
+    color: var(--color-text);
 }
 
 .tasksList {
@@ -124,10 +124,10 @@
 
 .tasksEmptyState {
     padding: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
-    background: #f9fafb;
-    color: #6b7280;
+    background: var(--color-surface-soft);
+    color: var(--color-muted);
     text-align: center;
 }
 

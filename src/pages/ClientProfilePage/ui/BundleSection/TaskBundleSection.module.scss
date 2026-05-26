@@ -20,13 +20,13 @@
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text);
 }
 
 .sectionDescription {
     margin: 4px 0 0;
     font-size: 14px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .summary {
@@ -39,9 +39,9 @@
     padding: 6px 10px;
     border: 1px solid #dcdfe4;
     border-radius: 8px;
-    background: #fff;
+    background: var(--color-surface);
     font-size: 13px;
-    color: #374151;
+    color: var(--color-text);
 }
 
 .list {
@@ -54,7 +54,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background: #fff;
+    background: var(--color-surface);
     border: 1px solid #dcdfe4;
     border-radius: 12px;
     padding: 16px;
@@ -90,7 +90,7 @@
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .description {
@@ -117,20 +117,20 @@
     flex-direction: column;
     gap: 4px;
     padding: 10px 12px;
-    background: #f9fafb;
+    background: var(--color-surface-soft);
     border: 1px solid #eceff3;
     border-radius: 10px;
 }
 
 .metaLabel {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .metaValue {
     font-size: 14px;
     font-weight: 500;
-    color: #1f2937;
+    color: var(--color-text);
 }
 
 .headerAside {
@@ -139,7 +139,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px;
-    background: #f9fafb;
+    background: var(--color-surface-soft);
     border: 1px solid #eceff3;
     border-radius: 10px;
 }
@@ -153,7 +153,7 @@
 .progressTitle {
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
 }
 
 .progressWrapper {
@@ -167,7 +167,7 @@
     flex: 1;
     height: 10px;
     border-radius: 999px;
-    background: #e5e7eb;
+    background: var(--color-border);
     overflow: hidden;
 }
 
@@ -181,29 +181,29 @@
     min-width: 42px;
     font-size: 13px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-text);
     text-align: right;
 }
 
 .progressMeta {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .toggleButton {
     height: 38px;
     border: 1px solid #cfd6df;
     border-radius: 8px;
-    background: #fff;
+    background: var(--color-surface);
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    color: #1f2937;
+    color: var(--color-text);
     transition: 0.2s ease;
 }
 
 .toggleButton:hover {
-    background: #f3f4f6;
+    background: var(--color-surface-soft);
 }
 
 .tasksList {
@@ -241,7 +241,7 @@
 .taskTitle {
     font-size: 14px;
     font-weight: 600;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .taskMeta {
@@ -249,7 +249,7 @@
     flex-wrap: wrap;
     gap: 8px 16px;
     font-size: 13px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .taskSide {
@@ -282,9 +282,9 @@
 }
 
 .badgeTodo {
-    background: #f3f4f6;
+    background: var(--color-surface-soft);
     color: #4b5563;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
 }
 
 
@@ -300,12 +300,12 @@
 .emptyTitle {
     font-size: 1.05rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .emptyText {
     margin-top: 0.35rem;
-    color: #64748b;
+    color: var(--color-muted);
 }
 
 
@@ -332,7 +332,7 @@
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: #111827;
+    color: var(--color-text);
 
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -400,7 +400,7 @@
 .tasksSectionTitle {
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text);
 }
 
 .tasksList {
@@ -438,7 +438,7 @@
 .taskTitle {
     font-size: 14px;
     font-weight: 600;
-    color: #111827;
+    color: var(--color-text);
 
     display: -webkit-box;
     -webkit-line-clamp: 2;

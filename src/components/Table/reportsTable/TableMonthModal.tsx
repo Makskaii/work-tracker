@@ -34,10 +34,11 @@ export const ReportsActivitySection = ({
 	return (
 		<div
 			style={{
-				border: "1px solid rgba(100, 108, 255, 0.22)",
+				border: "1px solid var(--color-border)",
 				borderRadius: "14px",
-				background: "#f8faff",
-				boxShadow: "0 2px 8px rgba(100, 108, 255, 0.06)",
+				background: "var(--color-surface)",
+				boxShadow: "0 16px 36px rgba(1, 8, 14, 0.28)",
+				color: "var(--color-text)",
 			}}
 		>
 			<button
@@ -46,7 +47,7 @@ export const ReportsActivitySection = ({
 				style={{
 					width: "100%",
 					border: "none",
-					background: "rgba(100, 108, 255, 0.08)",
+					background: "#102036",
 					cursor: "pointer",
 					padding: "0.9rem 1rem",
 					display: "flex",
@@ -55,7 +56,7 @@ export const ReportsActivitySection = ({
 					gap: "1rem",
 					textAlign: "left",
 					borderBottom: expanded
-						? "1px solid rgba(100, 108, 255, 0.16)"
+						? "1px solid var(--color-border)"
 						: "none",
 					transition: "background 0.2s ease",
 				}}
@@ -73,7 +74,7 @@ export const ReportsActivitySection = ({
 						style={{
 							transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
 							transition: "transform 0.2s ease",
-							color: "#646cff",
+							color: "var(--color-accent)",
 							fontSize: "0.85rem",
 							flexShrink: 0,
 						}}
@@ -87,7 +88,7 @@ export const ReportsActivitySection = ({
 							flex: 1,
 							fontWeight: 700,
 							fontSize: "0.96rem",
-							color: "#1f2937",
+							color: "var(--color-text)",
 							wordBreak: "break-word",
 						}}
 					>
@@ -107,8 +108,8 @@ export const ReportsActivitySection = ({
 						style={{
 							padding: "0.25rem 0.55rem",
 							borderRadius: "999px",
-							background: "rgba(100, 108, 255, 0.12)",
-							color: "#4c54d2",
+							background: "#063d43",
+							color: "var(--color-accent)",
 							fontSize: "0.8rem",
 							fontWeight: 700,
 							whiteSpace: "nowrap",
@@ -121,8 +122,8 @@ export const ReportsActivitySection = ({
 						style={{
 							padding: "0.25rem 0.55rem",
 							borderRadius: "999px",
-							background: "rgba(76, 175, 80, 0.14)",
-							color: "#2e7d32",
+							background: "#102036",
+							color: "var(--color-text)",
 							fontSize: "0.8rem",
 							fontWeight: 700,
 							whiteSpace: "nowrap",
@@ -137,15 +138,15 @@ export const ReportsActivitySection = ({
 				<div
 					style={{
 						padding: "0.9rem",
-						background: "#fdfdff",
+						background: "var(--color-surface)",
 					}}
 				>
 					<div
 						style={{
 							borderRadius: "12px",
-							background: "#fff",
-							border: "1px solid #e1e7f5",
-							boxShadow: "0 2px 8px rgba(0, 0, 0, 0.03)",
+							background: "var(--color-surface-soft)",
+							border: "1px solid var(--color-border)",
+							boxShadow: "0 12px 28px rgba(1, 8, 14, 0.24)",
 							overflow: "hidden",
 						}}
 					>

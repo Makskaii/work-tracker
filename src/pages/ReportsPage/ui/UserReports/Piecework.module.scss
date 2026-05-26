@@ -12,21 +12,21 @@
     justify-content: space-between;
     gap: 16px;
     padding: 16px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
-    background: #ffffff;
+    background: var(--color-surface);
 }
 
 .title {
     margin: 0;
     font-size: 20px;
     line-height: 1.2;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .subtitle {
     margin-top: 4px;
-    color: #6b7280;
+    color: var(--color-muted);
     font-size: 14px;
 }
 
@@ -39,16 +39,16 @@
 }
 
 .primaryButton {
-    border: 1px solid #1652f0;
-    background: #1652f0;
-    color: #ffffff;
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent);
+    color: #06111c;
     padding: 8px 14px;
 }
 
 .secondaryButton {
-    border: 1px solid #e5e7eb;
-    background: #ffffff;
-    color: #374151;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-soft);
+    color: var(--color-text);
     padding: 8px 12px;
 }
 
@@ -63,9 +63,9 @@
 .form,
 .recordsSection {
     min-width: 0;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
-    background: #f9fafb;
+    background: var(--color-surface);
 }
 
 .form {
@@ -84,7 +84,7 @@
 .formTitle,
 .sectionTitle {
     font-weight: 700;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .fieldsGrid {
@@ -98,7 +98,7 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-    color: #374151;
+    color: var(--color-muted);
     font-size: 13px;
     font-weight: 600;
 }
@@ -108,10 +108,10 @@
 .field textarea {
 
     min-width: 0;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
-    background: #ffffff;
-    color: #111827;
+    background: var(--color-surface-soft);
+    color: var(--color-text);
     font: inherit;
     font-weight: 400;
     outline: none;
@@ -148,8 +148,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: rgba(57, 214, 238, 0.14);
+    color: var(--color-accent);
     font-weight: 700;
 }
 
@@ -170,9 +170,9 @@
     gap: 10px;
     min-width: 0;
     padding: 14px;
-    border: 1px solid #edf0f3;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
-    background: #ffffff;
+    background: var(--color-surface-soft);
 }
 
 .recordTopline,
@@ -185,13 +185,13 @@
 
 .recordEmployee {
     font-weight: 700;
-    color: #111827;
+    color: var(--color-text);
     overflow-wrap: anywhere;
 }
 
 .recordMeta,
 .recordDetails {
-    color: #6b7280;
+    color: var(--color-muted);
     font-size: 13px;
 }
 
@@ -202,7 +202,7 @@
 }
 
 .recordComment {
-    color: #374151;
+    color: var(--color-text);
     line-height: 1.4;
     overflow-wrap: anywhere;
 }
@@ -210,8 +210,8 @@
 .emptyState {
     padding: 18px;
     border-radius: 10px;
-    background: #ffffff;
-    color: #6b7280;
+    background: var(--color-surface-soft);
+    color: var(--color-muted);
     text-align: center;
 }
 

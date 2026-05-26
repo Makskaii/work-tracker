@@ -17,6 +17,7 @@ import {
 } from "../../types/types";
 import { SegmentedControl } from "../AnalyticsReports/AnalyticsReports";
 import { SalesCard } from "./ui/SalesCard/SalesCard";
+import cls from "./SalesPage.module.scss";
 
 const getPlanByPeriod = (
 	row: Omit<SalesTableFields, "fact" | "deviation" | "comment">,
@@ -77,9 +78,7 @@ export const headersForSales: Header<SalesTableFields>[] = [
 			return (
 				<button
 					type="button"
-					style={{
-						background: "#ccc",
-					}}
+					className={cls.detailsButton}
 					onClick={() => {
 						if (!row) return;
 
@@ -526,14 +525,9 @@ export const SalesPage = () => {
 	}, [start, end, callsData, period]);
 
 	return (
-		<div
-			style={{
-				display: "grid",
-				gridTemplateColumns: "2fr 1fr",
-			}}
-		>
-			<div>
-				<div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+		<div className={cls.page}>
+			<div className={cls.panel}>
+				<div className={cls.controls}>
 					<SegmentedControl
 						onChange={setPeriod}
 						value={period}
@@ -542,7 +536,7 @@ export const SalesPage = () => {
 
 					<button
 						disabled={loading}
-						style={{ background: "white", color: "#aeacac" }}
+						className={cls.navButton}
 						onClick={() => {
 							setDay((prev) => prev.subtract(step.value, step.unit));
 						}}
@@ -551,11 +545,7 @@ export const SalesPage = () => {
 					</button>
 
 					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-						}}
+						className={cls.periodRange}
 					>
 						<div>
 							{dayjs(start).format("DD.MM")} - {dayjs(end).format("DD.MM")}
@@ -563,7 +553,7 @@ export const SalesPage = () => {
 					</div>
 
 					<button
-						style={{ background: "white", color: "#aeacac" }}
+						className={cls.navButton}
 						onClick={() => {
 							setDay((prev) => prev.add(step.value, step.unit));
 						}}
@@ -585,7 +575,7 @@ export const SalesPage = () => {
 			</div>
 
 			{selectedRow?.items?.length ? (
-				<div key={selectedRow.id}>
+				<div key={selectedRow.id} className={cls.detailsColumn}>
 					{Object.entries(
 						selectedRow.items.reduce(
 							(acc, item) => {
@@ -627,27 +617,13 @@ export const SalesPage = () => {
 						return (
 							<div
 								key={`${selectedRow.id}-${id}`}
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									gap: "16px",
-									padding: "16px",
-									border: "1px solid #e5e7eb",
-									borderRadius: "16px",
-									background: "#ffffff",
-									boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
-								}}
+								className={cls.callsCard}
 							>
-								{user?.title ?? "Неизвестный пользователь"}
+								<div className={cls.callsCardTitle}>
+									{user?.title ?? "Неизвестный пользователь"}
+								</div>
 
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "space-between",
-										paddingBottom: "12px",
-									}}
-								>
+								<div className={cls.callsCardHeader}>
 									<div style={{ width: "100%" }}>
 										Кол-во звонков: {items.length}
 									</div>

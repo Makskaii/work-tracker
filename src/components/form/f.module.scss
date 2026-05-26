@@ -11,8 +11,8 @@
     transform: translateY(-50%);
     width: 16px;
     height: 16px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #3498db;
+    border: 2px solid var(--color-border);
+    border-top: 2px solid var(--color-accent);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     pointer-events: none;
@@ -20,14 +20,24 @@
 }
 
 .select {
-  border: none;
-  background-color: white;
-  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-soft);
+  box-shadow: 0 8px 18px rgba(1, 8, 14, 0.24);
   border-radius: 0.5rem;
   padding: 0.5rem;
-  color: black;
+  color: var(--color-text);
   width: 200px;
   outline: none;
+
+  &:hover,
+  &:focus {
+    border-color: var(--color-accent);
+  }
+
+  option {
+    background: var(--color-surface-soft);
+    color: var(--color-text);
+  }
   
   &:disabled {
     opacity: 0.7;
