@@ -59,10 +59,10 @@ export const ProjectActivitiesTree = ({
 				style={{
 					marginTop: "1rem",
 					padding: "1rem",
-					border: "1px dashed #d1d5db",
+					border: "1px dashed var(--color-border)",
 					borderRadius: "12px",
-					color: "#6b7280",
-					background: "#fafafa",
+					color: "rgba(238, 245, 255, 0.66)",
+					background: "var(--color-surface-soft)",
 				}}
 			>
 				{emptyText}
@@ -92,7 +92,7 @@ export const ProjectActivitiesTree = ({
 								style={{
 									fontSize: "1rem",
 									fontWeight: 700,
-									color: "#111827",
+									color: "var(--color-text)",
 								}}
 							>
 								{client.clientTitle}
@@ -115,7 +115,7 @@ export const ProjectActivitiesTree = ({
 										<div
 											style={{
 												fontWeight: 600,
-												color: "#1f2937",
+												color: "var(--color-text)",
 											}}
 										>
 											{project.projectTitle}
@@ -157,7 +157,7 @@ export const ProjectActivitiesTree = ({
 														style={{
 															fontSize: "0.9rem",
 															fontWeight: 700,
-															color: "#374151",
+															color: "var(--color-text)",
 														}}
 													>
 														{category.title}
@@ -167,7 +167,7 @@ export const ProjectActivitiesTree = ({
 														style={{
 															fontSize: "0.85rem",
 															fontWeight: 600,
-															color: "#6b7280",
+															color: "rgba(238, 245, 255, 0.7)",
 														}}
 													>
 														{category.timeSpent.toFixed(2)} ч.

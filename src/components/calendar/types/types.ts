@@ -15,6 +15,7 @@ export interface ReportProps {
 	[ReportCodes.client]: number;
 	[ReportCodes.company]?: number;
 	[ReportCodes.parentproject]?: number;
+	[ReportCodes.taskType]?: string | number | null;
 	assignedById: number;
 	lastActivityTime: string;
 	stageId: ReportStageId;

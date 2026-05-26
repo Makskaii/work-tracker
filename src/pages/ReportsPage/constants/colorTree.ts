@@ -1,38 +1,38 @@
 export const treeColors = {
 	client: {
 		background:
-			"linear-gradient(135deg, rgba(100, 108, 255, 0.16), rgba(100, 108, 255, 0.08))",
-		border: "1px solid rgba(100, 108, 255, 0.35)",
-		boxShadow: "0 4px 14px rgba(100, 108, 255, 0.12)",
+			"linear-gradient(135deg, rgba(57, 214, 238, 0.16), rgba(22, 36, 55, 0.9))",
+		border: "1px solid var(--color-border)",
+		boxShadow: "0 8px 18px rgba(1, 8, 14, 0.18)",
 	},
 	project: {
-		background: "rgba(100, 108, 255, 0.06)",
-		border: "1px solid rgba(100, 108, 255, 0.22)",
+		background: "var(--color-surface-soft)",
+		border: "1px solid var(--color-border)",
 	},
 	activity: {
-		background: "#f8faff",
-		border: "1px solid #dbe4ff",
-		boxShadow: "0 1px 4px rgba(100, 108, 255, 0.06)",
+		background: "#102036",
+		border: "1px solid var(--color-border)",
+		boxShadow: "0 1px 4px rgba(1, 8, 14, 0.16)",
 	},
 	report: {
-		background: "#ffffff",
-		border: "1px solid #d7deee",
+		background: "var(--color-surface-soft)",
+		border: "1px solid var(--color-border)",
 	},
 	sort: {
 		0: {
-			background: "rgba(76, 175, 80, 0.14)",
-			border: "1px solid rgba(76, 175, 80, 0.35)",
-			color: "#2e7d32",
+			background: "var(--color-payment-client-surface)",
+			border: "1px solid rgba(67, 232, 127, 0.35)",
+			color: "var(--color-payment-client)",
 		},
 		1: {
-			background: "rgba(100, 108, 255, 0.12)",
-			border: "1px solid rgba(100, 108, 255, 0.3)",
-			color: "#4c54d2",
+			background: "var(--color-payment-company-surface)",
+			border: "1px solid rgba(255, 191, 63, 0.35)",
+			color: "var(--color-payment-company)",
 		},
 		2: {
-			background: "rgba(255, 152, 0, 0.14)",
-			border: "1px solid rgba(255, 152, 0, 0.35)",
-			color: "#b26a00",
+			background: "var(--color-payment-unpaid-surface)",
+			border: "1px solid rgba(255, 104, 117, 0.35)",
+			color: "var(--color-payment-unpaid)",
 		},
 	},
 };

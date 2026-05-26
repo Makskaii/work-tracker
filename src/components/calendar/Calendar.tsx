@@ -1,15 +1,21 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 
-import { useEffect, useState } from "react";
-import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import {
+	Endpoints,
+	EntityTypeIds,
+	TASK_SELECT_FIELDS,
+} from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { GroupedReportFields } from "@/shared/types/table";
+import type { TaskProps } from "@/shared/types/types";
 import { CalendarMonth, WeekCalendar } from ".";
 import {
 	months,
 	ReportCodes,
 	ReportStageIds,
 	selectFields,
+	TaskCodes,
 } from "./constants/const";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
@@ -21,7 +27,10 @@ const getReportRelationId = (
 	return Number(newValue ?? legacyValue ?? 0);
 };
 
-const mapReportToGroupedFields = (report: ReportProps): GroupedReportFields => {
+const mapReportToGroupedFields = (
+	report: ReportProps,
+	taskType?: string | number | null,
+): GroupedReportFields => {
 	const companyId = getReportRelationId(
 		report[ReportCodes.company],
 		report[ReportCodes.client],
@@ -45,24 +54,53 @@ const mapReportToGroupedFields = (report: ReportProps): GroupedReportFields => {
 		client: companyId,
 		company: companyId,
 		stageId: report.stageId,
+		taskType: taskType ?? report[ReportCodes.taskType] ?? null,
 	};
 };
 
 export const Calendar = ({
 	view,
 	userId,
+	userIds,
+	isVisible = true,
 	setGroupByActivity,
+	selectedMonth,
+	selectedYear,
+	handleMonthChange,
+	handleYearChange,
+	handlePrevMonth,
+	handleNextMonth,
+	handleToday,
+	onLoadingChange,
 }: {
 	view: "month" | "week";
-	userId: string;
+	userId?: string;
+	userIds?: string[];
+	isVisible?: boolean;
 	setGroupByActivity: (value: GroupedReportFields[]) => void;
+	selectedMonth: number;
+	selectedYear: number;
+	handleMonthChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+	handleYearChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+	handlePrevMonth: () => void;
+	handleNextMonth: () => void;
+	handleToday: () => void;
+	onLoadingChange?: (value: boolean) => void;
 }) => {
-	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
+	const scopeFilter = useMemo(() => {
+		if (userId) {
+			return { assignedById: userId };
+		}
 
-	const { data, setFilters } = useLoadAllData<ReportProps>({
+		if (userIds?.length) {
+			return { "@assignedById": userIds };
+		}
+
+		return { assignedById: "__empty__" };
+	}, [userId, userIds]);
+
+	const { data, loading, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
@@ -77,42 +115,93 @@ export const Calendar = ({
 						selectedMonth + 1,
 						1,
 					).toISOString(),
-					assignedById: userId,
+					...scopeFilter,
 					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
 				},
 			},
 		},
 	});
 
-	useEffect(() => {
-		if (userId)
-			setFilters({
+	const { data: tasks, setFilters: setTaskFilters } = useLoadAllData<TaskProps>(
+		{
+			initialEndpoint: Endpoints.crmItems,
+			initialFilters: {
 				params: {
-					entityTypeId: EntityTypeIds.reports,
-
-					select: selectFields,
-
+					entityTypeId: EntityTypeIds.tasks,
+					select: TASK_SELECT_FIELDS,
 					filter: {
-						">=begindate": new Date(
-							selectedYear,
-							selectedMonth,
-							1,
-						).toISOString(),
-						"<=begindate": new Date(
-							selectedYear,
-							selectedMonth + 1,
-							1,
-						).toISOString(),
-						assignedById: userId,
-						"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
+						"@id": ["__empty__"],
 					},
 				},
-			});
-	}, [userId, selectedMonth, selectedYear, setFilters]);
+			},
+		},
+	);
+
+	useEffect(() => {
+		setReports([]);
+		setGroupByActivity([]);
+		setFilters({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+
+				select: selectFields,
+
+				filter: {
+					">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
+					"<=begindate": new Date(
+						selectedYear,
+						selectedMonth + 1,
+						1,
+					).toISOString(),
+					...scopeFilter,
+					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
+				},
+			},
+		});
+	}, [
+		selectedMonth,
+		selectedYear,
+		setFilters,
+		scopeFilter,
+		setGroupByActivity,
+	]);
+
+	useEffect(() => {
+		const taskIds = Array.from(
+			new Set(
+				data
+					.map((report) => String(report[ReportCodes.parentId] ?? "").trim())
+					.filter(Boolean),
+			),
+		);
+
+		if (!taskIds.length) return;
+
+		setTaskFilters({
+			params: {
+				entityTypeId: EntityTypeIds.tasks,
+				select: TASK_SELECT_FIELDS,
+				filter: {
+					"@id": taskIds,
+				},
+			},
+		});
+	}, [data, setTaskFilters]);
 
 	useEffect(() => {
 		if (data) {
-			const normalizedReports = data.map(mapReportToGroupedFields);
+			const taskTypeById = new Map(
+				tasks.map((task) => [
+					String(task.id),
+					task[TaskCodes.taskType] ?? null,
+				]),
+			);
+			const normalizedReports = data.map((report) =>
+				mapReportToGroupedFields(
+					report,
+					taskTypeById.get(String(report[ReportCodes.parentId])),
+				),
+			);
 			const confirmedReports = normalizedReports.filter(
 				(report) => report.stageId === ReportStageIds.confirmed,
 			);
@@ -120,7 +209,7 @@ export const Calendar = ({
 			setReports(normalizedReports);
 			setGroupByActivity(confirmedReports);
 		}
-	}, [data, setGroupByActivity]);
+	}, [data, tasks, setGroupByActivity]);
 
 	const monthDays = generateMonthDays({
 		selectedYear,
@@ -128,41 +217,17 @@ export const Calendar = ({
 		reports,
 	});
 
-	const handleMonthChange = (e: any) => {
-		setSelectedMonth(parseInt(e.target.value));
-	};
-
-	const handleYearChange = (e: any) => {
-		setSelectedYear(parseInt(e.target.value));
-	};
-
-	const handlePrevMonth = () => {
-		if (selectedMonth === 0) {
-			setSelectedMonth(11);
-			setSelectedYear(selectedYear - 1);
-		} else {
-			setSelectedMonth(selectedMonth - 1);
-		}
-	};
-
-	const handleNextMonth = () => {
-		if (selectedMonth === 11) {
-			setSelectedMonth(0);
-			setSelectedYear(selectedYear + 1);
-		} else {
-			setSelectedMonth(selectedMonth + 1);
-		}
-	};
-
-	const handleToday = () => {
-		const today = new Date();
-		setSelectedMonth(today.getMonth());
-		setSelectedYear(today.getFullYear());
-	};
-
 	const getCurrentMonthName = () => {
 		return months[selectedMonth];
 	};
+
+	useEffect(() => {
+		onLoadingChange?.(loading);
+	}, [loading, onLoadingChange]);
+
+	if (!isVisible) {
+		return null;
+	}
 
 	return (
 		<>
@@ -177,10 +242,11 @@ export const Calendar = ({
 					monthDays={monthDays}
 					selectedMonth={selectedMonth}
 					selectedYear={selectedYear}
+					isLoading={loading}
 				/>
 			) : (
 				<>
-					<WeekCalendar />
+					<WeekCalendar userId={userId} userIds={userIds} />
 				</>
 			)}
 		</>

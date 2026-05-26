@@ -53,7 +53,7 @@ export enum TaskCodes {
 	deadline = "ufCrm14_1775128557733",
 	company = "ufCrm14_1775127945",
 	parentproject = "parentId1092",
-	taskType = "ufCrm14_1775231676",
+	taskType = "ufCrm14_1775231676", // clients paid, company paid(ours), unpaid
 }
 
 export enum ActivityType {
@@ -94,6 +94,7 @@ export const selectFields = [
 	ReportCodes.client,
 	ReportCodes.company,
 	ReportCodes.parentproject,
+	ReportCodes.taskType,
 	"assignedById",
 	"createdTime",
 	"lastActivityTime",
