@@ -27,15 +27,15 @@ export const ReportRow = ({ date, timeSpent, id }: ReportRowProps) => {
 				gap: "0.75rem",
 				padding: "0.45rem 0.65rem",
 				borderRadius: "8px",
-				background: "#ffffff",
-				border: "1px solid #f1f5f9",
+				background: "var(--color-surface-soft)",
+				border: "1px solid var(--color-border)",
 			}}
 			onClick={() => openTask(id, EntityTypeIds.reports)}
 		>
 			<div
 				style={{
 					fontSize: "0.85rem",
-					color: "#4b5563",
+					color: "rgba(238, 245, 255, 0.68)",
 				}}
 			>
 				{formatDate(date)}
@@ -45,7 +45,7 @@ export const ReportRow = ({ date, timeSpent, id }: ReportRowProps) => {
 				style={{
 					fontSize: "0.85rem",
 					fontWeight: 600,
-					color: "#111827",
+					color: "var(--color-text)",
 					whiteSpace: "nowrap",
 				}}
 			>

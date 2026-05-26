@@ -40,4 +40,5 @@ export interface GroupedReportFields {
 	activity: number;
 	assignedById: string;
 	stageId: string;
+	taskType?: string | number | null;
 }

@@ -288,9 +288,9 @@ const ReportsPage = () => {
 			<div
 				style={{
 					display: "flex",
-					gap: "2rem",
+					gap: "1rem",
 					flexDirection: "column",
-					padding: "1rem",
+					padding: 0,
 				}}
 			>
 				<Outlet

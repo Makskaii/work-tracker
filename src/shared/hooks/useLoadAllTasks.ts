@@ -1,5 +1,5 @@
 // useLoadData.ts
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { $api } from "../config/axios/axios.config";
 import type { AnyObject } from "../types/types";
 
@@ -20,6 +20,7 @@ const fetchWithRetry = async (
 	params: AnyObject,
 	retries = 3,
 	delay = 1000,
+	signal?: AbortSignal,
 	// biome-ignore lint/suspicious/noExplicitAny: <ss>
 ): Promise<any> => {
 	for (let i = 0; i < retries; i++) {
@@ -29,9 +30,11 @@ const fetchWithRetry = async (
 					...params.params,
 					start: params.start,
 				},
+				signal,
 			});
 			return response;
 		} catch (error) {
+			if (signal?.aborted) throw error;
 			if (i === retries - 1) throw error;
 			await new Promise((resolve) =>
 				setTimeout(resolve, delay * Math.pow(2, i)),
@@ -57,16 +60,37 @@ export function useLoadAllData<T>({
 	const [filters, setFilters] = useState<AnyObject>(initialFilters);
 	const [total, setTotal] = useState(0);
 	const [next, setNext] = useState<number | null>(null);
+	const requestIdRef = useRef(0);
+	const abortControllerRef = useRef<AbortController | null>(null);
 	const limit = 50;
 
 	const fetchData = useCallback(async () => {
+		abortControllerRef.current?.abort();
+		const abortController = new AbortController();
+		abortControllerRef.current = abortController;
+		const requestId = requestIdRef.current + 1;
+		requestIdRef.current = requestId;
+
 		setLoading(true);
 		setError(null);
 		try {
 			const start = (page - 1) * limit;
 			const params = { ...filters, start };
 
-			const response = await fetchWithRetry(endpoint, params);
+			const response = await fetchWithRetry(
+				endpoint,
+				params,
+				3,
+				1000,
+				abortController.signal,
+			);
+
+			if (
+				requestIdRef.current !== requestId ||
+				abortController.signal.aborted
+			) {
+				return;
+			}
 
 			let resultData = [];
 			let totalCount = 0;
@@ -83,9 +107,29 @@ export function useLoadAllData<T>({
 
 				// Загружаем оставшиеся страницы
 				while (nextValue !== null && nextValue > 0) {
+					if (
+						requestIdRef.current !== requestId ||
+						abortController.signal.aborted
+					) {
+						return;
+					}
+
 					const nextParams = { ...filters, start: currentStart };
 
-					const nextResponse = await fetchWithRetry(endpoint, nextParams);
+					const nextResponse = await fetchWithRetry(
+						endpoint,
+						nextParams,
+						3,
+						1000,
+						abortController.signal,
+					);
+
+					if (
+						requestIdRef.current !== requestId ||
+						abortController.signal.aborted
+					) {
+						return;
+					}
 
 					const nextPageData = isTiems
 						? nextResponse.data.result?.items
@@ -105,16 +149,31 @@ export function useLoadAllData<T>({
 				setNext(nextValue);
 			}
 		} catch (err) {
+			if (
+				requestIdRef.current !== requestId ||
+				abortController.signal.aborted
+			) {
+				return;
+			}
+
 			console.error("Ошибка при загрузке данных:", err);
 			setError(err instanceof Error ? err.message : "Unknown error");
 			setData([]);
 		} finally {
-			setLoading(false);
+			if (requestIdRef.current === requestId) {
+				setLoading(false);
+				abortControllerRef.current = null;
+			}
 		}
 	}, [endpoint, page, filters, isTiems]);
 
 	useEffect(() => {
 		if (initialEndpoint) fetchData();
+
+		return () => {
+			requestIdRef.current += 1;
+			abortControllerRef.current?.abort();
+		};
 	}, [fetchData, initialEndpoint]);
 
 	return {

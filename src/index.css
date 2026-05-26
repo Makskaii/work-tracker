@@ -18,6 +18,14 @@
 	--color-warning: #f7a313;
 	--color-danger: #ef5b67;
 	--color-success-surface: #123c3c;
+	--color-payment-client: #43e87f;
+	--color-payment-client-surface: rgba(67, 232, 127, 0.16);
+	--color-payment-company: #ffbf3f;
+	--color-payment-company-surface: rgba(255, 191, 63, 0.16);
+	--color-payment-unpaid: #ff6875;
+	--color-payment-unpaid-surface: rgba(255, 104, 117, 0.16);
+	--color-payment-neutral: #9eb0c7;
+	--color-payment-neutral-surface: rgba(158, 176, 199, 0.16);
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -75,8 +83,16 @@ body {
 	min-height: 100vh;
 	background:
 		linear-gradient(rgba(7, 17, 28, 0.84), rgba(7, 17, 28, 0.9)),
-		radial-gradient(circle at 18% 12%, rgba(57, 214, 238, 0.18), transparent 24rem),
-		radial-gradient(circle at 78% 0%, rgba(95, 143, 216, 0.16), transparent 30rem),
+		radial-gradient(
+			circle at 18% 12%,
+			rgba(57, 214, 238, 0.18),
+			transparent 24rem
+		),
+		radial-gradient(
+			circle at 78% 0%,
+			rgba(95, 143, 216, 0.16),
+			transparent 30rem
+		),
 		linear-gradient(135deg, #081522 0%, #0f1c2c 48%, #07111c 100%);
 	color: var(--color-text);
 }
@@ -130,17 +146,17 @@ textarea:focus {
 }
 
 :where(
-	[class*="card"],
-	[class*="Card"],
-	[class*="item"],
-	[class*="Item"],
-	[class*="row"],
-	[class*="Row"],
-	[class*="block"],
-	[class*="Block"],
-	[class*="section"],
-	[class*="Section"]
-):hover {
+		[class*="card"],
+		[class*="Card"],
+		[class*="item"],
+		[class*="Item"],
+		[class*="row"],
+		[class*="Row"],
+		[class*="block"],
+		[class*="Block"],
+		[class*="section"],
+		[class*="Section"]
+	):hover {
 	border-color: var(--color-accent);
 }
 

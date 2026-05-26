@@ -61,8 +61,7 @@ const BitrixFrameUnavailable = () => (
 export const MainLayout = () => {
 	const b24Ref = useRef<B24Frame | null>(null);
 	const [b24, setB24] = useState<B24Frame | null>(null);
-	const [frameStatus, setFrameStatus] =
-		useState<BitrixFrameStatus>("loading");
+	const [frameStatus, setFrameStatus] = useState<BitrixFrameStatus>("loading");
 	const navigate = useNavigate();
 
 	useEffect(() => {
@@ -240,7 +239,7 @@ export const MainLayout = () => {
 						flex: 1,
 						minHeight: 0,
 						overflow: "auto",
-						padding: "28px 28px 28px calc(var(--app-sidebar-width, 72px) + 28px)",
+						padding: "0 0 0 var(--app-sidebar-width, 72px)",
 					}}
 				>
 					<Outlet />
