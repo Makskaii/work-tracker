@@ -4,7 +4,7 @@
     gap: 12px;
     min-width: 0;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: 10px;
     cursor: pointer;
 }
@@ -28,7 +28,7 @@
 
 .taskDate {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .taskMeta {

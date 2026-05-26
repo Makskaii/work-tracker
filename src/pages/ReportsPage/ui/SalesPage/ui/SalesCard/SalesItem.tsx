@@ -11,9 +11,10 @@ export const SalesItem = ({ deal }: { deal: Deal }) => {
 				flexDirection: "column",
 				gap: "10px",
 				padding: "14px",
-				border: "1px solid #edf1f5",
+				border: "1px solid var(--color-border)",
 				borderRadius: "12px",
-				background: "#f8fafc",
+				background: "var(--color-surface-soft)",
+				color: "var(--color-text)",
 			}}
 		>
 			<div
@@ -28,7 +29,7 @@ export const SalesItem = ({ deal }: { deal: Deal }) => {
 					style={{
 						fontSize: "15px",
 						fontWeight: 600,
-						color: "#111827",
+						color: "var(--color-text)",
 						lineHeight: 1.4,
 					}}
 				>
@@ -41,8 +42,8 @@ export const SalesItem = ({ deal }: { deal: Deal }) => {
 							whiteSpace: "nowrap",
 							fontSize: "13px",
 							fontWeight: 600,
-							color: "#0f766e",
-							background: "#ecfeff",
+							color: "var(--color-accent)",
+							background: "#063d43",
 							padding: "4px 8px",
 							borderRadius: "999px",
 						}}
@@ -58,18 +59,18 @@ export const SalesItem = ({ deal }: { deal: Deal }) => {
 					gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
 					gap: "8px 16px",
 					fontSize: "13px",
-					color: "#4b5563",
+					color: "var(--color-text)",
 				}}
 			>
 				<div>
-					<span style={{ color: "#9ca3af" }}>ППО:</span>{" "}
+					<span style={{ color: "var(--color-text)" }}>ППО:</span>{" "}
 					{deal[SalesCodes.ppoDay]
 						? convertToDate(deal[SalesCodes.ppoDay])
 						: "—"}
 				</div>
 
 				<div>
-					<span style={{ color: "#9ca3af" }}>КП:</span>{" "}
+					<span style={{ color: "var(--color-text)" }}>КП:</span>{" "}
 					{deal[SalesCodes.kpday] ? convertToDate(deal[SalesCodes.kpday]) : "—"}
 				</div>
 			</div>

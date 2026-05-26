@@ -3,14 +3,14 @@
     flex-direction: column;
     gap: 20px;
     padding: 20px;
-    background: #f5f7fb;
-    color: #1f2a37;
+    background: var(--color-bg);
+    color: var(--color-text);
 }
 
 .headerCard,
 .metricsSection {
-    background: #ffffff;
-    border: 1px solid #dfe5ee;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 24px;
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     padding: 20px;
@@ -42,7 +42,7 @@
     margin: 0;
     font-size: 14px;
     line-height: 1.45;
-    color: #6b7788;
+    color: var(--color-text);
 }
 
 .headerControls {
@@ -55,21 +55,23 @@
 .segmented {
     display: inline-flex;
     align-items: center;
-    padding: 4px;
-    border: 1px solid #dfe5ee;
+    padding: 5px;
+    border: 1px solid rgba(95, 143, 216, 0.35);
     border-radius: 999px;
-    background: #f8fafc;
+    background: rgba(16, 32, 54, 0.86);
     justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(238, 245, 255, 0.03);
 }
 
 .segmentedItem {
     border: none;
     background: transparent;
-    padding: 10px 16px;
+    padding: 12px 22px;
     border-radius: 999px;
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1;
-    color: #6b7788;
+    color: var(--color-text);
+    font-weight: 800;
     cursor: pointer;
     transition:
         background 0.2s ease,
@@ -77,25 +79,25 @@
         box-shadow 0.2s ease;
 
     &:hover {
-        color: #1f2a37;
+        color: var(--color-accent);
     }
 }
 
 .segmentedItemActive {
-    background: #6fbdc2;
-    color: #1f2a37;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    background: rgba(57, 214, 238, 0.16);
+    color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
 .filterButton,
 .dateButton {
     height: 48px;
-    border: 1px solid #dfe5ee;
+    border: 1px solid var(--color-border);
     border-radius: 16px;
-    background: #ffffff;
+    background: var(--color-surface);
     padding: 0 16px;
     font-size: 14px;
-    color: #1f2a37;
+    color: var(--color-text);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -109,7 +111,7 @@
 
 .filterButtonArrow {
     font-size: 12px;
-    color: #6b7788;
+    color: var(--color-text);
 }
 
 .summaryGrid {
@@ -121,9 +123,9 @@
 
 .scenarioCard,
 .infoCard {
-    border: 1px solid #dfe5ee;
+    border: 1px solid var(--color-border);
     border-radius: 20px;
-    background: #ffffff;
+    background: var(--color-surface);
     padding: 18px;
     min-height: 110px;
 }
@@ -137,14 +139,14 @@
 .scenarioCardLabel,
 .infoCardLabel {
     font-size: 14px;
-    color: #6b7788;
+    color: var(--color-text);
 }
 
 .scenarioCardText {
     margin: 0;
     font-size: 15px;
     line-height: 1.5;
-    color: #1f2a37;
+    color: var(--color-text);
     max-width: 520px;
 }
 
@@ -178,7 +180,7 @@
 .metricsSubtitle {
     margin: 0;
     font-size: 14px;
-    color: #6b7788;
+    color: var(--color-text);
 }
 
 .metricsGrid {
@@ -190,9 +192,9 @@
 .metricCard {
     width: 100%;
     text-align: left;
-    border: 1px solid #dfe5ee;
+    border: 1px solid var(--color-border);
     border-radius: 20px;
-    background: #ffffff;
+    background: var(--color-surface);
     padding: 14px;
     cursor: pointer;
     display: flex;
@@ -206,13 +208,13 @@
 
     &:hover {
         transform: translateY(-1px);
-        border-color: #cfd8e5;
+        border-color: var(--color-accent);
     }
 }
 
 .metricCardActive {
-    background: #eef8f2;
-    border-color: #b7e6c7;
+    background: #063d43;
+    border-color: var(--color-accent);
 }
 
 .metricCardTop {
@@ -225,35 +227,35 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 1px solid #dfe5ee;
-    background: #f8fafc;
+    border: 1px solid var(--color-border);
+    background: #102036;
 }
 
 .metricCardChevron {
     font-size: 20px;
     line-height: 1;
-    color: #6b7788;
+    color: var(--color-text);
 }
 
 .metricCardTitle {
     font-size: 18px;
     line-height: 1.35;
     font-weight: 500;
-    color: #334155;
+    color: var(--color-text);
 }
 
 .metricCardValue {
     font-size: 44px;
     line-height: 1;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .metricCardDescription {
     margin-top: auto;
     font-size: 14px;
     line-height: 1.4;
-    color: #6b7788;
+    color: var(--color-text);
 }
 
 
@@ -261,10 +263,10 @@
     height: 48px;
     min-width: 170px;
     padding: 0 42px 0 16px;
-    border: 1px solid #dfe5ee;
+    border: 1px solid var(--color-border);
     border-radius: 16px;
-    background-color: #ffffff;
-    color: #1f2a37;
+    background-color: var(--color-surface);
+    color: var(--color-text);
     font-size: 14px;
     font-weight: 500;
     line-height: 1;
@@ -280,8 +282,8 @@
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
 
     background-image:
-        linear-gradient(45deg, transparent 50%, #6b7788 50%),
-        linear-gradient(135deg, #6b7788 50%, transparent 50%);
+        linear-gradient(45deg, transparent 50%, var(--color-accent) 50%),
+        linear-gradient(135deg, var(--color-accent) 50%, transparent 50%);
     background-position:
         calc(100% - 18px) calc(50% - 3px),
         calc(100% - 12px) calc(50% - 3px);
@@ -289,19 +291,19 @@
     background-repeat: no-repeat;
 
     &:hover {
-        border-color: #cfd8e5;
-        background-color: #fcfdff;
+        border-color: var(--color-accent);
+        background-color: var(--color-surface-hover);
     }
 
     &:focus {
-        border-color: #b7c6db;
-        box-shadow: 0 0 0 3px rgba(183, 198, 219, 0.25);
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px rgba(57, 214, 238, 0.24);
     }
 
     &:disabled {
         cursor: not-allowed;
         opacity: 0.6;
-        background-color: #f8fafc;
+        background-color: #102036;
     }
 }
 

@@ -52,8 +52,9 @@ export const WorkLoad = () => {
 			>
 				<button
 					style={{
-						background: "white",
-						color: "#aeacac",
+						background: "#102036",
+						border: "1px solid var(--color-border)",
+						color: "var(--color-text)",
 					}}
 					onClick={() => {
 						setDay((prev) => prev.subtract(7, "day"));
@@ -75,8 +76,9 @@ export const WorkLoad = () => {
 				</div>
 				<button
 					style={{
-						background: "white",
-						color: "#aeacac",
+						background: "#102036",
+						border: "1px solid var(--color-border)",
+						color: "var(--color-text)",
 					}}
 					onClick={() => {
 						setDay((prev) => prev.add(7, "day"));

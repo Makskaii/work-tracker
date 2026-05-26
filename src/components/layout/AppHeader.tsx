@@ -1,40 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
-import { APP_TITLE, NAV_ITEMS } from "@/shared/constants/const.nav";
+import {
+	APP_TITLE,
+	NAV_ITEMS,
+	type NavItem,
+} from "@/shared/constants/const.nav";
 import styles from "./AppHeader.module.scss";
 
-type NavLeaf = {
-	label: string;
-	to: string;
+const NAV_ICON_MAP: Record<string, string> = {
+	"departments-reports": "▦",
+	"clients-desk": "♟",
+	"client accounts": "C",
+	"sprint-planner": "S",
 };
 
-type NavGroup = {
-	title: string;
-	items: NavLeaf[];
+const getNavIcon = (item: NavItem) => {
+	return NAV_ICON_MAP[item.key] ?? item.label.trim().charAt(0).toUpperCase();
 };
-
-type NavSection = {
-	title: string;
-	items?: NavLeaf[];
-	groups?: NavGroup[];
-};
-
-type NavItem =
-	| {
-			key: string;
-			label: string;
-			type: "link";
-			to: string;
-	  }
-	| {
-			key: string;
-			label: string;
-			type: "mega";
-			sections: NavSection[];
-	  };
-
-const DROPDOWN_WIDTH = 820;
-const VIEWPORT_GAP = 16;
 
 const isSectionActive = (pathname: string, item: NavItem) => {
 	if (item.type === "link") {
@@ -60,11 +42,10 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-	const rootRef = useRef<HTMLDivElement | null>(null);
+	const rootRef = useRef<HTMLElement | null>(null);
 	const location = useLocation();
-
-	const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
 	const activeTopKey = useMemo(() => {
 		return (
@@ -75,86 +56,119 @@ export const AppHeader = () => {
 
 	useEffect(() => {
 		setOpenedKey(null);
-	}, []);
+		setIsSidebarOpen(false);
+	}, [location.pathname]);
 
 	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (!rootRef.current) return;
-
-			if (!rootRef.current.contains(event.target as Node)) {
-				setOpenedKey(null);
-			}
-		};
-
-		document.addEventListener("mousedown", handleClickOutside);
+		document.documentElement.style.setProperty(
+			"--app-sidebar-width",
+			isSidebarOpen ? "280px" : "72px",
+		);
 
 		return () => {
-			document.removeEventListener("mousedown", handleClickOutside);
+			document.documentElement.style.removeProperty("--app-sidebar-width");
 		};
-	}, []);
+	}, [isSidebarOpen]);
 
 	return (
-		<header className={styles.header} ref={rootRef}>
-			<div className={styles.inner}>
-				<div className={styles.brand}>{APP_TITLE}</div>
+		<header
+			ref={rootRef}
+			className={[
+				styles.sidebar,
+				isSidebarOpen ? styles.sidebarOpened : styles.sidebarCollapsed,
+			].join(" ")}
+		>
+			<div className={styles.sidebarHeader}>
+				{isSidebarOpen ? (
+					<button
+						type="button"
+						className={styles.closeButton}
+						aria-label="Close navigation"
+						aria-expanded={isSidebarOpen}
+						onClick={() => setIsSidebarOpen(false)}
+					>
+						x
+					</button>
+				) : (
+					<button
+						type="button"
+						className={styles.menuButton}
+						aria-label="Open navigation"
+						aria-expanded={isSidebarOpen}
+						onClick={() => setIsSidebarOpen(true)}
+					>
+						<span />
+						<span />
+						<span />
+					</button>
+				)}
 
-				<nav className={styles.nav}>
-					{NAV_ITEMS.map((item) => {
-						const isActive = activeTopKey === item.key;
+				<div className={styles.sidebarTitle}>{APP_TITLE}</div>
+			</div>
 
-						if (item.type === "link") {
-							return !item.disabled ? (
-								<NavLink
-									key={item.key}
-									to={item.to}
-									className={({ isActive: linkActive }) =>
-										[
-											styles.navItem,
-											linkActive || isActive ? styles.navItemActive : "",
-										].join(" ")
-									}
-								>
-									{item.label}
-								</NavLink>
-							) : (
-								<div key={item.key}> {item.label}</div>
-							);
-						}
+					<nav className={styles.nav}>
+						{NAV_ITEMS.map((item) => {
+							const isActive = activeTopKey === item.key;
+							const icon = getNavIcon(item);
 
-						const isOpened = openedKey === item.key;
-
-						return (
-							<div key={item.key} className={styles.navItemWrapper}>
-								<button
-									ref={(node) => {
-										buttonRefs.current[item.key] = node;
-									}}
-									type="button"
-									className={[
-										styles.navItem,
-										isActive ? styles.navItemActive : "",
-										isOpened ? styles.navItemOpened : "",
-									].join(" ")}
-									onClick={() => {
-										const nextValue = openedKey === item.key ? null : item.key;
-										setOpenedKey(nextValue);
-									}}
-								>
-									{item.label}
-									<span className={styles.chevron}>{isOpened ? "−" : "+"}</span>
-								</button>
-
-								{isOpened && (
-									<div
-										className={styles.dropdown}
-										style={{
-											right: 0,
-											width: `min(${DROPDOWN_WIDTH}px, calc(100vw - ${
-												VIEWPORT_GAP * 2
-											}px))`,
-										}}
+							if (item.type === "link") {
+								return !item.disabled ? (
+									<NavLink
+										key={item.key}
+										to={item.to}
+										className={({ isActive: linkActive }) =>
+											[
+												styles.navItem,
+												linkActive || isActive ? styles.navItemActive : "",
+											].join(" ")
+										}
+										title={item.label}
 									>
-										<div className={styles.dropdownGrid}>
+										<span className={styles.navIcon}>{icon}</span>
+										<span className={styles.navLabel}>{item.label}</span>
+									</NavLink>
+								) : (
+									<div
+										key={item.key}
+										className={styles.navItemDisabled}
+										title={item.label}
+									>
+										<span className={styles.navIcon}>{icon}</span>
+										<span className={styles.navLabel}>{item.label}</span>
+									</div>
+								);
+							}
+
+							const isOpened = openedKey === item.key;
+
+							return (
+								<div key={item.key} className={styles.navItemWrapper}>
+									<button
+										type="button"
+										className={[
+											styles.navItem,
+											isActive ? styles.navItemActive : "",
+											isOpened ? styles.navItemOpened : "",
+										].join(" ")}
+										onClick={() => {
+											if (!isSidebarOpen) {
+												setIsSidebarOpen(true);
+												setOpenedKey(item.key);
+												return;
+											}
+
+											const nextValue = openedKey === item.key ? null : item.key;
+											setOpenedKey(nextValue);
+										}}
+										title={item.label}
+									>
+										<span className={styles.navIcon}>{icon}</span>
+										<span className={styles.navLabel}>{item.label}</span>
+										<span className={styles.chevron}>{isOpened ? "-" : "+"}</span>
+									</button>
+
+									{isSidebarOpen && isOpened && (
+										<div className={styles.dropdown}>
 											{item.sections.map((section) => (
 												<div key={section.title} className={styles.section}>
 													<div className={styles.sectionTitle}>
@@ -180,7 +194,12 @@ export const AppHeader = () => {
 																		{child.label}
 																	</NavLink>
 																) : (
-																	<div>{child.label}</div>
+																	<div
+																		key={child.label}
+																		className={styles.dropdownLinkDisabled}
+																	>
+																		{child.label}
+																	</div>
 																),
 															)}
 														</div>
@@ -219,13 +238,11 @@ export const AppHeader = () => {
 												</div>
 											))}
 										</div>
-									</div>
-								)}
-							</div>
-						);
-					})}
-				</nav>
-			</div>
+									)}
+								</div>
+							);
+						})}
+					</nav>
 		</header>
 	);
 };

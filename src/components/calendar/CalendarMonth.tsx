@@ -218,7 +218,6 @@ const CalendarMonth = ({
 
 				<div className={cls["month-year-selector"]}>
 					<select
-						style={{ color: "black" }}
 						name="month"
 						value={selectedMonth}
 						onChange={handleMonthChange}
@@ -232,7 +231,6 @@ const CalendarMonth = ({
 					</select>
 
 					<select
-						style={{ color: "black" }}
 						value={selectedYear}
 						onChange={handleYearChange}
 						className={cls["year-select"]}

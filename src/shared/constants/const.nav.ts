@@ -18,21 +18,21 @@ export type NavSection = {
 
 export type NavItem =
 	| {
-			key: string;
-			label: string;
-			type: "link";
-			to: string;
-			disabled?: boolean;
-	  }
+		key: string;
+		label: string;
+		type: "link";
+		to: string;
+		disabled?: boolean;
+	}
 	| {
-			key: string;
-			label: string;
-			type: "mega";
-			sections: NavSection[];
-			disabled?: boolean;
-	  };
+		key: string;
+		label: string;
+		type: "mega";
+		sections: NavSection[];
+		disabled?: boolean;
+	};
 
-export const APP_TITLE = "Evolution Work Desk";
+export const APP_TITLE = "Workdesk";
 
 export const NAV_ITEMS: NavItem[] = [
 	{
@@ -111,6 +111,6 @@ export const NAV_ITEMS: NavItem[] = [
 		label: "Sprint Planner",
 		to: "/sprint-planner",
 		type: "link",
-		disabled: true,
+		disabled: false,
 	},
 ];

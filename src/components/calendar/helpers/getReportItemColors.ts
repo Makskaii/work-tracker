@@ -24,36 +24,36 @@ export const getColorAndBorderByActivity = (
 ) => {
 	if (isNotAtWorkActivity(activityType, activities)) {
 		return {
-			background: "rgba(148, 163, 184, 0.2)",
-			borderLeft: "4px solid #94a3b8",
+			background: "rgba(95, 143, 216, 0.16)",
+			borderLeft: "4px solid #5f8fd8",
 		};
 	}
 
 	switch (activityType) {
 		case ActivityType.development:
 			return {
-				background: "rgba(76, 175, 80, 0.2)",
-				borderLeft: "4px solid #4caf50",
+				background: "rgba(57, 214, 238, 0.16)",
+				borderLeft: "4px solid #39d6ee",
 			};
 		case ActivityType.clientCall:
 			return {
-				background: "#E6E6FA",
-				borderLeft: "4px solid #2414af",
+				background: "rgba(111, 168, 255, 0.18)",
+				borderLeft: "4px solid #6fa8ff",
 			};
 		case ActivityType.analitycsCall:
 			return {
-				background: "#eeab6d",
-				borderLeft: "4px solid #f3e300",
+				background: "rgba(32, 49, 73, 0.72)",
+				borderLeft: "4px solid #5f8fd8",
 			};
 		case ActivityType.dash:
 			return {
-				background: "#E6E6FA",
-				borderLeft: "4px solid #d397d3",
+				background: "rgba(15, 28, 44, 0.82)",
+				borderLeft: "4px solid #39d6ee",
 			};
 		default: {
 			return {
-				background: "rgba(76, 175, 80, 0.2)",
-				borderLeft: "4px solid #4caf50",
+				background: "rgba(57, 214, 238, 0.16)",
+				borderLeft: "4px solid #39d6ee",
 			};
 		}
 	}

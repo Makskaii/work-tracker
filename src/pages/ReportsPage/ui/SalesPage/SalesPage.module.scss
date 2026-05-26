@@ -1,0 +1,97 @@
+.page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    align-items: start;
+    min-height: calc(100vh - 56px);
+}
+
+.panel {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid rgba(95, 143, 216, 0.26);
+    border-radius: 24px;
+    background: rgba(15, 28, 44, 0.82);
+    box-shadow: 0 18px 44px rgba(1, 8, 14, 0.34);
+    backdrop-filter: blur(12px);
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.periodRange {
+    min-width: 112px;
+    color: var(--color-text);
+    font-size: 18px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.navButton,
+.detailsButton {
+    min-height: 42px;
+    border: 1px solid rgba(95, 143, 216, 0.35);
+    border-radius: 12px;
+    background: rgba(16, 32, 54, 0.86);
+    color: var(--color-text);
+    font-weight: 800;
+    box-shadow: none;
+}
+
+.navButton:hover,
+.detailsButton:hover {
+    border-color: var(--color-accent);
+    background: rgba(32, 49, 73, 0.92);
+}
+
+.detailsButton {
+    min-height: 38px;
+    padding: 0 16px;
+}
+
+.detailsColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.callsCard {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(95, 143, 216, 0.26);
+    border-radius: 18px;
+    background: rgba(15, 28, 44, 0.82);
+    color: var(--color-text);
+    box-shadow: 0 16px 36px rgba(1, 8, 14, 0.28);
+}
+
+.callsCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(95, 143, 216, 0.18);
+}
+
+.callsCardTitle {
+    font-weight: 800;
+}
+
+.callsCardValue {
+    color: var(--color-accent);
+    font-weight: 900;
+}
+
+@media (max-width: 1280px) {
+    .page {
+        grid-template-columns: 1fr;
+    }
+}

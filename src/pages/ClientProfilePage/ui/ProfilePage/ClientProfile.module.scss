@@ -60,7 +60,7 @@
     max-width: 100%;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
     text-align: right;
     overflow-wrap: anywhere;
 }
@@ -86,7 +86,7 @@
     margin: 0;
     font-size: 2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
     line-height: 1.15;
     overflow-wrap: anywhere;
 }
@@ -94,7 +94,7 @@
 .pageSubtitle {
     margin: 0;
     max-width: 700px;
-    color: #475569;
+    color: var(--color-muted);
     line-height: 1.5;
 }
 
@@ -123,12 +123,12 @@
 .statValue {
     font-size: 1.8rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .statLabel {
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--color-muted);
 }
 
 .content {
@@ -157,7 +157,7 @@
     padding: 1.1rem;
     border: 1px solid #fde68a;
     border-radius: 16px;
-    background: #fffbeb;
+    background: rgba(247, 163, 19, 0.14);
     box-shadow: 0 10px 24px rgba(180, 83, 9, 0.08);
     text-align: left;
 }
@@ -213,8 +213,8 @@
     padding: 0.7rem 0.8rem;
     border: 1px solid #fde68a;
     border-radius: 10px;
-    background: #ffffff;
-    color: #0f172a;
+    background: var(--color-surface);
+    color: var(--color-text);
     cursor: pointer;
     text-align: left;
     transition:
@@ -226,7 +226,7 @@
 .approvalTaskButton:hover,
 .approvalTaskButtonActive {
     border-color: #f59e0b;
-    background: #fff7ed;
+    background: rgba(247, 163, 19, 0.14);
     box-shadow: 0 4px 12px rgba(180, 83, 9, 0.08);
 }
 
@@ -252,13 +252,13 @@
     gap: 0.75rem;
     padding: 0.9rem;
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--color-surface);
     border: 1px solid #fde68a;
 }
 
 .approvalDetailsTitle {
     margin: 0;
-    color: #0f172a;
+    color: var(--color-text);
     font-size: 1rem;
     line-height: 1.3;
     overflow-wrap: anywhere;
@@ -276,7 +276,7 @@
 .approvalDescription {
     max-height: 180px;
     overflow: auto;
-    color: #475569;
+    color: var(--color-muted);
     font-size: 0.9rem;
     line-height: 1.55;
     white-space: pre-wrap;
@@ -342,12 +342,12 @@
     margin: 0;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .sectionSubtitle {
     margin: 0.35rem 0 0;
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 0.95rem;
 }
 
@@ -363,7 +363,7 @@
     gap: 1rem;
     padding: 1.1rem;
     border-radius: 22px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-soft) 100%);
     border: 1px solid #e2e8f0;
     transition:
         transform 0.2s ease,
@@ -405,7 +405,7 @@
     margin: 0;
     font-size: 1.15rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
     word-break: break-word;
 }
 
@@ -413,7 +413,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 0.9rem;
     flex-direction: column;
     text-align: left;
@@ -438,13 +438,13 @@
 
 .dateLabel {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--color-muted);
 }
 
 .dateValue {
     font-size: 0.92rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .projectBody {
@@ -476,14 +476,14 @@
 
 .infoTileLabel {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--color-muted);
     margin-bottom: 0.35rem;
 }
 
 .infoTileValue {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--color-text);
     word-break: break-word;
 }
 
@@ -599,7 +599,7 @@
 }
 
 .ghostButton {
-    background: #ffffff;
+    background: var(--color-surface);
     color: #334155;
     border: 1px solid #e2e8f0;
 
@@ -630,7 +630,7 @@
 
 .activityIdle {
     background: #e2e8f0;
-    color: #475569;
+    color: var(--color-muted);
 }
 
 .quickActions {
@@ -671,11 +671,11 @@
 
 .activityProjectTitle {
     font-weight: 600;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .activityProjectText {
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 0.92rem;
 }
 
@@ -698,7 +698,7 @@
 
 .meetingTitle {
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .meetingProject {
@@ -710,7 +710,7 @@
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 0.9rem;
 }
 
@@ -745,16 +745,16 @@
 .stateTitle {
     font-size: 1rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .stateText {
     margin-top: 0.35rem;
-    color: #64748b;
+    color: var(--color-muted);
 }
 
 .mutedText {
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 0.95rem;
 }
 
@@ -846,7 +846,7 @@
     flex-direction: column;
     gap: 18px;
     padding-top: 4px;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .taskModalHeader {
@@ -859,7 +859,7 @@
 
 .taskModalTitle {
     margin: 0;
-    color: #0f172a;
+    color: var(--color-text);
     font-size: 22px;
     font-weight: 750;
     line-height: 1.2;
@@ -867,7 +867,7 @@
 
 .taskModalSubtitle {
     margin: 0;
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 14px;
     line-height: 1.45;
 }
@@ -896,8 +896,8 @@
     width: 100%;
     border: 1px solid #dbe3ef;
     border-radius: 8px;
-    background: #ffffff;
-    color: #0f172a;
+    background: var(--color-surface);
+    color: var(--color-text);
     font: inherit;
     font-size: 14px;
     outline: none;
@@ -922,12 +922,12 @@
 
 .formInput::placeholder,
 .formTextarea::placeholder {
-    color: #94a3b8;
+    color: var(--color-muted);
 }
 
 .formInput:focus,
 .formTextarea:focus {
-    border-color: #2563eb;
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
@@ -939,7 +939,7 @@
     border: 1px dashed #b7c4d8;
     border-radius: 8px;
     background: #f8fafc;
-    color: #0f172a;
+    color: var(--color-text);
     cursor: pointer;
     transition:
         border-color 140ms ease,
@@ -947,7 +947,7 @@
 }
 
 .fileUploadBox:hover {
-    border-color: #2563eb;
+    border-color: var(--color-accent);
     background: #eff6ff;
 }
 
@@ -967,7 +967,7 @@
 }
 
 .fileUploadHint {
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 12px;
 }
 
@@ -988,12 +988,12 @@
     padding: 8px 10px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--color-surface);
 }
 
 .selectedFileName {
     overflow: hidden;
-    color: #0f172a;
+    color: var(--color-text);
     font-size: 13px;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -1001,7 +1001,7 @@
 }
 
 .selectedFileSize {
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 12px;
     white-space: nowrap;
 }
@@ -1044,14 +1044,14 @@
 
 .cancelButton {
     border: 1px solid #dbe3ef;
-    background: #ffffff;
-    color: #475569;
+    background: var(--color-surface);
+    color: var(--color-muted);
 }
 
 .cancelButton:hover {
     border-color: #cbd5e1;
     background: #f8fafc;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .submitButton {
@@ -1076,7 +1076,7 @@
     text-align: left;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .infoGrid {
@@ -1130,7 +1130,7 @@
 .periodHeader {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--color-muted);
     text-align: left;
 }
 
@@ -1144,8 +1144,8 @@
 .periodButton {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    background: #ffffff;
-    color: #64748b;
+    background: var(--color-surface);
+    color: var(--color-muted);
     padding: 0.65rem 0.8rem;
     font-weight: 600;
     cursor: pointer;
@@ -1158,14 +1158,14 @@
 
 .periodButton:hover {
     background: #f8fafc;
-    color: #0f172a;
+    color: var(--color-text);
     border-color: #bfdbfe;
 }
 
 .periodDates {
     text-align: center;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--color-text);
     white-space: nowrap;
 }
 

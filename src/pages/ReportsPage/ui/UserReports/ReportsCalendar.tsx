@@ -343,14 +343,14 @@ const ReportsCalendar = () => {
 				style={{
 					flex: 4,
 					overflow: "hidden",
-					borderLeft: "1px solid #ccc",
+					borderLeft: "1px solid var(--color-border)",
 				}}
 			>
 				<div
 					style={{
 						display: "flex",
 						gap: "1rem",
-						borderBottom: "1px solid #ccc",
+						borderBottom: "1px solid var(--color-border)",
 						padding: "0.5rem 2rem",
 						justifyContent: "space-between",
 					}}
@@ -361,8 +361,42 @@ const ReportsCalendar = () => {
 							gap: "1rem",
 						}}
 					>
-						<button onClick={() => setView("month")}>Месяц</button>
-						<button onClick={() => setView("week")}>Неделя</button>
+						<button
+							type="button"
+							onClick={() => setView("month")}
+							style={{
+								background:
+									view === "month"
+										? "var(--color-accent)"
+										: "var(--color-surface-soft)",
+								color: view === "month" ? "#06111c" : "var(--color-text)",
+								border: `1px solid ${
+									view === "month"
+										? "var(--color-accent)"
+										: "var(--color-border)"
+								}`,
+							}}
+						>
+							Месяц
+						</button>
+						<button
+							type="button"
+							onClick={() => setView("week")}
+							style={{
+								background:
+									view === "week"
+										? "var(--color-accent)"
+										: "var(--color-surface-soft)",
+								color: view === "week" ? "#06111c" : "var(--color-text)",
+								border: `1px solid ${
+									view === "week"
+										? "var(--color-accent)"
+										: "var(--color-border)"
+								}`,
+							}}
+						>
+							Неделя
+						</button>
 					</div>
 				</div>
 				<Calendar

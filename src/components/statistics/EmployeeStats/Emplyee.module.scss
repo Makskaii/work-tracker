@@ -10,7 +10,7 @@
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 16px;
     padding: 1rem;
-    background: #f9fafb;
+    background: var(--color-surface-soft);
     border-radius: 16px;
     min-width: 0;
 }
@@ -24,7 +24,7 @@
 }
 
 .statCard {
-    background: white;
+    background: var(--color-surface);
     border-radius: 12px;
     padding: 20px 16px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -58,18 +58,18 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: white;
+    background: var(--color-surface);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
     font-size: 18px;
-    color: #1f2937;
+    color: var(--color-text);
 }
 
 .statLabel {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--color-muted);
     margin-bottom: 4px;
     font-weight: 500;
     overflow-wrap: anywhere;
@@ -78,7 +78,7 @@
 .statValue {
     font-size: 24px;
     font-weight: 700;
-    color: #111827;
+    color: var(--color-text);
     margin-bottom: 8px;
     overflow-wrap: anywhere;
 }
@@ -91,7 +91,7 @@
     font-size: 12px;
     padding: 4px 8px;
     border-radius: 999px;
-    background: #f3f4f6;
+    background: var(--color-surface-soft);
     color: #4b5563;
     overflow-wrap: anywhere;
     text-align: center;
@@ -108,7 +108,7 @@
 }
 
 .activitiesPanel {
-    background: #f9fafb;
+    background: var(--color-surface-soft);
     border-radius: 16px;
     padding: 16px;
     min-width: 0;
@@ -124,7 +124,7 @@
 
 .activitiesHeader > div:last-child {
     flex-shrink: 0;
-    color: #6b7280;
+    color: var(--color-muted);
     text-align: right;
 }
 
@@ -145,7 +145,7 @@
     padding: 12px 14px;
     border: 1px solid #f0f0f0;
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--color-surface);
 }
 
 .activityHeader {
@@ -169,7 +169,7 @@
 .activityBar {
     height: 8px;
     border-radius: 999px;
-    background: #e5e7eb;
+    background: var(--color-border);
     overflow: hidden;
 }
 
@@ -190,16 +190,16 @@
 .emptyState {
     padding: 16px;
     border-radius: 12px;
-    background: #ffffff;
-    color: #6b7280;
+    background: var(--color-surface);
+    color: var(--color-muted);
 }
 
 .statsEmptyState {
     padding: 20px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: #f9fafb;
-    color: #6b7280;
+    background: var(--color-surface-soft);
+    color: var(--color-muted);
     text-align: center;
 }
 

@@ -40,12 +40,12 @@
     margin: 0;
     font-size: 2rem;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .subtitle {
     margin: 0;
-    color: #64748b;
+    color: var(--color-muted);
     line-height: 1.5;
 }
 
@@ -67,13 +67,13 @@
 .statValue {
     font-size: 1.35rem;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .statLabel {
     margin-top: 0.2rem;
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--color-muted);
 }
 
 .filters {
@@ -103,7 +103,7 @@
     background: rgba(255, 255, 255, 0.92);
     outline: none;
     font-size: 0.95rem;
-    color: #0f172a;
+    color: var(--color-text);
 
     &:focus {
         border-color: #3b82f6;
@@ -150,11 +150,11 @@
 .dayTitle {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .dayCount {
-    color: #64748b;
+    color: var(--color-muted);
     font-size: 0.9rem;
 }
 
@@ -192,7 +192,7 @@
 .reportCard {
     padding: 1rem;
     border-radius: 20px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-soft) 100%);
     border: 1px solid #e2e8f0;
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
@@ -240,7 +240,7 @@
 .reportTitle {
     font-size: 1.04rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
     margin-bottom: 0.8rem;
 }
 
@@ -263,14 +263,14 @@
 
 .metaLabel {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--color-muted);
     margin-bottom: 0.3rem;
 }
 
 .metaValue {
     font-size: 0.92rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--color-text);
     word-break: break-word;
 }
 
@@ -278,7 +278,7 @@
     margin-top: 0.85rem;
     padding: 0.85rem 1rem;
     border-radius: 14px;
-    background: #fff7ed;
+    background: rgba(247, 163, 19, 0.14);
     border: 1px solid #fdba74;
     color: #9a3412;
     font-size: 0.9rem;
@@ -302,12 +302,12 @@
 .sideTitle {
     font-size: 1rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
     margin-bottom: 0.75rem;
 }
 
 .sideText {
-    color: #64748b;
+    color: var(--color-muted);
     line-height: 1.6;
     font-size: 0.92rem;
 }
@@ -363,10 +363,10 @@
 .emptyTitle {
     font-size: 1.05rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--color-text);
 }
 
 .emptyText {
     margin-top: 0.35rem;
-    color: #64748b;
+    color: var(--color-muted);
 }

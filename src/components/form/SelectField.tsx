@@ -100,7 +100,10 @@ export const AsyncSelect = ({
 						key={item.id}
 						style={{
 							background:
-								item.department === 23 ? "rgb(76, 175, 80, 0.3)" : "#ff9800",
+								item.department === 23
+									? "var(--color-success-surface)"
+									: "var(--color-surface-hover)",
+							color: "var(--color-text)",
 						}}
 					>
 						{item.title}

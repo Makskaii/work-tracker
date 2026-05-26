@@ -8,7 +8,7 @@
     margin-bottom: 16px;
     font-weight: 700;
     font-size: 1rem;
-    color: #111827;
+    color: var(--color-text);
 }
 
 .projectsList {
@@ -21,9 +21,9 @@
 
 .projectItem {
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: #f9fafb;
+    background: var(--color-surface-soft);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
 }
 
@@ -50,13 +50,13 @@
 .projectName {
     font-weight: 600;
     font-size: 0.95rem;
-    color: #111827;
+    color: var(--color-text);
     overflow-wrap: anywhere;
 }
 
 .projectCounter {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--color-muted);
 }
 
 .projectToggle {
@@ -66,10 +66,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 50%;
-    background: #ffffff;
-    color: #374151;
+    background: var(--color-surface);
+    color: var(--color-text);
     font-size: 1rem;
     transition: transform 0.25s ease;
 }
@@ -98,15 +98,15 @@
     flex-direction: column;
     gap: 8px;
     padding-top: 12px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--color-border);
 }
 
 .projectTask {
     padding: 12px 14px;
     border: 1px solid #edf0f3;
     border-radius: 10px;
-    background: #ffffff;
-    color: #374151;
+    background: var(--color-surface);
+    color: var(--color-text);
     font-size: 0.9rem;
     line-height: 1.4;
     overflow-wrap: anywhere;
