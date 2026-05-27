@@ -242,7 +242,14 @@ export const MainLayout = () => {
 						background: "transparent",
 					}}
 				>
-					<Outlet />
+					<div
+						style={{
+							minWidth: "1280px",
+							width: "1280px",
+						}}
+					>
+						<Outlet />
+					</div>
 				</main>
 			</div>
 		</B24Context.Provider>

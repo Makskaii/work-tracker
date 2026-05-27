@@ -55,11 +55,6 @@ export const AppHeader = () => {
 	}, [location.pathname]);
 
 	useEffect(() => {
-		setOpenedKey(null);
-		setIsSidebarOpen(false);
-	}, [location.pathname]);
-
-	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
 			isSidebarOpen ? "280px" : "72px",

@@ -83,6 +83,8 @@
     display: grid;
     grid-template-columns: 390px minmax(0, 1fr);
     gap: 14px;
+    width: 100%;
+    min-width: 1280px;
     min-height: calc(100vh - 120px);
     padding: 16px;
     border: 1px solid rgba(255, 255, 255, 0.12);
