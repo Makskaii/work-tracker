@@ -1,11 +1,11 @@
 .taskItem {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    padding: 10px;
+    padding: 11px 12px;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: 14px;
     cursor: pointer;
 }
 
@@ -24,10 +24,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 14px;
+    line-height: 1.25;
 }
 
 .taskDate {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--color-muted);
 }
 
@@ -38,6 +40,13 @@
     align-items: flex-end;
     gap: 4px;
     text-align: right;
+    font-size: 13px;
+}
+
+.taskMeta > :first-child {
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
 }
 
 @media (max-width: 640px) {
