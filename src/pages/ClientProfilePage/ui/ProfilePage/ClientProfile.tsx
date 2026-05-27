@@ -17,6 +17,7 @@ import {
 } from "@/shared/types/types";
 import { getFixedNumber } from "@/shared/utils/getNumber";
 import brandLogo from "/logo_colored.png";
+import theme from "../ClientProfileTheme.module.scss";
 import styles from "./ClientProfile.module.scss";
 import { CreateTaskProposalModal } from "./CreateTaskProposalModal";
 import { HeaderSection, type TaskStatusFilter } from "./HeaderSection";
@@ -605,7 +606,7 @@ const ClientProfile = () => {
 	if (!companyId) return null;
 
 	return (
-		<div className={styles.page}>
+		<div className={`${styles.page} ${theme.lightTheme}`}>
 			<div className={styles.headerCard}>
 				<div className={styles.headerInfo}>
 					<div className={styles.brandBlock}>

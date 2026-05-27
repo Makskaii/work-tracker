@@ -21,6 +21,7 @@ import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { Status, TaskProps, User } from "@/shared/types/types";
 import { convertNumberFormat } from "@/shared/utils";
 import { TaskBundleSection } from "../BundleSection/TaskBundleSection";
+import theme from "../ClientProfileTheme.module.scss";
 import { TaskList } from "../TaskList/TaskList";
 import { ProjectAllTasksModal } from "./ProjectAllTasksModal";
 import styles from "./ProjectPage.module.scss";
@@ -309,7 +310,7 @@ export const ClientProjectPage = () => {
 
 	if (view === "task") {
 		return (
-			<div className={styles.reportView}>
+			<div className={`${styles.reportView} ${theme.lightTheme}`}>
 				<div className={styles.reportToolbar}>
 					<button
 						type="button"
@@ -339,7 +340,7 @@ export const ClientProjectPage = () => {
 	}
 
 	return (
-		<div className={styles.page}>
+		<div className={`${styles.page} ${theme.lightTheme}`}>
 			<div className={styles.heroCard}>
 				<div className={styles.heroMain}>
 					<div className={styles.badge}>Карточка проекта</div>

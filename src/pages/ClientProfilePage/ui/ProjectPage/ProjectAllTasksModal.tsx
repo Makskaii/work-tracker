@@ -6,6 +6,7 @@ import { getItems } from "@/pages/ReportsPage/api/getTasks";
 import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
 import type { Status, TaskProps, User } from "@/shared/types/types";
+import theme from "../ClientProfileTheme.module.scss";
 import { TaskList } from "../TaskList/TaskList";
 
 type Props = {
@@ -52,7 +53,13 @@ export const ProjectAllTasksModal = ({
 	}, [open, projectId, companyId]);
 
 	return (
-		<Modal isOpen={open} onClose={onClose} size="full" innerScroll>
+		<Modal
+			isOpen={open}
+			onClose={onClose}
+			size="full"
+			innerScroll
+			className={theme.lightTheme}
+		>
 			<TaskList tasks={tasks} isProject />
 		</Modal>
 	);
