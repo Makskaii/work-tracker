@@ -4,6 +4,7 @@ import { ReportCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
 import type { TaskProps, User } from "@/shared/types/types";
+import theme from "../ClientProfileTheme.module.scss";
 import styles from "./ReportsModal.module.scss";
 
 type ActivityItem = {
@@ -148,7 +149,13 @@ export const ProjectReportsTimelineModal = ({
 	).size;
 
 	return (
-		<Modal isOpen={open} onClose={onClose} size="full" innerScroll>
+		<Modal
+			isOpen={open}
+			onClose={onClose}
+			size="full"
+			innerScroll
+			className={theme.lightTheme}
+		>
 			<div className={styles.wrapper}>
 				<div className={styles.header}>
 					<div className={styles.headerMain}>

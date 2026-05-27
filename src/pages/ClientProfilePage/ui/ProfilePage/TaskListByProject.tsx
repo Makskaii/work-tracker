@@ -14,6 +14,7 @@ import {
 	ClientTaskStatuses,
 } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
+import theme from "../ClientProfileTheme.module.scss";
 import { TaskFilters, type TaskFilterValues } from "../TaskList/TaskFilters";
 import type { ViewMode } from "./ClientProfile";
 import cls from "./TaskListByProject.module.scss";
@@ -570,6 +571,7 @@ export const TaskListByProject = ({
 				onClose={() => setOpenTask(false)}
 				innerScroll
 				size="covered"
+				className={theme.lightTheme}
 			>
 				<TaskView
 					taskId={activeTask?.id ?? ""}
