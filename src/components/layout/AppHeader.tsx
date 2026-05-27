@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
 	APP_TITLE,
+	EXTRA_NAV_ITEMS,
 	NAV_ITEMS,
 	type NavItem,
 } from "@/shared/constants/const.nav";
@@ -9,9 +10,8 @@ import styles from "./AppHeader.module.scss";
 
 const NAV_ICON_MAP: Record<string, string> = {
 	"departments-reports": "▦",
-	"clients-desk": "♟",
-	"client accounts": "C",
-	"sprint-planner": "S",
+	"client-app": "♟",
+	"reports-sections": "О",
 };
 
 const getNavIcon = (item: NavItem) => {
@@ -20,7 +20,7 @@ const getNavIcon = (item: NavItem) => {
 
 const isSectionActive = (pathname: string, item: NavItem) => {
 	if (item.type === "link") {
-		return pathname.startsWith(item.to);
+		return pathname === item.to;
 	}
 
 	return item.sections.some((section) => {
@@ -42,7 +42,8 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
-	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [isExtraListsOpen, setIsExtraListsOpen] = useState(true);
 
 	const rootRef = useRef<HTMLElement | null>(null);
 	const location = useLocation();
@@ -57,7 +58,7 @@ export const AppHeader = () => {
 	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
-			isSidebarOpen ? "280px" : "72px",
+			isSidebarOpen ? "320px" : "72px",
 		);
 
 		return () => {
@@ -101,143 +102,161 @@ export const AppHeader = () => {
 				<div className={styles.sidebarTitle}>{APP_TITLE}</div>
 			</div>
 
-					<nav className={styles.nav}>
-						{NAV_ITEMS.map((item) => {
-							const isActive = activeTopKey === item.key;
-							const icon = getNavIcon(item);
+			<nav className={`${styles.nav} ${styles.sidebarScroll}`}>
+				{NAV_ITEMS.map((item) => {
+					const isActive = activeTopKey === item.key;
+					const icon = getNavIcon(item);
 
-							if (item.type === "link") {
-								return !item.disabled ? (
+					if (item.type === "link") {
+						return !item.disabled ? (
+							<NavLink
+								key={item.key}
+								to={item.to}
+								className={({ isActive: linkActive }) =>
+									[
+										styles.navItem,
+										linkActive || isActive ? styles.navItemActive : "",
+									].join(" ")
+								}
+								title={item.label}
+							>
+								<span className={styles.navIcon}>{icon}</span>
+								<span className={styles.navLabel}>{item.label}</span>
+							</NavLink>
+						) : (
+							<div
+								key={item.key}
+								className={styles.navItemDisabled}
+								title={item.label}
+							>
+								<span className={styles.navIcon}>{icon}</span>
+								<span className={styles.navLabel}>{item.label}</span>
+							</div>
+						);
+					}
+
+					return (
+						<div key={item.key} className={styles.reportsSection}>
+							<div className={styles.sidebarSectionHeading}>{item.label}</div>
+
+							{item.sections.map((section) => {
+								const isSectionOpened = openedKey === section.title;
+								const hasActiveChild =
+									section.items?.some((child) =>
+										location.pathname.startsWith(child.to),
+									) ?? false;
+
+								if (section.title === "Календарь сотрудников") {
+									return (
+										<div key={section.title} className={styles.navItemWrapper}>
+											<button
+												type="button"
+												className={[
+													styles.navItem,
+													hasActiveChild ? styles.navItemParentActive : "",
+												].join(" ")}
+												onClick={() => {
+													if (!isSidebarOpen) {
+														setIsSidebarOpen(true);
+														setOpenedKey(section.title);
+														return;
+													}
+
+													setOpenedKey((currentValue) =>
+														currentValue === section.title ? null : section.title,
+													);
+												}}
+											>
+												<span className={styles.navIcon}>К</span>
+												<span className={styles.navLabel}>{section.title}</span>
+												<span className={styles.chevron}>
+													{isSectionOpened ? "˄" : "˅"}
+												</span>
+											</button>
+
+											{isSidebarOpen && isSectionOpened && (
+												<div className={styles.sidebarSubmenu}>
+													{section.items?.map((child) => (
+														<NavLink
+															key={child.to}
+															to={child.to}
+															className={({ isActive: linkActive }) =>
+																[
+																	styles.dropdownLink,
+																	linkActive ? styles.dropdownLinkActive : "",
+																].join(" ")
+															}
+														>
+															{child.label}
+														</NavLink>
+													))}
+												</div>
+											)}
+										</div>
+									);
+								}
+
+								return section.items?.map((child) => (
 									<NavLink
-										key={item.key}
-										to={item.to}
+										key={child.to}
+										to={child.to}
 										className={({ isActive: linkActive }) =>
 											[
 												styles.navItem,
-												linkActive || isActive ? styles.navItemActive : "",
+												linkActive ? styles.navItemActive : "",
 											].join(" ")
 										}
-										title={item.label}
+										title={child.label}
 									>
-										<span className={styles.navIcon}>{icon}</span>
-										<span className={styles.navLabel}>{item.label}</span>
+										<span className={styles.navIcon}>
+											{child.label.trim().charAt(0).toUpperCase()}
+										</span>
+										<span className={styles.navLabel}>{child.label}</span>
 									</NavLink>
-								) : (
-									<div
-										key={item.key}
-										className={styles.navItemDisabled}
-										title={item.label}
-									>
-										<span className={styles.navIcon}>{icon}</span>
-										<span className={styles.navLabel}>{item.label}</span>
-									</div>
-								);
-							}
+								));
+							})}
+						</div>
+					);
+				})}
 
-							const isOpened = openedKey === item.key;
+				{isSidebarOpen && (
+					<div className={styles.extraLists}>
+						<button
+							type="button"
+							className={styles.extraListsToggle}
+							onClick={() => setIsExtraListsOpen((prev) => !prev)}
+						>
+							<span>доп. списки</span>
+							<span>{isExtraListsOpen ? "˄" : "˅"}</span>
+						</button>
 
-							return (
-								<div key={item.key} className={styles.navItemWrapper}>
-									<button
-										type="button"
-										className={[
-											styles.navItem,
-											isActive ? styles.navItemActive : "",
-											isOpened ? styles.navItemOpened : "",
-										].join(" ")}
-										onClick={() => {
-											if (!isSidebarOpen) {
-												setIsSidebarOpen(true);
-												setOpenedKey(item.key);
-												return;
+						{isExtraListsOpen && (
+							<div className={styles.sidebarSubmenu}>
+								{EXTRA_NAV_ITEMS.map((item) =>
+									!item.disabled ? (
+										<NavLink
+											key={item.to}
+											to={item.to}
+											className={({ isActive }) =>
+												[
+													styles.dropdownLink,
+													isActive ? styles.dropdownLinkActive : "",
+												].join(" ")
 											}
-
-											const nextValue = openedKey === item.key ? null : item.key;
-											setOpenedKey(nextValue);
-										}}
-										title={item.label}
-									>
-										<span className={styles.navIcon}>{icon}</span>
-										<span className={styles.navLabel}>{item.label}</span>
-										<span className={styles.chevron}>{isOpened ? "-" : "+"}</span>
-									</button>
-
-									{isSidebarOpen && isOpened && (
-										<div className={styles.dropdown}>
-											{item.sections.map((section) => (
-												<div key={section.title} className={styles.section}>
-													<div className={styles.sectionTitle}>
-														{section.title}
-													</div>
-
-													{section.items?.length ? (
-														<div className={styles.linksList}>
-															{section.items.map((child) =>
-																!child.disabled ? (
-																	<NavLink
-																		key={child.to}
-																		to={child.to}
-																		className={({ isActive: linkActive }) =>
-																			[
-																				styles.dropdownLink,
-																				linkActive
-																					? styles.dropdownLinkActive
-																					: "",
-																			].join(" ")
-																		}
-																	>
-																		{child.label}
-																	</NavLink>
-																) : (
-																	<div
-																		key={child.label}
-																		className={styles.dropdownLinkDisabled}
-																	>
-																		{child.label}
-																	</div>
-																),
-															)}
-														</div>
-													) : null}
-
-													{section.groups?.length ? (
-														<div className={styles.groupList}>
-															{section.groups.map((group) => (
-																<div key={group.title} className={styles.group}>
-																	<div className={styles.groupTitle}>
-																		{group.title}
-																	</div>
-
-																	<div className={styles.linksList}>
-																		{group.items.map((child) => (
-																			<NavLink
-																				key={child.to}
-																				to={child.to}
-																				className={({ isActive: linkActive }) =>
-																					[
-																						styles.dropdownLink,
-																						linkActive
-																							? styles.dropdownLinkActive
-																							: "",
-																					].join(" ")
-																				}
-																			>
-																				{child.label}
-																			</NavLink>
-																		))}
-																	</div>
-																</div>
-															))}
-														</div>
-													) : null}
-												</div>
-											))}
+										>
+											{item.label}
+										</NavLink>
+									) : (
+										<div key={item.label} className={styles.dropdownLinkDisabled}>
+											{item.label}
 										</div>
-									)}
-								</div>
-							);
-						})}
-					</nav>
+									),
+								)}
+							</div>
+						)}
+					</div>
+				)}
+			</nav>
 		</header>
 	);
 };
