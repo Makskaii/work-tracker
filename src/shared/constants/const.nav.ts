@@ -18,19 +18,19 @@ export type NavSection = {
 
 export type NavItem =
 	| {
-		key: string;
-		label: string;
-		type: "link";
-		to: string;
-		disabled?: boolean;
-	}
+			key: string;
+			label: string;
+			type: "link";
+			to: string;
+			disabled?: boolean;
+	  }
 	| {
-		key: string;
-		label: string;
-		type: "mega";
-		sections: NavSection[];
-		disabled?: boolean;
-	};
+			key: string;
+			label: string;
+			type: "mega";
+			sections: NavSection[];
+			disabled?: boolean;
+	  };
 
 export const APP_TITLE = "Workdesk";
 
@@ -46,6 +46,10 @@ export const NAV_ITEMS: NavItem[] = [
 					{
 						label: "Отчеты отдела продаж",
 						to: "/reports/sales",
+					},
+					{
+						label: "Отчёт рентабельности",
+						to: "/reports/profitability",
 					},
 					{
 						label: "Отчеты отдела бизнес-аналитики",
