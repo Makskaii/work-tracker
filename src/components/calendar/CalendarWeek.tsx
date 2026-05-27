@@ -13,13 +13,30 @@ import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import type { ReportProps } from "./types/types";
 import cls from "./WeekCalendar.module.scss";
 
-const WeekCalendar = () => {
+const WeekCalendar = ({
+	userId,
+	userIds,
+}: {
+	userId?: string;
+	userIds?: string[];
+}) => {
 	const HOUR_HEIGHT = 800 / 8;
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReport, setActiveReport] = useState<ReportProps>();
-	const { user, activities } = useOutletContext<ReportsContext>();
+	const { activities } = useOutletContext<ReportsContext>();
 
 	const { startOfTheWeek, endOfTheWeek, setDay, day } = useSprintBorders();
+	const scopeFilter = useMemo(() => {
+		if (userId) {
+			return { assignedById: userId };
+		}
+
+		if (userIds?.length) {
+			return { "@assignedById": userIds };
+		}
+
+		return { assignedById: "__empty__" };
+	}, [userId, userIds]);
 
 	const { data, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
@@ -41,7 +58,7 @@ const WeekCalendar = () => {
 					`parentId${EntityTypeIds.tasks}`,
 				],
 				filter: {
-					assignedById: user,
+					...scopeFilter,
 					">=begindate": startOfTheWeek,
 					"<=begindate": endOfTheWeek,
 					stageId: "DT1060_15:PREPARATION",
@@ -70,14 +87,14 @@ const WeekCalendar = () => {
 						`parentId${EntityTypeIds.tasks}`,
 					],
 					filter: {
-						assignedById: user,
+						...scopeFilter,
 						">=begindate": startOfTheWeek,
 						"<=begindate": endOfTheWeek,
 						stageId: "DT1060_15:PREPARATION",
 					},
 				},
 			});
-	}, [endOfTheWeek, setFilters, startOfTheWeek, user, day]);
+	}, [endOfTheWeek, setFilters, startOfTheWeek, scopeFilter, day]);
 
 	const weekCalendar = useMemo(() => {
 		return buildWeekCalendarFromReports(

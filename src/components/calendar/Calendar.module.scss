@@ -23,12 +23,15 @@
 }
 
 .calendar {
-    max-width: calc(100vw*0.65);
-    margin: 20px auto;
-    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1320px;
+    min-width: 0;
+    margin: 0 auto;
+    padding: clamp(14px, 1.2vw, 22px);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: 20px;
     box-shadow: 0 12px 28px rgba(1, 8, 14, 0.28);
 }
 
@@ -36,23 +39,24 @@
 .calendar-controls {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
 }
 
 .month-year-selector {
     display: flex;
-    gap: 10px;
-    flex-grow: 1;
-    justify-content: center;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 .month-select,
 .year-select {
     padding: 8px 12px;
     border: 1px solid var(--color-border);
-    border-radius: 5px;
+    border-radius: 10px;
     background: var(--color-surface-soft);
     color: var(--color-text);
     font-size: 14px;
@@ -74,8 +78,10 @@
     background: var(--color-accent);
     color: #06111c;
     border: 1px solid var(--color-accent);
-    padding: 8px 16px;
-    border-radius: 5px;
+    min-width: 46px;
+    min-height: 42px;
+    padding: 8px 14px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
     transition: background 0.3s;
@@ -87,10 +93,10 @@
 
 .today-button {
     background: var(--color-surface-soft);
-    color: var(--color-text);
+    color: var(--color-accent-blue);
     border: 1px solid var(--color-border-active);
     padding: 8px 16px;
-    border-radius: 5px;
+    border-radius: 12px;
     cursor: pointer;
     transition: background 0.3s;
 
@@ -102,21 +108,22 @@
 .calendar-title {
     text-align: center;
     color: var(--color-text);
-    margin-bottom: 20px;
-    font-size: 24px;
+    margin: 0 0 22px;
+    font-size: 30px;
+    line-height: 1.2;
 }
 
 .weekdays-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    gap: 8px;
     margin-bottom: 10px;
     text-align: center;
 }
 
 .weekday {
     font-weight: bold;
-    color: var(--color-muted);
+    color: rgba(238, 245, 255, 0.68);
     padding: 10px;
 
     &:nth-child(6),
@@ -127,20 +134,23 @@
 
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
 }
 
 .calendar-day {
+    box-sizing: border-box;
+    min-width: 0;
     border: 1px solid var(--color-border);
-    border-radius: 5px;
-    padding: 10px;
-    min-height: 60px;
+    border-radius: 12px;
+    padding: 12px 10px;
+    min-height: 108px;
     background: var(--color-surface-soft);
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: all 0.3s;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
     cursor: pointer;
 
     .worked-hours-bg {
@@ -166,16 +176,16 @@
     }
 
     &.empty {
-        background: var(--color-bg);
-        border: 1px dashed var(--color-border);
-        min-height: 120px;
+        background: rgba(22, 36, 55, 0.5);
+        border: 1px solid var(--color-border);
+        cursor: default;
     }
 
     &:hover:not(.empty) {
-        background: var(--color-surface-hover);
+        background: #1b2b42;
         border-color: var(--color-accent);
-        transform: translateY(-2px);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(1, 8, 14, 0.2);
     }
 
     &.today {
@@ -189,7 +199,7 @@
     }
 
     &.weekend {
-        background: rgba(247, 163, 19, 0.12);
+        background: rgba(247, 163, 19, 0.08);
         border-color: var(--color-warning);
 
         .day-number {
@@ -205,22 +215,20 @@
 
 
     &.fullday {
-        border: 1px solid rgba(57, 214, 238, 0.42);
+        border-color: rgba(57, 214, 238, 0.42);
     }
 
     &.incompleteday {
-        border: 1px solid var(--color-danger);
-        color: var(--color-danger)
+        border-color: var(--color-danger);
     }
 
 
     &.overTime {
-        border: 1px solid var(--color-accent-blue);
-        color: var(--color-accent-blue)
+        border-color: var(--color-accent-blue);
     }
 
     &.hasUnconfirmedReports {
-        border-color: var(--color-warning);
+        border-color: var(--color-payment-unpaid);
     }
 
     &.notAtWorkDay {
@@ -228,10 +236,34 @@
         color: var(--color-text);
     }
 
+    &.clientPaid {
+        background: linear-gradient(135deg, var(--color-payment-client-surface), var(--color-surface-soft));
+        border-color: rgba(67, 232, 127, 0.46);
+    }
+
+    &.companyPaid {
+        background: linear-gradient(135deg, var(--color-payment-company-surface), var(--color-surface-soft));
+        border-color: rgba(255, 191, 63, 0.5);
+    }
+
+    &.unpaid {
+        background: linear-gradient(135deg, var(--color-payment-unpaid-surface), var(--color-surface-soft));
+        border-color: rgba(255, 104, 117, 0.52);
+    }
+
+}
+
+.dayTopline {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .day-number {
-    font-size: 18px;
+    font-size: clamp(15px, 1.05vw, 18px);
     font-weight: bold;
     margin-bottom: 5px;
     align-self: flex-start;
@@ -239,13 +271,146 @@
     z-index: 1;
 }
 
+.dayHours {
+    color: var(--color-text);
+    font-size: clamp(10px, 0.72vw, 12px);
+    font-weight: 800;
+    white-space: nowrap;
+}
+
 .day-name {
     font-size: 12px;
-    color: var(--color-muted);
+    color: rgba(238, 245, 255, 0.68);
     margin-bottom: 10px;
     align-self: flex-start;
     position: relative;
     z-index: 1;
+}
+
+.dayReportMeta {
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
+    color: rgba(238, 245, 255, 0.78);
+    font-size: clamp(10px, 0.72vw, 12px);
+    font-weight: 600;
+    text-align: left;
+}
+
+.paymentBadges {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 5px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.paymentBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--color-payment-neutral-surface);
+    color: var(--color-payment-neutral);
+    font-size: 11px;
+    font-weight: 800;
+
+    &.clientPaid {
+        background: var(--color-payment-client-surface);
+        color: var(--color-payment-client);
+    }
+
+    &.companyPaid {
+        background: var(--color-payment-company-surface);
+        color: var(--color-payment-company);
+    }
+
+    &.unpaid {
+        background: var(--color-payment-unpaid-surface);
+        color: var(--color-payment-unpaid);
+    }
+}
+
+.skeletonGrid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
+}
+
+.skeletonDay {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 108px;
+    padding: 12px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(22, 36, 55, 0.78), rgba(15, 28, 44, 0.88));
+    overflow: hidden;
+}
+
+.skeletonTopline,
+.skeletonBadges {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.skeletonTopline span,
+.skeletonLine,
+.skeletonLineShort,
+.skeletonBadges span {
+    display: block;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(38, 58, 85, 0.8), rgba(57, 214, 238, 0.18), rgba(38, 58, 85, 0.8));
+    background-size: 220% 100%;
+    animation: skeletonShimmer 1.25s ease-in-out infinite;
+}
+
+.skeletonTopline span:first-child {
+    width: 28px;
+    height: 20px;
+}
+
+.skeletonTopline span:last-child {
+    width: 44px;
+    height: 16px;
+}
+
+.skeletonLine {
+    width: 72%;
+    height: 13px;
+    margin-top: 28px;
+}
+
+.skeletonLineShort {
+    width: 52%;
+    height: 13px;
+    margin-top: 9px;
+}
+
+.skeletonBadges {
+    justify-content: flex-start;
+    margin-top: 14px;
+
+    span {
+        width: 34px;
+        height: 20px;
+    }
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: 120% 0;
+    }
+
+    100% {
+        background-position: -120% 0;
+    }
 }
 
 .unconfirmedBadge {
@@ -256,15 +421,106 @@
     max-width: calc(100% - 16px);
     padding: 3px 7px;
     border-radius: 4px;
-    background: rgba(247, 163, 19, 0.16);
-    border: 1px solid var(--color-warning);
-    color: var(--color-warning);
+    background: var(--color-payment-unpaid-surface);
+    border: 1px solid rgba(255, 104, 117, 0.45);
+    color: var(--color-payment-unpaid);
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-shadow: 0 1px 2px rgba(194, 65, 12, 0.12);
+}
+
+.dayModalHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 42px 14px 0;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+}
+
+.dayModalEyebrow {
+    color: rgba(238, 245, 255, 0.64);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.dayModalTitle {
+    margin: 3px 0 0;
+    color: var(--color-text);
+    font-size: 20px;
+}
+
+.dayModalWidgets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 8px;
+    min-width: min(100%, 460px);
+}
+
+.dayModalWidget {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface-soft);
+
+    span {
+        color: rgba(238, 245, 255, 0.64);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    strong {
+        color: var(--color-text);
+        font-size: 16px;
+    }
+
+    &.clientPaid {
+        border-color: rgba(67, 232, 127, 0.36);
+        background: var(--color-payment-client-surface);
+    }
+
+    &.companyPaid {
+        border-color: rgba(255, 191, 63, 0.36);
+        background: var(--color-payment-company-surface);
+    }
+
+    &.unpaid {
+        border-color: rgba(255, 104, 117, 0.36);
+        background: var(--color-payment-unpaid-surface);
+    }
+}
+
+.activitySummary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 0 0;
+}
+
+.activitySummaryItem {
+    display: inline-flex;
+    gap: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-soft);
+    color: rgba(238, 245, 255, 0.78);
+    font-size: 12px;
+}
+
+.dayModalTotal {
+    padding: 12px;
+    color: var(--color-text);
+    font-weight: 800;
+    text-align: left;
 }
 
 .day-reports {
@@ -319,7 +575,7 @@
     }
 
     .calendar-day {
-        min-height: 80px;
+        min-height: 96px;
         padding: 5px;
     }
 
@@ -329,5 +585,35 @@
 
     .day-name {
         font-size: 10px;
+    }
+}
+
+@media (max-width: 1180px) {
+    .calendar {
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border-active) var(--color-surface);
+    }
+
+    .calendar-grid,
+    .weekdays-header,
+    .skeletonGrid {
+        min-width: 820px;
+    }
+}
+
+@media (max-width: 900px) {
+    .calendar {
+        padding: 14px;
+    }
+
+    .dayModalHeader {
+        flex-direction: column;
+        padding-right: 36px;
+    }
+
+    .dayModalWidgets {
+        grid-template-columns: 1fr;
+        min-width: 0;
     }
 }

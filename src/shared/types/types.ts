@@ -95,6 +95,7 @@ export interface TaskProps {
 	[TaskCodes.comment]: string;
 	[TaskCodes.parentproject]: string;
 	[TaskCodes.company]?: string | number | null;
+	[TaskCodes.taskType]?: string | number | null;
 }
 
 export interface User {

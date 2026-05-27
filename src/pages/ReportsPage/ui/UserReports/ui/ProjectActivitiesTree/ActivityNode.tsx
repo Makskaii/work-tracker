@@ -18,7 +18,7 @@ export const ActivityNode = ({ activity }: ActivityNodeProps) => {
 				<div
 					style={{
 						fontSize: "0.9rem",
-						color: "#374151",
+						color: "var(--color-text)",
 					}}
 				>
 					{activity.activityTitle}

@@ -31,9 +31,9 @@ export const TreeNode = ({
 	return (
 		<div
 			style={{
-				border: "1px solid #e5e7eb",
+				border: "1px solid var(--color-border)",
 				borderRadius: "12px",
-				background: "#fff",
+				background: "var(--color-surface-soft)",
 				overflow: "hidden",
 				...styles,
 			}}
@@ -75,7 +75,7 @@ export const TreeNode = ({
 							style={{
 								transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
 								transition: "transform 0.2s ease",
-								color: "#6b7280",
+								color: "rgba(238, 245, 255, 0.65)",
 								fontSize: "0.85rem",
 								flexShrink: 0,
 							}}
@@ -99,7 +99,7 @@ export const TreeNode = ({
 						style={{
 							whiteSpace: "nowrap",
 							fontWeight: 600,
-							color: "#374151",
+							color: "var(--color-text)",
 							flexShrink: 0,
 						}}
 					>
