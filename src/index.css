@@ -18,6 +18,10 @@
 	--color-warning: #f7a313;
 	--color-danger: #ef5b67;
 	--color-success-surface: #123c3c;
+	--radius-panel: 20px;
+	--radius-card: 14px;
+	--radius-control: 12px;
+	--shadow-panel: 0 18px 48px rgba(1, 8, 14, 0.48);
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;

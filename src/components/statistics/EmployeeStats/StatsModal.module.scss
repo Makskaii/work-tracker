@@ -1,7 +1,7 @@
 .modalContent {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     min-width: 0;
 }
 
@@ -24,11 +24,12 @@
     flex-shrink: 0;
     padding: 10px 12px;
     cursor: pointer;
-    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
     background: var(--color-surface-soft);
 
     a {
-        color: #2563eb;
+        color: var(--color-accent);
         text-decoration: none;
         white-space: nowrap;
     }
@@ -45,9 +46,9 @@
 
 .sprintButton,
 .resetFilterButton {
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-surface);
+    border: 1px solid rgba(93, 141, 206, 0.24);
+    border-radius: var(--radius-control);
+    background: var(--color-surface-soft);
     color: var(--color-muted);
     cursor: pointer;
     font: inherit;
@@ -68,7 +69,7 @@
 
 .contentGrid {
     display: grid;
-    grid-template-columns: minmax(320px, 1fr) minmax(360px, 1fr);
+    grid-template-columns: minmax(360px, 1fr) minmax(340px, 0.9fr);
     gap: 16px;
     min-height: 0;
 }
@@ -76,9 +77,9 @@
 .tasksColumn,
 .statsColumn {
     min-width: 0;
-    max-height: min(65vh, 720px);
+    max-height: min(68vh, 760px);
     overflow-y: auto;
-    padding: 0 12px 4px;
+    padding: 0 10px 4px;
     scrollbar-gutter: stable;
 }
 
@@ -124,6 +125,87 @@
 
 .tasksEmptyState {
     padding: 16px;
+    border: 1px solid rgba(93, 141, 206, 0.24);
+    border-radius: var(--radius-card);
+    background: rgba(15, 28, 44, 0.74);
+    color: var(--color-muted);
+    text-align: center;
+}
+
+.taskWithReports {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.taskButton {
+    width: 100%;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.taskButtonActive {
+    border-color: var(--color-border-active);
+    background: rgba(46, 197, 173, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(46, 197, 173, 0.25);
+}
+
+.taskButton > div {
+    border-color: transparent;
+}
+
+.taskReports {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 12px;
+    padding: 10px;
+    border-left: 1px solid var(--color-border-active);
+    border-radius: 0 12px 12px 0;
+    background: rgba(15, 28, 44, 0.54);
+}
+
+.taskReportItem {
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface-soft);
+}
+
+.taskReportHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.taskReportTitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.taskReportHours {
+    flex-shrink: 0;
+    font-weight: 800;
+    color: var(--color-accent);
+}
+
+.taskReportMeta {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--color-muted);
+}
+
+.taskReportsEmpty {
+    padding: 10px;
     border: 1px solid var(--color-border);
     border-radius: 10px;
     background: var(--color-surface-soft);

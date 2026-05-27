@@ -3,8 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ReportCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
-import { groupTasksByProject } from "@/pages/ReportsPage/helpers/groupTasks";
-import type { TGroupedTasks } from "@/pages/ReportsPage/ui/ProgressReports/types";
 import { $api } from "@/shared/config";
 import {
 	Endpoints,
@@ -14,7 +12,6 @@ import {
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { UserCard } from "../../userCard/UserCard";
-import { DeveloperProjectsAccordion } from "./DeveloperProjectsList";
 import { EmployeeStats } from "./EmployeeStats";
 import cls from "./StatsModal.module.scss";
 import { TasksList } from "./TasksList";
@@ -97,12 +94,17 @@ const groupReportsByTask = (reports: ReportProps[]) => {
 	}, {});
 };
 
-export const StatsModal = ({ user }: { user: User }) => {
-	const { setUser, projects, statuses, activities } =
-		useOutletContext<ReportsContext>();
+export const StatsModal = ({
+	user,
+	onTasksChange,
+}: {
+	user: User;
+	onTasksChange?: (tasks: TaskProps[]) => void;
+}) => {
+	const { setUser, statuses, activities } = useOutletContext<ReportsContext>();
 
-	const [grouped, setGrouped] = useState<TGroupedTasks>({});
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
+	const [activeTaskId, setActiveTaskId] = useState<string>("");
 	const [reportsByTask, setReportsByTask] = useState<
 		Record<string, ReportProps[]>
 	>({});
@@ -122,6 +124,21 @@ export const StatsModal = ({ user }: { user: User }) => {
 	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders("workweek");
 
 	useEffect(() => {
+		if (!filteredTasks.length) {
+			setActiveTaskId("");
+			return;
+		}
+
+		const hasActiveTask = filteredTasks.some(
+			(task) => String(task.id) === activeTaskId,
+		);
+
+		if (!hasActiveTask) {
+			setActiveTaskId(String(filteredTasks[0].id));
+		}
+	}, [filteredTasks, activeTaskId]);
+
+	useEffect(() => {
 		let isCancelled = false;
 
 		const getReportsAndTasks = async () => {
@@ -137,6 +154,22 @@ export const StatsModal = ({ user }: { user: User }) => {
 					},
 				});
 
+				console.log("StatsModal debug: user", user);
+				console.log("StatsModal debug: period", {
+					startOfTheWeek,
+					endOfTheWeek,
+				});
+				console.log("StatsModal debug: reports count", reports.length);
+				console.log("StatsModal debug: first report", reports[0]);
+				console.log(
+					"StatsModal debug: report task ids",
+					reports.map((report) => ({
+						id: report.id,
+						taskId: report[ReportCodes.taskId],
+						parentId: report[ReportCodes.parentId],
+					})),
+				);
+
 				if (isCancelled) {
 					return;
 				}
@@ -144,13 +177,17 @@ export const StatsModal = ({ user }: { user: User }) => {
 				const reportsMap = groupReportsByTask(reports);
 				const taskIds = Object.keys(reportsMap);
 
+				console.log("StatsModal debug: grouped reports", reportsMap);
+				console.log("StatsModal debug: taskIds", taskIds);
+
 				setAllSprintReports(reports);
 				setReportsByTask(reportsMap);
 
 				if (!taskIds.length) {
 					setTasks([]);
-					setGrouped({});
 					setReportsByTask({});
+					setActiveTaskId("");
+					onTasksChange?.([]);
 					return;
 				}
 
@@ -162,6 +199,9 @@ export const StatsModal = ({ user }: { user: User }) => {
 					},
 				});
 
+				console.log("StatsModal debug: tasks count", items.length);
+				console.log("StatsModal debug: first task", items[0]);
+
 				if (isCancelled) {
 					return;
 				}
@@ -171,7 +211,16 @@ export const StatsModal = ({ user }: { user: User }) => {
 				);
 
 				setTasks(sortedItems);
-				setGrouped(groupTasksByProject(sortedItems));
+				onTasksChange?.(sortedItems);
+				setActiveTaskId((prev) => {
+					const hasPrevTask = sortedItems.some((task) => String(task.id) === prev);
+
+					if (hasPrevTask) {
+						return prev;
+					}
+
+					return sortedItems[0] ? String(sortedItems[0].id) : "";
+				});
 			} catch (error) {
 				if (isCancelled) {
 					return;
@@ -180,7 +229,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 				setAllSprintReports([]);
 				setReportsByTask({});
 				setTasks([]);
-				setGrouped({});
+				setActiveTaskId("");
+				onTasksChange?.([]);
 				console.log("Ошибка при получении отчетов и задач сотрудника", error);
 			}
 		};
@@ -192,7 +242,7 @@ export const StatsModal = ({ user }: { user: User }) => {
 		return () => {
 			isCancelled = true;
 		};
-	}, [user.id, startOfTheWeek, endOfTheWeek]);
+	}, [user.id, startOfTheWeek, endOfTheWeek, onTasksChange]);
 
 	return (
 		<div className={cls.modalContent}>
@@ -254,6 +304,8 @@ export const StatsModal = ({ user }: { user: User }) => {
 						tasks={filteredTasks}
 						reports={reportsByTask}
 						statuses={statuses}
+						activeTaskId={activeTaskId}
+						onTaskSelect={setActiveTaskId}
 					/>
 				</section>
 
@@ -272,13 +324,6 @@ export const StatsModal = ({ user }: { user: User }) => {
 						doneStageId={"DT1072_18:UC_6JNSDG"}
 					/>
 
-					{tasks.length !== 0 && (
-						<DeveloperProjectsAccordion
-							projects={projects}
-							tasks={tasks}
-							grouped={grouped}
-						/>
-					)}
 				</section>
 			</div>
 		</div>
