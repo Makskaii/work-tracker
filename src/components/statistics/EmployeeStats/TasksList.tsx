@@ -46,62 +46,31 @@ export const TasksList = ({
 	return (
 		<div className={cls.tasksList}>
 			{tasks.map((task) => {
-				const taskReports = reports?.[String(task.id)] ?? [];
+				const taskId = String(task.id);
+				const taskReports = reports?.[taskId] ?? [];
 
 				const timespent = taskReports.reduce((acc, report) => {
 					return acc + getNumberValue(report[ReportCodes.timeSpent]);
 				}, 0);
 
-				const isActive = String(task.id) === activeTaskId;
+				const isActive = taskId === activeTaskId;
 
 				return (
-					<div key={task.id} className={cls.taskWithReports}>
-						<button
-							type="button"
-							className={`${cls.taskButton} ${
-								isActive ? cls.taskButtonActive : ""
-							}`}
-							onClick={() => onTaskSelect(String(task.id))}
-						>
-							<TaskItem
-								task={task}
-								estimateTime={task[TaskCodes.estimateTime]}
-								timeSpent={timespent}
-								statuses={statuses}
-							/>
-						</button>
-
-						{isActive && (
-							<div className={cls.taskReports}>
-								{taskReports.length > 0 ? (
-									taskReports.map((report) => (
-										<div key={report.id} className={cls.taskReportItem}>
-											<div className={cls.taskReportHeader}>
-												<span className={cls.taskReportTitle}>
-													{String(
-														report[ReportCodes.title] ??
-															report.title ??
-															"Отчет",
-													)}
-												</span>
-												<span className={cls.taskReportHours}>
-													{getNumberValue(report[ReportCodes.timeSpent])} ч
-												</span>
-											</div>
-
-											<div className={cls.taskReportMeta}>
-												{String(report.begindate ?? "")}
-											</div>
-										</div>
-									))
-								) : (
-									<div className={cls.taskReportsEmpty}>
-										Нет отчетов по задаче
-									</div>
-								)}
-							</div>
-						)}
-					</div>
+					<button
+						key={taskId}
+						type="button"
+						className={`${cls.taskButton} ${
+							isActive ? cls.taskButtonActive : ""
+						}`}
+						onClick={() => onTaskSelect(taskId)}
+					>
+						<TaskItem
+							task={task}
+							estimateTime={task[TaskCodes.estimateTime]}
+							timeSpent={timespent}
+							statuses={statuses}
+						/>
+					</button>
 				);
 			})}
 		</div>

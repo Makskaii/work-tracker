@@ -3,7 +3,6 @@ import { useOutletContext } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Spinner } from "@/components/spinner/Spinner";
 import { StatsModal } from "@/components/statistics/EmployeeStats/StatsModal";
-import { ListItem } from "@/components/userListItem/UserListItem";
 import {
 	DEPARTMENT_IDS,
 	Endpoints,
@@ -17,11 +16,50 @@ import cls from "./UserReports.module.scss";
 
 type UserReportsTab = "staff" | "piecework";
 
+const ProjectManagerUserCard = ({
+	user,
+	taskTitle,
+	projectName,
+	isActive,
+	onClick,
+}: {
+	user: User;
+	taskTitle?: string;
+	projectName?: string;
+	isActive: boolean;
+	onClick: () => void;
+}) => {
+	return (
+		<button
+			type="button"
+			className={`${cls.pmItem} ${cls.pmEmployee} ${
+				isActive ? cls.pmItemActive : ""
+			}`}
+			onClick={onClick}
+		>
+			<img className={cls.pmAvatar} src={user.photo} alt={user.title} />
+			<span className={cls.pmItemMain}>
+				<span className={cls.pmItemTitle}>{user.title}</span>
+				<span className={cls.pmItemMeta}>
+					{user.position || "Проектный менеджер"} · 24/40 ч
+				</span>
+				{taskTitle && (
+					<span className={cls.pmItemMeta}>
+						{taskTitle}
+						{projectName ? ` · ${projectName}` : ""}
+					</span>
+				)}
+			</span>
+		</button>
+	);
+};
+
 export const NewUserReports = () => {
 	const { users, projects } = useOutletContext<ReportsContext>();
 	const [activeUser, setActiveUser] = useState<User>();
 	const [activeTab, setActiveTab] = useState<UserReportsTab>("staff");
 	const [sprintTasks, setSprintTasks] = useState<TaskProps[]>([]);
+	const [isPmSidebarCollapsed, setIsPmSidebarCollapsed] = useState(false);
 	const staffUsers = useMemo(
 		() => users.filter((user) => user.department === DEPARTMENT_IDS.DEV),
 		[users],
@@ -115,66 +153,83 @@ export const NewUserReports = () => {
 			</div>
 
 			{activeTab === "staff" && (
-				<div className={cls.projectManagerPage} role="tabpanel">
-					<aside className={cls.projectManagerSidebar}>
-						<div className={cls.sidebarSection}>
-							<div className={cls.sidebarSectionTitle}>
-								Проектный менеджер
-							</div>
-
-							<div className={cls.employeeList}>
-								{staffUsers.map((user) => {
-									const currentTask = data.find(
-										(task) => task.assignedById === Number(user.id),
-									);
-									const isActive = activeUser?.id === user.id;
-
-									return (
-										<button
-											key={user.id}
-											type="button"
-											className={`${cls.employeeCard} ${
-												isActive ? cls.employeeCardActive : ""
-											}`}
-											onClick={() => setActiveUser(user)}
-										>
-											<ListItem
-												user={user}
-												task={currentTask}
-												projects={projects}
-												onClick={() => setActiveUser(user)}
-											/>
-										</button>
-									);
-								})}
-							</div>
+				<div
+					className={`${cls.pmLayout} ${
+						isPmSidebarCollapsed ? cls.pmLayoutCollapsed : ""
+					}`}
+					role="tabpanel"
+				>
+					<aside className={cls.pmListPanel}>
+						<div className={cls.pmListHead}>
+							<button
+								type="button"
+								className={cls.pmCollapseBtn}
+								onClick={() => setIsPmSidebarCollapsed((prev) => !prev)}
+								title={
+									isPmSidebarCollapsed
+										? "Развернуть список"
+										: "Свернуть список"
+								}
+							>
+								{isPmSidebarCollapsed ? "⇥" : "⇤"}
+							</button>
+							<span>Проектный менеджер</span>
+							<span className={cls.pmSprintChip}>спринт</span>
 						</div>
 
-						<div className={cls.sidebarProjects}>
-							<div className={cls.sidebarSectionTitle}>Клиенты и проекты</div>
+						<div className={cls.pmListBody}>
+							<div className={cls.pmSectionTitle}>Сотрудники отдела</div>
+
+							{staffUsers.map((user) => {
+								const currentTask = data.find(
+									(task) => task.assignedById === Number(user.id),
+								);
+								const project = projects.find(
+									(item) =>
+										String(item.id) ===
+										String(
+											currentTask?.[TaskCodes.parentproject] ??
+												currentTask?.[TaskCodes.project] ??
+												"",
+										),
+								);
+
+								return (
+									<ProjectManagerUserCard
+										key={user.id}
+										user={user}
+										taskTitle={currentTask?.title}
+										projectName={project?.name ?? project?.title}
+										isActive={activeUser?.id === user.id}
+										onClick={() => setActiveUser(user)}
+									/>
+								);
+							})}
+
+							<div className={cls.pmSectionTitle}>Клиенты и проекты</div>
 
 							{activeUserProjects.length > 0 ? (
-								<div className={cls.projectList}>
+								<div className={cls.pmProjectsList}>
 									{activeUserProjects.map((project) => (
 										<button
 											key={project.id}
 											type="button"
-											className={cls.projectCard}
+											className={`${cls.pmItem} ${cls.pmProject}`}
 										>
-											<div className={cls.projectName}>{project.name}</div>
-											<div className={cls.projectMeta}>
-												{project.tasksCount} задач
-											</div>
+											<span className={cls.pmItemTitle}>{project.name}</span>
+											<span className={cls.pmItemMeta}>
+												Задач: {project.tasksCount}
+											</span>
 										</button>
 									))}
 								</div>
 							) : (
-								<div className={cls.sidebarEmpty}>Нет проектов</div>
+								<div className={cls.pmEmpty}>Нет проектов</div>
 							)}
 						</div>
 					</aside>
 
-					<section className={cls.employeeDetailsPanel}>
+					<section className={cls.pmDetail}>
 						{activeUser ? (
 							<StatsModal user={activeUser} onTasksChange={setSprintTasks} />
 						) : (

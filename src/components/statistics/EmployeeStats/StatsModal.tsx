@@ -94,6 +94,34 @@ const groupReportsByTask = (reports: ReportProps[]) => {
 	}, {});
 };
 
+const getNumberValue = (value: unknown) => {
+	if (typeof value === "number") {
+		return Number.isFinite(value) ? value : 0;
+	}
+
+	if (typeof value === "string") {
+		const normalizedValue = value.trim().replace(",", ".");
+
+		if (!normalizedValue) {
+			return 0;
+		}
+
+		const numberValue = Number(normalizedValue);
+
+		return Number.isFinite(numberValue) ? numberValue : 0;
+	}
+
+	return 0;
+};
+
+const formatHours = (value: unknown) => {
+	const numberValue = getNumberValue(value);
+
+	return Number.isInteger(numberValue)
+		? String(numberValue)
+		: numberValue.toFixed(1);
+};
+
 export const StatsModal = ({
 	user,
 	onTasksChange,
@@ -120,6 +148,18 @@ export const StatsModal = ({
 
 		return tasks;
 	}, [tasks, taskFilter, overrunTaskIds]);
+
+	const activeTask = useMemo(() => {
+		return filteredTasks.find((task) => String(task.id) === activeTaskId) ?? null;
+	}, [filteredTasks, activeTaskId]);
+
+	const activeTaskReports = useMemo(() => {
+		if (!activeTaskId) {
+			return [];
+		}
+
+		return reportsByTask[activeTaskId] ?? [];
+	}, [reportsByTask, activeTaskId]);
 
 	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders("workweek");
 
@@ -154,31 +194,12 @@ export const StatsModal = ({
 					},
 				});
 
-				console.log("StatsModal debug: user", user);
-				console.log("StatsModal debug: period", {
-					startOfTheWeek,
-					endOfTheWeek,
-				});
-				console.log("StatsModal debug: reports count", reports.length);
-				console.log("StatsModal debug: first report", reports[0]);
-				console.log(
-					"StatsModal debug: report task ids",
-					reports.map((report) => ({
-						id: report.id,
-						taskId: report[ReportCodes.taskId],
-						parentId: report[ReportCodes.parentId],
-					})),
-				);
-
 				if (isCancelled) {
 					return;
 				}
 
 				const reportsMap = groupReportsByTask(reports);
 				const taskIds = Object.keys(reportsMap);
-
-				console.log("StatsModal debug: grouped reports", reportsMap);
-				console.log("StatsModal debug: taskIds", taskIds);
 
 				setAllSprintReports(reports);
 				setReportsByTask(reportsMap);
@@ -198,9 +219,6 @@ export const StatsModal = ({
 						"@id": taskIds,
 					},
 				});
-
-				console.log("StatsModal debug: tasks count", items.length);
-				console.log("StatsModal debug: first task", items[0]);
 
 				if (isCancelled) {
 					return;
@@ -307,6 +325,52 @@ export const StatsModal = ({
 						activeTaskId={activeTaskId}
 						onTaskSelect={setActiveTaskId}
 					/>
+
+					<div className={cls.taskReportsPanel}>
+						<div className={cls.taskReportsPanelHeader}>
+							<div className={cls.taskReportsPanelTitle}>
+								Отчеты за выбранный период по задаче
+							</div>
+							<div className={cls.taskReportsPanelNote}>
+								{activeTask?.title ?? "Задача не выбрана"}
+							</div>
+						</div>
+
+						<div className={cls.taskReportList}>
+							{activeTaskReports.length > 0 ? (
+								activeTaskReports.map((report) => {
+									const activityId = String(report[ReportCodes.activityType] ?? "");
+									const activityName =
+										activities.find((item) => item.ID === activityId)?.NAME ||
+										String(report[ReportCodes.title] ?? report.title ?? "Отчет");
+
+									return (
+										<div key={report.id} className={cls.taskReportCard}>
+											<div className={cls.taskReportDate}>
+												{report.begindate
+													? dayjs(report.begindate).format("DD.MM")
+													: "—"}
+											</div>
+											<div className={cls.taskReportBody}>
+												<div className={cls.taskReportTitle}>{activityName}</div>
+												<div className={cls.taskReportMeta}>
+													{user.title} · {String(report[ReportCodes.title] ?? report.title ?? "")}
+												</div>
+											</div>
+											<span className={cls.payChip}>Client paid</span>
+											<span className={cls.hoursChip}>
+												{formatHours(report[ReportCodes.timeSpent])} ч
+											</span>
+										</div>
+									);
+								})
+							) : (
+								<div className={cls.taskReportsEmpty}>
+									Нет отчетов по выбранной задаче
+								</div>
+							)}
+						</div>
+					</div>
 				</section>
 
 				<section className={cls.statsColumn}>

@@ -71,7 +71,7 @@ const getBarColor = (percent: number) => {
 	if (percent >= 100) return "#ef4444";
 	if (percent >= 85) return "#f59e0b";
 
-	return "#3b82f6";
+	return "#6588c0";
 };
 
 const isWeekday = (date: dayjs.Dayjs) => {
@@ -362,7 +362,7 @@ export const EmployeeStats = ({
 					<div
 						className={cls.circularProgress}
 						style={{
-							background: `conic-gradient(${"#00ff1e"} 0deg ${devDeg}deg, #e5e7eb ${devDeg}deg 360deg)`,
+							background: `conic-gradient(${"#58a761"} 0deg ${devDeg}deg, #e5e7eb ${devDeg}deg 360deg)`,
 						}}
 					>
 						<div className={cls.circularProgressInner}>
@@ -468,7 +468,7 @@ export const EmployeeStats = ({
 										style={{
 											width: `${Math.min(
 												(activity.hours / Math.max(stats.spentAllReports, 1)) *
-													100,
+												100,
 												100,
 											)}%`,
 										}}

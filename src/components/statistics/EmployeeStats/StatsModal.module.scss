@@ -6,27 +6,29 @@
 }
 
 .header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 16px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
 }
 
 .userSection {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     min-width: 0;
-    padding: 12px;
 }
 
 .calendarLink {
     flex-shrink: 0;
-    padding: 10px 12px;
+    padding: 8px 12px;
     cursor: pointer;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-control);
+    border-radius: 11px;
     background: var(--color-surface-soft);
+    font-weight: 850;
+    font-size: 12px;
 
     a {
         color: var(--color-accent);
@@ -36,70 +38,91 @@
 }
 
 .sprintControls {
-    display: grid;
-    grid-template-columns: minmax(0, auto) auto minmax(0, auto);
-    gap: 12px;
+    display: flex;
+    gap: 8px;
     align-items: center;
     justify-content: end;
-    padding: 12px;
+    flex-wrap: wrap;
 }
 
 .sprintButton,
 .resetFilterButton {
-    border: 1px solid rgba(93, 141, 206, 0.24);
-    border-radius: var(--radius-control);
+    border: 1px solid var(--color-border);
+    border-radius: 11px;
     background: var(--color-surface-soft);
-    color: var(--color-muted);
+    color: var(--color-text);
     cursor: pointer;
     font: inherit;
+    font-weight: 850;
     line-height: 1.2;
+    font-size: 12px;
 }
 
 .sprintButton {
-    min-height: 36px;
+    min-height: 34px;
     padding: 8px 12px;
+}
+
+.sprintButton:hover,
+.resetFilterButton:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
 }
 
 .sprintPeriod {
     min-width: max-content;
-    font-weight: 700;
+    font-weight: 950;
     color: var(--color-text);
     text-align: center;
 }
 
 .contentGrid {
     display: grid;
-    grid-template-columns: minmax(360px, 1fr) minmax(340px, 0.9fr);
-    gap: 16px;
+    grid-template-columns: minmax(390px, 1fr) minmax(390px, 0.95fr);
+    gap: 14px;
+    align-items: start;
     min-height: 0;
 }
 
 .tasksColumn,
 .statsColumn {
     min-width: 0;
-    max-height: min(68vh, 760px);
+}
+
+.tasksColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.statsColumn {
+    max-height: min(72vh, 790px);
     overflow-y: auto;
-    padding: 0 10px 4px;
     scrollbar-gutter: stable;
 }
 
+.statsColumn::-webkit-scrollbar {
+    width: 6px;
+}
+
+.statsColumn::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-accent) 34%, var(--color-border));
+}
+
 .tasksHeader {
-    position: sticky;
-    top: 0;
-    z-index: 2;
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
-    padding: 8px 0;
-    background: var(--color-surface);
-    font-weight: 600;
+    margin-bottom: 0;
+    font-weight: 950;
 }
 
 .tasksHeader > span:last-child {
     flex-shrink: 0;
     color: var(--color-muted);
     text-align: right;
+    font-size: 12px;
 }
 
 .tasksTitle {
@@ -108,34 +131,28 @@
     gap: 8px;
     min-width: 0;
     flex-wrap: wrap;
+    font-size: 15px;
 }
 
 .resetFilterButton {
-    padding: 6px 10px;
+    padding: 5px 9px;
     background: var(--color-surface-soft);
-    color: var(--color-text);
 }
 
 .tasksList {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
 }
 
 .tasksEmptyState {
-    padding: 16px;
-    border: 1px solid rgba(93, 141, 206, 0.24);
-    border-radius: var(--radius-card);
-    background: rgba(15, 28, 44, 0.74);
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--color-surface-soft) 58%, transparent);
     color: var(--color-muted);
     text-align: center;
-}
-
-.taskWithReports {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
 }
 
 .taskButton {
@@ -149,38 +166,81 @@
     cursor: pointer;
 }
 
+.taskButton:hover {
+    border-color: var(--color-accent);
+}
+
 .taskButtonActive {
-    border-color: var(--color-border-active);
-    background: rgba(46, 197, 173, 0.1);
-    box-shadow: inset 0 0 0 1px rgba(46, 197, 173, 0.25);
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft, rgba(46, 197, 173, 0.12));
 }
 
 .taskButton > div {
     border-color: transparent;
+    background: color-mix(in srgb, var(--color-surface-soft) 58%, transparent);
 }
 
-.taskReports {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-left: 12px;
-    padding: 10px;
-    border-left: 1px solid var(--color-border-active);
-    border-radius: 0 12px 12px 0;
-    background: rgba(15, 28, 44, 0.54);
+.taskButtonActive > div {
+    background: transparent;
 }
 
-.taskReportItem {
-    padding: 10px 12px;
+.taskReportsPanel {
+    margin-top: 0;
+    padding: 14px;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface-soft);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--color-surface-soft) 64%, transparent);
 }
 
-.taskReportHeader {
+.taskReportsPanelHeader {
     display: flex;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.taskReportsPanelTitle {
+    font-size: 16px;
+    font-weight: 950;
+    color: var(--color-text);
+}
+
+.taskReportsPanelNote {
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.taskReportList {
+    display: grid;
+    gap: 8px;
+}
+
+.taskReportCard {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr) auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 11px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background: var(--color-surface);
+}
+
+.taskReportDate {
+    color: var(--color-muted);
+    font-weight: 950;
+    font-size: 13px;
+}
+
+.taskReportBody {
+    min-width: 0;
 }
 
 .taskReportTitle {
@@ -188,34 +248,68 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 700;
-    color: var(--color-text);
-}
-
-.taskReportHours {
-    flex-shrink: 0;
-    font-weight: 800;
-    color: var(--color-accent);
+    font-weight: 950;
+    font-size: 13px;
 }
 
 .taskReportMeta {
     margin-top: 4px;
-    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--color-muted);
+    font-size: 11px;
+}
+
+.payChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    padding: 4px 7px;
+    background: var(--color-success-soft, rgba(72, 217, 140, 0.12));
+    color: var(--color-success, #48d98c);
+    font-size: 10px;
+    line-height: 1.1;
+    font-weight: 950;
+    white-space: nowrap;
+}
+
+.payChip::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.85;
+}
+
+.hoursChip {
+    display: inline-flex;
+    justify-content: center;
+    min-width: 46px;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: color-mix(in srgb, var(--color-link, #6aa7ff) 18%, transparent);
+    color: var(--color-link, #6aa7ff);
+    font-size: 11px;
+    font-weight: 950;
+    white-space: nowrap;
 }
 
 .taskReportsEmpty {
-    padding: 10px;
+    padding: 12px;
     border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface-soft);
+    border-radius: 12px;
+    background: var(--color-surface);
     color: var(--color-muted);
     text-align: center;
 }
 
 @media (max-width: 1180px) {
     .header {
-        grid-template-columns: 1fr;
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .sprintControls {
@@ -230,11 +324,9 @@
         grid-template-columns: 1fr;
     }
 
-    .tasksColumn,
     .statsColumn {
         max-height: none;
         overflow: visible;
-        padding-inline: 0;
     }
 }
 
@@ -246,7 +338,6 @@
     .userSection {
         flex-direction: column;
         align-items: stretch;
-        padding: 0;
     }
 
     .calendarLink {
@@ -259,23 +350,29 @@
     }
 
     .sprintControls {
+        display: grid;
         grid-template-columns: 1fr;
-        padding: 0;
+        width: 100%;
     }
 
     .sprintPeriod {
         order: -1;
     }
 
-    .tasksHeader {
-        position: static;
+    .tasksHeader,
+    .taskReportsPanelHeader {
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
     }
 
-    .tasksHeader > span:last-child {
+    .tasksHeader > span:last-child,
+    .taskReportsPanelNote {
         text-align: left;
-        font-size: 12px;
+    }
+
+    .taskReportCard {
+        grid-template-columns: 1fr;
+        align-items: start;
     }
 }
