@@ -4,7 +4,7 @@
 
 	color-scheme: dark;
 	color: var(--color-text);
-	background: var(--color-bg);
+	background: transparent;
 	--color-bg: #07111c;
 	--color-surface: #0f1c2c;
 	--color-surface-soft: #162437;
@@ -64,6 +64,7 @@ a {
 	color: var(--color-accent-blue);
 	text-decoration: inherit;
 }
+
 a:hover {
 	color: var(--color-accent);
 }
@@ -83,14 +84,23 @@ a.pending {
 
 body {
 	margin: 0;
-	min-width: 320px;
 	min-height: 100vh;
 	background:
-		linear-gradient(rgba(7, 17, 28, 0.84), rgba(7, 17, 28, 0.9)),
-		radial-gradient(circle at 18% 12%, rgba(57, 214, 238, 0.18), transparent 24rem),
-		radial-gradient(circle at 78% 0%, rgba(95, 143, 216, 0.16), transparent 30rem),
-		linear-gradient(135deg, #081522 0%, #0f1c2c 48%, #07111c 100%);
+		radial-gradient(circle at 20% 10%, rgba(38, 231, 223, 0.18), transparent 32%),
+		linear-gradient(180deg, rgba(2, 8, 18, 0.44), rgba(2, 8, 18, 0.72)),
+		url("/images/workdesk-bg.jpg") center / cover fixed;
 	color: var(--color-text);
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+	background:
+		linear-gradient(90deg, rgba(4, 14, 28, 0.34), rgba(4, 14, 28, 0.08) 45%, rgba(4, 14, 28, 0.34)),
+		radial-gradient(circle at 72% 22%, rgba(25, 213, 207, 0.16), transparent 30%);
 }
 
 h1 {
@@ -110,9 +120,11 @@ button {
 	cursor: pointer;
 	transition: border-color 0.25s;
 }
+
 button:hover {
 	border-color: var(--color-accent);
 }
+
 button:focus,
 button:focus-visible {
 	outline: 2px solid var(--color-accent);
@@ -141,8 +153,7 @@ textarea:focus {
 	outline: 2px solid rgba(57, 214, 238, 0.24);
 }
 
-:where(
-	[class*="card"],
+:where([class*="card"],
 	[class*="Card"],
 	[class*="item"],
 	[class*="Item"],
@@ -151,19 +162,20 @@ textarea:focus {
 	[class*="block"],
 	[class*="Block"],
 	[class*="section"],
-	[class*="Section"]
-):hover {
+	[class*="Section"]):hover {
 	border-color: var(--color-accent);
 }
 
 @media (prefers-color-scheme: light) {
 	:root {
 		color: var(--color-text);
-		background-color: var(--color-bg);
+		background-color: transparent;
 	}
+
 	a:hover {
 		color: var(--color-accent);
 	}
+
 	button {
 		background-color: var(--color-surface-soft);
 	}
@@ -172,15 +184,18 @@ textarea:focus {
 #root {
 	margin: 0 auto;
 	text-align: center;
+	background: transparent;
 }
 
 @keyframes pulse {
 	0% {
 		transform: scale(1);
 	}
+
 	50% {
 		transform: scale(1.05);
 	}
+
 	100% {
 		transform: scale(1);
 	}

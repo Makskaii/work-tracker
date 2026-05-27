@@ -24,6 +24,20 @@ const getNumberValue = (value: unknown) => {
 	return 0;
 };
 
+const getPaymentTypeValue = (report: ReportProps) => {
+	return String(
+		report[ReportCodes.taskType] ??
+			report[ReportCodes.activityType] ??
+			report[ReportCodes.title] ??
+			report.title ??
+			"",
+	).toLowerCase();
+};
+
+const formatSplitHours = (value: number) => {
+	return Number.isInteger(value) ? String(value) : value.toFixed(1);
+};
+
 export const TasksList = ({
 	tasks,
 	reports,
@@ -53,6 +67,51 @@ export const TasksList = ({
 					return acc + getNumberValue(report[ReportCodes.timeSpent]);
 				}, 0);
 
+				const paySplit = taskReports.reduce(
+					(acc, report) => {
+						const hours = getNumberValue(report[ReportCodes.timeSpent]);
+						const paymentType = getPaymentTypeValue(report);
+
+						if (paymentType.includes("client")) {
+							acc.client += hours;
+							return acc;
+						}
+
+						if (paymentType.includes("company")) {
+							acc.company += hours;
+							return acc;
+						}
+
+						if (paymentType.includes("unpaid")) {
+							acc.unpaid += hours;
+							return acc;
+						}
+
+						if (
+							paymentType.includes("not") ||
+							paymentType.includes("work") ||
+							paymentType.includes("404")
+						) {
+							acc.notWork += hours;
+							return acc;
+						}
+
+						acc.client += hours;
+						return acc;
+					},
+					{
+						client: 0,
+						company: 0,
+						unpaid: 0,
+						notWork: 0,
+					},
+				);
+
+				const hasPaySplit =
+					paySplit.client > 0 ||
+					paySplit.company > 0 ||
+					paySplit.unpaid > 0 ||
+					paySplit.notWork > 0;
 				const isActive = taskId === activeTaskId;
 
 				return (
@@ -70,6 +129,34 @@ export const TasksList = ({
 							timeSpent={timespent}
 							statuses={statuses}
 						/>
+
+						{hasPaySplit && (
+							<div className={cls.taskPaySplit}>
+								{paySplit.client > 0 && (
+									<span className={`${cls.payChip} ${cls.payChipClient}`}>
+										client paid {formatSplitHours(paySplit.client)} ч
+									</span>
+								)}
+
+								{paySplit.company > 0 && (
+									<span className={`${cls.payChip} ${cls.payChipCompany}`}>
+										company paid {formatSplitHours(paySplit.company)} ч
+									</span>
+								)}
+
+								{paySplit.unpaid > 0 && (
+									<span className={`${cls.payChip} ${cls.payChipUnpaid}`}>
+										unpaid {formatSplitHours(paySplit.unpaid)} ч
+									</span>
+								)}
+
+								{paySplit.notWork > 0 && (
+									<span className={`${cls.payChip} ${cls.payChipNotWork}`}>
+										not at work {formatSplitHours(paySplit.notWork)} ч
+									</span>
+								)}
+							</div>
+						)}
 					</button>
 				);
 			})}

@@ -32,16 +32,15 @@ const ProjectManagerUserCard = ({
 	return (
 		<button
 			type="button"
-			className={`${cls.pmItem} ${cls.pmEmployee} ${
-				isActive ? cls.pmItemActive : ""
-			}`}
+			className={`${cls.pmItem} ${cls.pmEmployee} ${isActive ? cls.pmItemActive : ""
+				}`}
 			onClick={onClick}
 		>
 			<img className={cls.pmAvatar} src={user.photo} alt={user.title} />
 			<span className={cls.pmItemMain}>
 				<span className={cls.pmItemTitle}>{user.title}</span>
 				<span className={cls.pmItemMeta}>
-					{user.position || "Проектный менеджер"} · 24/40 ч
+					{user.position || "Проектный менеджмент"} · 24/40 ч
 				</span>
 				{taskTitle && (
 					<span className={cls.pmItemMeta}>
@@ -132,9 +131,8 @@ export const NewUserReports = () => {
 					type="button"
 					role="tab"
 					aria-selected={activeTab === "staff"}
-					className={`${cls.tabButton} ${
-						activeTab === "staff" ? cls.tabButtonActive : ""
-					}`}
+					className={`${cls.tabButton} ${activeTab === "staff" ? cls.tabButtonActive : ""
+						}`}
 					onClick={() => setActiveTab("staff")}
 				>
 					Штат
@@ -143,9 +141,8 @@ export const NewUserReports = () => {
 					type="button"
 					role="tab"
 					aria-selected={activeTab === "piecework"}
-					className={`${cls.tabButton} ${
-						activeTab === "piecework" ? cls.tabButtonActive : ""
-					}`}
+					className={`${cls.tabButton} ${activeTab === "piecework" ? cls.tabButtonActive : ""
+						}`}
 					onClick={() => setActiveTab("piecework")}
 				>
 					Сдельная оплата
@@ -154,9 +151,8 @@ export const NewUserReports = () => {
 
 			{activeTab === "staff" && (
 				<div
-					className={`${cls.pmLayout} ${
-						isPmSidebarCollapsed ? cls.pmLayoutCollapsed : ""
-					}`}
+					className={`${cls.pmLayout} ${isPmSidebarCollapsed ? cls.pmLayoutCollapsed : ""
+						}`}
 					role="tabpanel"
 				>
 					<aside className={cls.pmListPanel}>
@@ -173,7 +169,7 @@ export const NewUserReports = () => {
 							>
 								{isPmSidebarCollapsed ? "⇥" : "⇤"}
 							</button>
-							<span>Проектный менеджер</span>
+							<span>Проектный менеджмент</span>
 							<span className={cls.pmSprintChip}>спринт</span>
 						</div>
 
@@ -189,8 +185,8 @@ export const NewUserReports = () => {
 										String(item.id) ===
 										String(
 											currentTask?.[TaskCodes.parentproject] ??
-												currentTask?.[TaskCodes.project] ??
-												"",
+											currentTask?.[TaskCodes.project] ??
+											"",
 										),
 								);
 

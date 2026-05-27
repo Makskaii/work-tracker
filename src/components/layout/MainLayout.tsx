@@ -229,8 +229,7 @@ export const MainLayout = () => {
 					flexDirection: "column",
 					height: "100%",
 					minHeight: 0,
-					background:
-						"radial-gradient(circle at 16% 8%, rgba(57, 214, 238, 0.12), transparent 24rem), linear-gradient(135deg, rgba(7, 17, 28, 0.92), rgba(10, 24, 40, 0.96))",
+					background: "transparent",
 				}}
 			>
 				<AppHeader />
@@ -241,6 +240,7 @@ export const MainLayout = () => {
 						minHeight: 0,
 						overflow: "auto",
 						padding: "28px 28px 28px calc(var(--app-sidebar-width, 72px) + 28px)",
+						background: "transparent",
 					}}
 				>
 					<Outlet />

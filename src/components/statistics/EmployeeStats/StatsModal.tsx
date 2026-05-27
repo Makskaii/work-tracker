@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { ReportCodes } from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { $api } from "@/shared/config";
 import {
@@ -122,6 +122,14 @@ const formatHours = (value: unknown) => {
 		: numberValue.toFixed(1);
 };
 
+const getTaskProjectId = (task: TaskProps) => {
+	const projectId = task[TaskCodes.parentproject] ?? task[TaskCodes.project];
+
+	return projectId === null || projectId === undefined
+		? ""
+		: String(projectId).trim();
+};
+
 export const StatsModal = ({
 	user,
 	onTasksChange,
@@ -129,7 +137,8 @@ export const StatsModal = ({
 	user: User;
 	onTasksChange?: (tasks: TaskProps[]) => void;
 }) => {
-	const { setUser, statuses, activities } = useOutletContext<ReportsContext>();
+	const { setUser, statuses, activities, projects } =
+		useOutletContext<ReportsContext>();
 
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
 	const [activeTaskId, setActiveTaskId] = useState<string>("");
@@ -137,6 +146,7 @@ export const StatsModal = ({
 		Record<string, ReportProps[]>
 	>({});
 	const [allSprintReports, setAllSprintReports] = useState<ReportProps[]>([]);
+	const [expandedProjectId, setExpandedProjectId] = useState<string>("");
 
 	const [taskFilter, setTaskFilter] = useState<"all" | "overrun">("all");
 	const [overrunTaskIds, setOverrunTaskIds] = useState<string[]>([]);
@@ -160,6 +170,37 @@ export const StatsModal = ({
 
 		return reportsByTask[activeTaskId] ?? [];
 	}, [reportsByTask, activeTaskId]);
+
+	const sprintProjects = useMemo(() => {
+		const result = new Map<
+			string,
+			{ id: string; name: string; tasksCount: number; hours: number }
+		>();
+
+		tasks.forEach((task) => {
+			const projectId = getTaskProjectId(task);
+
+			if (!projectId) {
+				return;
+			}
+
+			const project = projects.find((item) => String(item.id) === projectId);
+			const taskReports = reportsByTask[String(task.id)] ?? [];
+			const taskHours = taskReports.reduce((sum, report) => {
+				return sum + getNumberValue(report[ReportCodes.timeSpent]);
+			}, 0);
+			const current = result.get(projectId);
+
+			result.set(projectId, {
+				id: projectId,
+				name: project?.name ?? project?.title ?? `Проект #${projectId}`,
+				tasksCount: (current?.tasksCount ?? 0) + 1,
+				hours: (current?.hours ?? 0) + taskHours,
+			});
+		});
+
+		return Array.from(result.values());
+	}, [tasks, projects, reportsByTask]);
 
 	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders("workweek");
 
@@ -261,6 +302,82 @@ export const StatsModal = ({
 			isCancelled = true;
 		};
 	}, [user.id, startOfTheWeek, endOfTheWeek, onTasksChange]);
+
+	const projectsPanel = (
+		<div className={cls.projectsPanel}>
+			<div className={cls.projectsPanelHeader}>Список проектов</div>
+
+			{!sprintProjects.length ? (
+				<div className={cls.projectsEmpty}>Нет проектов за спринт</div>
+			) : (
+				<div className={cls.projectsList}>
+					{sprintProjects.map((project) => {
+						const isExpanded = expandedProjectId === project.id;
+						const projectTasks = tasks.filter((task) => {
+							return getTaskProjectId(task) === project.id;
+						});
+
+						return (
+							<div
+								key={project.id}
+								className={`${cls.projectCard} ${
+									isExpanded ? cls.projectCardExpanded : ""
+								}`}
+							>
+								<button
+									type="button"
+									className={cls.projectCardButton}
+									aria-expanded={isExpanded}
+									onClick={() => {
+										setExpandedProjectId((currentProjectId) =>
+											currentProjectId === project.id ? "" : project.id,
+										);
+									}}
+								>
+									<div className={cls.projectCardBody}>
+										<div className={cls.projectCardTitle}>{project.name}</div>
+										<div className={cls.projectCardMeta}>
+											{project.tasksCount} задач · {formatHours(project.hours)} ч
+										</div>
+									</div>
+									<div className={cls.projectCardArrow}>›</div>
+								</button>
+
+								{isExpanded && (
+									<div className={cls.projectTasksList}>
+										{projectTasks.map((task) => {
+											const taskReports = reportsByTask[String(task.id)] ?? [];
+											const taskHours = taskReports.reduce((sum, report) => {
+												return sum + getNumberValue(report[ReportCodes.timeSpent]);
+											}, 0);
+
+											return (
+												<button
+													key={task.id}
+													type="button"
+													className={`${cls.projectTaskItem} ${
+														String(task.id) === activeTaskId
+															? cls.projectTaskItemActive
+															: ""
+													}`}
+													onClick={() => setActiveTaskId(String(task.id))}
+												>
+													<span className={cls.projectTaskTitle}>{task.title}</span>
+													<span className={cls.projectTaskMeta}>
+														{formatHours(taskHours)} ч
+													</span>
+												</button>
+											);
+										})}
+									</div>
+								)}
+							</div>
+						);
+					})}
+				</div>
+			)}
+		</div>
+	);
 
 	return (
 		<div className={cls.modalContent}>
@@ -371,6 +488,8 @@ export const StatsModal = ({
 							)}
 						</div>
 					</div>
+
+					{projectsPanel}
 				</section>
 
 				<section className={cls.statsColumn}>

@@ -68,10 +68,10 @@ const getProgressDeg = (value: number, total: number) => {
 };
 
 const getBarColor = (percent: number) => {
-	if (percent >= 100) return "#ef4444";
-	if (percent >= 85) return "#f59e0b";
+	if (percent >= 100) return "#be4444";
+	if (percent >= 85) return "#c79744";
 
-	return "#6588c0";
+	return "#4979c5";
 };
 
 const isWeekday = (date: dayjs.Dayjs) => {

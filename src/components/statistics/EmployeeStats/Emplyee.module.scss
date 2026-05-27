@@ -1,17 +1,17 @@
 .statsStack {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
     min-width: 0;
 }
 
 .container {
     display: grid;
     grid-template-columns: repeat(3, minmax(120px, 1fr));
-    gap: 14px;
+    gap: 10px;
     min-width: 0;
-    padding: 18px;
-    border-radius: 24px;
+    padding: 12px;
+    border-radius: 18px;
     background: color-mix(in srgb, var(--color-surface-soft) 62%, transparent);
 }
 
@@ -28,10 +28,10 @@
     align-items: center;
     justify-content: center;
     min-width: 0;
-    min-height: 138px;
-    padding: 16px;
+    min-height: 108px;
+    padding: 10px;
     border: 1px solid var(--color-border);
-    border-radius: 18px;
+    border-radius: 15px;
     background: var(--color-surface);
     box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.24));
     text-align: center;
@@ -45,9 +45,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 82px;
-    height: 82px;
-    margin: 6px auto 10px;
+    width: 68px;
+    height: 68px;
+    margin: 4px auto 8px;
     border-radius: 50%;
 }
 
@@ -55,29 +55,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 58px;
-    height: 58px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: var(--color-surface);
     color: var(--color-text);
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 950;
 }
 
 .statLabel {
     margin-bottom: 4px;
     color: var(--color-muted);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 850;
-    line-height: 1.28;
+    line-height: 1.25;
     overflow-wrap: anywhere;
 }
 
 .statValue {
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: 6px;
+    margin-bottom: 6px;
     color: var(--color-text);
-    font-size: 24px;
+    font-size: 19px;
     font-weight: 950;
     overflow-wrap: anywhere;
 }
@@ -87,11 +87,11 @@
     max-width: 100%;
     align-items: center;
     justify-content: center;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-radius: 999px;
     background: var(--color-surface-soft);
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 850;
     overflow-wrap: anywhere;
     text-align: center;
@@ -113,16 +113,16 @@
 
 .activitiesPanel {
     min-width: 0;
-    padding: 18px;
-    border-radius: 24px;
-    background: color-mix(in srgb, var(--color-surface-soft) 62%, transparent);
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(22, 36, 55, 0.22);
 }
 
 .activitiesHeader {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     font-weight: 950;
 }
 
@@ -135,19 +135,19 @@
 .activitiesList {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
 }
 
 .activityItem {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    padding: 16px;
+    padding: 12px;
     border: 1px solid var(--color-border);
-    border-radius: 18px;
-    background: var(--color-surface);
+    border-radius: 15px;
+    background: rgba(15, 28, 46, 0.24);
 }
 
 .activityHeader {
@@ -155,7 +155,7 @@
     justify-content: space-between;
     gap: 14px;
     min-width: 0;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 950;
 }
 
@@ -172,14 +172,14 @@
 .activityBar {
     height: 13px;
     border-radius: 999px;
-    background: var(--color-border-soft, rgba(93, 141, 206, 0.16));
+    background: rgba(93, 141, 206, 0.1);
     overflow: hidden;
 }
 
 .activityBarFill {
     height: 100%;
     border-radius: 999px;
-    background: var(--color-link, #6aa7ff);
+    background: rgba(106, 167, 255, 0.75);
 }
 
 .activityBadges {
@@ -193,7 +193,7 @@
 .emptyState {
     padding: 16px;
     border-radius: 12px;
-    background: var(--color-surface);
+    background: rgba(15, 28, 46, 0.22);
     color: var(--color-muted);
 }
 
@@ -201,7 +201,7 @@
     padding: 20px;
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: var(--color-surface-soft);
+    background: rgba(22, 36, 55, 0.22);
     color: var(--color-muted);
     text-align: center;
 }
