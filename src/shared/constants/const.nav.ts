@@ -64,7 +64,7 @@ export const NAV_ITEMS: NavItem[] = [
 								to: "/reports/workload",
 							},
 							{
-								label: "Сотрудники",
+								label: "Проектный менеджер",
 								to: "/reports/developers",
 							},
 						],

@@ -19,8 +19,14 @@ export const groupTasksByWeek = (res: AnyObject[]) => {
 	return result;
 };
 
+const getTaskProjectId = (task: TaskProps) => {
+	const projectId = task[UserCodes.parentproject] ?? task[UserCodes.project];
+
+	return projectId === null || projectId === undefined
+		? "unknown"
+		: String(projectId).trim() || "unknown";
+};
+
 export const groupTasksByProject = (tasks: TaskProps[]) => {
-	return Object.groupBy(tasks, (task) => {
-		return task[UserCodes.parentproject] ?? "unknown";
-	});
+	return Object.groupBy(tasks, getTaskProjectId);
 };
