@@ -18,8 +18,8 @@
 	--color-warning: #f7a313;
 	--color-danger: #ef5b67;
 	--color-success-surface: #123c3c;
-	--color-payment-client: #43e87f;
-	--color-payment-client-surface: rgba(67, 232, 127, 0.16);
+	--color-payment-client: var(--color-accent-blue);
+	--color-payment-client-surface: rgba(111, 168, 255, 0.18);
 	--color-payment-company: #ffbf3f;
 	--color-payment-company-surface: rgba(255, 191, 63, 0.16);
 	--color-payment-unpaid: #ff6875;
