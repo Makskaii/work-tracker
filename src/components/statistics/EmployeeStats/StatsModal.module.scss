@@ -1,15 +1,16 @@
 .modalContent {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     min-width: 0;
+    width: 100%;
 }
 
 .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
-    gap: 12px;
+    gap: 18px;
     margin-bottom: 0;
 }
 
@@ -22,7 +23,7 @@
 
 .calendarLink {
     flex-shrink: 0;
-    padding: 8px 12px;
+    padding: 7px 10px;
     cursor: pointer;
     border: 1px solid var(--color-border);
     border-radius: 11px;
@@ -37,11 +38,25 @@
     }
 }
 
+.projectModeTitle {
+    min-width: 0;
+    padding: 9px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: rgba(22, 36, 55, 0.26);
+    color: var(--color-text);
+    font-size: 15px;
+    font-weight: 900;
+}
+
 .sprintControls {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
-    justify-content: end;
+    justify-content: flex-start;
     flex-wrap: wrap;
 }
 
@@ -59,8 +74,8 @@
 }
 
 .sprintButton {
-    min-height: 34px;
-    padding: 8px 12px;
+    min-height: 30px;
+    padding: 6px 10px;
 }
 
 .sprintButton:not(:disabled):hover,
@@ -95,8 +110,8 @@
 
 .contentGrid {
     display: grid;
-    grid-template-columns: minmax(390px, 1fr) minmax(390px, 0.95fr);
-    gap: 14px;
+    grid-template-columns: 540px 420px;
+    gap: 18px;
     align-items: start;
     min-height: 0;
 }
@@ -109,12 +124,24 @@
 .tasksColumn {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .statsColumn {
-    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     scrollbar-gutter: stable;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tasksColumn::-webkit-scrollbar,
+.statsColumn::-webkit-scrollbar {
+    width: 0;
+    height: 0;
 }
 
 .tasksHeader {
@@ -149,7 +176,7 @@
 .tasksList {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
     min-width: 0;
 }
 
@@ -164,9 +191,9 @@
 
 .taskButton {
     width: 100%;
-    padding: 10px 12px;
+    padding: 14px;
     border: 1px solid transparent;
-    border-radius: 14px;
+    border-radius: 12px;
     background: transparent;
     color: inherit;
     text-align: left;
@@ -241,7 +268,7 @@
 }
 
 .taskReportsPanelTitle {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 950;
     color: var(--color-text);
 }
@@ -264,13 +291,28 @@
 
 .taskReportCard {
     display: grid;
-    grid-template-columns: 68px minmax(0, 1fr) auto auto;
-    gap: 10px;
+    grid-template-columns: 58px minmax(0, 1fr) auto auto;
+    gap: 8px;
     align-items: center;
-    padding: 11px 12px;
+    padding: 9px 10px;
     border: 1px solid var(--color-border);
-    border-radius: 14px;
+    border-radius: 12px;
     background: rgba(15, 28, 46, 0.24);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.taskReportCard:hover {
+    border-color: var(--color-border-active);
+    background: rgba(46, 197, 173, 0.07);
+}
+
+.taskReportCard:focus,
+.taskReportCard:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .taskReportDate {
@@ -304,10 +346,10 @@
 .payChip {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     border-radius: 999px;
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 3px 6px;
+    font-size: 10px;
     line-height: 1.1;
     font-weight: 900;
     white-space: nowrap;
@@ -325,8 +367,8 @@
 .taskPaySplit {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin: 8px 0 0;
+    gap: 4px;
+    margin: 6px 0 0;
 }
 
 .payChipClient {
@@ -352,12 +394,12 @@
 .hoursChip {
     display: inline-flex;
     justify-content: center;
-    min-width: 46px;
+    min-width: 40px;
     border-radius: 999px;
-    padding: 4px 8px;
+    padding: 3px 7px;
     background: rgba(106, 167, 255, 0.1);
     color: var(--color-link, #6aa7ff);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 950;
     white-space: nowrap;
 }
@@ -382,7 +424,7 @@
 .projectsPanelHeader {
     margin-bottom: 10px;
     color: var(--color-text);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 950;
     text-align: left;
 }
@@ -410,10 +452,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
     min-width: 0;
-    padding: 12px;
+    padding: 11px 12px;
     border: 0;
     background: transparent;
     color: inherit;
@@ -423,6 +465,10 @@
 
 .projectCardButton:not(:disabled):hover {
     background: rgba(46, 197, 173, 0.07);
+}
+
+.projectCardButton:active {
+    background: rgba(46, 197, 173, 0.1);
 }
 
 .projectCardButton:focus,
@@ -441,21 +487,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 900;
 }
 
 .projectCardMeta {
     margin-top: 4px;
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 700;
 }
 
 .projectCardArrow {
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -475,7 +521,7 @@
 .projectTasksList {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     padding: 0 12px 12px;
 }
 
@@ -539,6 +585,77 @@
     text-align: center;
 }
 
+.reportModal {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: min(560px, 100%);
+    color: var(--color-text);
+}
+
+.reportModalHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: rgba(22, 36, 55, 0.28);
+}
+
+.reportModalEyebrow {
+    margin-bottom: 6px;
+    color: var(--color-muted);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.reportModalTitle {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.25;
+}
+
+.reportModalHours {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(106, 167, 255, 0.12);
+    color: var(--color-link, #6aa7ff);
+    font-weight: 950;
+}
+
+.reportModalBody {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: rgba(15, 28, 46, 0.24);
+}
+
+.reportModalRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    color: var(--color-muted);
+}
+
+.reportModalRow strong {
+    color: var(--color-text);
+    text-align: right;
+}
+
+.reportModalText {
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
 @media (max-width: 1180px) {
     .header {
         align-items: flex-start;
@@ -551,10 +668,6 @@
 
     .sprintButton {
         width: 100%;
-    }
-
-    .contentGrid {
-        grid-template-columns: 1fr;
     }
 
     .statsColumn {

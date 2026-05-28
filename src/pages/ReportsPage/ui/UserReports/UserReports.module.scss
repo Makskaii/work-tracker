@@ -53,6 +53,13 @@
     border-radius: 10px;
     overflow-y: auto;
     background: rgba(15, 28, 44, 0.24);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.staffList::-webkit-scrollbar {
+    width: 0;
+    height: 0;
 }
 
 .staffHeader {
@@ -81,41 +88,47 @@
 
 .pmLayout {
     display: grid;
-    grid-template-columns: 390px minmax(0, 1fr);
-    gap: 14px;
-    min-height: calc(100vh - 120px);
-    padding: 16px;
+    grid-template-columns: 340px 1024px;
+    gap: 16px;
+    min-width: 1380px;
+    width: fit-content;
+    max-width: none;
+    min-height: 0;
+    padding: 20px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 28px;
     background: rgba(9, 19, 34, 0.28);
     backdrop-filter: blur(14px);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
-    transition: grid-template-columns 0.18s ease;
+    transition: grid-template-columns 0.42s ease;
 }
 
 .pmLayoutCollapsed {
-    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-columns: 72px 1024px;
 }
 
 .pmListPanel {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    padding: 12px;
+    width: 320px;
+    padding: 14px;
     border: 1px solid var(--color-border);
     border-radius: 22px;
     background: rgba(15, 28, 46, 0.3);
     overflow: hidden;
+    transition: width 0.42s ease, padding 0.42s ease;
 }
 
 .pmListHead {
-    display: flex;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
-    padding-bottom: 10px;
+    gap: 6px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--color-border);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 950;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -125,9 +138,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
     padding: 0;
     border: 1px solid var(--color-border);
     border-radius: 11px;
@@ -159,15 +172,15 @@
 
 .pmListBody {
     display: grid;
-    gap: 8px;
+    gap: 7px;
     overflow: visible;
     padding: 0;
 }
 
 .pmSectionTitle {
-    margin: 10px 6px 4px;
+    margin: 8px 4px 3px;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 950;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -175,12 +188,12 @@
 
 .pmItem {
     display: grid;
-    gap: 5px;
+    gap: 4px;
     width: 100%;
     min-width: 0;
-    padding: 11px 12px;
+    padding: 12px 14px;
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: 13px;
     background: rgba(22, 36, 55, 0.28);
     color: var(--color-text);
     text-align: left;
@@ -220,14 +233,14 @@
 }
 
 .pmEmployee {
-    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .pmAvatar {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
     border-radius: 999px;
     object-fit: cover;
     background: linear-gradient(135deg, var(--color-accent), var(--color-link, #6aa7ff));
@@ -235,7 +248,7 @@
 
 .pmItemMain {
     display: grid;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
 }
 
@@ -244,7 +257,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 900;
     line-height: 1.2;
 }
@@ -257,33 +270,52 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--color-muted);
-    font-size: 12px;
+    font-size: 10px;
     line-height: 1.25;
 }
 
 .pmProjectsList {
     display: grid;
-    gap: 8px;
-    min-height: 180px;
+    gap: 7px;
+    min-height: 0;
     overflow: visible;
     padding-right: 4px;
 }
 
+.pmClientGroup {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.pmClient {
+    padding: 8px 10px;
+    border-radius: 12px;
+}
+
+.pmClientProjects {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding-left: 10px;
+    border-left: 1px solid var(--color-border-active);
+}
+
 .pmProject {
-    margin-left: 16px;
-    width: calc(100% - 16px);
-    padding: 10px 12px;
-    border-radius: 14px;
+    margin-left: 0;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 12px;
 }
 
 .pmProject .pmItemTitle {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 850;
 }
 
 .pmProject .pmItemMeta {
     margin-top: 4px;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .pmEmpty {
@@ -296,9 +328,10 @@
 }
 
 .pmDetail {
-    min-width: 0;
-    overflow: visible;
-    padding: 18px;
+    min-width: 1024px;
+    width: 1024px;
+    overflow: hidden;
+    padding: 20px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-panel);
     background: rgba(15, 28, 46, 0.3);
@@ -307,12 +340,14 @@
 }
 
 .pmLayoutCollapsed .pmListPanel {
+    width: 72px;
     padding: 10px;
     align-items: center;
 }
 
 .pmLayoutCollapsed .pmListHead {
-    justify-content: center;
+    grid-template-columns: 30px;
+    justify-content: start;
     padding-bottom: 0;
     border-bottom: 0;
 }
@@ -334,8 +369,8 @@
 }
 
 .pmLayoutCollapsed .pmEmployee {
-    width: 50px;
-    height: 50px;
+    width: 46px;
+    height: 46px;
     padding: 0;
     display: grid;
     place-items: center;
@@ -344,8 +379,8 @@
 }
 
 .pmLayoutCollapsed .pmAvatar {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
 }
 
 .projectManagerPage,

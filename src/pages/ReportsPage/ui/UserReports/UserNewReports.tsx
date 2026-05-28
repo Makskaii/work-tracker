@@ -1,20 +1,78 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
-import { TaskCodes } from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import type { ReportProps } from "@/components/calendar/types/types";
 import { Spinner } from "@/components/spinner/Spinner";
 import { StatsModal } from "@/components/statistics/EmployeeStats/StatsModal";
+import { $api } from "@/shared/config";
 import {
+	ClientsCodes,
 	DEPARTMENT_IDS,
 	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
+import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
 import type { ReportsContext, TaskProps, User } from "@/shared/types/types";
 import { Piecework } from "./Piecework";
 import cls from "./UserReports.module.scss";
 
 type UserReportsTab = "staff" | "piecework";
+
+type CrmItemListResponse<T> = {
+	result?: {
+		items?: T[];
+	};
+	next?: number | null;
+};
+
+const REPORT_SELECT_FIELDS = [
+	"id",
+	"title",
+	"begindate",
+	ReportCodes.taskId,
+	`parentId${EntityTypeIds.tasks}`,
+] as const;
+
+const fetchAllCrmItems = async <T,>({
+	entityTypeId,
+	select,
+	filter,
+}: {
+	entityTypeId: number;
+	select: readonly string[];
+	filter: Record<string, unknown>;
+}) => {
+	const limit = 50;
+	let start = 0;
+	let next: number | null | undefined = 0;
+	const items: T[] = [];
+
+	while (next !== null) {
+		const response = await $api.get<CrmItemListResponse<T>>(Endpoints.crmItems, {
+			params: {
+				entityTypeId,
+				select,
+				filter,
+				start,
+			},
+		});
+
+		items.push(...(response.data.result?.items ?? []));
+
+		next = response.data.next ?? null;
+		start = next ?? start + limit;
+	}
+
+	return items;
+};
+
+const getReportTaskId = (report: ReportProps) => {
+	const taskId = report[ReportCodes.parentId] ?? report[ReportCodes.taskId];
+
+	return taskId === null || taskId === undefined ? "" : String(taskId).trim();
+};
 
 const ProjectManagerUserCard = ({
 	user,
@@ -54,11 +112,14 @@ const ProjectManagerUserCard = ({
 };
 
 export const NewUserReports = () => {
-	const { users, projects } = useOutletContext<ReportsContext>();
+	const { users, projects, clientsList } = useOutletContext<ReportsContext>();
 	const [activeUser, setActiveUser] = useState<User>();
+	const [activeProjectId, setActiveProjectId] = useState("");
+	const [expandedClientId, setExpandedClientId] = useState("");
 	const [activeTab, setActiveTab] = useState<UserReportsTab>("staff");
-	const [sprintTasks, setSprintTasks] = useState<TaskProps[]>([]);
+	const [allSprintTasks, setAllSprintTasks] = useState<TaskProps[]>([]);
 	const [isPmSidebarCollapsed, setIsPmSidebarCollapsed] = useState(false);
+	const { setDay, startOfTheWeek, endOfTheWeek } = useSprintBorders("workweek");
 	const staffUsers = useMemo(
 		() => users.filter((user) => user.department === DEPARTMENT_IDS.DEV),
 		[users],
@@ -77,13 +138,10 @@ export const NewUserReports = () => {
 		},
 	});
 
-	const activeUserProjects = useMemo(() => {
-		const result = new Map<
-			string,
-			{ id: string; name: string; tasksCount: number }
-		>();
+	const sprintClients = useMemo(() => {
+		const projectTaskCounts = new Map<string, number>();
 
-		sprintTasks.forEach((task) => {
+		allSprintTasks.forEach((task) => {
 			const projectId = String(
 				task[TaskCodes.parentproject] ?? task[TaskCodes.project] ?? "",
 			).trim();
@@ -92,33 +150,109 @@ export const NewUserReports = () => {
 				return;
 			}
 
+			projectTaskCounts.set(projectId, (projectTaskCounts.get(projectId) ?? 0) + 1);
+		});
+
+		const projectsByClient = new Map<
+			string,
+			{ id: string; name: string; tasksCount: number }[]
+		>();
+
+		Array.from(projectTaskCounts.entries()).forEach(([projectId, tasksCount]) => {
 			const project = projects.find((item) => String(item.id) === projectId);
 
 			if (!project) {
 				return;
 			}
 
-			const current = result.get(projectId);
+			const clientId = String(project[ClientsCodes.client] ?? "").trim();
 
-			result.set(projectId, {
-				id: projectId,
-				name: project.name ?? project.title,
-				tasksCount: (current?.tasksCount ?? 0) + 1,
-			});
+			if (!clientId) {
+				return;
+			}
+
+			projectsByClient.set(clientId, [
+				...(projectsByClient.get(clientId) ?? []),
+				{
+					id: projectId,
+					name: project.name ?? project.title,
+					tasksCount,
+				},
+			]);
 		});
 
-		return Array.from(result.values());
-	}, [sprintTasks, projects]);
+		return Array.from(projectsByClient.entries()).map(
+			([clientId, clientProjects]) => {
+				const client = clientsList.find((item) => String(item.ID) === clientId);
+
+				return {
+					id: clientId,
+					name: client?.NAME ?? client?.title ?? `Клиент #${clientId}`,
+					projects: clientProjects,
+				};
+			},
+		);
+	}, [allSprintTasks, clientsList, projects]);
 
 	useEffect(() => {
-		if (!activeUser && staffUsers.length) {
+		if (!activeUser && !activeProjectId && staffUsers.length) {
 			setActiveUser(staffUsers[0]);
 		}
-	}, [activeUser, staffUsers]);
+	}, [activeProjectId, activeUser, staffUsers]);
 
 	useEffect(() => {
-		setSprintTasks([]);
-	}, [activeUser?.id]);
+		let isCancelled = false;
+
+		const loadSprintTasks = async () => {
+			try {
+				const reports = await fetchAllCrmItems<ReportProps>({
+					entityTypeId: EntityTypeIds.reports,
+					select: REPORT_SELECT_FIELDS,
+					filter: {
+						">=begindate": startOfTheWeek,
+						"<=begindate": endOfTheWeek,
+						stageId: "DT1060_15:PREPARATION",
+					},
+				});
+
+				if (isCancelled) {
+					return;
+				}
+
+				const taskIds = Array.from(
+					new Set(reports.map(getReportTaskId).filter(Boolean)),
+				);
+
+				if (!taskIds.length) {
+					setAllSprintTasks([]);
+					return;
+				}
+
+				const tasks = await fetchAllCrmItems<TaskProps>({
+					entityTypeId: EntityTypeIds.tasks,
+					select: TASK_SELECT_FIELDS,
+					filter: {
+						"@id": taskIds,
+					},
+				});
+
+				if (!isCancelled) {
+					setAllSprintTasks(tasks);
+				}
+			} catch (error) {
+				if (!isCancelled) {
+					setAllSprintTasks([]);
+					console.log("Ошибка при загрузке проектов спринта", error);
+				}
+			}
+		};
+
+		loadSprintTasks();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [startOfTheWeek, endOfTheWeek]);
 
 	if (loading) {
 		return <Spinner text="Загружаем данные по сотрудникам" />;
@@ -197,27 +331,65 @@ export const NewUserReports = () => {
 										taskTitle={currentTask?.title}
 										projectName={project?.name ?? project?.title}
 										isActive={activeUser?.id === user.id}
-										onClick={() => setActiveUser(user)}
+										onClick={() => {
+											setActiveProjectId("");
+											setActiveUser(user);
+										}}
 									/>
 								);
 							})}
 
 							<div className={cls.pmSectionTitle}>Клиенты и проекты</div>
 
-							{activeUserProjects.length > 0 ? (
+							{sprintClients.length > 0 ? (
 								<div className={cls.pmProjectsList}>
-									{activeUserProjects.map((project) => (
-										<button
-											key={project.id}
-											type="button"
-											className={`${cls.pmItem} ${cls.pmProject}`}
-										>
-											<span className={cls.pmItemTitle}>{project.name}</span>
-											<span className={cls.pmItemMeta}>
-												Задач: {project.tasksCount}
-											</span>
-										</button>
-									))}
+									{sprintClients.map((client) => {
+										const isExpanded = expandedClientId === client.id;
+
+										return (
+											<div key={client.id} className={cls.pmClientGroup}>
+												<button
+													type="button"
+													className={`${cls.pmItem} ${cls.pmClient}`}
+													onClick={() =>
+														setExpandedClientId((current) =>
+															current === client.id ? "" : client.id,
+														)
+													}
+												>
+													<span className={cls.pmItemTitle}>{client.name}</span>
+													<span className={cls.pmItemMeta}>
+														Проектов: {client.projects.length}
+													</span>
+												</button>
+
+												{isExpanded && (
+													<div className={cls.pmClientProjects}>
+														{client.projects.map((project) => (
+															<button
+																key={project.id}
+																type="button"
+																className={`${cls.pmItem} ${cls.pmProject} ${
+																	activeProjectId === project.id
+																		? cls.pmItemActive
+																		: ""
+																}`}
+																onClick={() => {
+																	setActiveUser(undefined);
+																	setActiveProjectId(project.id);
+																}}
+															>
+																<span className={cls.pmItemTitle}>{project.name}</span>
+																<span className={cls.pmItemMeta}>
+																	Задач: {project.tasksCount}
+																</span>
+															</button>
+														))}
+													</div>
+												)}
+											</div>
+										);
+									})}
 								</div>
 							) : (
 								<div className={cls.pmEmpty}>Нет проектов</div>
@@ -226,8 +398,18 @@ export const NewUserReports = () => {
 					</aside>
 
 					<section className={cls.pmDetail}>
-						{activeUser ? (
-							<StatsModal user={activeUser} onTasksChange={setSprintTasks} />
+						{activeUser || activeProjectId ? (
+							<StatsModal
+								user={activeUser}
+								selectedProjectId={activeProjectId}
+								sprintStart={startOfTheWeek}
+								sprintEnd={endOfTheWeek}
+								onSprintShift={(days) => {
+									setDay((prev) =>
+										days < 0 ? prev.subtract(7, "day") : prev.add(7, "day"),
+									);
+								}}
+							/>
 						) : (
 							<div className={cls.emptyDetails}>
 								Выберите проектного менеджера

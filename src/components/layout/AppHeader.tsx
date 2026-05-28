@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
 	APP_TITLE,
+	EXTRA_NAV_ITEMS,
 	NAV_ITEMS,
 	type NavItem,
 	type NavLeaf,
@@ -38,6 +39,7 @@ export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const location = useLocation();
+	const isReportsArea = location.pathname.startsWith("/reports");
 
 	const activeTopKey = useMemo(() => {
 		const activeItem = NAV_ITEMS.find((item) =>
@@ -61,7 +63,7 @@ export const AppHeader = () => {
 	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
-			isSidebarOpen ? "280px" : "72px",
+			isSidebarOpen ? "320px" : "72px",
 		);
 
 		return () => {

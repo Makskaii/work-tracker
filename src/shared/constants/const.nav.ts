@@ -32,6 +32,14 @@ export type NavItem =
 
 export const APP_TITLE = "Workdesk";
 
+export const EXTRA_NAV_ITEMS: NavLeaf[] = [
+	{ label: "Загрузки по сотрудникам", to: "/reports/workload" },
+	{ label: "Список клиентов", to: "/reports/clients" },
+	{ label: "Client's Desk", to: "/client-profile" },
+	{ label: "Client Accounts", to: "/create-client-form" },
+	{ label: "Sprint Planner", to: "/sprint-planner" },
+];
+
 export const NAV_ITEMS: NavItem[] = [
 	{
 		key: "departments-reports",
