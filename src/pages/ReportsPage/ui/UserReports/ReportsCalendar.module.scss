@@ -89,6 +89,16 @@
     color: #06111c !important;
 }
 
+.backButtonActive {
+    border-color: var(--color-accent);
+    background: rgba(57, 214, 238, 0.14);
+}
+
+.backButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+}
+
 .periodControls {
     select {
         min-height: 40px;
@@ -105,6 +115,10 @@
     gap: clamp(14px, 1.05vw, 22px);
     margin-top: 12px;
     min-width: 0;
+}
+
+.calendarLayoutCollapsed {
+    grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .hiddenCalendarLayout {
@@ -125,6 +139,11 @@
     min-width: 0;
     padding-right: clamp(14px, 1.05vw, 22px);
     border-right: 1px solid var(--color-border);
+}
+
+.sidebarCollapsed {
+    align-items: center;
+    padding-right: 10px;
 }
 
 .calendarArea {
@@ -153,6 +172,23 @@
 
 .panel {
     overflow: hidden;
+}
+
+.employeePanel {
+    transition:
+        width 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.employeePanelCollapsed {
+    width: 58px;
+    border-color: transparent;
+    background: transparent;
+}
+
+.employeePanelCollapsed .panelHeader {
+    display: none;
 }
 
 .panelHeader {
@@ -203,6 +239,13 @@
     max-height: 460px;
 }
 
+.employeePanelCollapsed .employeeList {
+    align-items: center;
+    gap: 10px;
+    max-height: calc(100vh - 150px);
+    padding: 0;
+}
+
 .projectCards,
 .reportList {
     max-height: calc(100vh - 150px);
@@ -228,6 +271,25 @@
     gap: 10px;
     padding: 9px 10px;
     border-radius: 14px;
+}
+
+.employeePanelCollapsed .employeeCard {
+    width: 44px;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    padding: 4px;
+}
+
+.employeePanelCollapsed .employeeInfo,
+.employeePanelCollapsed .hoursPill {
+    display: none;
+}
+
+.employeePanelCollapsed .avatar,
+.employeePanelCollapsed .avatarImage {
+    width: 34px;
+    height: 34px;
 }
 
 .activeCard {
@@ -260,6 +322,7 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
+    gap: 4px;
 
     strong,
     small {
@@ -276,6 +339,75 @@
         color: rgba(238, 245, 255, 0.62);
         font-size: 11px;
     }
+}
+
+.employeeWorkload {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.employeeWorkloadMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: rgba(238, 245, 255, 0.7);
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.employeeWorkloadMeta span:last-child {
+    color: rgba(238, 245, 255, 0.62);
+}
+
+.employeeProgress {
+    display: block;
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(95, 143, 216, 0.24);
+
+    span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--color-accent), var(--color-accent-blue));
+    }
+}
+
+.hoursSkeleton,
+.panelHeaderSkeleton,
+.workloadTextSkeleton,
+.progressSkeleton {
+    display: inline-block;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(38, 58, 85, 0.84), rgba(57, 214, 238, 0.2), rgba(38, 58, 85, 0.84));
+    background-size: 220% 100%;
+    animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.hoursSkeleton {
+    width: 38px;
+    height: 14px;
+}
+
+.panelHeaderSkeleton {
+    width: 44px;
+    height: 14px;
+}
+
+.workloadTextSkeleton {
+    width: 72px;
+    height: 10px;
+}
+
+.progressSkeleton {
+    width: 72%;
 }
 
 .hoursPill,
@@ -323,7 +455,7 @@
 
 .summaryGrid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     margin-top: 12px;
 }
@@ -359,6 +491,10 @@
 
 .unpaid {
     color: var(--color-payment-unpaid) !important;
+}
+
+.notAtWork {
+    color: var(--color-payment-neutral) !important;
 }
 
 .clientBlock {
@@ -621,6 +757,21 @@
     .sidebar {
         padding-right: 0;
         border-right: 0;
+    }
+
+    .sidebarCollapsed {
+        align-items: stretch;
+    }
+
+    .employeePanelCollapsed {
+        width: 100%;
+    }
+
+    .employeePanelCollapsed .employeeList {
+        flex-direction: row;
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 }
 

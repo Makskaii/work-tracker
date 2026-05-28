@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router";
 import { ClientsCodes } from "@/shared/constants/const";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import {
+	ActivityType,
 	months,
 	ProjectCodes,
 	years,
@@ -48,6 +49,61 @@ const parseTimeSpent = (value: string | number | null | undefined): number => {
 };
 
 const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
+
+const getCapacityByView = (view: ViewCalendar) => (view === "week" ? 40 : 160);
+
+const createEmptyEmployeeMetrics = (): EmployeeMetrics => ({
+	hours: new Map<string, number>(),
+	notAtWork: new Map<string, number>(),
+	totalHours: 0,
+	hasLoaded: false,
+});
+
+const isNotAtWorkReport = (
+	report: GroupedReportFields,
+	activities: ActivityListItem[],
+) => {
+	const activityId = Number(report.activity);
+
+	if (activityId === ActivityType.notAtWork) {
+		return true;
+	}
+
+	const activity = activities.find((item) => Number(item.ID) === activityId);
+	const searchableText = `${activity?.NAME ?? ""} ${activity?.CODE ?? ""}`
+		.trim()
+		.toLowerCase();
+
+	return searchableText.includes("not at work");
+};
+
+const getEmployeeMetricsFromReports = (
+	reports: GroupedReportFields[],
+	activities: ActivityListItem[],
+): EmployeeMetrics => {
+	const hours = new Map<string, number>();
+	const notAtWork = new Map<string, number>();
+	let totalHours = 0;
+
+	for (const report of reports) {
+		const userId = String(report.assignedById);
+		const timeSpent = parseTimeSpent(report.timeSpent);
+
+		totalHours += timeSpent;
+		hours.set(userId, (hours.get(userId) ?? 0) + timeSpent);
+
+		if (isNotAtWorkReport(report, activities)) {
+			notAtWork.set(userId, (notAtWork.get(userId) ?? 0) + timeSpent);
+		}
+	}
+
+	return {
+		hours,
+		notAtWork,
+		totalHours,
+		hasLoaded: true,
+	};
+};
 
 const getProjectCompanyId = (project: ClientProjectProps) => {
 	return Number(project[ProjectCodes.company] ?? 0);
@@ -240,6 +296,12 @@ export const groupReportsByClientsProjectsAndActivities = ({
 };
 
 type ViewCalendar = "month" | "week";
+type EmployeeMetrics = {
+	hours: Map<string, number>;
+	notAtWork: Map<string, number>;
+	totalHours: number;
+	hasLoaded: boolean;
+};
 
 const getProjectKey = (clientId: number, projectId: number) =>
 	`${clientId}-${projectId}`;
@@ -285,6 +347,8 @@ const ReportsCalendar = () => {
 	const { openTask } = useBitrixSlider();
 	const [view, setView] = useState<ViewCalendar>("month");
 	const [isCalendarVisible, setIsCalendarVisible] = useState(true);
+	const [isEmployeeSidebarCollapsed, setIsEmployeeSidebarCollapsed] =
+		useState(false);
 	const [selectedUserId, setSelectedUserId] = useState("");
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -292,6 +356,9 @@ const ReportsCalendar = () => {
 		GroupedReportFields[]
 	>([]);
 	const [isReportDataLoading, setIsReportDataLoading] = useState(false);
+	const [employeeMetrics, setEmployeeMetrics] = useState<EmployeeMetrics>(
+		createEmptyEmployeeMetrics,
+	);
 	const [expandedClients, setExpandedClients] = useState<Set<number>>(
 		() => new Set(),
 	);
@@ -319,6 +386,7 @@ const ReportsCalendar = () => {
 			const next = !prev;
 
 			if (!next) {
+				setIsEmployeeSidebarCollapsed(false);
 				handleUserChange("");
 			}
 
@@ -327,14 +395,18 @@ const ReportsCalendar = () => {
 	};
 
 	const handleMonthChange = (event: ChangeEvent<HTMLSelectElement>) => {
+		setEmployeeMetrics(createEmptyEmployeeMetrics());
 		setSelectedMonth(Number(event.target.value));
 	};
 
 	const handleYearChange = (event: ChangeEvent<HTMLSelectElement>) => {
+		setEmployeeMetrics(createEmptyEmployeeMetrics());
 		setSelectedYear(Number(event.target.value));
 	};
 
 	const handlePrevMonth = () => {
+		setEmployeeMetrics(createEmptyEmployeeMetrics());
+
 		if (selectedMonth === 0) {
 			setSelectedMonth(11);
 			setSelectedYear((year) => year - 1);
@@ -345,6 +417,8 @@ const ReportsCalendar = () => {
 	};
 
 	const handleNextMonth = () => {
+		setEmployeeMetrics(createEmptyEmployeeMetrics());
+
 		if (selectedMonth === 11) {
 			setSelectedMonth(0);
 			setSelectedYear((year) => year + 1);
@@ -357,6 +431,7 @@ const ReportsCalendar = () => {
 	const handleToday = () => {
 		const today = new Date();
 
+		setEmployeeMetrics(createEmptyEmployeeMetrics());
 		setSelectedMonth(today.getMonth());
 		setSelectedYear(today.getFullYear());
 	};
@@ -435,19 +510,51 @@ const ReportsCalendar = () => {
 			);
 	}, [groupedByActivity, selectedClientProject]);
 
-	const employeeHours = useMemo(() => {
-		const map = new Map<string, number>();
+	const currentEmployeeMetrics = useMemo(
+		() => getEmployeeMetricsFromReports(groupedByActivity, context.activities),
+		[groupedByActivity, context.activities],
+	);
 
-		for (const report of groupedByActivity) {
-			const userId = String(report.assignedById);
-			map.set(
-				userId,
-				(map.get(userId) ?? 0) + parseTimeSpent(report.timeSpent),
-			);
+	useEffect(() => {
+		if (isReportDataLoading) return;
+		if (!groupedByActivity.length && employeeMetrics.hasLoaded) return;
+
+		if (!selectedUserId) {
+			setEmployeeMetrics(currentEmployeeMetrics);
+			return;
 		}
 
-		return map;
-	}, [groupedByActivity]);
+		setEmployeeMetrics((prev) => {
+			const hours = new Map(prev.hours);
+			const notAtWork = new Map(prev.notAtWork);
+			const previousUserHours = hours.get(selectedUserId) ?? 0;
+			const nextUserHours =
+				currentEmployeeMetrics.hours.get(selectedUserId) ?? 0;
+			const nextTotalHours =
+				prev.hasLoaded && prev.totalHours
+					? prev.totalHours - previousUserHours + nextUserHours
+					: currentEmployeeMetrics.totalHours;
+
+			hours.set(selectedUserId, nextUserHours);
+			notAtWork.set(
+				selectedUserId,
+				currentEmployeeMetrics.notAtWork.get(selectedUserId) ?? 0,
+			);
+
+			return {
+				hours,
+				notAtWork,
+				totalHours: nextTotalHours,
+				hasLoaded: prev.hasLoaded || currentEmployeeMetrics.hasLoaded,
+			};
+		});
+	}, [
+		currentEmployeeMetrics,
+		employeeMetrics.hasLoaded,
+		groupedByActivity.length,
+		isReportDataLoading,
+		selectedUserId,
+	]);
 
 	const paymentSummary = getPaymentSummary(
 		groupedByActivity,
@@ -457,6 +564,16 @@ const ReportsCalendar = () => {
 		(acc, report) => acc + parseTimeSpent(report.timeSpent),
 		0,
 	);
+	const periodCapacity = getCapacityByView(view);
+	const totalCapacity = periodCapacity * departmentUsers.length;
+	const employeeMetricsLoading =
+		isReportDataLoading && !employeeMetrics.hasLoaded;
+	const sidebarTotalHours = employeeMetrics.hasLoaded
+		? employeeMetrics.totalHours
+		: totalHours;
+	const selectedUserNotAtWork = selectedUserId
+		? (employeeMetrics.notAtWork.get(selectedUserId) ?? 0)
+		: 0;
 
 	const getActivityTitle = (activityId: number) =>
 		context.activities.find((activity) => Number(activity.ID) === activityId)
@@ -504,11 +621,68 @@ const ReportsCalendar = () => {
 		</div>
 	);
 
+	const isEmployeeSidebarCompact =
+		isCalendarVisible && isEmployeeSidebarCollapsed;
+	const getWorkloadPercent = (spent: number, capacity: number) => {
+		if (!capacity) return 0;
+
+		return Math.min(100, Math.round((spent / capacity) * 100));
+	};
+	const renderHoursPill = (value: number, isLoading: boolean) => (
+		<span className={cls.hoursPill}>
+			{isLoading ? <span className={cls.hoursSkeleton} /> : formatHours(value)}
+		</span>
+	);
+	const renderEmployeeWorkload = (
+		spent: number,
+		capacity: number,
+		notAtWork?: number,
+		isLoading = false,
+	) =>
+		isLoading ? (
+			<span className={cls.employeeWorkload}>
+				<span className={cls.employeeWorkloadMeta}>
+					<span className={cls.workloadTextSkeleton} />
+					{notAtWork !== undefined && (
+						<span className={cls.workloadTextSkeleton} />
+					)}
+				</span>
+				<span className={cls.employeeProgress}>
+					<span className={cls.progressSkeleton} />
+				</span>
+			</span>
+		) : (
+			<span className={cls.employeeWorkload}>
+				<span className={cls.employeeWorkloadMeta}>
+					<span>
+						{Number(spent.toFixed(1))} / {capacity} ч
+					</span>
+					{notAtWork !== undefined && (
+						<span>not at work {Number(notAtWork.toFixed(1))} ч</span>
+					)}
+				</span>
+				<span className={cls.employeeProgress}>
+					<span style={{ width: `${getWorkloadPercent(spent, capacity)}%` }} />
+				</span>
+			</span>
+		);
+
 	const renderEmployees = () => (
-		<section className={cls.panel}>
+		<section
+			className={`${cls.panel} ${cls.employeePanel} ${
+				isEmployeeSidebarCompact ? cls.employeePanelCollapsed : ""
+			}`}
+			aria-label="Сотрудники"
+		>
 			<div className={cls.panelHeader}>
 				<h3>Сотрудники</h3>
-				<span>{formatHours(totalHours)}</span>
+				<span>
+					{employeeMetricsLoading ? (
+						<span className={cls.panelHeaderSkeleton} />
+					) : (
+						formatHours(sidebarTotalHours)
+					)}
+				</span>
 			</div>
 			<div className={cls.employeeList}>
 				{!isCalendarVisible && isReportDataLoading ? (
@@ -521,37 +695,54 @@ const ReportsCalendar = () => {
 								selectedUserId === "" ? cls.activeCard : ""
 							}`}
 							onClick={() => handleUserChange("")}
+							title="Весь отдел"
 						>
 							<span className={cls.avatar}>▦</span>
 							<span className={cls.employeeInfo}>
 								<strong>Весь отдел</strong>
 								<small>Все сотрудники</small>
-							</span>
-							<span className={cls.hoursPill}>{formatHours(totalHours)}</span>
-						</button>
-						{departmentUsers.map((user) => (
-							<button
-								type="button"
-								key={user.id}
-								className={`${cls.employeeCard} ${
-									selectedUserId === user.id ? cls.activeCard : ""
-								}`}
-								onClick={() => handleUserChange(user.id)}
-							>
-								{user.photo ? (
-									<img src={user.photo} alt="" className={cls.avatarImage} />
-								) : (
-									<span className={cls.avatar}>{user.title.charAt(0)}</span>
+								{renderEmployeeWorkload(
+									sidebarTotalHours,
+									totalCapacity,
+									undefined,
+									employeeMetricsLoading,
 								)}
-								<span className={cls.employeeInfo}>
-									<strong>{user.title}</strong>
-									<small>месяц</small>
-								</span>
-								<span className={cls.hoursPill}>
-									{formatHours(employeeHours.get(user.id) ?? 0)}
-								</span>
-							</button>
-						))}
+							</span>
+							{renderHoursPill(sidebarTotalHours, employeeMetricsLoading)}
+						</button>
+						{departmentUsers.map((user) => {
+							const spent = employeeMetrics.hours.get(user.id) ?? 0;
+							const notAtWork = employeeMetrics.notAtWork.get(user.id) ?? 0;
+
+							return (
+								<button
+									type="button"
+									key={user.id}
+									className={`${cls.employeeCard} ${
+										selectedUserId === user.id ? cls.activeCard : ""
+									}`}
+									onClick={() => handleUserChange(user.id)}
+									title={user.title}
+								>
+									{user.photo ? (
+										<img src={user.photo} alt="" className={cls.avatarImage} />
+									) : (
+										<span className={cls.avatar}>{user.title.charAt(0)}</span>
+									)}
+									<span className={cls.employeeInfo}>
+										<strong>{user.title}</strong>
+										<small>{view === "week" ? "неделя" : "месяц"}</small>
+										{renderEmployeeWorkload(
+											spent,
+											periodCapacity,
+											notAtWork,
+											employeeMetricsLoading,
+										)}
+									</span>
+									{renderHoursPill(spent, employeeMetricsLoading)}
+								</button>
+							);
+						})}
 					</>
 				)}
 			</div>
@@ -573,6 +764,12 @@ const ReportsCalendar = () => {
 						</div>
 					);
 				})}
+				{selectedUserId && (
+					<div className={`${cls.summaryItem} ${cls.notAtWork}`}>
+						<span>not at work</span>
+						<strong>{formatHours(selectedUserNotAtWork)}</strong>
+					</div>
+				)}
 			</div>
 		</section>
 	);
@@ -761,8 +958,21 @@ const ReportsCalendar = () => {
 			<div className={cls.shell}>
 				<header className={cls.toolbar}>
 					<div className={cls.leftTools}>
-						<button type="button" className={cls.backButton}>
-							←
+						<button
+							type="button"
+							className={`${cls.backButton} ${
+								isEmployeeSidebarCollapsed ? cls.backButtonActive : ""
+							}`}
+							onClick={() => setIsEmployeeSidebarCollapsed((prev) => !prev)}
+							aria-label={
+								isEmployeeSidebarCollapsed
+									? "Развернуть список сотрудников"
+									: "Свернуть список сотрудников"
+							}
+							aria-pressed={isEmployeeSidebarCollapsed}
+							disabled={!isCalendarVisible}
+						>
+							{isEmployeeSidebarCollapsed ? "→" : "←"}
 						</button>
 						<button
 							type="button"
@@ -777,14 +987,20 @@ const ReportsCalendar = () => {
 							<button
 								type="button"
 								className={view === "month" ? cls.activeTab : ""}
-								onClick={() => setView("month")}
+								onClick={() => {
+									setEmployeeMetrics(createEmptyEmployeeMetrics());
+									setView("month");
+								}}
 							>
 								Месяц
 							</button>
 							<button
 								type="button"
 								className={view === "week" ? cls.activeTab : ""}
-								onClick={() => setView("week")}
+								onClick={() => {
+									setEmployeeMetrics(createEmptyEmployeeMetrics());
+									setView("week");
+								}}
 							>
 								Неделя
 							</button>
@@ -794,14 +1010,26 @@ const ReportsCalendar = () => {
 				</header>
 
 				{isCalendarVisible ? (
-					<div className={cls.calendarLayout}>
-						<aside className={cls.sidebar}>
+					<div
+						className={`${cls.calendarLayout} ${
+							isEmployeeSidebarCollapsed ? cls.calendarLayoutCollapsed : ""
+						}`}
+					>
+						<aside
+							className={`${cls.sidebar} ${
+								isEmployeeSidebarCollapsed ? cls.sidebarCollapsed : ""
+							}`}
+						>
 							{renderEmployees()}
-							<section className={cls.clientsTree}>
-								<div className={cls.treeTitle}>Клиенты</div>
-								<ProjectActivitiesTree data={groupedClientActivities} />
-							</section>
-							{renderSummary()}
+							{!isEmployeeSidebarCollapsed && (
+								<>
+									<section className={cls.clientsTree}>
+										<div className={cls.treeTitle}>Клиенты</div>
+										<ProjectActivitiesTree data={groupedClientActivities} />
+									</section>
+									{renderSummary()}
+								</>
+							)}
 						</aside>
 						<main className={cls.calendarArea}>
 							<div className={cls.calendarScope}>
