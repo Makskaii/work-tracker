@@ -34,87 +34,48 @@ export type NavItem =
 
 export const APP_TITLE = "Workdesk";
 
+export const EXTRA_NAV_ITEMS: NavLeaf[] = [
+	{ label: "Загрузки по сотрудникам", to: "/reports/workload" },
+	{ label: "Список клиентов", to: "/reports/clients" },
+	{ label: "Client's Desk", to: "/client-profile" },
+	{ label: "Client Accounts", to: "/create-client-form" },
+	{ label: "Sprint Planner", to: "/sprint-planner" },
+];
+
 export const NAV_ITEMS: NavItem[] = [
 	{
 		key: "departments-reports",
-		label: "Departments' Reports",
-		type: "mega",
-		sections: [
-			{
-				title: "Коммерческое направление",
-				items: [
-					{
-						label: "Отчеты отдела продаж",
-						to: "/reports/sales",
-					},
-					{
-						label: "Отчёт рентабельности",
-						to: "/reports/profitability",
-					},
-					{
-						label: "Отчеты отдела бизнес-аналитики",
-						to: "/reports/commertial-analytics",
-					},
-				],
-			},
-			{
-				title: "Производственное направление",
-				groups: [
-					{
-						title: "Отчеты отдела разработки",
-						items: [
-							{
-								label: "Загрузка по сотрудникам",
-								to: "/reports/workload",
-							},
-							{
-								label: "Проектный менеджер",
-								to: "/reports/developers",
-							},
-						],
-					},
-					{
-						title: "Отчеты отдела проджект-менеджмента",
-						items: [
-							{
-								label: "Статус проектов",
-								to: "/reports/project-statuses",
-							},
-							{
-								label: "Проекты",
-								to: "/reports/projects",
-							},
-							{
-								label: "Клиенты(Новый список)",
-								to: "/reports/clients",
-							},
-						],
-					},
-				],
-			},
-			{
-				title: "Отчет по активности",
-				items: [{ label: "Общий отчет", to: "/reports/calendar" }],
-			},
-		],
+		label: "Отчёты отделов",
+		to: "/reports/sales",
+		type: "link",
 	},
 	{
-		key: "clients-desk",
-		label: "Client's Desk",
+		key: "client-app",
+		label: "Приложение для клиентов",
 		to: "/client-profile",
 		type: "link",
 	},
 	{
-		key: "client accounts",
-		label: "Client Accounts",
-		to: "/create-client-form",
-		type: "link",
-	},
-	{
-		key: "sprint-planner",
-		label: "Sprint Planner",
-		to: "/sprint-planner",
-		type: "link",
-		disabled: false,
+		key: "reports-sections",
+		label: "РАЗДЕЛЫ ОТЧЕТОВ",
+		type: "mega",
+		sections: [
+			{
+				title: "Календарь сотрудников",
+				items: [
+					{ label: "Календарь", to: "/reports/calendar" },
+					{ label: "Проектный менеджмент", to: "/reports/developers" },
+				],
+			},
+			{
+				title: "Отчеты",
+				items: [
+					{ label: "Отчет рентабельности", to: "/reports/projects" },
+					{ label: "Отчет аналитики", to: "/reports/commertial-analytics" },
+					{ label: "Отчет разработки", to: "/reports/project-statuses" },
+					{ label: "Отчет продаж", to: "/reports/sales" },
+				],
+			},
+		],
 	},
 ];

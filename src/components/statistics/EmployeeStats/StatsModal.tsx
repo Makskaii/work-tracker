@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
+import { Modal } from "@/components/modal";
 import { $api } from "@/shared/config";
 import {
 	Endpoints,
@@ -133,9 +134,17 @@ const getTaskProjectId = (task: TaskProps) => {
 export const StatsModal = ({
 	user,
 	onTasksChange,
+	selectedProjectId,
+	sprintStart,
+	sprintEnd,
+	onSprintShift,
 }: {
-	user: User;
+	user?: User;
 	onTasksChange?: (tasks: TaskProps[]) => void;
+	selectedProjectId?: string;
+	sprintStart?: string;
+	sprintEnd?: string;
+	onSprintShift?: (days: number) => void;
 }) => {
 	const { setUser, statuses, activities, projects } =
 		useOutletContext<ReportsContext>();
@@ -147,17 +156,28 @@ export const StatsModal = ({
 	>({});
 	const [allSprintReports, setAllSprintReports] = useState<ReportProps[]>([]);
 	const [expandedProjectId, setExpandedProjectId] = useState<string>("");
+	const [activeReport, setActiveReport] = useState<ReportProps | null>(null);
 
 	const [taskFilter, setTaskFilter] = useState<"all" | "overrun">("all");
 	const [overrunTaskIds, setOverrunTaskIds] = useState<string[]>([]);
 
-	const filteredTasks = useMemo(() => {
-		if (taskFilter === "overrun") {
-			return tasks.filter((task) => overrunTaskIds.includes(String(task.id)));
+	const projectFilteredTasks = useMemo(() => {
+		if (!selectedProjectId) {
+			return tasks;
 		}
 
-		return tasks;
-	}, [tasks, taskFilter, overrunTaskIds]);
+		return tasks.filter((task) => getTaskProjectId(task) === selectedProjectId);
+	}, [tasks, selectedProjectId]);
+
+	const filteredTasks = useMemo(() => {
+		if (taskFilter === "overrun") {
+			return projectFilteredTasks.filter((task) =>
+				overrunTaskIds.includes(String(task.id)),
+			);
+		}
+
+		return projectFilteredTasks;
+	}, [projectFilteredTasks, taskFilter, overrunTaskIds]);
 
 	const activeTask = useMemo(() => {
 		return filteredTasks.find((task) => String(task.id) === activeTaskId) ?? null;
@@ -170,6 +190,34 @@ export const StatsModal = ({
 
 		return reportsByTask[activeTaskId] ?? [];
 	}, [reportsByTask, activeTaskId]);
+
+	const filteredReportsByTask = useMemo(() => {
+		if (!selectedProjectId) {
+			return reportsByTask;
+		}
+
+		return projectFilteredTasks.reduce<Record<string, ReportProps[]>>(
+			(acc, task) => {
+				const taskId = String(task.id);
+				acc[taskId] = reportsByTask[taskId] ?? [];
+				return acc;
+			},
+			{},
+		);
+	}, [projectFilteredTasks, reportsByTask, selectedProjectId]);
+
+	const filteredSprintReports = useMemo(() => {
+		if (!selectedProjectId) {
+			return allSprintReports;
+		}
+
+		const taskIds = new Set(projectFilteredTasks.map((task) => String(task.id)));
+
+		return allSprintReports.filter((report) => {
+			const taskId = getReportTaskId(report);
+			return taskId ? taskIds.has(taskId) : false;
+		});
+	}, [allSprintReports, projectFilteredTasks, selectedProjectId]);
 
 	const sprintProjects = useMemo(() => {
 		const result = new Map<
@@ -202,7 +250,21 @@ export const StatsModal = ({
 		return Array.from(result.values());
 	}, [tasks, projects, reportsByTask]);
 
-	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders("workweek");
+	const selectedProject = useMemo(() => {
+		if (!selectedProjectId) {
+			return undefined;
+		}
+
+		return projects.find((item) => String(item.id) === selectedProjectId);
+	}, [projects, selectedProjectId]);
+
+	const {
+		setDay,
+		endOfTheWeek: localEndOfTheWeek,
+		startOfTheWeek: localStartOfTheWeek,
+	} = useSprintBorders("workweek");
+	const startOfTheWeek = sprintStart ?? localStartOfTheWeek;
+	const endOfTheWeek = sprintEnd ?? localEndOfTheWeek;
 
 	useEffect(() => {
 		if (!filteredTasks.length) {
@@ -220,6 +282,10 @@ export const StatsModal = ({
 	}, [filteredTasks, activeTaskId]);
 
 	useEffect(() => {
+		setExpandedProjectId(selectedProjectId ?? "");
+	}, [selectedProjectId]);
+
+	useEffect(() => {
 		let isCancelled = false;
 
 		const getReportsAndTasks = async () => {
@@ -228,7 +294,7 @@ export const StatsModal = ({
 					entityTypeId: EntityTypeIds.reports,
 					select: REPORT_SELECT_FIELDS,
 					filter: {
-						assignedById: user.id,
+						...(user?.id ? { assignedById: user.id } : {}),
 						">=begindate": startOfTheWeek,
 						"<=begindate": endOfTheWeek,
 						stageId: "DT1060_15:PREPARATION",
@@ -294,14 +360,14 @@ export const StatsModal = ({
 			}
 		};
 
-		if (user.id) {
+		if (user?.id || selectedProjectId) {
 			getReportsAndTasks();
 		}
 
 		return () => {
 			isCancelled = true;
 		};
-	}, [user.id, startOfTheWeek, endOfTheWeek, onTasksChange]);
+	}, [user?.id, selectedProjectId, startOfTheWeek, endOfTheWeek, onTasksChange]);
 
 	const projectsPanel = (
 		<div className={cls.projectsPanel}>
@@ -383,19 +449,33 @@ export const StatsModal = ({
 		<div className={cls.modalContent}>
 			<div className={cls.header}>
 				<div className={cls.userSection}>
-					<UserCard user={user} />
-					<div className={cls.calendarLink} onClick={() => setUser(user.id)}>
-						<Link to="/reports/calendar">Календарь отчетов</Link>
-					</div>
-				</div>
+					{user ? (
+						<UserCard user={user} />
+					) : (
+						<div className={cls.projectModeTitle}>
+							{selectedProject?.name ?? selectedProject?.title ?? "Клиент / проект"}
+						</div>
+					)}
 
-				<div className={cls.sprintControls}>
+					{user && (
+						<div className={cls.calendarLink} onClick={() => setUser(user.id)}>
+							<Link to="/reports/calendar">Календарь отчетов</Link>
+						</div>
+					)}
+					</div>
+
+					<div className={cls.sprintControls}>
 					<button
-						type="button"
-						className={cls.sprintButton}
-						onClick={() => {
-							setDay((prev) => prev.subtract(7, "day"));
-						}}
+							type="button"
+							className={cls.sprintButton}
+							onClick={() => {
+								if (onSprintShift) {
+									onSprintShift(-7);
+									return;
+								}
+
+								setDay((prev) => prev.subtract(7, "day"));
+							}}
 					>
 						пред. спринт
 					</button>
@@ -406,11 +486,16 @@ export const StatsModal = ({
 					</div>
 
 					<button
-						type="button"
-						className={cls.sprintButton}
-						onClick={() => {
-							setDay((prev) => prev.add(7, "day"));
-						}}
+							type="button"
+							className={cls.sprintButton}
+							onClick={() => {
+								if (onSprintShift) {
+									onSprintShift(7);
+									return;
+								}
+
+								setDay((prev) => prev.add(7, "day"));
+							}}
 					>
 						след. спринт
 					</button>
@@ -462,7 +547,12 @@ export const StatsModal = ({
 										String(report[ReportCodes.title] ?? report.title ?? "Отчет");
 
 									return (
-										<div key={report.id} className={cls.taskReportCard}>
+										<button
+											key={report.id}
+											type="button"
+											className={cls.taskReportCard}
+											onClick={() => setActiveReport(report)}
+										>
 											<div className={cls.taskReportDate}>
 												{report.begindate
 													? dayjs(report.begindate).format("DD.MM")
@@ -471,14 +561,14 @@ export const StatsModal = ({
 											<div className={cls.taskReportBody}>
 												<div className={cls.taskReportTitle}>{activityName}</div>
 												<div className={cls.taskReportMeta}>
-													{user.title} · {String(report[ReportCodes.title] ?? report.title ?? "")}
+														{user?.title ?? "Все сотрудники"} · {String(report[ReportCodes.title] ?? report.title ?? "")}
 												</div>
 											</div>
 											<span className={cls.payChip}>Client paid</span>
 											<span className={cls.hoursChip}>
 												{formatHours(report[ReportCodes.timeSpent])} ч
 											</span>
-										</div>
+										</button>
 									);
 								})
 							) : (
@@ -489,14 +579,14 @@ export const StatsModal = ({
 						</div>
 					</div>
 
-					{projectsPanel}
+					{user && projectsPanel}
 				</section>
 
 				<section className={cls.statsColumn}>
 					<EmployeeStats
-						tasks={tasks}
-						taskReportsMap={reportsByTask}
-						allSprintReports={allSprintReports}
+						tasks={projectFilteredTasks}
+						taskReportsMap={filteredReportsByTask}
+						allSprintReports={filteredSprintReports}
 						activities={activities}
 						sprintStart={startOfTheWeek}
 						sprintEnd={endOfTheWeek}
@@ -509,6 +599,56 @@ export const StatsModal = ({
 
 				</section>
 			</div>
+
+			<Modal
+				isOpen={Boolean(activeReport)}
+				onClose={() => setActiveReport(null)}
+				innerScroll
+			>
+				{activeReport && (
+					<div className={cls.reportModal}>
+						<div className={cls.reportModalHeader}>
+							<div>
+								<div className={cls.reportModalEyebrow}>Отчет</div>
+								<h3 className={cls.reportModalTitle}>
+									{String(
+										activeReport[ReportCodes.title] ??
+											activeReport.title ??
+											"Отчет",
+									)}
+								</h3>
+							</div>
+							<div className={cls.reportModalHours}>
+								{formatHours(activeReport[ReportCodes.timeSpent])} ч
+							</div>
+						</div>
+
+						<div className={cls.reportModalBody}>
+							<div className={cls.reportModalRow}>
+								<span>Дата</span>
+								<strong>
+									{activeReport.begindate
+										? dayjs(activeReport.begindate).format("DD.MM.YYYY")
+										: "—"}
+								</strong>
+							</div>
+							<div className={cls.reportModalRow}>
+								<span>Активность</span>
+								<strong>
+									{activities.find(
+										(item) =>
+											item.ID ===
+											String(activeReport[ReportCodes.activityType] ?? ""),
+									)?.NAME ?? "—"}
+								</strong>
+							</div>
+							<div className={cls.reportModalText}>
+								{String(activeReport.title ?? activeReport[ReportCodes.title] ?? "")}
+							</div>
+						</div>
+					</div>
+				)}
+			</Modal>
 		</div>
 	);
 };
