@@ -110,8 +110,8 @@
 
 .contentGrid {
     display: grid;
-    grid-template-columns: 540px 420px;
-    gap: 18px;
+    grid-template-columns: 500px 350px;
+    gap: 8px;
     align-items: start;
     min-height: 0;
 }
@@ -124,7 +124,7 @@
 .tasksColumn {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -132,7 +132,7 @@
 .statsColumn {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     scrollbar-gutter: stable;
     scrollbar-width: none;
     -ms-overflow-style: none;
