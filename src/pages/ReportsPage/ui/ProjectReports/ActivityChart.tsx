@@ -65,7 +65,7 @@ export const ProjectActivityChart = ({
 							style={{
 								textAlign: "center",
 								fontSize: "12px",
-								color: "#666",
+								color: "#9fb2cb",
 							}}
 						>
 							<div>{day.dayName}</div>
@@ -78,9 +78,9 @@ export const ProjectActivityChart = ({
 						<div
 							style={{
 								height: "280px",
-								border: "1px solid #dcdcdc",
-								borderRadius: "10px",
-								background: "#fafafa",
+								border: "1px solid rgba(73, 111, 160, 0.38)",
+								borderRadius: "8px",
+								background: "#07111f",
 								overflow: "hidden",
 								display: "flex",
 								flexDirection: "column",
@@ -141,7 +141,7 @@ export const ProjectActivityChart = ({
 										height: "100%",
 										display: "grid",
 										placeItems: "center",
-										color: "#999",
+										color: "#7d91ad",
 										fontSize: "12px",
 									}}
 								>
@@ -156,10 +156,10 @@ export const ProjectActivityChart = ({
 			{selectedSegment && (
 				<div
 					style={{
-						border: "1px solid #e5e7eb",
-						borderRadius: "12px",
+						border: "1px solid rgba(73, 111, 160, 0.38)",
+						borderRadius: "8px",
 						padding: "1rem",
-						background: "#fff",
+						background: "#0b1726",
 					}}
 				>
 					<div
@@ -174,13 +174,23 @@ export const ProjectActivityChart = ({
 							<div style={{ fontWeight: 700 }}>
 								{selectedSegment.activityName}
 							</div>
-							<div style={{ color: "#666666", fontSize: "14px" }}>
+							<div style={{ color: "#9fb2cb", fontSize: "14px" }}>
 								{dayjs(selectedSegment.date).format("DD.MM.YYYY")} ·{" "}
 								{selectedSegment.totalHours.toFixed(2)}ч
 							</div>
 						</div>
 
-						<button type="button" onClick={() => setSelectedSegment(null)}>
+						<button
+							type="button"
+							onClick={() => setSelectedSegment(null)}
+							style={{
+								border: "1px solid rgba(83, 137, 211, 0.46)",
+								borderRadius: "7px",
+								background: "#183153",
+								color: "#cfe2ff",
+								cursor: "pointer",
+							}}
+						>
 							Закрыть
 						</button>
 					</div>
@@ -195,19 +205,20 @@ export const ProjectActivityChart = ({
 									onClick={() => openTask(report.raw.id, EntityTypeIds.reports)}
 									key={report.id}
 									style={{
-										border: "1px solid #eee",
-										borderRadius: "10px",
+										border: "1px solid rgba(73, 111, 160, 0.38)",
+										borderRadius: "8px",
 										padding: "10px 12px",
 										display: "flex",
 										flexDirection: "column",
 										gap: "4px",
+										background: "#101d2f",
 									}}
 								>
 									<div style={{ fontWeight: 600 }}>{report.title}</div>
-									<div style={{ fontSize: "14px", color: "#666" }}>
+									<div style={{ fontSize: "14px", color: "#9fb2cb" }}>
 										Исполнитель: {user?.title ?? report.assignedById}
 									</div>
-									<div style={{ fontSize: "14px", color: "#666" }}>
+									<div style={{ fontSize: "14px", color: "#9fb2cb" }}>
 										Время: {report.hours.toFixed(2)}ч
 									</div>
 
@@ -215,7 +226,7 @@ export const ProjectActivityChart = ({
 										<div
 											style={{
 												fontSize: "14px",
-												color: "#666",
+												color: "#9fb2cb",
 												display: "flex",
 												justifyContent: "flex-end",
 												alignItems: "center",

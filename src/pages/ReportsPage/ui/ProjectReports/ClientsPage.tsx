@@ -27,13 +27,20 @@ import type {
 	ClientProjectProps,
 	ReportsContext,
 	TaskProps,
+	User,
 } from "../../../../shared/types/types";
 import { TASK_STAGE_IDS } from "../../constants/statuses";
+import { ProjectActivityChart } from "./ActivityChart";
 import styles from "./ProjectsReports.module.scss";
 
 type ClientWithProjects = ClientListItems & {
 	projects?: ClientProjectProps[];
 };
+
+const getSortedItems = <T,>(
+	items: readonly T[],
+	compareFn: (a: T, b: T) => number,
+) => [...items].sort(compareFn);
 
 const STATUS_META: Record<
 	ProjectStatus,
@@ -143,6 +150,16 @@ const getProjectCompanyId = (project: ClientProjectProps) => {
 	return String(project[ProjectCodes.company] ?? "").trim();
 };
 
+const getClientTitle = (client: ClientWithProjects) => {
+	return client.NAME || client.title || `Клиент #${client.ID}`;
+};
+
+const getTaskEstimate = (task: TaskProps) => {
+	return (
+		Number(String(task[TaskCodes.estimateTime] ?? 0).replace(",", ".")) || 0
+	);
+};
+
 const getReportTaskId = (report: ReportProps) => {
 	const taskId = report[ReportCodes.parentId] ?? report[ReportCodes.taskId];
 	const normalizedTaskId =
@@ -250,24 +267,15 @@ const ClientTasksModal = ({
 	startOfTheWeek: string;
 	tasks: TaskProps[];
 }) => {
-	const { users, statuses } = useOutletContext<ReportsContext>();
+	const { users, statuses, activities } = useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
+	const [selectedUserId, setSelectedUserId] = useState("");
 	const tasksMap = useMemo(
 		() => new Map(tasks.map((task) => [String(task.id), task])),
 		[tasks],
 	);
 	const [loadingReport, setLoadingReport] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
-
-	const reportsByTask = useMemo(() => {
-		return reports.reduce<Record<string, ReportProps[]>>((acc, report) => {
-			const taskId = getReportTaskId(report);
-			if (!taskId) return acc;
-
-			acc[taskId] = [...(acc[taskId] ?? []), report];
-			return acc;
-		}, {});
-	}, [reports]);
 
 	const getReportPdf = async (
 		id: string,
@@ -302,31 +310,89 @@ const ClientTasksModal = ({
 		}
 	};
 
+	const clientReports = useMemo(() => {
+		return reports.filter((report) => {
+			const taskId = getReportTaskId(report);
+			const task = tasksMap.get(taskId);
+
+			return (client.projects ?? []).some((project) =>
+				isReportForProject({
+					report,
+					task,
+					project,
+				}),
+			);
+		});
+	}, [client.projects, reports, tasksMap]);
+
+	const clientTasks = useMemo(() => {
+		const taskIds = new Set(clientReports.map(getReportTaskId).filter(Boolean));
+
+		return getSortedItems(
+			Array.from(taskIds)
+				.map((taskId) => tasksMap.get(taskId))
+				.filter((task): task is TaskProps => Boolean(task)),
+			(a, b) => a.stageId.localeCompare(b.stageId),
+		);
+	}, [clientReports, tasksMap]);
+
+	const clientUsers = useMemo(() => {
+		const userIds = new Set([
+			...clientTasks.map((task) => String(task.assignedById)),
+			...clientReports.map((report) => String(report.assignedById)),
+		]);
+
+		return getSortedItems(
+			users.filter((user) => userIds.has(String(user.id))),
+			(a, b) => a.title.localeCompare(b.title, "ru"),
+		);
+	}, [clientReports, clientTasks, users]);
+
+	const filteredReports = useMemo(() => {
+		if (!selectedUserId) return clientReports;
+
+		return clientReports.filter(
+			(report) => String(report.assignedById) === selectedUserId,
+		);
+	}, [clientReports, selectedUserId]);
+
+	const filteredTasks = useMemo(() => {
+		if (!selectedUserId) return clientTasks;
+
+		return clientTasks.filter(
+			(task) => String(task.assignedById) === selectedUserId,
+		);
+	}, [clientTasks, selectedUserId]);
+
+	const reportsByTask = useMemo(() => {
+		return filteredReports.reduce<Record<string, ReportProps[]>>(
+			(acc, report) => {
+				const taskId = getReportTaskId(report);
+				if (!taskId) return acc;
+
+				acc[taskId] = [...(acc[taskId] ?? []), report];
+				return acc;
+			},
+			{},
+		);
+	}, [filteredReports]);
+
 	const projectsWithTasks = useMemo(() => {
 		return (client.projects ?? [])
 			.map((project) => {
-				const taskIds = new Set(
-					reports
-						.filter((report) => {
-							const taskId = getReportTaskId(report);
-							const task = tasksMap.get(taskId);
+				const projectTasks = filteredTasks.filter((task) => {
+					const taskProjectId = String(
+						task[TaskCodes.parentproject] ?? "",
+					).trim();
+					const taskCompanyId = String(task[TaskCodes.company] ?? "").trim();
+					const projectId = String(project.projectId ?? project.id);
+					const companyId = getProjectCompanyId(project);
 
-							return (
-								Boolean(taskId) &&
-								isReportForProject({
-									report,
-									task,
-									project,
-								})
-							);
-						})
-						.map(getReportTaskId),
-				);
-
-				const projectTasks = Array.from(taskIds)
-					.map((taskId) => tasksMap.get(taskId))
-					.filter((task): task is TaskProps => Boolean(task))
-					.toSorted((a, b) => a.stageId.localeCompare(b.stageId));
+					return (
+						taskProjectId === projectId &&
+						(!companyId || taskCompanyId === companyId)
+					);
+				});
 
 				return {
 					project,
@@ -334,7 +400,19 @@ const ClientTasksModal = ({
 				};
 			})
 			.filter((item) => item.tasks.length);
-	}, [client.projects, reports, tasksMap]);
+	}, [client.projects, filteredTasks]);
+
+	const totalSpent = filteredReports.reduce(
+		(acc, report) => acc + Number(report[ReportCodes.timeSpent] ?? 0),
+		0,
+	);
+	const totalPlan = filteredTasks.reduce(
+		(acc, task) => acc + getTaskEstimate(task),
+		0,
+	);
+	const selectedUser = clientUsers.find(
+		(user) => String(user.id) === selectedUserId,
+	);
 
 	const getTaskSpent = (taskId: string) => {
 		return (reportsByTask[taskId] ?? []).reduce((acc, report) => {
@@ -343,17 +421,9 @@ const ClientTasksModal = ({
 	};
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-			<div
-				style={{
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "center",
-					gap: "16px",
-					flexWrap: "wrap",
-				}}
-			>
-				<div style={{ fontSize: "20px", fontWeight: 700 }}>{client.NAME}</div>
+		<div className={styles.clientStatsModal}>
+			<header className={styles.clientStatsHeader}>
+				<div className={styles.clientStatsTitle}>{getClientTitle(client)}</div>
 				{loadUrl === "" ? (
 					<button
 						disabled={loadingReport}
@@ -381,18 +451,13 @@ const ClientTasksModal = ({
 						Скачать отчёт
 					</button>
 				)}
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						gap: "10px",
-					}}
-				>
+				<div className={styles.weekSwitcher}>
 					<button type="button" onClick={onPrevWeek}>
 						пред. неделя
 					</button>
 
-					<div style={{ fontWeight: 600 }}>
+					<div className={styles.weekLabel}>
+						<span>Неделя</span>
 						{dayjs(startOfTheWeek).format("DD.MM")}-
 						{dayjs(endOfTheWeek).format("DD.MM")}
 					</div>
@@ -401,43 +466,119 @@ const ClientTasksModal = ({
 						след. неделя
 					</button>
 				</div>
-			</div>
+				<div className={styles.clientStatsTotal}>
+					Всего времени: {totalSpent.toFixed(1)} ч.
+				</div>
+			</header>
 
-			{projectsWithTasks.length ? (
-				projectsWithTasks.map(({ project, tasks }) => (
-					<section
-						key={project.id}
-						style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-					>
-						<div style={{ fontWeight: 600 }}>
-							{project.title} · {tasks.length}
-						</div>
+			<div className={styles.clientStatsBody}>
+				<div className={styles.clientTasksColumn}>
+					<div className={styles.clientStatsMetric}>
+						<span>Задач за неделю: {filteredTasks.length}</span>
+					</div>
 
-						<div
-							style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-						>
-							{tasks.map((task) => (
-								<div
-									key={task.id}
-									onClick={() => openTask(task.id, EntityTypeIds.tasks)}
-								>
-									<TaskItemExtended
-										task={task}
-										estimateTime={task[TaskCodes.estimateTime]}
-										timeSpent={getTaskSpent(String(task.id))}
-										statuses={statuses}
-										users={users}
-									/>
+					{projectsWithTasks.length ? (
+						projectsWithTasks.map(({ project, tasks }) => (
+							<section key={project.id} className={styles.clientProjectGroup}>
+								<div className={styles.clientProjectGroupTitle}>
+									<span>{project.title}</span>
+									<strong>{tasks.length}</strong>
 								</div>
-							))}
+
+								<div className={styles.clientTaskList}>
+									{tasks.map((task) => (
+										<div
+											key={task.id}
+											onClick={() => openTask(task.id, EntityTypeIds.tasks)}
+										>
+											<TaskItemExtended
+												task={task}
+												estimateTime={task[TaskCodes.estimateTime]}
+												timeSpent={getTaskSpent(String(task.id))}
+												statuses={statuses}
+												users={users}
+											/>
+										</div>
+									))}
+								</div>
+							</section>
+						))
+					) : (
+						<div className={styles.noTasksMessage}>
+							Нет задач по отчетам за выбранную неделю
+						</div>
+					)}
+				</div>
+				<aside className={styles.clientStatsAside}>
+					<div className={styles.clientStatsSummary}>
+						<div>
+							<span>Всего затрачено за неделю:</span>
+							<strong>{totalSpent.toFixed(1)} ч.</strong>
+						</div>
+						<div>
+							<span>План по часам:</span>
+							<strong>{totalPlan.toFixed(1)} ч.</strong>
+						</div>
+					</div>
+
+					<section className={styles.clientDevelopersCard}>
+						<div className={styles.clientStatsSectionTitle}>Разработчики:</div>
+						<div className={styles.clientDevelopersList}>
+							<button
+								type="button"
+								className={classNames(styles.clientDeveloperButton, {
+									[styles.clientDeveloperButtonActive]: selectedUserId === "",
+								})}
+								onClick={() => setSelectedUserId("")}
+							>
+								<span className={styles.clientDeveloperAvatar}>∑</span>
+								<span>Все сотрудники</span>
+								<strong>{clientTasks.length}</strong>
+							</button>
+							{clientUsers.map((user: User) => {
+								const userTaskCount = clientTasks.filter(
+									(task) => String(task.assignedById) === String(user.id),
+								).length;
+
+								return (
+									<button
+										type="button"
+										key={user.id}
+										className={classNames(styles.clientDeveloperButton, {
+											[styles.clientDeveloperButtonActive]:
+												selectedUserId === String(user.id),
+										})}
+										onClick={() => setSelectedUserId(String(user.id))}
+									>
+										{user.photo ? (
+											<img src={user.photo} alt="" />
+										) : (
+											<span className={styles.clientDeveloperAvatar}>
+												{user.title.charAt(0)}
+											</span>
+										)}
+										<span>{user.title}</span>
+										<strong>{userTaskCount}</strong>
+									</button>
+								);
+							})}
 						</div>
 					</section>
-				))
-			) : (
-				<div className={styles.noTasksMessage}>
-					Нет задач по отчетам за выбранную неделю
-				</div>
-			)}
+
+					<section className={styles.clientActivityCard}>
+						<div className={styles.clientStatsSectionTitle}>
+							Активность клиента:
+							{selectedUser ? <span>{selectedUser.title}</span> : null}
+						</div>
+						<ProjectActivityChart
+							reports={filteredReports}
+							activities={activities}
+							users={users}
+							startOfWeek={startOfTheWeek}
+						/>
+					</section>
+				</aside>
+			</div>
 		</div>
 	);
 };
@@ -558,99 +699,106 @@ const ProjectsReports = () => {
 
 			<div className={styles.contentContainer}>
 				<div className={styles.itemsContainer}>
-					{clients
-						.toSorted((a, b) => {
-							if (a.projects && b.projects) {
-								return b.projects?.length - a.projects?.length;
-							}
-							return 0;
-						})
-						.map((client) => {
-							const isExpanded = expandedClients[client.ID];
-							const clientProjects = client.projects ?? [];
+					{getSortedItems(clients, (a, b) => {
+						if (a.projects && b.projects) {
+							return b.projects?.length - a.projects?.length;
+						}
+						return 0;
+					}).map((client) => {
+						const isExpanded = expandedClients[client.ID];
+						const clientProjects = client.projects ?? [];
 
-							return (
-								<div key={client.ID} className={styles.clientBlock}>
-									<div
-										className={styles.clientItem}
-										onClick={() => toggleClient(client.ID)}
-									>
-										<div className={styles.clientTitle}>{client.NAME}</div>
-										<div className={styles.clientMeta}>
-											<span>{clientProjects.length} проектов</span>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													setActiveClient(client);
-													setClientOpen(true);
-												}}
-											>
-												Открыть
-											</button>
-
-											<span className={styles.arrow}>
-												{isExpanded ? "▲" : "▼"}
-											</span>
-										</div>
+						return (
+							<div key={client.ID} className={styles.clientBlock}>
+								<div
+									className={styles.clientItem}
+									onClick={() => toggleClient(client.ID)}
+									aria-expanded={Boolean(isExpanded)}
+								>
+									<div className={styles.clientTitle}>
+										{getClientTitle(client)}
 									</div>
+									<div className={styles.clientMeta}>
+										<span>{clientProjects.length} проектов</span>
+										<button
+											type="button"
+											onClick={(event) => {
+												event.stopPropagation();
+												toggleClient(client.ID);
+											}}
+										>
+											{isExpanded ? "Свернуть" : "Проекты"}
+										</button>
+										<button
+											type="button"
+											onClick={(event) => {
+												event.stopPropagation();
+												setActiveClient(client);
+												setClientOpen(true);
+											}}
+										>
+											Отчёт
+										</button>
 
-									{isExpanded && (
-										<div className={styles.projectsList}>
-											{clientProjects
-												.toSorted((a, b) => {
-													const statusA =
-														getProjectMeta(String(a.id))?.status ??
-														"Отсутствуют задачи";
-													const statusB =
-														getProjectMeta(String(b.id))?.status ??
-														"Отсутствуют задачи";
-
-													return (
-														STATUS_META[statusA].order -
-														STATUS_META[statusB].order
-													);
-												})
-												.map((project) => {
-													const meta = getProjectMeta(String(project.id));
-													const status = meta?.status ?? "Отсутствуют задачи";
-
-													return (
-														<div
-															onClick={() => {
-																if ((meta?.tasksCount ?? 0) === 0) {
-																	notify({
-																		message: "Задач совсем нет",
-																		type: "warning",
-																	});
-																	return;
-																}
-
-																setProjectOpen(true);
-																setActiveProject(project);
-															}}
-															key={project.id}
-															className={styles.projectItem}
-														>
-															<div className={styles.projectTitle}>
-																{project.title}
-															</div>
-
-															<div className={styles.projectInfo}>
-																<ProjectStatusBadge status={status} />
-
-																<div className={styles.tasksCount}>
-																	Задач: {meta?.tasksCount ?? 0}
-																</div>
-															</div>
-														</div>
-													);
-												})}
-										</div>
-									)}
+										<span className={styles.arrow}>
+											{isExpanded ? "▲" : "▼"}
+										</span>
+									</div>
 								</div>
-							);
-						})}
+
+								{isExpanded && (
+									<div className={styles.projectsList}>
+										{getSortedItems(clientProjects, (a, b) => {
+											const statusA =
+												getProjectMeta(String(a.id))?.status ??
+												"Отсутствуют задачи";
+											const statusB =
+												getProjectMeta(String(b.id))?.status ??
+												"Отсутствуют задачи";
+
+											return (
+												STATUS_META[statusA].order - STATUS_META[statusB].order
+											);
+										}).map((project) => {
+											const meta = getProjectMeta(String(project.id));
+											const status = meta?.status ?? "Отсутствуют задачи";
+
+											return (
+												<div
+													onClick={() => {
+														if ((meta?.tasksCount ?? 0) === 0) {
+															notify({
+																message: "Задач совсем нет",
+																type: "warning",
+															});
+															return;
+														}
+
+														setProjectOpen(true);
+														setActiveProject(project);
+													}}
+													key={project.id}
+													className={styles.projectItem}
+												>
+													<div className={styles.projectTitle}>
+														{project.title}
+													</div>
+
+													<div className={styles.projectInfo}>
+														<ProjectStatusBadge status={status} />
+
+														<div className={styles.tasksCount}>
+															Задач: {meta?.tasksCount ?? 0}
+														</div>
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								)}
+							</div>
+						);
+					})}
 				</div>
 				{activeProject && (
 					<Modal
