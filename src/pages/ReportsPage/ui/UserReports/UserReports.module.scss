@@ -88,12 +88,13 @@
 
 .pmLayout {
     display: grid;
-    grid-template-columns: 320px auto;
-    gap: 28px;
+    grid-template-columns: 340px 1024px;
+    gap: 16px;
+    min-width: 1380px;
     width: fit-content;
     max-width: none;
     min-height: 0;
-    padding: 16px;
+    padding: 20px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 28px;
     background: rgba(9, 19, 34, 0.28);
@@ -103,7 +104,7 @@
 }
 
 .pmLayoutCollapsed {
-    grid-template-columns: 72px auto;
+    grid-template-columns: 72px 1024px;
 }
 
 .pmListPanel {
@@ -121,7 +122,8 @@
 }
 
 .pmListHead {
-    display: flex;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
     align-items: center;
     gap: 6px;
     padding-bottom: 8px;
@@ -189,7 +191,7 @@
     gap: 4px;
     width: 100%;
     min-width: 0;
-    padding: 9px 10px;
+    padding: 12px 14px;
     border: 1px solid transparent;
     border-radius: 13px;
     background: rgba(22, 36, 55, 0.28);
@@ -280,9 +282,28 @@
     padding-right: 4px;
 }
 
+.pmClientGroup {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.pmClient {
+    padding: 8px 10px;
+    border-radius: 12px;
+}
+
+.pmClientProjects {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding-left: 10px;
+    border-left: 1px solid var(--color-border-active);
+}
+
 .pmProject {
-    margin-left: 10px;
-    width: calc(100% - 10px);
+    margin-left: 0;
+    width: 100%;
     padding: 8px 10px;
     border-radius: 12px;
 }
@@ -307,10 +328,10 @@
 }
 
 .pmDetail {
-    min-width: 0;
-    width: 1032px;
-    overflow: visible;
-    padding: 14px;
+    min-width: 1024px;
+    width: 1024px;
+    overflow: hidden;
+    padding: 20px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-panel);
     background: rgba(15, 28, 46, 0.3);
@@ -325,7 +346,8 @@
 }
 
 .pmLayoutCollapsed .pmListHead {
-    justify-content: center;
+    grid-template-columns: 30px;
+    justify-content: start;
     padding-bottom: 0;
     border-bottom: 0;
 }

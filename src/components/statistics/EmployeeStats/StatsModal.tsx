@@ -135,10 +135,16 @@ export const StatsModal = ({
 	user,
 	onTasksChange,
 	selectedProjectId,
+	sprintStart,
+	sprintEnd,
+	onSprintShift,
 }: {
-	user: User;
+	user?: User;
 	onTasksChange?: (tasks: TaskProps[]) => void;
 	selectedProjectId?: string;
+	sprintStart?: string;
+	sprintEnd?: string;
+	onSprintShift?: (days: number) => void;
 }) => {
 	const { setUser, statuses, activities, projects } =
 		useOutletContext<ReportsContext>();
@@ -244,7 +250,21 @@ export const StatsModal = ({
 		return Array.from(result.values());
 	}, [tasks, projects, reportsByTask]);
 
-	const { setDay, endOfTheWeek, startOfTheWeek } = useSprintBorders("workweek");
+	const selectedProject = useMemo(() => {
+		if (!selectedProjectId) {
+			return undefined;
+		}
+
+		return projects.find((item) => String(item.id) === selectedProjectId);
+	}, [projects, selectedProjectId]);
+
+	const {
+		setDay,
+		endOfTheWeek: localEndOfTheWeek,
+		startOfTheWeek: localStartOfTheWeek,
+	} = useSprintBorders("workweek");
+	const startOfTheWeek = sprintStart ?? localStartOfTheWeek;
+	const endOfTheWeek = sprintEnd ?? localEndOfTheWeek;
 
 	useEffect(() => {
 		if (!filteredTasks.length) {
@@ -274,7 +294,7 @@ export const StatsModal = ({
 					entityTypeId: EntityTypeIds.reports,
 					select: REPORT_SELECT_FIELDS,
 					filter: {
-						assignedById: user.id,
+						...(user?.id ? { assignedById: user.id } : {}),
 						">=begindate": startOfTheWeek,
 						"<=begindate": endOfTheWeek,
 						stageId: "DT1060_15:PREPARATION",
@@ -340,14 +360,14 @@ export const StatsModal = ({
 			}
 		};
 
-		if (user.id) {
+		if (user?.id || selectedProjectId) {
 			getReportsAndTasks();
 		}
 
 		return () => {
 			isCancelled = true;
 		};
-	}, [user.id, startOfTheWeek, endOfTheWeek, onTasksChange]);
+	}, [user?.id, selectedProjectId, startOfTheWeek, endOfTheWeek, onTasksChange]);
 
 	const projectsPanel = (
 		<div className={cls.projectsPanel}>
@@ -429,19 +449,33 @@ export const StatsModal = ({
 		<div className={cls.modalContent}>
 			<div className={cls.header}>
 				<div className={cls.userSection}>
-					<UserCard user={user} />
-					<div className={cls.calendarLink} onClick={() => setUser(user.id)}>
-						<Link to="/reports/calendar">Календарь отчетов</Link>
-					</div>
-				</div>
+					{user ? (
+						<UserCard user={user} />
+					) : (
+						<div className={cls.projectModeTitle}>
+							{selectedProject?.name ?? selectedProject?.title ?? "Клиент / проект"}
+						</div>
+					)}
 
-				<div className={cls.sprintControls}>
+					{user && (
+						<div className={cls.calendarLink} onClick={() => setUser(user.id)}>
+							<Link to="/reports/calendar">Календарь отчетов</Link>
+						</div>
+					)}
+					</div>
+
+					<div className={cls.sprintControls}>
 					<button
-						type="button"
-						className={cls.sprintButton}
-						onClick={() => {
-							setDay((prev) => prev.subtract(7, "day"));
-						}}
+							type="button"
+							className={cls.sprintButton}
+							onClick={() => {
+								if (onSprintShift) {
+									onSprintShift(-7);
+									return;
+								}
+
+								setDay((prev) => prev.subtract(7, "day"));
+							}}
 					>
 						пред. спринт
 					</button>
@@ -452,11 +486,16 @@ export const StatsModal = ({
 					</div>
 
 					<button
-						type="button"
-						className={cls.sprintButton}
-						onClick={() => {
-							setDay((prev) => prev.add(7, "day"));
-						}}
+							type="button"
+							className={cls.sprintButton}
+							onClick={() => {
+								if (onSprintShift) {
+									onSprintShift(7);
+									return;
+								}
+
+								setDay((prev) => prev.add(7, "day"));
+							}}
 					>
 						след. спринт
 					</button>
@@ -522,7 +561,7 @@ export const StatsModal = ({
 											<div className={cls.taskReportBody}>
 												<div className={cls.taskReportTitle}>{activityName}</div>
 												<div className={cls.taskReportMeta}>
-													{user.title} · {String(report[ReportCodes.title] ?? report.title ?? "")}
+														{user?.title ?? "Все сотрудники"} · {String(report[ReportCodes.title] ?? report.title ?? "")}
 												</div>
 											</div>
 											<span className={cls.payChip}>Client paid</span>
@@ -540,7 +579,7 @@ export const StatsModal = ({
 						</div>
 					</div>
 
-					{projectsPanel}
+					{user && projectsPanel}
 				</section>
 
 				<section className={cls.statsColumn}>

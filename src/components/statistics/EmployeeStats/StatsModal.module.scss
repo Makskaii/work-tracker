@@ -38,6 +38,20 @@
     }
 }
 
+.projectModeTitle {
+    min-width: 0;
+    padding: 9px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: rgba(22, 36, 55, 0.26);
+    color: var(--color-text);
+    font-size: 15px;
+    font-weight: 900;
+}
+
 .sprintControls {
     display: flex;
     gap: 6px;
@@ -96,8 +110,8 @@
 
 .contentGrid {
     display: grid;
-    grid-template-columns: minmax(460px, 560px) minmax(520px, 620px);
-    gap: 12px;
+    grid-template-columns: 540px 420px;
+    gap: 18px;
     align-items: start;
     min-height: 0;
 }
@@ -110,7 +124,7 @@
 .tasksColumn {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -118,8 +132,7 @@
 .statsColumn {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    overflow: visible;
+    gap: 16px;
     scrollbar-gutter: stable;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -178,7 +191,7 @@
 
 .taskButton {
     width: 100%;
-    padding: 8px 9px;
+    padding: 14px;
     border: 1px solid transparent;
     border-radius: 12px;
     background: transparent;
@@ -655,10 +668,6 @@
 
     .sprintButton {
         width: 100%;
-    }
-
-    .contentGrid {
-        grid-template-columns: 1fr;
     }
 
     .statsColumn {

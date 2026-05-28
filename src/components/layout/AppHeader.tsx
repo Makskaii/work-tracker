@@ -36,7 +36,7 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-	const [isExtraListsOpen, setIsExtraListsOpen] = useState(true);
+	const [isExtraListsOpen, setIsExtraListsOpen] = useState(false);
 
 	const rootRef = useRef<HTMLElement | null>(null);
 	const location = useLocation();
