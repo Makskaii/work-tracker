@@ -110,8 +110,8 @@
 
 .contentGrid {
     display: grid;
-    grid-template-columns: 540px 420px;
-    gap: 18px;
+    grid-template-columns: 500px 350px;
+    gap: 8px;
     align-items: start;
     min-height: 0;
 }
@@ -124,7 +124,11 @@
 .tasksColumn {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: rgba(15, 28, 46, 0.18);
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -132,7 +136,7 @@
 .statsColumn {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     scrollbar-gutter: stable;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -152,7 +156,7 @@
     font-weight: 950;
 }
 
-.tasksHeader > span:last-child {
+.tasksHeader>span:last-child {
     flex-shrink: 0;
     color: var(--color-muted);
     text-align: right;
@@ -225,21 +229,21 @@
     outline: none;
 }
 
-.taskButton > div:first-child {
+.taskButton>div:first-child {
     border-color: transparent;
     padding: 0;
     background: rgba(22, 36, 55, 0.2);
 }
 
-.taskButtonActive > div {
+.taskButtonActive>div {
     border-color: transparent !important;
     background: transparent;
     box-shadow: none !important;
     outline: none !important;
 }
 
-.taskButtonActive > *,
-.taskButtonActive:hover > * {
+.taskButtonActive>*,
+.taskButtonActive:hover>* {
     border-color: transparent !important;
     box-shadow: none !important;
     outline: none !important;
@@ -711,7 +715,7 @@
         gap: 6px;
     }
 
-    .tasksHeader > span:last-child,
+    .tasksHeader>span:last-child,
     .taskReportsPanelNote {
         text-align: left;
     }
