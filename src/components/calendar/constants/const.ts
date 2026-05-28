@@ -54,6 +54,7 @@ export enum TaskCodes {
 	company = "ufCrm14_1775127945",
 	parentproject = "parentId1092",
 	taskType = "ufCrm14_1775231676", // clients paid, company paid(ours), unpaid
+	taskAllowed = "ufCrm14_1779875406638",
 }
 
 export enum ActivityType {

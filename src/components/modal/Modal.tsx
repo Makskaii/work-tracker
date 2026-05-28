@@ -8,6 +8,7 @@ type ModalProps = {
 	innerScroll?: boolean;
 	isOpen?: boolean;
 	children: ReactNode;
+	className?: string;
 	size?: "full" | "covered" | "small";
 	closeOnBackdropClick?: boolean;
 	onClose?(): void;
@@ -15,6 +16,7 @@ type ModalProps = {
 
 export default function Modal({
 	children,
+	className,
 	size,
 	isOpen,
 	onClose,
@@ -75,7 +77,7 @@ export default function Modal({
 			<dialog
 				ref={modalRef}
 				open={isOpen}
-				className={cls.modal}
+				className={`${cls.modal} ${className ?? ""}`.trim()}
 				style={{
 					height: getModalHeight(size),
 					maxWidth: getModalWidth(size),

@@ -4,6 +4,7 @@ import Modal from "@/components/modal/Modal";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import type { ClientProjectProps } from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
+import theme from "../ClientProfileTheme.module.scss";
 import styles from "./ClientProfile.module.scss";
 
 type CreateTaskProposalModalProps = {
@@ -138,7 +139,13 @@ export const CreateTaskProposalModal = ({
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} size="small" innerScroll>
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			size="small"
+			innerScroll
+			className={theme.lightTheme}
+		>
 			<form className={styles.taskModal} onSubmit={handleSubmit(onSubmit)}>
 				<div className={styles.taskModalHeader}>
 					<h2 className={styles.taskModalTitle}>Новая задача</h2>

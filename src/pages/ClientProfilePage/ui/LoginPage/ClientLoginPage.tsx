@@ -4,6 +4,7 @@ import { useAuth } from "@/shared/config/auth/AuthGuard";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import brandLogo from "/evolution/logo.jpg";
+import theme from "../ClientProfileTheme.module.scss";
 import styles from "./ClientLogin.module.scss";
 
 type ClientLoginProps = {
@@ -65,7 +66,7 @@ export const ClientLoginPage = () => {
 	};
 
 	return (
-		<div className={styles.page}>
+		<div className={`${styles.page} ${theme.lightTheme}`}>
 			<div className={styles.shell}>
 				<div className={styles.brandSide}>
 					<div className={styles.brandContent}>
