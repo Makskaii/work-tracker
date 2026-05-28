@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
+import { Modal } from "@/components/modal";
 import { $api } from "@/shared/config";
 import {
 	Endpoints,
@@ -133,9 +134,11 @@ const getTaskProjectId = (task: TaskProps) => {
 export const StatsModal = ({
 	user,
 	onTasksChange,
+	selectedProjectId,
 }: {
 	user: User;
 	onTasksChange?: (tasks: TaskProps[]) => void;
+	selectedProjectId?: string;
 }) => {
 	const { setUser, statuses, activities, projects } =
 		useOutletContext<ReportsContext>();
@@ -147,17 +150,28 @@ export const StatsModal = ({
 	>({});
 	const [allSprintReports, setAllSprintReports] = useState<ReportProps[]>([]);
 	const [expandedProjectId, setExpandedProjectId] = useState<string>("");
+	const [activeReport, setActiveReport] = useState<ReportProps | null>(null);
 
 	const [taskFilter, setTaskFilter] = useState<"all" | "overrun">("all");
 	const [overrunTaskIds, setOverrunTaskIds] = useState<string[]>([]);
 
-	const filteredTasks = useMemo(() => {
-		if (taskFilter === "overrun") {
-			return tasks.filter((task) => overrunTaskIds.includes(String(task.id)));
+	const projectFilteredTasks = useMemo(() => {
+		if (!selectedProjectId) {
+			return tasks;
 		}
 
-		return tasks;
-	}, [tasks, taskFilter, overrunTaskIds]);
+		return tasks.filter((task) => getTaskProjectId(task) === selectedProjectId);
+	}, [tasks, selectedProjectId]);
+
+	const filteredTasks = useMemo(() => {
+		if (taskFilter === "overrun") {
+			return projectFilteredTasks.filter((task) =>
+				overrunTaskIds.includes(String(task.id)),
+			);
+		}
+
+		return projectFilteredTasks;
+	}, [projectFilteredTasks, taskFilter, overrunTaskIds]);
 
 	const activeTask = useMemo(() => {
 		return filteredTasks.find((task) => String(task.id) === activeTaskId) ?? null;
@@ -170,6 +184,34 @@ export const StatsModal = ({
 
 		return reportsByTask[activeTaskId] ?? [];
 	}, [reportsByTask, activeTaskId]);
+
+	const filteredReportsByTask = useMemo(() => {
+		if (!selectedProjectId) {
+			return reportsByTask;
+		}
+
+		return projectFilteredTasks.reduce<Record<string, ReportProps[]>>(
+			(acc, task) => {
+				const taskId = String(task.id);
+				acc[taskId] = reportsByTask[taskId] ?? [];
+				return acc;
+			},
+			{},
+		);
+	}, [projectFilteredTasks, reportsByTask, selectedProjectId]);
+
+	const filteredSprintReports = useMemo(() => {
+		if (!selectedProjectId) {
+			return allSprintReports;
+		}
+
+		const taskIds = new Set(projectFilteredTasks.map((task) => String(task.id)));
+
+		return allSprintReports.filter((report) => {
+			const taskId = getReportTaskId(report);
+			return taskId ? taskIds.has(taskId) : false;
+		});
+	}, [allSprintReports, projectFilteredTasks, selectedProjectId]);
 
 	const sprintProjects = useMemo(() => {
 		const result = new Map<
@@ -218,6 +260,10 @@ export const StatsModal = ({
 			setActiveTaskId(String(filteredTasks[0].id));
 		}
 	}, [filteredTasks, activeTaskId]);
+
+	useEffect(() => {
+		setExpandedProjectId(selectedProjectId ?? "");
+	}, [selectedProjectId]);
 
 	useEffect(() => {
 		let isCancelled = false;
@@ -462,7 +508,12 @@ export const StatsModal = ({
 										String(report[ReportCodes.title] ?? report.title ?? "Отчет");
 
 									return (
-										<div key={report.id} className={cls.taskReportCard}>
+										<button
+											key={report.id}
+											type="button"
+											className={cls.taskReportCard}
+											onClick={() => setActiveReport(report)}
+										>
 											<div className={cls.taskReportDate}>
 												{report.begindate
 													? dayjs(report.begindate).format("DD.MM")
@@ -478,7 +529,7 @@ export const StatsModal = ({
 											<span className={cls.hoursChip}>
 												{formatHours(report[ReportCodes.timeSpent])} ч
 											</span>
-										</div>
+										</button>
 									);
 								})
 							) : (
@@ -494,9 +545,9 @@ export const StatsModal = ({
 
 				<section className={cls.statsColumn}>
 					<EmployeeStats
-						tasks={tasks}
-						taskReportsMap={reportsByTask}
-						allSprintReports={allSprintReports}
+						tasks={projectFilteredTasks}
+						taskReportsMap={filteredReportsByTask}
+						allSprintReports={filteredSprintReports}
 						activities={activities}
 						sprintStart={startOfTheWeek}
 						sprintEnd={endOfTheWeek}
@@ -509,6 +560,56 @@ export const StatsModal = ({
 
 				</section>
 			</div>
+
+			<Modal
+				isOpen={Boolean(activeReport)}
+				onClose={() => setActiveReport(null)}
+				innerScroll
+			>
+				{activeReport && (
+					<div className={cls.reportModal}>
+						<div className={cls.reportModalHeader}>
+							<div>
+								<div className={cls.reportModalEyebrow}>Отчет</div>
+								<h3 className={cls.reportModalTitle}>
+									{String(
+										activeReport[ReportCodes.title] ??
+											activeReport.title ??
+											"Отчет",
+									)}
+								</h3>
+							</div>
+							<div className={cls.reportModalHours}>
+								{formatHours(activeReport[ReportCodes.timeSpent])} ч
+							</div>
+						</div>
+
+						<div className={cls.reportModalBody}>
+							<div className={cls.reportModalRow}>
+								<span>Дата</span>
+								<strong>
+									{activeReport.begindate
+										? dayjs(activeReport.begindate).format("DD.MM.YYYY")
+										: "—"}
+								</strong>
+							</div>
+							<div className={cls.reportModalRow}>
+								<span>Активность</span>
+								<strong>
+									{activities.find(
+										(item) =>
+											item.ID ===
+											String(activeReport[ReportCodes.activityType] ?? ""),
+									)?.NAME ?? "—"}
+								</strong>
+							</div>
+							<div className={cls.reportModalText}>
+								{String(activeReport.title ?? activeReport[ReportCodes.title] ?? "")}
+							</div>
+						</div>
+					</div>
+				)}
+			</Modal>
 		</div>
 	);
 };

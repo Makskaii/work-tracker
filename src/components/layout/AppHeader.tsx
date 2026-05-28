@@ -11,6 +11,9 @@ import styles from "./AppHeader.module.scss";
 const NAV_ICON_MAP: Record<string, string> = {
 	"departments-reports": "▦",
 	"client-app": "♟",
+	"clients-desk": "C",
+	"client-accounts": "A",
+	"sprint-planner": "S",
 	"reports-sections": "О",
 };
 
@@ -24,19 +27,9 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 	}
 
 	return item.sections.some((section) => {
-		if (section.items?.some((child) => pathname.startsWith(child.to))) {
-			return true;
-		}
-
-		if (
-			section.groups?.some((group) =>
-				group.items.some((child) => pathname.startsWith(child.to)),
-			)
-		) {
-			return true;
-		}
-
-		return false;
+		return (
+			section.items?.some((child) => pathname.startsWith(child.to)) ?? false
+		);
 	});
 };
 
@@ -47,12 +40,29 @@ export const AppHeader = () => {
 
 	const rootRef = useRef<HTMLElement | null>(null);
 	const location = useLocation();
+	const isReportsArea = location.pathname.startsWith("/reports");
 
 	const activeTopKey = useMemo(() => {
 		return (
 			NAV_ITEMS.find((item) => isSectionActive(location.pathname, item))?.key ??
 			null
 		);
+	}, [location.pathname]);
+
+	useEffect(() => {
+		const reportsItem = NAV_ITEMS.find((item) => item.key === "reports-sections");
+
+		if (reportsItem?.type !== "mega") {
+			return;
+		}
+
+		const calendarSection = reportsItem.sections[0];
+		const isCalendarSectionActive =
+			calendarSection.items?.some((child) =>
+				location.pathname.startsWith(child.to),
+			) ?? false;
+
+		setOpenedKey(isCalendarSectionActive ? calendarSection.title : null);
 	}, [location.pathname]);
 
 	useEffect(() => {
@@ -108,6 +118,8 @@ export const AppHeader = () => {
 					const icon = getNavIcon(item);
 
 					if (item.type === "link") {
+						const isReportRoot = item.key === "departments-reports";
+
 						return !item.disabled ? (
 							<NavLink
 								key={item.key}
@@ -115,7 +127,11 @@ export const AppHeader = () => {
 								className={({ isActive: linkActive }) =>
 									[
 										styles.navItem,
-										linkActive || isActive ? styles.navItemActive : "",
+										(item.key === "clients-desk" ? false : linkActive) ||
+										isActive ||
+										(isReportRoot && isReportsArea)
+											? styles.navItemActive
+											: "",
 									].join(" ")
 								}
 								title={item.label}
@@ -133,6 +149,10 @@ export const AppHeader = () => {
 								<span className={styles.navLabel}>{item.label}</span>
 							</div>
 						);
+					}
+
+					if (!isReportsArea) {
+						return null;
 					}
 
 					return (
@@ -187,7 +207,10 @@ export const AppHeader = () => {
 																].join(" ")
 															}
 														>
-															{child.label}
+															<span className={styles.submenuIcon}>
+																{child.label.trim().charAt(0).toUpperCase()}
+															</span>
+															<span className={styles.submenuLabel}>{child.label}</span>
 														</NavLink>
 													))}
 												</div>
@@ -219,7 +242,7 @@ export const AppHeader = () => {
 					);
 				})}
 
-				{isSidebarOpen && (
+				{isSidebarOpen && isReportsArea && (
 					<div className={styles.extraLists}>
 						<button
 							type="button"
@@ -231,7 +254,7 @@ export const AppHeader = () => {
 						</button>
 
 						{isExtraListsOpen && (
-							<div className={styles.sidebarSubmenu}>
+							<div className={styles.extraListsItems}>
 								{EXTRA_NAV_ITEMS.map((item) =>
 									!item.disabled ? (
 										<NavLink
@@ -239,16 +262,22 @@ export const AppHeader = () => {
 											to={item.to}
 											className={({ isActive }) =>
 												[
-													styles.dropdownLink,
-													isActive ? styles.dropdownLinkActive : "",
+													styles.navItem,
+													isActive ? styles.navItemActive : "",
 												].join(" ")
 											}
 										>
-											{item.label}
+											<span className={styles.navIcon}>
+												{item.label.trim().charAt(0).toUpperCase()}
+											</span>
+											<span className={styles.navLabel}>{item.label}</span>
 										</NavLink>
 									) : (
-										<div key={item.label} className={styles.dropdownLinkDisabled}>
-											{item.label}
+										<div key={item.label} className={styles.navItemDisabled}>
+											<span className={styles.navIcon}>
+												{item.label.trim().charAt(0).toUpperCase()}
+											</span>
+											<span className={styles.navLabel}>{item.label}</span>
 										</div>
 									),
 								)}

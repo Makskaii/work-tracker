@@ -240,6 +240,7 @@ export const MainLayout = () => {
 						overflow: "auto",
 						padding: "28px 28px 28px calc(var(--app-sidebar-width, 72px) + 28px)",
 						background: "transparent",
+						transition: "padding 0.82s cubic-bezier(0.22, 1, 0.36, 1)",
 					}}
 				>
 					<div

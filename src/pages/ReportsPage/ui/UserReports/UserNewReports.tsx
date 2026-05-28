@@ -56,6 +56,7 @@ const ProjectManagerUserCard = ({
 export const NewUserReports = () => {
 	const { users, projects } = useOutletContext<ReportsContext>();
 	const [activeUser, setActiveUser] = useState<User>();
+	const [activeProjectId, setActiveProjectId] = useState("");
 	const [activeTab, setActiveTab] = useState<UserReportsTab>("staff");
 	const [sprintTasks, setSprintTasks] = useState<TaskProps[]>([]);
 	const [isPmSidebarCollapsed, setIsPmSidebarCollapsed] = useState(false);
@@ -118,6 +119,7 @@ export const NewUserReports = () => {
 
 	useEffect(() => {
 		setSprintTasks([]);
+		setActiveProjectId("");
 	}, [activeUser?.id]);
 
 	if (loading) {
@@ -210,7 +212,10 @@ export const NewUserReports = () => {
 										<button
 											key={project.id}
 											type="button"
-											className={`${cls.pmItem} ${cls.pmProject}`}
+											className={`${cls.pmItem} ${cls.pmProject} ${
+												activeProjectId === project.id ? cls.pmItemActive : ""
+											}`}
+											onClick={() => setActiveProjectId(project.id)}
 										>
 											<span className={cls.pmItemTitle}>{project.name}</span>
 											<span className={cls.pmItemMeta}>
@@ -227,7 +232,11 @@ export const NewUserReports = () => {
 
 					<section className={cls.pmDetail}>
 						{activeUser ? (
-							<StatsModal user={activeUser} onTasksChange={setSprintTasks} />
+							<StatsModal
+								user={activeUser}
+								onTasksChange={setSprintTasks}
+								selectedProjectId={activeProjectId}
+							/>
 						) : (
 							<div className={cls.emptyDetails}>
 								Выберите проектного менеджера
