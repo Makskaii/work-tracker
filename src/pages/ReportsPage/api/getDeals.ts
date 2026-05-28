@@ -1,6 +1,6 @@
 import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
-import type { Deal } from "../types/deals.types";
+import { type Deal, DealCodes } from "../types/deals.types";
 import { SalesCodes } from "../types/types";
 
 export const getDeals = async (
@@ -24,6 +24,8 @@ export const getDeals = async (
 					"createdBy",
 					"movedTime",
 					"assignedById",
+					"companyId",
+					DealCodes.purchasedHours,
 					SalesCodes.kpSuccess,
 					SalesCodes.ppoSuccess,
 					SalesCodes.kpday,

@@ -14,6 +14,7 @@ export const Endpoints = {
 	groups: "sonet_group.get",
 	users: "user.get",
 	crmItems: "crm.item.list",
+	crmDeals: "crm.deal.list",
 	crmFeilds: "crm.item.fields",
 	status: "crm.status.list",
 	lists: "lists.element.get",

@@ -238,7 +238,7 @@
 
     &.clientPaid {
         background: linear-gradient(135deg, var(--color-payment-client-surface), var(--color-surface-soft));
-        border-color: rgba(67, 232, 127, 0.46);
+        border-color: color-mix(in srgb, var(--color-payment-client) 58%, transparent);
     }
 
     &.companyPaid {
@@ -295,6 +295,15 @@
     font-size: clamp(10px, 0.72vw, 12px);
     font-weight: 600;
     text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 4px 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+
+    span {
+        min-width: 0;
+    }
 }
 
 .paymentBadges {
@@ -483,18 +492,30 @@
     }
 
     &.clientPaid {
-        border-color: rgba(67, 232, 127, 0.36);
+        border-color: color-mix(in srgb, var(--color-payment-client) 42%, transparent);
         background: var(--color-payment-client-surface);
+
+        strong {
+            color: var(--color-payment-client);
+        }
     }
 
     &.companyPaid {
         border-color: rgba(255, 191, 63, 0.36);
         background: var(--color-payment-company-surface);
+
+        strong {
+            color: var(--color-payment-company);
+        }
     }
 
     &.unpaid {
         border-color: rgba(255, 104, 117, 0.36);
         background: var(--color-payment-unpaid-surface);
+
+        strong {
+            color: var(--color-payment-unpaid);
+        }
     }
 }
 
@@ -602,9 +623,47 @@
     }
 }
 
+@media (max-width: 1280px) {
+    .calendar-day,
+    .skeletonDay {
+        min-height: 98px;
+        padding: 10px 8px;
+    }
+
+    .day-name {
+        margin-bottom: 6px;
+    }
+
+    .paymentBadges {
+        gap: 4px;
+        margin-top: 6px;
+    }
+
+    .paymentBadge {
+        min-width: 22px;
+        height: 18px;
+        padding: 0 5px;
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 1040px) {
+    .calendar-day {
+        min-height: 88px;
+    }
+
+    .dayReportMeta span:last-child {
+        display: none;
+    }
+}
+
 @media (max-width: 900px) {
     .calendar {
         padding: 14px;
+    }
+
+    .dayReportMeta {
+        display: none;
     }
 
     .dayModalHeader {

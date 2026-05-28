@@ -45,6 +45,14 @@ const isNotAtWorkDay = (day: MonthDays) => {
 
 const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
 
+const getVisiblePaymentSorts = (summary: Record<PaymentSort, number>) => {
+	const paidSorts = ([0, 1, 2] as PaymentSort[]).filter(
+		(sort) => summary[sort] > 0,
+	);
+
+	return paidSorts.length ? paidSorts : ([0, 1, 2] as PaymentSort[]);
+};
+
 const getPrimaryPaymentClass = (
 	reports: GroupedReportFields[] = [],
 	activities: ActivityListItem[],
@@ -201,6 +209,7 @@ const CalendarMonth = ({
 
 	const activePaymentSummary = getPaymentSummary(activeReport, activities);
 	const activeActivitySummary = getActivitySummary(activeReport, activities);
+	const visibleModalPaymentSorts = getVisiblePaymentSorts(activePaymentSummary);
 
 	return (
 		<div className={cls.calendar}>
@@ -319,13 +328,13 @@ const CalendarMonth = ({
 								<div className={cls["day-name"]}>{day.dayName}</div>
 								{day.totalHours && (
 									<div className={cls.dayReportMeta}>
-										{formatHours(day.totalHours)} · {confirmedReports.length}{" "}
-										отчетов
+										<span>{formatHours(day.totalHours)}</span>
+										<span>{confirmedReports.length} отчетов</span>
 									</div>
 								)}
 								{day.totalHours && (
 									<div className={cls.paymentBadges}>
-										{([0, 1, 2] as PaymentSort[]).map((sort) => {
+										{getVisiblePaymentSorts(paymentSummary).map((sort) => {
 											const hours = paymentSummary[sort];
 											const kind = PAYMENT_KIND_BY_SORT[sort];
 
@@ -367,7 +376,7 @@ const CalendarMonth = ({
 						<h3 className={cls.dayModalTitle}>{activeDayTitle}</h3>
 					</div>
 					<div className={cls.dayModalWidgets}>
-						{([0, 1, 2] as PaymentSort[]).map((sort) => {
+						{visibleModalPaymentSorts.map((sort) => {
 							const kind = PAYMENT_KIND_BY_SORT[sort];
 
 							return (

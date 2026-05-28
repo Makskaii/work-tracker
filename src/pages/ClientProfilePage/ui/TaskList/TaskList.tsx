@@ -4,6 +4,7 @@ import { Modal } from "@/components/modal";
 import { TaskView } from "@/components/taskItem/TaskView";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import { classNames } from "@/shared/utils/utils";
+import theme from "../ClientProfileTheme.module.scss";
 import { getTaskStatus } from "../ProjectPage/ProjectTaskCard";
 import { TaskFilters, type TaskFilterValues } from "./TaskFilters";
 import cls from "./TaskList.module.scss";
@@ -171,7 +172,12 @@ export const TaskList = ({
 				</div>
 			</div>
 
-			<Modal isOpen={openTask} onClose={() => setOpenTask(false)} innerScroll>
+			<Modal
+				isOpen={openTask}
+				onClose={() => setOpenTask(false)}
+				innerScroll
+				className={theme.lightTheme}
+			>
 				<TaskView
 					taskId={activeTask?.id ?? ""}
 					onClose={() => setOpenTask(false)}

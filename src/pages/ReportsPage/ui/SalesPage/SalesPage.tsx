@@ -1,7 +1,6 @@
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
-import { $api } from "@/shared/config";
 import { Endpoints } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
@@ -9,6 +8,7 @@ import type { Header } from "@/shared/types/table";
 import type { AnyObject, User } from "@/shared/types/types";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { getDeals } from "../../api/getDeals";
+import { getUsers } from "../../api/getUsers";
 import type { Deal } from "../../types/deals.types";
 import {
 	SalesCodes,
@@ -16,8 +16,8 @@ import {
 	type SalesTableFields,
 } from "../../types/types";
 import { SegmentedControl } from "../AnalyticsReports/AnalyticsReports";
-import { SalesCard } from "./ui/SalesCard/SalesCard";
 import cls from "./SalesPage.module.scss";
+import { SalesCard } from "./ui/SalesCard/SalesCard";
 
 const getPlanByPeriod = (
 	row: Omit<SalesTableFields, "fact" | "deviation" | "comment">,
@@ -173,47 +173,6 @@ const getDealsCountByStages = async ({
 	);
 
 	return responses;
-};
-
-export const getUsers = async (
-	signal?: AbortSignal,
-): Promise<
-	{
-		ID: string;
-		NAME: string;
-		LAST_NAME: string;
-		UF_DEPARTMENT: number[];
-		WORK_POSITION: string;
-		PERSONAL_PHOTO: string;
-	}[]
-> => {
-	try {
-		const response = await $api.get(Endpoints.users, {
-			params: {
-				select: [
-					"NAME",
-					"ID",
-					"LAST_NAME",
-					"UF_DEPARTMENT",
-					"WORK_POSITION",
-					"PERSONAL_PHOTO",
-				],
-			},
-			signal,
-		});
-
-		const items = response.data?.result;
-
-		if (!Array.isArray(items)) {
-			console.warn("Expected items to be an array, but got:", items);
-			return [];
-		}
-
-		return items;
-	} catch (error) {
-		console.error("Failed to fetch developers", error);
-		return [];
-	}
 };
 
 const getPeriodStep = (period: "week" | "month" | "quarter" | "year") => {
@@ -544,9 +503,7 @@ export const SalesPage = () => {
 						пред. {periodLabelMap[period]}
 					</button>
 
-					<div
-						className={cls.periodRange}
-					>
+					<div className={cls.periodRange}>
 						<div>
 							{dayjs(start).format("DD.MM")} - {dayjs(end).format("DD.MM")}
 						</div>
@@ -615,10 +572,7 @@ export const SalesPage = () => {
 						}
 
 						return (
-							<div
-								key={`${selectedRow.id}-${id}`}
-								className={cls.callsCard}
-							>
+							<div key={`${selectedRow.id}-${id}`} className={cls.callsCard}>
 								<div className={cls.callsCardTitle}>
 									{user?.title ?? "Неизвестный пользователь"}
 								</div>
