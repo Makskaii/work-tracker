@@ -1,120 +1,120 @@
 export type NavLeaf = {
 	label: string;
 	to: string;
+	key?: string;
+	icon?: string;
 	disabled?: boolean;
 };
 
-export type NavGroup = {
+export type NavSectionItem = {
+	type: "section";
 	title: string;
-	items: NavLeaf[];
-};
-
-export type NavSection = {
-	title: string;
-	items?: NavLeaf[];
-	groups?: NavGroup[];
-	disabled?: boolean;
 };
 
 export type NavItem =
 	| {
+			type: "link";
 			key: string;
 			label: string;
-			type: "link";
 			to: string;
+			icon?: string;
 			disabled?: boolean;
 	  }
 	| {
+			type: "dropdown";
 			key: string;
 			label: string;
-			type: "mega";
-			sections: NavSection[];
+			icon?: string;
+			items: NavLeaf[];
 			disabled?: boolean;
-	  };
+	  }
+	| NavSectionItem;
 
 export const APP_TITLE = "Workdesk";
 
 export const NAV_ITEMS: NavItem[] = [
 	{
 		key: "departments-reports",
-		label: "Departments' Reports",
-		type: "mega",
-		sections: [
+		label: "Отчеты отделов",
+		type: "link",
+		to: "/reports/calendar",
+		icon: "■",
+	},
+	{
+		key: "clients-desk",
+		label: "Приложение для клиентов",
+		to: "/client-profile",
+		type: "link",
+		icon: "♟",
+	},
+	{
+		type: "section",
+		title: "Разделы отчетов",
+	},
+	{
+		key: "employee-calendar",
+		label: "Календарь сотрудников",
+		type: "dropdown",
+		icon: "◴",
+		items: [
 			{
-				title: "Коммерческое направление",
-				items: [
-					{
-						label: "Отчеты отдела продаж",
-						to: "/reports/sales",
-					},
-					{
-						label: "Отчёт рентабельности",
-						to: "/reports/profitability",
-					},
-					{
-						label: "Отчеты отдела бизнес-аналитики",
-						to: "/reports/commertial-analytics",
-					},
-				],
+				key: "calendar",
+				label: "Календарь",
+				to: "/reports/calendar",
+				icon: "K",
 			},
 			{
-				title: "Производственное направление",
-				groups: [
-					{
-						title: "Отчеты отдела разработки",
-						items: [
-							{
-								label: "Загрузка по сотрудникам",
-								to: "/reports/workload",
-							},
-							{
-								label: "Проектный менеджер",
-								to: "/reports/developers",
-							},
-						],
-					},
-					{
-						title: "Отчеты отдела проджект-менеджмента",
-						items: [
-							{
-								label: "Статус проектов",
-								to: "/reports/project-statuses",
-							},
-							{
-								label: "Проекты",
-								to: "/reports/projects",
-							},
-							{
-								label: "Клиенты(Новый список)",
-								to: "/reports/clients",
-							},
-						],
-					},
-				],
-			},
-			{
-				title: "Отчет по активности",
-				items: [{ label: "Общий отчет", to: "/reports/calendar" }],
+				key: "project-management",
+				label: "Проектный менеджмент",
+				to: "/reports/developers",
+				icon: "PM",
 			},
 		],
 	},
 	{
-		key: "clients-desk",
-		label: "Client's Desk",
-		to: "/client-profile",
+		key: "profitability-report",
+		label: "Отчет рентабельности",
+		to: "/reports/profitability",
 		type: "link",
+		icon: "₽",
 	},
 	{
-		key: "client accounts",
-		label: "Client Accounts",
-		to: "/create-client-form",
+		key: "analytics-report",
+		label: "Отчет аналитики",
+		to: "/reports/commertial-analytics",
 		type: "link",
+		icon: "A",
 	},
 	{
-		key: "sprint-planner",
-		label: "Sprint Planner",
-		to: "/sprint-planner",
+		key: "development-report",
+		label: "Отчет разработки",
+		to: "/reports/development",
 		type: "link",
-		disabled: false,
+		icon: "D",
+	},
+	{
+		key: "sales-report",
+		label: "Отчет продаж",
+		to: "/reports/sales",
+		type: "link",
+		icon: "S",
+	},
+	{
+		type: "section",
+		title: "доп. списки",
+	},
+	{
+		key: "workload",
+		label: "Загрузки по сотрудникам",
+		to: "/reports/workload",
+		type: "link",
+		icon: "З",
+	},
+	{
+		key: "clients-list",
+		label: "Список клиентов",
+		to: "/reports/clients",
+		type: "link",
+		icon: "K",
 	},
 ];

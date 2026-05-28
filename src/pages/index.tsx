@@ -9,5 +9,8 @@ export const ProjectsReports = lazy(
 export const ReportsCalendar = lazy(
 	() => import("./ReportsPage/ui/UserReports/ReportsCalendar"),
 );
+export const DevelopmentReportFallback = lazy(
+	() => import("./ReportsPage/ui/UserReports/DevelopmentReportFallback"),
+);
 export const ReportsPage = lazy(() => import("./ReportsPage/ReportsPage"));
 export const DataPage = lazy(() => import("./DataPage/TablePage"));
