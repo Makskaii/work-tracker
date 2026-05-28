@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
@@ -10,6 +10,7 @@ import type {
 	ClientProjectProps,
 	ClientsWithPropjects,
 	ReportsContext,
+	User,
 } from "@/shared/types/types";
 import {
 	classNames,
@@ -67,24 +68,60 @@ const getPrimaryPaymentClass = (
 	return PAYMENT_CLASS_BY_KIND[PAYMENT_KIND_BY_SORT[primary]];
 };
 
+type ActivitySummaryItem = {
+	id: number;
+	title: string;
+	hours: number;
+};
+
 const getActivitySummary = (
 	reports: GroupedReportFields[],
 	activities: ActivityListItem[],
 ) => {
-	const activityMap = new Map<number, { title: string; hours: number }>();
+	const activityMap = new Map<number, ActivitySummaryItem>();
 
 	for (const report of reports) {
 		const activityId = Number(report.activity);
 		const title =
 			activities.find((activity) => Number(activity.ID) === activityId)?.NAME ??
 			`Активность #${activityId}`;
-		const current = activityMap.get(activityId) ?? { title, hours: 0 };
+		const current = activityMap.get(activityId) ?? {
+			id: activityId,
+			title,
+			hours: 0,
+		};
 
 		current.hours += Number(report.timeSpent) || 0;
 		activityMap.set(activityId, current);
 	}
 
 	return Array.from(activityMap.values()).sort((a, b) => b.hours - a.hours);
+};
+
+const getProjectTitle = (
+	projectId: number,
+	projects: ProjectFromList[],
+	clients: ClientsWithPropjects[],
+) => {
+	const clientProject = clients
+		.flatMap((client) => client.projects ?? [])
+		.find(
+			(project) =>
+				Number(project.id) === projectId ||
+				Number(project.projectId) === projectId,
+		);
+
+	if (clientProject?.title) {
+		return clientProject.title;
+	}
+
+	const listProject = projects.find(
+		(project) =>
+			Number(project[ClientsCodes.client]) === projectId ||
+			Number(project.id) === projectId,
+	);
+
+	return listProject?.title || listProject?.name || `Проект #${projectId}`;
 };
 
 export const headers: Header<GroupedReportFields>[] = [
@@ -188,6 +225,7 @@ const CalendarMonth = ({
 	getCurrentMonthName,
 	handleToday,
 	isLoading,
+	selectedUserId,
 }: {
 	monthDays: MonthDays[];
 	handlePrevMonth: () => void;
@@ -199,17 +237,103 @@ const CalendarMonth = ({
 	getCurrentMonthName: () => string;
 	handleToday: () => void;
 	isLoading?: boolean;
+	selectedUserId?: string;
 }) => {
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const [activeDayTitle, setActiveDayTitle] = useState("");
-	const { projects, activities, clientsList } =
+	const [selectedActivityIds, setSelectedActivityIds] = useState<Set<number>>(
+		() => new Set(),
+	);
+	const [selectedProjectId, setSelectedProjectId] = useState("");
+	const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+	const { projects, activities, clientsList, users } =
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 
-	const activePaymentSummary = getPaymentSummary(activeReport, activities);
 	const activeActivitySummary = getActivitySummary(activeReport, activities);
+	const projectFilterOptions = useMemo(() => {
+		const projectIds = Array.from(
+			new Set(
+				activeReport
+					.map((report) => Number(report.parentproject ?? report.project))
+					.filter(Boolean),
+			),
+		);
+
+		return projectIds
+			.map((projectId) => ({
+				id: String(projectId),
+				title: getProjectTitle(projectId, projects, clientsList),
+			}))
+			.toSorted((a, b) => a.title.localeCompare(b.title, "ru"));
+	}, [activeReport, clientsList, projects]);
+	const employeeFilterOptions = useMemo(() => {
+		const userIds = Array.from(
+			new Set(activeReport.map((report) => String(report.assignedById))),
+		);
+
+		return userIds
+			.map((userId) => {
+				const user = users.find((item: User) => String(item.id) === userId);
+
+				return {
+					id: userId,
+					title: user?.title ?? `Сотрудник #${userId}`,
+				};
+			})
+			.toSorted((a, b) => a.title.localeCompare(b.title, "ru"));
+	}, [activeReport, users]);
+	const effectiveEmployeeId = selectedUserId || selectedEmployeeId;
+	const filteredActiveReports = useMemo(() => {
+		return activeReport.filter((report) => {
+			const activityMatches =
+				!selectedActivityIds.size ||
+				selectedActivityIds.has(Number(report.activity));
+			const projectMatches =
+				!selectedProjectId ||
+				String(report.parentproject ?? report.project) === selectedProjectId;
+			const employeeMatches =
+				!effectiveEmployeeId ||
+				String(report.assignedById) === effectiveEmployeeId;
+
+			return activityMatches && projectMatches && employeeMatches;
+		});
+	}, [
+		activeReport,
+		effectiveEmployeeId,
+		selectedActivityIds,
+		selectedProjectId,
+	]);
+	const activePaymentSummary = getPaymentSummary(
+		filteredActiveReports,
+		activities,
+	);
 	const visibleModalPaymentSorts = getVisiblePaymentSorts(activePaymentSummary);
+	const selectedEmployeeTitle =
+		selectedUserId &&
+		(employeeFilterOptions.find((item) => item.id === selectedUserId)?.title ??
+			users.find((item: User) => String(item.id) === selectedUserId)?.title);
+
+	const toggleActivityFilter = (activityId: number) => {
+		setSelectedActivityIds((prev) => {
+			const next = new Set(prev);
+
+			if (next.has(activityId)) {
+				next.delete(activityId);
+			} else {
+				next.add(activityId);
+			}
+
+			return next;
+		});
+	};
+
+	const resetModalFilters = () => {
+		setSelectedActivityIds(new Set());
+		setSelectedProjectId("");
+		setSelectedEmployeeId("");
+	};
 
 	return (
 		<div className={cls.calendar}>
@@ -304,6 +428,7 @@ const CalendarMonth = ({
 								onClick={() => {
 									if (!hasReports) return;
 
+									resetModalFilters();
 									setActiveReports(day.reports ?? []);
 									setActiveDayTitle(
 										day.date
@@ -398,26 +523,76 @@ const CalendarMonth = ({
 				{!!activeActivitySummary.length && (
 					<div className={cls.activitySummary}>
 						{activeActivitySummary.map((activity) => (
-							<span key={activity.title} className={cls.activitySummaryItem}>
+							<button
+								type="button"
+								key={activity.id}
+								className={classNames(cls.activitySummaryItem, {
+									[cls.activitySummaryItemActive]: selectedActivityIds.has(
+										activity.id,
+									),
+								})}
+								onClick={() => toggleActivityFilter(activity.id)}
+							>
 								{activity.title}: <strong>{formatHours(activity.hours)}</strong>
-							</span>
+							</button>
 						))}
 					</div>
 				)}
+				<div className={cls.dayModalFilters}>
+					<select
+						value={selectedProjectId}
+						onChange={(event) => setSelectedProjectId(event.target.value)}
+					>
+						<option value="">Все проекты</option>
+						{projectFilterOptions.map((project) => (
+							<option key={project.id} value={project.id}>
+								{project.title}
+							</option>
+						))}
+					</select>
+
+					{selectedUserId ? (
+						<div className={cls.fixedFilter}>
+							{selectedEmployeeTitle ?? "Выбранный сотрудник"}
+						</div>
+					) : (
+						<select
+							value={selectedEmployeeId}
+							onChange={(event) => setSelectedEmployeeId(event.target.value)}
+						>
+							<option value="">Все сотрудники</option>
+							{employeeFilterOptions.map((employee) => (
+								<option key={employee.id} value={employee.id}>
+									{employee.title}
+								</option>
+							))}
+						</select>
+					)}
+
+					{(selectedActivityIds.size > 0 ||
+						selectedProjectId ||
+						selectedEmployeeId) && (
+						<button type="button" onClick={resetModalFilters}>
+							Сбросить
+						</button>
+					)}
+				</div>
 				<UniversalTable<GroupedReportFields>
-					activeItems={activeReport.toSorted((a, b) => a.client - b.client)}
+					activeItems={filteredActiveReports.toSorted(
+						(a, b) => a.client - b.client,
+					)}
 					headers={headers}
 					additionalData={{
 						projects,
 						activities,
-						report: activeReport,
+						report: filteredActiveReports,
 						clients: clientsList,
 						openTask,
 					}}
 					totalRow={
 						<div className={cls.dayModalTotal}>
 							Часов за день:{" "}
-							{activeReport
+							{filteredActiveReports
 								.reduce(
 									(acc, report) => acc + (Number(report.timeSpent) || 0),
 									0,

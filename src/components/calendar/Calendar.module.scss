@@ -423,18 +423,18 @@
 }
 
 .unconfirmedBadge {
-    position: absolute;
-    left: 8px;
-    bottom: 8px;
+    position: relative;
     z-index: 1;
-    max-width: calc(100% - 16px);
-    padding: 3px 7px;
+    align-self: flex-start;
+    max-width: 100%;
+    margin-top: 7px;
+    padding: 3px 8px;
     border-radius: 4px;
     background: var(--color-payment-unpaid-surface);
     border: 1px solid rgba(255, 104, 117, 0.45);
     color: var(--color-payment-unpaid);
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 800;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -445,36 +445,38 @@
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    padding: 4px 42px 14px 0;
+    align-items: flex-start;
+    padding: 0 42px 10px 0;
     border-bottom: 1px solid var(--color-border);
     text-align: left;
 }
 
 .dayModalEyebrow {
     color: rgba(238, 245, 255, 0.64);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
 }
 
 .dayModalTitle {
-    margin: 3px 0 0;
+    margin: 2px 0 0;
     color: var(--color-text);
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1.15;
 }
 
 .dayModalWidgets {
     display: grid;
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    grid-template-columns: repeat(3, minmax(110px, 1fr));
     gap: 8px;
-    min-width: min(100%, 460px);
+    min-width: min(100%, 420px);
 }
 
 .dayModalWidget {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 10px 12px;
+    gap: 3px;
+    padding: 8px 11px;
     border: 1px solid var(--color-border);
     border-radius: 10px;
     background: var(--color-surface-soft);
@@ -488,7 +490,7 @@
 
     strong {
         color: var(--color-text);
-        font-size: 16px;
+        font-size: 15px;
     }
 
     &.clientPaid {
@@ -523,18 +525,65 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 14px 0 0;
+    padding: 12px 0 0;
 }
 
 .activitySummaryItem {
     display: inline-flex;
+    align-items: center;
     gap: 4px;
-    padding: 6px 10px;
+    min-height: 30px;
+    padding: 0 10px;
     border: 1px solid var(--color-border);
     border-radius: 999px;
     background: var(--color-surface-soft);
     color: rgba(238, 245, 255, 0.78);
     font-size: 12px;
+    font-weight: 800;
+}
+
+.activitySummaryItem:hover,
+.activitySummaryItemActive {
+    border-color: var(--color-accent);
+    background: rgba(57, 214, 238, 0.12);
+    color: var(--color-accent);
+}
+
+.dayModalFilters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 0 8px;
+
+    select,
+    button,
+    .fixedFilter {
+        min-height: 34px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-soft);
+        color: var(--color-text);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    select {
+        max-width: 260px;
+        padding: 0 12px;
+    }
+
+    button {
+        padding: 0 12px;
+        color: var(--color-accent);
+    }
+}
+
+.fixedFilter {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 12px;
+    color: var(--color-muted) !important;
 }
 
 .dayModalTotal {

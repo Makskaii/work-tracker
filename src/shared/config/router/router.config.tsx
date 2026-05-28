@@ -4,6 +4,7 @@ import ErrorElement from "@/components/errorElement/ErrorElement";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Spinner } from "@/components/spinner/Spinner";
 import {
+	DevelopmentReportFallback,
 	Progress,
 	ProjectsReports,
 	ReportsCalendar,
@@ -73,6 +74,14 @@ export const router = createBrowserRouter(
 							element: (
 								<Suspense fallback={<Spinner />}>
 									<NewUserReports />
+								</Suspense>
+							),
+						},
+						{
+							path: "development",
+							element: (
+								<Suspense fallback={<Spinner />}>
+									<DevelopmentReportFallback />
 								</Suspense>
 							),
 						},

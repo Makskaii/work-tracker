@@ -1,5 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 
+import dayjs from "dayjs";
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
 	Endpoints,
@@ -19,6 +20,22 @@ import {
 } from "./constants/const";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
+
+type WeekRange = {
+	startOfTheWeek: string;
+	endOfTheWeek: string;
+};
+
+const getWeekRange = (date = dayjs()): WeekRange => {
+	const day = date.day();
+	const diffToMonday = day === 0 ? 6 : day - 1;
+	const start = date.startOf("day").subtract(diffToMonday, "day");
+
+	return {
+		startOfTheWeek: start.format("YYYY-MM-DD"),
+		endOfTheWeek: start.add(6, "day").endOf("day").format("YYYY-MM-DD"),
+	};
+};
 
 const getReportRelationId = (
 	newValue: string | number | null | undefined,
@@ -88,6 +105,7 @@ export const Calendar = ({
 	onLoadingChange?: (value: boolean) => void;
 }) => {
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
+	const [weekRange, setWeekRange] = useState<WeekRange>(() => getWeekRange());
 	const scopeFilter = useMemo(() => {
 		if (userId) {
 			return { assignedById: userId };
@@ -99,6 +117,19 @@ export const Calendar = ({
 
 		return { assignedById: "__empty__" };
 	}, [userId, userIds]);
+	const periodRange = useMemo(() => {
+		if (view === "week") {
+			return {
+				start: dayjs(weekRange.startOfTheWeek).startOf("day").toISOString(),
+				end: dayjs(weekRange.endOfTheWeek).endOf("day").toISOString(),
+			};
+		}
+
+		return {
+			start: new Date(selectedYear, selectedMonth, 1).toISOString(),
+			end: new Date(selectedYear, selectedMonth + 1, 1).toISOString(),
+		};
+	}, [selectedMonth, selectedYear, view, weekRange]);
 
 	const { data, loading, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
@@ -109,12 +140,8 @@ export const Calendar = ({
 				select: selectFields,
 
 				filter: {
-					">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
-					"<=begindate": new Date(
-						selectedYear,
-						selectedMonth + 1,
-						1,
-					).toISOString(),
+					">=begindate": periodRange.start,
+					"<=begindate": periodRange.end,
 					...scopeFilter,
 					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
 				},
@@ -147,24 +174,14 @@ export const Calendar = ({
 				select: selectFields,
 
 				filter: {
-					">=begindate": new Date(selectedYear, selectedMonth, 1).toISOString(),
-					"<=begindate": new Date(
-						selectedYear,
-						selectedMonth + 1,
-						1,
-					).toISOString(),
+					">=begindate": periodRange.start,
+					"<=begindate": periodRange.end,
 					...scopeFilter,
 					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
 				},
 			},
 		});
-	}, [
-		selectedMonth,
-		selectedYear,
-		setFilters,
-		scopeFilter,
-		setGroupByActivity,
-	]);
+	}, [periodRange, setFilters, scopeFilter, setGroupByActivity]);
 
 	useEffect(() => {
 		const taskIds = Array.from(
@@ -243,11 +260,14 @@ export const Calendar = ({
 					selectedMonth={selectedMonth}
 					selectedYear={selectedYear}
 					isLoading={loading}
+					selectedUserId={userId}
 				/>
 			) : (
-				<>
-					<WeekCalendar userId={userId} userIds={userIds} />
-				</>
+				<WeekCalendar
+					userId={userId}
+					userIds={userIds}
+					onWeekRangeChange={setWeekRange}
+				/>
 			)}
 		</>
 	);
