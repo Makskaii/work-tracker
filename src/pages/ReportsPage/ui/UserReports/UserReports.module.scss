@@ -1,9 +1,15 @@
 .page {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 12px;
     min-height: 0;
+    min-width: 0;
     color: var(--color-text);
+}
+
+.page * {
+    box-sizing: border-box;
 }
 
 .tabs {
@@ -87,15 +93,15 @@
 }
 
 .pmLayout {
-    display: grid;
-    grid-template-columns: 280px 930px;
-    gap: 14px;
-    min-width: 0;
-    width: max-content;
-    max-width: none;
-    min-height: 0;
-    padding: 18px;
     box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    gap: clamp(10px, 1vw, 16px);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(12px, 1.1vw, 20px);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 28px;
     background: rgba(9, 19, 34, 0.28);
@@ -105,16 +111,16 @@
 }
 
 .pmLayoutCollapsed {
-    grid-template-columns: 72px 930px;
+    grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .pmListPanel {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 12px;
     min-width: 0;
     width: 100%;
-    box-sizing: border-box;
     padding: 14px;
     border: 1px solid var(--color-border);
     border-radius: 22px;
@@ -330,9 +336,9 @@
 }
 
 .pmDetail {
-    min-width: 930px;
-    width: 930px;
     box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
     overflow: hidden;
     padding: 20px;
     border: 1px solid var(--color-border);
@@ -414,6 +420,10 @@
 }
 
 @media (max-width: 1180px) {
+    .pmLayout {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    }
+
     .pmDetail {
         height: auto;
     }
@@ -433,6 +443,11 @@
     .staffHeader {
         padding: 6px 0.75rem;
         font-size: 12px;
+    }
+
+    .pmLayout,
+    .pmLayoutCollapsed {
+        grid-template-columns: 1fr;
     }
 
     .pmListHead {

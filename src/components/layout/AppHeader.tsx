@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
 	APP_TITLE,
-	EXTRA_NAV_ITEMS,
 	NAV_ITEMS,
 	type NavItem,
 	type NavLeaf,
@@ -37,9 +36,8 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
-	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const location = useLocation();
-	const isReportsArea = location.pathname.startsWith("/reports");
 
 	const activeTopKey = useMemo(() => {
 		const activeItem = NAV_ITEMS.find((item) =>

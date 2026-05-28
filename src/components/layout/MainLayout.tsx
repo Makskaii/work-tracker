@@ -228,6 +228,7 @@ export const MainLayout = () => {
 					flexDirection: "column",
 					height: "100%",
 					minHeight: 0,
+					overflow: "hidden",
 					background: "transparent",
 				}}
 			>
@@ -236,17 +237,22 @@ export const MainLayout = () => {
 				<main
 					style={{
 						flex: 1,
+						boxSizing: "border-box",
 						minHeight: 0,
+						minWidth: 0,
 						overflow: "auto",
-						padding: "28px 28px 28px calc(var(--app-sidebar-width, 72px) + 28px)",
+						width: "100%",
+						padding:
+							"clamp(12px, 1.1vw, 20px) clamp(12px, 1.1vw, 20px) clamp(12px, 1.1vw, 20px) var(--app-sidebar-width, 72px)",
 						background: "transparent",
-						transition: "padding 0.82s cubic-bezier(0.22, 1, 0.36, 1)",
+						transition: "padding-left 0.2s ease",
 					}}
 				>
 					<div
 						style={{
-							minWidth: "1280px",
-							width: "1280px",
+							boxSizing: "border-box",
+							minWidth: 0,
+							width: "100%",
 						}}
 					>
 						<Outlet />

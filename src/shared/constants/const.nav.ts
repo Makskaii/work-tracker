@@ -119,6 +119,12 @@ export const NAV_ITEMS: NavItem[] = [
 		icon: "З",
 	},
 	{
+		key: "client accounts",
+		label: "Клиентские аккаунты",
+		to: "/create-client-form",
+		type: "link",
+	},
+	{
 		key: "clients-list",
 		label: "Список клиентов",
 		to: "/reports/clients",
