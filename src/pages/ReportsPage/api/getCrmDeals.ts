@@ -15,6 +15,22 @@ type CrmDeal = {
 	MOVED_TIME?: string;
 	[DealCodes.parentProject]?: string | number | Array<string | number> | null;
 	[DealCodes.purchasedHours]?: string | number | null;
+	[DealCodes.ganttTzStart]?: string | null;
+	[DealCodes.ganttTzWeeks]?: string | number | null;
+	[DealCodes.ganttTzPlanEnd]?: string | null;
+	[DealCodes.ganttTzFactEnd]?: string | null;
+	[DealCodes.ganttTzSignDate]?: string | null;
+	[DealCodes.ganttDevWeeks]?: string | number | null;
+	[DealCodes.ganttDevPlanStart]?: string | null;
+	[DealCodes.ganttDevPlanEnd]?: string | null;
+	[DealCodes.ganttDevFactStart]?: string | null;
+	[DealCodes.ganttDevFactEnd]?: string | null;
+	[DealCodes.ganttEducationWeeks]?: string | number | null;
+	[DealCodes.ganttEducationPlanStart]?: string | null;
+	[DealCodes.ganttEducationPlanEnd]?: string | null;
+	[DealCodes.ganttEducationFactStart]?: string | null;
+	[DealCodes.ganttEducationFactEnd]?: string | null;
+	[DealCodes.ganttCloseDate]?: string | null;
 };
 
 type CrmDealListResponse = {
@@ -34,6 +50,22 @@ const DEAL_SELECT_FIELDS = [
 	"MOVED_TIME",
 	DealCodes.parentProject,
 	DealCodes.purchasedHours,
+	DealCodes.ganttTzStart,
+	DealCodes.ganttTzWeeks,
+	DealCodes.ganttTzPlanEnd,
+	DealCodes.ganttTzFactEnd,
+	DealCodes.ganttTzSignDate,
+	DealCodes.ganttDevWeeks,
+	DealCodes.ganttDevPlanStart,
+	DealCodes.ganttDevPlanEnd,
+	DealCodes.ganttDevFactStart,
+	DealCodes.ganttDevFactEnd,
+	DealCodes.ganttEducationWeeks,
+	DealCodes.ganttEducationPlanStart,
+	DealCodes.ganttEducationPlanEnd,
+	DealCodes.ganttEducationFactStart,
+	DealCodes.ganttEducationFactEnd,
+	DealCodes.ganttCloseDate,
 ] as const;
 
 const mapCrmDeal = (deal: CrmDeal): Deal => ({
@@ -58,6 +90,22 @@ const mapCrmDeal = (deal: CrmDeal): Deal => ({
 	[SalesCodes.ppoDay]: "",
 	[DealCodes.parentProject]: deal[DealCodes.parentProject],
 	[DealCodes.purchasedHours]: deal[DealCodes.purchasedHours],
+	[DealCodes.ganttTzStart]: deal[DealCodes.ganttTzStart],
+	[DealCodes.ganttTzWeeks]: deal[DealCodes.ganttTzWeeks],
+	[DealCodes.ganttTzPlanEnd]: deal[DealCodes.ganttTzPlanEnd],
+	[DealCodes.ganttTzFactEnd]: deal[DealCodes.ganttTzFactEnd],
+	[DealCodes.ganttTzSignDate]: deal[DealCodes.ganttTzSignDate],
+	[DealCodes.ganttDevWeeks]: deal[DealCodes.ganttDevWeeks],
+	[DealCodes.ganttDevPlanStart]: deal[DealCodes.ganttDevPlanStart],
+	[DealCodes.ganttDevPlanEnd]: deal[DealCodes.ganttDevPlanEnd],
+	[DealCodes.ganttDevFactStart]: deal[DealCodes.ganttDevFactStart],
+	[DealCodes.ganttDevFactEnd]: deal[DealCodes.ganttDevFactEnd],
+	[DealCodes.ganttEducationWeeks]: deal[DealCodes.ganttEducationWeeks],
+	[DealCodes.ganttEducationPlanStart]: deal[DealCodes.ganttEducationPlanStart],
+	[DealCodes.ganttEducationPlanEnd]: deal[DealCodes.ganttEducationPlanEnd],
+	[DealCodes.ganttEducationFactStart]: deal[DealCodes.ganttEducationFactStart],
+	[DealCodes.ganttEducationFactEnd]: deal[DealCodes.ganttEducationFactEnd],
+	[DealCodes.ganttCloseDate]: deal[DealCodes.ganttCloseDate],
 });
 
 export const getCrmDeals = async (
