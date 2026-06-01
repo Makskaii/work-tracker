@@ -191,20 +191,35 @@ export const ClientProjectsStats = ({
 		);
 	}, [data]);
 
+	const groupedAllReportsByTask = useMemo(() => {
+		return allReports.reduce(
+			(acc, report) => {
+				const taskId = getReportTaskId(report);
+
+				if (!taskId) return acc;
+
+				acc[taskId] = [...(acc[taskId] ?? []), report];
+
+				return acc;
+			},
+			{} as Record<string, ReportProps[]>,
+		);
+	}, [allReports]);
+
 	const taskPaidHoursAdjustments = useMemo(() => {
 		return tasks.reduce(
 			(acc, task) => {
-				const taskReports = groupedByTaskReports[String(task.id)] ?? [];
-				const timeSpent = taskReports.reduce((sum, report) => {
+				const allTaskReports = groupedAllReportsByTask[String(task.id)] ?? [];
+				const totalTimeSpent = allTaskReports.reduce((sum, report) => {
 					return sum + convertNumberFormat(report[ReportCodes.timeSpent]);
 				}, 0);
 				const paidHours = convertNumberFormat(task[TaskCodes.hours] ?? 0);
 
-				if (paidHours > 0) {
+				if (paidHours > 0 && allTaskReports.length > 0) {
 					acc[String(task.id)] = getPaidHoursAdjustmentValue({
 						paidHours,
-						reports: taskReports,
-						timeSpent,
+						reports: allTaskReports,
+						timeSpent: totalTimeSpent,
 					});
 				}
 
@@ -212,20 +227,16 @@ export const ClientProjectsStats = ({
 			},
 			{} as Record<string, number>,
 		);
-	}, [groupedByTaskReports, tasks]);
+	}, [groupedAllReportsByTask, tasks]);
 
 	const totalPaidHoursAdjustment = tasks.reduce((acc, task) => {
 		if (task.stageId !== TASK_STAGE_IDS.DONE) return acc;
 
-		const taskReports = groupedByTaskReports[String(task.id)] ?? [];
-		const timeSpent = taskReports.reduce((sum, report) => {
-			return sum + convertNumberFormat(report[ReportCodes.timeSpent]);
-		}, 0);
 		const paidHours = convertNumberFormat(task[TaskCodes.hours] ?? 0);
 
 		if (paidHours <= 0) return acc;
 
-		return acc + paidHours - timeSpent;
+		return acc + (taskPaidHoursAdjustments[String(task.id)] ?? 0);
 	}, 0);
 	const totalSpentTimeWithPaidHours =
 		totalSpentTime + totalPaidHoursAdjustment;

@@ -305,6 +305,33 @@ const ClientTasksModal = ({
 	);
 	const [loadingReport, setLoadingReport] = useState(false);
 	const [loadUrl, setLoadUrl] = useState("");
+	const { data: allClientReports, setFilters: setAllClientReportsFilters } =
+		useLoadAllData<ReportProps>({
+			initialEndpoint: Endpoints.crmItems,
+			initialFilters: {
+				params: {
+					entityTypeId: EntityTypeIds.reports,
+					select: REPORT_SELECT_FIELDS,
+					filter: {
+						[ReportCodes.company]: client.ID,
+						stageId: "DT1060_15:PREPARATION",
+					},
+				},
+			},
+		});
+
+	useEffect(() => {
+		setAllClientReportsFilters({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				select: REPORT_SELECT_FIELDS,
+				filter: {
+					[ReportCodes.company]: client.ID,
+					stageId: "DT1060_15:PREPARATION",
+				},
+			},
+		});
+	}, [client.ID, setAllClientReportsFilters]);
 
 	const getReportPdf = async (
 		id: string,
@@ -406,6 +433,19 @@ const ClientTasksModal = ({
 		);
 	}, [filteredReports]);
 
+	const allReportsByTask = useMemo(() => {
+		return allClientReports.reduce<Record<string, ReportProps[]>>(
+			(acc, report) => {
+				const taskId = getReportTaskId(report);
+				if (!taskId) return acc;
+
+				acc[taskId] = [...(acc[taskId] ?? []), report];
+				return acc;
+			},
+			{},
+		);
+	}, [allClientReports]);
+
 	const projectsWithTasks = useMemo(() => {
 		return (client.projects ?? [])
 			.map((project) => {
@@ -450,18 +490,22 @@ const ClientTasksModal = ({
 	};
 
 	const getPaidHoursAdjustment = (task: TaskProps) => {
-		const taskReports = reportsByTask[String(task.id)] ?? [];
-		const timeSpent = getTaskSpent(String(task.id));
+		const allTaskReports = allReportsByTask[String(task.id)] ?? [];
+		const totalTimeSpent = allTaskReports.reduce((acc, report) => {
+			return (
+				acc + Number(String(report[ReportCodes.timeSpent] ?? 0).replace(",", "."))
+			);
+		}, 0);
 		const paidHours = getTaskPaidHours(task);
 
-		if (paidHours <= 0) return undefined;
+		if (paidHours <= 0 || allTaskReports.length === 0) return undefined;
 
 		return {
 			value: formatHoursValue(
 				getPaidHoursAdjustmentValue({
 					paidHours,
-					reports: taskReports,
-					timeSpent,
+					reports: allTaskReports,
+					timeSpent: totalTimeSpent,
 				}),
 			),
 			total: formatHoursValue(paidHours),
@@ -475,7 +519,23 @@ const ClientTasksModal = ({
 
 		if (paidHours <= 0) return acc;
 
-		return acc + paidHours - getTaskSpent(String(task.id));
+		const allTaskReports = allReportsByTask[String(task.id)] ?? [];
+		if (allTaskReports.length === 0) return acc;
+
+		const totalTimeSpent = allTaskReports.reduce((sum, report) => {
+			return (
+				sum + Number(String(report[ReportCodes.timeSpent] ?? 0).replace(",", "."))
+			);
+		}, 0);
+
+		return (
+			acc +
+			getPaidHoursAdjustmentValue({
+				paidHours,
+				reports: allTaskReports,
+				timeSpent: totalTimeSpent,
+			})
+		);
 	}, 0);
 	const totalSpentWithPaidHours = totalSpent + totalPaidHoursAdjustment;
 
