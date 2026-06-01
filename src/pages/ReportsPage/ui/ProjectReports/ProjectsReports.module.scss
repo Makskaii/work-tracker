@@ -406,8 +406,49 @@
   }
 }
 
+.clientStatsBreakdown {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(73, 111, 160, 0.28);
+
+  span {
+    color: #9fb2cb;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: none;
+  }
+
+  strong {
+    color: #dbeafe;
+    font-size: 12px;
+  }
+}
+
+.clientStatsDetailsButton {
+  width: max-content;
+  height: 30px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(83, 137, 211, 0.46);
+  border-radius: 7px;
+  background: #183153;
+  color: #cfe2ff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #2cd9e8;
+    color: #ffffff;
+  }
+}
+
 .clientDevelopersCard,
-.clientActivityCard {
+.clientActivityCard,
+.clientTimeDetailsCard {
   padding: 14px;
   border: 1px solid rgba(73, 111, 160, 0.32);
   border-radius: 8px;
@@ -506,6 +547,91 @@
   >div:last-child {
     min-width: 0;
   }
+}
+
+.clientTimeDetailsCard {
+  min-width: 0;
+}
+
+.clientTimeDetailsTable {
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid rgba(73, 111, 160, 0.26);
+  border-radius: 8px;
+  scrollbar-color: #2cd9e8 #102033;
+}
+
+.clientTimeDetailsHead,
+.clientTimeDetailsRow {
+  display: grid;
+  grid-template-columns: 54px minmax(140px, 1fr) 52px;
+  gap: 10px;
+  align-items: center;
+  min-width: 320px;
+  padding: 9px 10px;
+}
+
+.clientTimeDetailsHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0b1726;
+  color: #9fb2cb;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.clientTimeDetailsRow {
+  border-top: 1px solid rgba(73, 111, 160, 0.22);
+  color: #dbeafe;
+  font-size: 12px;
+
+  >span,
+  >button {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #cfe2ff;
+    font: inherit;
+    font-weight: 750;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      color: #5eead4;
+    }
+  }
+
+  small {
+    display: block;
+    overflow: hidden;
+    margin-top: 2px;
+    color: #7d91ad;
+    font-size: 11px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #ffffff;
+    text-align: right;
+  }
+}
+
+.clientTimeDetailsEmpty {
+  color: #fbbf24;
+  font-weight: 750;
 }
 
 @keyframes pulse {
