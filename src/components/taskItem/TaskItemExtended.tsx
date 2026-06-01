@@ -2,6 +2,13 @@ import type { Status, TaskProps, User } from "@/shared/types/types";
 import { calcTimeDifference } from "@/shared/utils/calcTimeDifference";
 import { StatucBadge } from "../statusBadge/StatucBadge";
 
+const formatHoursValue = (value: string | number) => {
+	const numericValue =
+		typeof value === "number" ? value : Number(value.replace(",", "."));
+
+	return Number.isFinite(numericValue) ? numericValue.toFixed(2) : "0.00";
+};
+
 export const TaskItemExtended = ({
 	task,
 	estimateTime,
@@ -84,7 +91,7 @@ export const TaskItemExtended = ({
 			>
 				<StatucBadge status={task.stageId} statuses={statuses} />
 				<span>
-					{timeSpent ?? 0}/{estimateTime} ч
+					{formatHoursValue(timeSpent ?? 0)}/{formatHoursValue(estimateTime)} ч
 					{paidHoursAdjustment
 						? ` (${paidHoursAdjustment.value}/${paidHoursAdjustment.total} ч)`
 						: ""}

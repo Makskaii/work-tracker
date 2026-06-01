@@ -12,6 +12,7 @@ import { TaskItemExtended } from "@/components/taskItem/TaskItemExtended";
 import { UserCard } from "@/components/userCard/UserCard";
 import { ProjectActivityChart } from "@/pages/ReportsPage/ui/ProjectReports/ActivityChart";
 import { DoneTasksList } from "@/pages/ReportsPage/ui/ProjectReports/DoneTasksList";
+import { TASK_STAGE_IDS } from "@/pages/ReportsPage/constants/statuses";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import {
 	Endpoints,
@@ -66,6 +67,18 @@ const getReportsWeeksCount = (reports: ReportProps[]) => {
 		.map((date) => date.startOf("week").format("YYYY-MM-DD"));
 
 	return Math.max(new Set(reportWeeks).size, 1);
+};
+
+const getPaidHoursAdjustmentValue = ({
+	paidHours,
+	reports,
+	timeSpent,
+}: {
+	paidHours: number;
+	reports: ReportProps[];
+	timeSpent: number;
+}) => {
+	return (paidHours - timeSpent) / getReportsWeeksCount(reports);
 };
 
 export const ClientProjectsStats = ({
@@ -177,6 +190,49 @@ export const ClientProjectsStats = ({
 			{} as Record<string, ReportProps[]>,
 		);
 	}, [data]);
+
+	const taskPaidHoursAdjustments = useMemo(() => {
+		return tasks.reduce(
+			(acc, task) => {
+				const taskReports = groupedByTaskReports[String(task.id)] ?? [];
+				const timeSpent = taskReports.reduce((sum, report) => {
+					return sum + convertNumberFormat(report[ReportCodes.timeSpent]);
+				}, 0);
+				const paidHours = convertNumberFormat(task[TaskCodes.hours] ?? 0);
+
+				if (paidHours > 0) {
+					acc[String(task.id)] = getPaidHoursAdjustmentValue({
+						paidHours,
+						reports: taskReports,
+						timeSpent,
+					});
+				}
+
+				return acc;
+			},
+			{} as Record<string, number>,
+		);
+	}, [groupedByTaskReports, tasks]);
+
+	const totalPaidHoursAdjustment = tasks.reduce((acc, task) => {
+		if (task.stageId !== TASK_STAGE_IDS.DONE) return acc;
+
+		const taskReports = groupedByTaskReports[String(task.id)] ?? [];
+		const timeSpent = taskReports.reduce((sum, report) => {
+			return sum + convertNumberFormat(report[ReportCodes.timeSpent]);
+		}, 0);
+		const paidHours = convertNumberFormat(task[TaskCodes.hours] ?? 0);
+
+		if (paidHours <= 0) return acc;
+
+		return acc + paidHours - timeSpent;
+	}, 0);
+	const totalSpentTimeWithPaidHours =
+		totalSpentTime + totalPaidHoursAdjustment;
+	const sprintSpentTimeWithPaidHours =
+		data.reduce((acc, report) => {
+			return acc + convertNumberFormat(report[ReportCodes.timeSpent]);
+		}, 0) + totalPaidHoursAdjustment;
 
 	const getReportPdf = async (
 		projectId: string,
@@ -301,7 +357,7 @@ export const ClientProjectsStats = ({
 						</button>
 					</div>
 
-					<span>Всего времени: {totalSpentTime.toFixed(2)} ч.</span>
+					<span>Всего времени: {totalSpentTimeWithPaidHours.toFixed(2)} ч.</span>
 				</div>
 				<div
 					style={{
@@ -371,12 +427,11 @@ export const ClientProjectsStats = ({
 									return acc + Number(report[ReportCodes.timeSpent]);
 								}, 0);
 								const paidHours = convertNumberFormat(task[TaskCodes.hours] ?? 0);
-								const reportWeeksCount = getReportsWeeksCount(taskReports);
 								const paidHoursAdjustment =
 									paidHours > 0
 										? {
 												value: formatHoursValue(
-													(paidHours - timespent) / reportWeeksCount,
+													taskPaidHoursAdjustments[String(task.id)] ?? 0,
 												),
 												total: formatHoursValue(paidHours),
 											}
@@ -419,11 +474,7 @@ export const ClientProjectsStats = ({
 									}}
 								>
 									Всего затрачено за неделю:{" "}
-									{data.reduce((acc, report) => {
-										return (
-											acc + parseFloat(String(report[ReportCodes.timeSpent]))
-										);
-									}, 0)}
+									{sprintSpentTimeWithPaidHours.toFixed(2)}
 									ч.
 								</span>
 
@@ -437,7 +488,7 @@ export const ClientProjectsStats = ({
 										return (
 											acc + convertNumberFormat(report[TaskCodes.estimateTime])
 										);
-									}, 0)}
+									}, 0).toFixed(2)}
 									ч.
 								</span>
 							</div>

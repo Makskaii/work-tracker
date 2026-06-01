@@ -185,6 +185,18 @@ const getReportsWeeksCount = (reports: ReportProps[]) => {
 	return Math.max(new Set(reportWeeks).size, 1);
 };
 
+const getPaidHoursAdjustmentValue = ({
+	paidHours,
+	reports,
+	timeSpent,
+}: {
+	paidHours: number;
+	reports: ReportProps[];
+	timeSpent: number;
+}) => {
+	return (paidHours - timeSpent) / getReportsWeeksCount(reports);
+};
+
 const isReportForProject = ({
 	report,
 	task,
@@ -446,11 +458,26 @@ const ClientTasksModal = ({
 
 		return {
 			value: formatHoursValue(
-				(paidHours - timeSpent) / getReportsWeeksCount(taskReports),
+				getPaidHoursAdjustmentValue({
+					paidHours,
+					reports: taskReports,
+					timeSpent,
+				}),
 			),
 			total: formatHoursValue(paidHours),
 		};
 	};
+
+	const totalPaidHoursAdjustment = filteredTasks.reduce((acc, task) => {
+		if (task.stageId !== TASK_STAGE_IDS.DONE) return acc;
+
+		const paidHours = getTaskPaidHours(task);
+
+		if (paidHours <= 0) return acc;
+
+		return acc + paidHours - getTaskSpent(String(task.id));
+	}, 0);
+	const totalSpentWithPaidHours = totalSpent + totalPaidHoursAdjustment;
 
 	return (
 		<div className={styles.clientStatsModal}>
@@ -499,7 +526,7 @@ const ClientTasksModal = ({
 					</button>
 				</div>
 				<div className={styles.clientStatsTotal}>
-					Всего времени: {totalSpent.toFixed(1)} ч.
+					Всего времени: {totalSpentWithPaidHours.toFixed(2)} ч.
 				</div>
 			</header>
 
@@ -546,11 +573,11 @@ const ClientTasksModal = ({
 					<div className={styles.clientStatsSummary}>
 						<div>
 							<span>Всего затрачено за неделю:</span>
-							<strong>{totalSpent.toFixed(1)} ч.</strong>
+							<strong>{totalSpentWithPaidHours.toFixed(2)} ч.</strong>
 						</div>
 						<div>
 							<span>План по часам:</span>
-							<strong>{totalPlan.toFixed(1)} ч.</strong>
+							<strong>{totalPlan.toFixed(2)} ч.</strong>
 						</div>
 					</div>
 
