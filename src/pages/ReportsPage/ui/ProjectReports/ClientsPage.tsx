@@ -168,6 +168,23 @@ const getReportTaskId = (report: ReportProps) => {
 	return /^\d+$/.test(normalizedTaskId) ? normalizedTaskId : "";
 };
 
+const formatHoursValue = (value: number) => {
+	return Number(value.toFixed(2)).toString();
+};
+
+const getTaskPaidHours = (task: TaskProps) => {
+	return Number(String(task[TaskCodes.hours] ?? 0).replace(",", ".")) || 0;
+};
+
+const getReportsWeeksCount = (reports: ReportProps[]) => {
+	const reportWeeks = reports
+		.map((report) => dayjs(report.begindate))
+		.filter((date) => date.isValid())
+		.map((date) => date.startOf("week").format("YYYY-MM-DD"));
+
+	return Math.max(new Set(reportWeeks).size, 1);
+};
+
 const isReportForProject = ({
 	report,
 	task,
@@ -420,6 +437,21 @@ const ClientTasksModal = ({
 		}, 0);
 	};
 
+	const getPaidHoursAdjustment = (task: TaskProps) => {
+		const taskReports = reportsByTask[String(task.id)] ?? [];
+		const timeSpent = getTaskSpent(String(task.id));
+		const paidHours = getTaskPaidHours(task);
+
+		if (paidHours <= 0) return undefined;
+
+		return {
+			value: formatHoursValue(
+				(paidHours - timeSpent) / getReportsWeeksCount(taskReports),
+			),
+			total: formatHoursValue(paidHours),
+		};
+	};
+
 	return (
 		<div className={styles.clientStatsModal}>
 			<header className={styles.clientStatsHeader}>
@@ -495,6 +527,7 @@ const ClientTasksModal = ({
 												task={task}
 												estimateTime={task[TaskCodes.estimateTime]}
 												timeSpent={getTaskSpent(String(task.id))}
+												paidHoursAdjustment={getPaidHoursAdjustment(task)}
 												statuses={statuses}
 												users={users}
 											/>

@@ -6,12 +6,17 @@ export const TaskItemExtended = ({
 	task,
 	estimateTime,
 	timeSpent,
+	paidHoursAdjustment,
 	users,
 	statuses,
 }: {
 	task: TaskProps;
 	timeSpent: number;
 	estimateTime: string;
+	paidHoursAdjustment?: {
+		value: string;
+		total: string;
+	};
 	statuses: Status[];
 	users: User[];
 }) => {
@@ -80,6 +85,9 @@ export const TaskItemExtended = ({
 				<StatucBadge status={task.stageId} statuses={statuses} />
 				<span>
 					{timeSpent ?? 0}/{estimateTime} ч
+					{paidHoursAdjustment
+						? ` (${paidHoursAdjustment.value}/${paidHoursAdjustment.total} ч)`
+						: ""}
 				</span>
 			</div>
 			<div
