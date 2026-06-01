@@ -172,6 +172,10 @@ const formatHoursValue = (value: number) => {
 	return Number(value.toFixed(2)).toString();
 };
 
+const getReportTimeSpent = (report: ReportProps) => {
+	return Number(String(report[ReportCodes.timeSpent] ?? 0).replace(",", ".")) || 0;
+};
+
 const getTaskPaidHours = (task: TaskProps) => {
 	return Number(String(task[TaskCodes.hours] ?? 0).replace(",", ".")) || 0;
 };
@@ -299,6 +303,7 @@ const ClientTasksModal = ({
 	const { users, statuses, activities } = useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 	const [selectedUserId, setSelectedUserId] = useState("");
+	const [isTimeDetailsOpen, setIsTimeDetailsOpen] = useState(false);
 	const tasksMap = useMemo(
 		() => new Map(tasks.map((task) => [String(task.id), task])),
 		[tasks],
@@ -472,9 +477,15 @@ const ClientTasksModal = ({
 	}, [client.projects, filteredTasks]);
 
 	const totalSpent = filteredReports.reduce(
-		(acc, report) => acc + Number(report[ReportCodes.timeSpent] ?? 0),
+		(acc, report) => acc + getReportTimeSpent(report),
 		0,
 	);
+	const totalSpentByTasks = filteredReports.reduce((acc, report) => {
+		return getReportTaskId(report) ? acc + getReportTimeSpent(report) : acc;
+	}, 0);
+	const totalSpentWithoutTasks = filteredReports.reduce((acc, report) => {
+		return getReportTaskId(report) ? acc : acc + getReportTimeSpent(report);
+	}, 0);
 	const totalPlan = filteredTasks.reduce(
 		(acc, task) => acc + getTaskEstimate(task),
 		0,
@@ -482,10 +493,15 @@ const ClientTasksModal = ({
 	const selectedUser = clientUsers.find(
 		(user) => String(user.id) === selectedUserId,
 	);
+	const detailedReports = useMemo(() => {
+		return getSortedItems(filteredReports, (a, b) => {
+			return dayjs(a.begindate).valueOf() - dayjs(b.begindate).valueOf();
+		});
+	}, [filteredReports]);
 
 	const getTaskSpent = (taskId: string) => {
 		return (reportsByTask[taskId] ?? []).reduce((acc, report) => {
-			return acc + Number(report[ReportCodes.timeSpent] ?? 0);
+			return acc + getReportTimeSpent(report);
 		}, 0);
 	};
 
@@ -538,6 +554,8 @@ const ClientTasksModal = ({
 		);
 	}, 0);
 	const totalSpentWithPaidHours = totalSpent + totalPaidHoursAdjustment;
+	const totalSpentByTasksWithPaidHours =
+		totalSpentByTasks + totalPaidHoursAdjustment;
 
 	return (
 		<div className={styles.clientStatsModal}>
@@ -634,12 +652,78 @@ const ClientTasksModal = ({
 						<div>
 							<span>Всего затрачено за неделю:</span>
 							<strong>{totalSpentWithPaidHours.toFixed(2)} ч.</strong>
+							<div className={styles.clientStatsBreakdown}>
+								<span>По задачам</span>
+								<strong>{totalSpentByTasksWithPaidHours.toFixed(2)} ч.</strong>
+								<span>Без задач</span>
+								<strong>{totalSpentWithoutTasks.toFixed(2)} ч.</strong>
+							</div>
+							<button
+								type="button"
+								className={styles.clientStatsDetailsButton}
+								onClick={() => setIsTimeDetailsOpen((prev) => !prev)}
+							>
+								{isTimeDetailsOpen ? "Скрыть" : "Подробнее"}
+							</button>
 						</div>
 						<div>
 							<span>План по часам:</span>
 							<strong>{totalPlan.toFixed(2)} ч.</strong>
 						</div>
 					</div>
+
+					{isTimeDetailsOpen && (
+						<section className={styles.clientTimeDetailsCard}>
+							<div className={styles.clientStatsSectionTitle}>
+								Детализация времени
+								<span>{detailedReports.length} отчетов</span>
+							</div>
+
+							{detailedReports.length ? (
+								<div className={styles.clientTimeDetailsTable}>
+									<div className={styles.clientTimeDetailsHead}>
+										<span>Дата</span>
+										<span>Задача</span>
+										<span>Часы</span>
+									</div>
+
+									{detailedReports.map((report) => {
+										const taskId = getReportTaskId(report);
+										const task = taskId ? tasksMap.get(taskId) : undefined;
+
+										return (
+											<div
+												key={report.id}
+												className={styles.clientTimeDetailsRow}
+											>
+												<span>{dayjs(report.begindate).format("DD.MM")}</span>
+												{taskId ? (
+													<button
+														type="button"
+														onClick={() =>
+															openTask(taskId, EntityTypeIds.tasks)
+														}
+														title={task?.title ?? `Задача #${taskId}`}
+													>
+														{task?.title ?? `#${taskId}`}
+													</button>
+												) : (
+													<span className={styles.clientTimeDetailsEmpty}>
+														Без задачи
+													</span>
+												)}
+												<strong>{getReportTimeSpent(report).toFixed(2)}</strong>
+											</div>
+										);
+									})}
+								</div>
+							) : (
+								<div className={styles.noTasksMessage}>
+									Нет отчетов за выбранную неделю
+								</div>
+							)}
+						</section>
+					)}
 
 					<section className={styles.clientDevelopersCard}>
 						<div className={styles.clientStatsSectionTitle}>Разработчики:</div>
