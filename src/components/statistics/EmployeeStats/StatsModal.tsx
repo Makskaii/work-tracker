@@ -6,6 +6,7 @@ import type { ReportProps } from "@/components/calendar/types/types";
 import { Modal } from "@/components/modal";
 import { $api } from "@/shared/config";
 import {
+	ClientsCodes,
 	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
@@ -134,6 +135,7 @@ const getTaskProjectId = (task: TaskProps) => {
 export const StatsModal = ({
 	user,
 	onTasksChange,
+	selectedClientId,
 	selectedProjectId,
 	sprintStart,
 	sprintEnd,
@@ -141,12 +143,13 @@ export const StatsModal = ({
 }: {
 	user?: User;
 	onTasksChange?: (tasks: TaskProps[]) => void;
+	selectedClientId?: string;
 	selectedProjectId?: string;
 	sprintStart?: string;
 	sprintEnd?: string;
 	onSprintShift?: (days: number) => void;
 }) => {
-	const { setUser, statuses, activities, projects } =
+	const { setUser, statuses, activities, projects, clientsList } =
 		useOutletContext<ReportsContext>();
 
 	const [tasks, setTasks] = useState<TaskProps[]>([]);
@@ -162,12 +165,22 @@ export const StatsModal = ({
 	const [overrunTaskIds, setOverrunTaskIds] = useState<string[]>([]);
 
 	const projectFilteredTasks = useMemo(() => {
+		if (selectedClientId) {
+			const clientProjectIds = new Set(
+				projects
+					.filter((project) => String(project[ClientsCodes.client] ?? "") === selectedClientId)
+					.map((project) => String(project.id)),
+			);
+
+			return tasks.filter((task) => clientProjectIds.has(getTaskProjectId(task)));
+		}
+
 		if (!selectedProjectId) {
 			return tasks;
 		}
 
 		return tasks.filter((task) => getTaskProjectId(task) === selectedProjectId);
-	}, [tasks, selectedProjectId]);
+	}, [projects, selectedClientId, selectedProjectId, tasks]);
 
 	const filteredTasks = useMemo(() => {
 		if (taskFilter === "overrun") {
@@ -192,7 +205,7 @@ export const StatsModal = ({
 	}, [reportsByTask, activeTaskId]);
 
 	const filteredReportsByTask = useMemo(() => {
-		if (!selectedProjectId) {
+		if (!selectedClientId && !selectedProjectId) {
 			return reportsByTask;
 		}
 
@@ -204,10 +217,10 @@ export const StatsModal = ({
 			},
 			{},
 		);
-	}, [projectFilteredTasks, reportsByTask, selectedProjectId]);
+	}, [projectFilteredTasks, reportsByTask, selectedClientId, selectedProjectId]);
 
 	const filteredSprintReports = useMemo(() => {
-		if (!selectedProjectId) {
+		if (!selectedClientId && !selectedProjectId) {
 			return allSprintReports;
 		}
 
@@ -217,7 +230,7 @@ export const StatsModal = ({
 			const taskId = getReportTaskId(report);
 			return taskId ? taskIds.has(taskId) : false;
 		});
-	}, [allSprintReports, projectFilteredTasks, selectedProjectId]);
+	}, [allSprintReports, projectFilteredTasks, selectedClientId, selectedProjectId]);
 
 	const sprintProjects = useMemo(() => {
 		const result = new Map<
@@ -257,6 +270,20 @@ export const StatsModal = ({
 
 		return projects.find((item) => String(item.id) === selectedProjectId);
 	}, [projects, selectedProjectId]);
+	const selectedClient = useMemo(() => {
+		if (!selectedClientId) {
+			return undefined;
+		}
+
+		return clientsList.find((item) => String(item.ID) === selectedClientId);
+	}, [clientsList, selectedClientId]);
+	const shouldShowTaskReports = Boolean(user?.id);
+
+	useEffect(() => {
+		if (!shouldShowTaskReports) {
+			setActiveReport(null);
+		}
+	}, [shouldShowTaskReports]);
 
 	const {
 		setDay,
@@ -360,14 +387,21 @@ export const StatsModal = ({
 			}
 		};
 
-		if (user?.id || selectedProjectId) {
+		if (user?.id || selectedClientId || selectedProjectId) {
 			getReportsAndTasks();
 		}
 
 		return () => {
 			isCancelled = true;
 		};
-	}, [user?.id, selectedProjectId, startOfTheWeek, endOfTheWeek, onTasksChange]);
+	}, [
+		user?.id,
+		selectedClientId,
+		selectedProjectId,
+		startOfTheWeek,
+		endOfTheWeek,
+		onTasksChange,
+	]);
 
 	const projectsPanel = (
 		<div className={cls.projectsPanel}>
@@ -453,7 +487,11 @@ export const StatsModal = ({
 						<UserCard user={user} />
 					) : (
 						<div className={cls.projectModeTitle}>
-							{selectedProject?.name ?? selectedProject?.title ?? "Клиент / проект"}
+							{selectedClient?.NAME ??
+								selectedClient?.title ??
+								selectedProject?.name ??
+								selectedProject?.title ??
+								"Клиент / проект"}
 						</div>
 					)}
 
@@ -528,7 +566,8 @@ export const StatsModal = ({
 						onTaskSelect={setActiveTaskId}
 					/>
 
-					<div className={cls.taskReportsPanel}>
+					{shouldShowTaskReports && (
+						<div className={cls.taskReportsPanel}>
 						<div className={cls.taskReportsPanelHeader}>
 							<div className={cls.taskReportsPanelTitle}>
 								Отчеты за выбранный период по задаче
@@ -577,7 +616,8 @@ export const StatsModal = ({
 								</div>
 							)}
 						</div>
-					</div>
+						</div>
+					)}
 
 					{user && projectsPanel}
 				</section>

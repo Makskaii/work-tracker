@@ -66,6 +66,7 @@ type SegmentedControlProps = {
 	value: Period;
 	onChange: (value: Period) => void;
 	loading?: boolean;
+	variant?: "dark" | "light";
 };
 
 const periodLabels: Record<Period, string> = {
@@ -79,17 +80,19 @@ export function SegmentedControl({
 	value,
 	onChange,
 	loading,
+	variant = "dark",
 }: SegmentedControlProps) {
 	const options: Period[] = ["week", "month", "quarter", "year"];
+	const isLight = variant === "light";
 
 	return (
-		<div className={styles.segmented}>
+		<div className={`${styles.segmented} ${isLight ? styles.segmentedLight : ""}`}>
 			{options.map((option) => (
 				<button
 					disabled={loading}
 					key={option}
 					type="button"
-					className={`${styles.segmentedItem} ${
+					className={`${styles.segmentedItem} ${isLight ? styles.segmentedItemLight : ""} ${
 						value === option ? styles.segmentedItemActive : ""
 					}`}
 					onClick={() => onChange(option)}

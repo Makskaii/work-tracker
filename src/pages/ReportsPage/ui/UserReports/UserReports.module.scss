@@ -95,7 +95,8 @@
 .pmLayout {
     box-sizing: border-box;
     display: grid;
-    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    --pm-sidebar-width: 320px;
+    grid-template-columns: var(--pm-sidebar-width) minmax(0, 1fr);
     gap: clamp(10px, 1vw, 16px);
     width: 100%;
     max-width: 100%;
@@ -107,11 +108,11 @@
     background: rgba(9, 19, 34, 0.28);
     backdrop-filter: blur(14px);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
-    transition: grid-template-columns 0.42s ease;
+    transition: grid-template-columns 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pmLayoutCollapsed {
-    grid-template-columns: 72px minmax(0, 1fr);
+    --pm-sidebar-width: 72px;
 }
 
 .pmListPanel {
@@ -120,13 +121,16 @@
     flex-direction: column;
     gap: 12px;
     min-width: 0;
-    width: 100%;
+    width: var(--pm-sidebar-width);
     padding: 14px;
     border: 1px solid var(--color-border);
     border-radius: 22px;
     background: rgba(15, 28, 46, 0.3);
     overflow: hidden;
-    transition: width 0.42s ease, padding 0.42s ease;
+    transition:
+        width 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+        padding 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+        gap 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pmListHead {
@@ -254,6 +258,19 @@
     background: linear-gradient(135deg, var(--color-accent), var(--color-link, #6aa7ff));
 }
 
+.pmLetterAvatar {
+    display: none;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(46, 197, 173, 0.12);
+    color: var(--color-accent);
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
 .pmItemMain {
     display: grid;
     gap: 4px;
@@ -296,9 +313,61 @@
     min-width: 0;
 }
 
+.pmClientShell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 34px;
+    gap: 0;
+    align-items: stretch;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
 .pmClient {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
     padding: 8px 10px;
-    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.pmClientToggle {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 100%;
+    padding: 0;
+    border: 0;
+    border-left: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.pmClientToggle:not([aria-expanded="true"]):hover {
+    border-left-color: var(--color-border-active);
+    background: rgba(46, 197, 173, 0.08);
+    color: var(--color-accent);
+}
+
+.pmClientToggle[aria-expanded="true"] {
+    border-left-color: var(--color-border-active);
+    background: rgba(46, 197, 173, 0.08);
+    color: var(--color-accent);
+}
+
+.pmClientToggle:focus,
+.pmClientToggle:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .pmClientProjects {
@@ -349,7 +418,7 @@
 }
 
 .pmLayoutCollapsed .pmListPanel {
-    width: 100%;
+    width: var(--pm-sidebar-width);
     padding: 10px;
     align-items: stretch;
 }
@@ -366,7 +435,7 @@
 .pmLayoutCollapsed .pmListHead>span,
 .pmLayoutCollapsed .pmSprintChip,
 .pmLayoutCollapsed .pmSectionTitle,
-.pmLayoutCollapsed .pmProjectsList,
+.pmLayoutCollapsed .pmClientToggle,
 .pmLayoutCollapsed .pmEmpty,
 .pmLayoutCollapsed .pmItemMain {
     display: none;
@@ -392,6 +461,44 @@
 .pmLayoutCollapsed .pmAvatar {
     width: 34px;
     height: 34px;
+}
+
+.pmLayoutCollapsed .pmProjectsList,
+.pmLayoutCollapsed .pmClientGroup {
+    display: grid;
+    justify-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+    padding: 0;
+    border-left: 0;
+}
+
+.pmLayoutCollapsed .pmClientShell {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    grid-template-columns: 1fr;
+    border-radius: 16px;
+}
+
+.pmLayoutCollapsed .pmClient {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    display: grid;
+    place-items: center;
+}
+
+.pmLayoutCollapsed .pmLetterAvatar {
+    display: grid;
+}
+
+.pmLayoutCollapsed .pmClient .pmItemTitle,
+.pmLayoutCollapsed .pmClient .pmItemMeta {
+    display: none;
 }
 
 .projectManagerPage,
@@ -421,7 +528,11 @@
 
 @media (max-width: 1180px) {
     .pmLayout {
-        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+        --pm-sidebar-width: 280px;
+    }
+
+    .pmLayoutCollapsed {
+        --pm-sidebar-width: 72px;
     }
 
     .pmDetail {
