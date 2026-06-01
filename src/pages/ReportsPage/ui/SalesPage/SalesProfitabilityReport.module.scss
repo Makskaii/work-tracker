@@ -387,6 +387,429 @@
 	text-align: center;
 }
 
+.ganttCard {
+	min-width: 0;
+	border: 1px solid var(--color-border);
+	border-radius: 18px;
+	background: rgba(15, 28, 44, 0.76);
+	color: var(--color-text);
+	overflow: hidden;
+	box-shadow: 0 14px 36px rgba(1, 8, 14, 0.24);
+}
+
+.ganttHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 16px 18px 12px;
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(22, 36, 55, 0.72);
+	text-align: left;
+
+	h3 {
+		margin: 0;
+		color: var(--color-text);
+		font-size: 17px;
+		line-height: 1.25;
+	}
+
+	p {
+		margin: 4px 0 0;
+		color: rgba(238, 245, 255, 0.64);
+		font-size: 12px;
+		font-weight: 700;
+	}
+}
+
+.ganttMetrics {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(150px, 1fr));
+	gap: 10px;
+	padding: 16px;
+}
+
+.ganttMetric {
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: var(--color-surface-soft);
+	text-align: left;
+
+	span,
+	strong {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.64);
+		font-size: 12px;
+		font-weight: 800;
+	}
+
+	strong {
+		margin-top: 6px;
+		color: var(--color-text);
+		font-size: 18px;
+		font-weight: 950;
+	}
+}
+
+.ganttMetricAccent strong {
+	color: var(--color-accent-blue);
+}
+
+.ganttMetricDanger strong {
+	color: var(--color-payment-unpaid);
+}
+
+.ganttMetricSuccess strong {
+	color: var(--color-success);
+}
+
+.ganttMetricWarning strong {
+	color: var(--color-warning);
+}
+
+.ganttLegend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 14px;
+	padding: 0 16px 14px;
+	color: rgba(238, 245, 255, 0.66);
+	font-size: 12px;
+	font-weight: 800;
+	text-align: left;
+
+	span {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		white-space: nowrap;
+	}
+
+	i {
+		width: 12px;
+		height: 12px;
+		border-radius: 4px;
+	}
+}
+
+.legendPlan {
+	background: rgba(111, 168, 255, 0.26);
+}
+
+.legendFact {
+	background: #138b6d;
+}
+
+.legendLate {
+	background: repeating-linear-gradient(45deg, #ffc847 0 5px, #5b4216 5px 10px);
+}
+
+.legendEarly {
+	background: repeating-linear-gradient(45deg, #8e7cff 0 5px, #443b7e 5px 10px);
+}
+
+.legendOverdue {
+	background: repeating-linear-gradient(45deg, #d92d3a 0 5px, #ffb1b8 5px 10px);
+}
+
+.legendReserve {
+	background: repeating-linear-gradient(45deg, #6ccca5 0 5px, #264d48 5px 10px);
+}
+
+.legendSign {
+	background: var(--color-warning);
+	border-radius: 999px !important;
+}
+
+.legendClose {
+	background: #7662ff;
+	border-radius: 999px !important;
+}
+
+.ganttBoard {
+	display: grid;
+	grid-template-columns: minmax(150px, 190px) minmax(720px, 1fr);
+	margin: 0 16px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: var(--color-surface);
+	overflow-x: auto;
+	text-align: left;
+}
+
+.ganttScaleLabel,
+.ganttScale {
+	min-height: 38px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.ganttScaleLabel {
+	display: flex;
+	align-items: center;
+	padding: 0 12px;
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.ganttScale {
+	position: relative;
+	min-width: 720px;
+
+	span {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: rgba(238, 245, 255, 0.68);
+		font-size: 12px;
+		font-weight: 900;
+		text-transform: lowercase;
+	}
+}
+
+.ganttRowInfo {
+	min-height: 74px;
+	padding: 12px;
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(15, 28, 44, 0.62);
+
+	strong,
+	span,
+	small {
+		display: block;
+	}
+
+	strong {
+		color: var(--color-text);
+		font-size: 14px;
+		font-weight: 950;
+	}
+
+	span,
+	small {
+		margin-top: 3px;
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 11px;
+		line-height: 1.25;
+	}
+}
+
+.ganttTrack {
+	position: relative;
+	min-width: 720px;
+	min-height: 74px;
+	border-bottom: 1px solid var(--color-border);
+	background:
+		linear-gradient(90deg, rgba(93, 141, 206, 0.18) 1px, transparent 1px) 0 0 / 7.142% 100%,
+		linear-gradient(180deg, rgba(22, 36, 55, 0.72), rgba(15, 28, 44, 0.72));
+}
+
+.ganttSegment {
+	position: absolute;
+	top: 27px;
+	height: 22px;
+	border-radius: 999px;
+	box-shadow: 0 6px 14px rgba(1, 8, 14, 0.3);
+}
+
+.ganttPlan {
+	top: 25px;
+	height: 26px;
+	background: rgba(111, 168, 255, 0.2);
+	border: 1px solid rgba(111, 168, 255, 0.52);
+}
+
+.ganttFact {
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #138b6d;
+	color: #ffffff;
+	font-size: 10px;
+	font-weight: 950;
+}
+
+.ganttLate {
+	z-index: 3;
+	background: repeating-linear-gradient(45deg, #ffc847 0 6px, #5b4216 6px 12px);
+}
+
+.ganttEarly {
+	z-index: 3;
+	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
+}
+
+.ganttOverdue {
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	background: repeating-linear-gradient(45deg, #d92d3a 0 6px, #ffadb5 6px 12px);
+	color: #ffffff;
+	font-size: 10px;
+	font-weight: 950;
+	line-height: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ganttReserve {
+	z-index: 2;
+	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
+}
+
+.ganttStatus {
+	position: absolute;
+	right: 10px;
+	bottom: 7px;
+	max-width: min(280px, 42%);
+	overflow: hidden;
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 10px;
+	font-weight: 900;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ganttMilestone {
+	position: absolute;
+	top: 16px;
+	transform: translateX(-50%);
+	z-index: 5;
+
+	b {
+		display: block;
+		width: 18px;
+		height: 18px;
+		border: 3px solid var(--color-surface);
+		border-radius: 999px;
+		box-shadow: 0 6px 12px rgba(1, 8, 14, 0.28);
+	}
+
+	small {
+		position: absolute;
+		top: 24px;
+		left: 50%;
+		width: 108px;
+		transform: translateX(-50%);
+		color: rgba(238, 245, 255, 0.72);
+		font-size: 10px;
+		font-weight: 900;
+		line-height: 1.2;
+		text-align: center;
+	}
+}
+
+.ganttMilestoneWarning b {
+	background: var(--color-warning);
+}
+
+.ganttMilestoneAccent b {
+	background: #7662ff;
+}
+
+.ganttNoDate {
+	position: absolute;
+	top: 28px;
+	left: 12px;
+	color: rgba(238, 245, 255, 0.52);
+	font-size: 11px;
+	font-weight: 800;
+}
+
+.ganttEmpty {
+	grid-column: 1 / -1;
+	padding: 28px;
+	color: rgba(238, 245, 255, 0.64);
+	text-align: center;
+	font-weight: 800;
+}
+
+.ganttTable {
+	margin: 0 16px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: var(--color-surface);
+	overflow-x: auto;
+}
+
+.ganttTableHead,
+.ganttTableRow {
+	display: grid;
+	grid-template-columns: minmax(150px, 1fr) minmax(190px, 1.25fr) minmax(190px, 1.25fr) minmax(110px, 0.7fr) minmax(150px, 0.9fr);
+	gap: 12px;
+	align-items: center;
+	min-width: 900px;
+	padding: 12px;
+	text-align: left;
+}
+
+.ganttTableHead {
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-surface-soft);
+	color: rgba(238, 245, 255, 0.64);
+	font-size: 12px;
+	font-weight: 950;
+}
+
+.ganttTableRow {
+	border-bottom: 1px solid var(--color-border);
+	color: var(--color-text);
+	font-size: 13px;
+
+	strong {
+		font-weight: 950;
+	}
+
+	span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+
+.ganttTableRow:last-child {
+	border-bottom: 0;
+}
+
+.ganttStatusDanger,
+.ganttStatusSuccess,
+.ganttStatusNeutral {
+	display: inline-flex;
+	width: fit-content;
+	padding: 4px 8px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 950;
+}
+
+.ganttStatusDanger {
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
+}
+
+.ganttStatusSuccess {
+	background: var(--color-success-soft);
+	color: var(--color-success);
+}
+
+.ganttStatusNeutral {
+	background: rgba(158, 176, 199, 0.16);
+	color: rgba(238, 245, 255, 0.72);
+}
+
 .skeletonWrap {
 	display: flex;
 	flex-direction: column;
@@ -453,6 +876,10 @@
 	.reportsTable {
 		min-width: 980px;
 	}
+
+	.ganttMetrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 @media (max-width: 1100px) {
@@ -464,6 +891,10 @@
 	.summaryGrid,
 	.detailStats,
 	.skeletonCards {
+		grid-template-columns: 1fr;
+	}
+
+	.ganttMetrics {
 		grid-template-columns: 1fr;
 	}
 }
