@@ -389,6 +389,7 @@ const ClientProfile = () => {
 	const [clientData, setClientData] = useState<ClientListItems>();
 
 	const { companyId } = useParams<{ companyId: string }>();
+	const shouldHidePurchasedHours = companyId === "4949";
 
 	const { setPeriod, start, end, period, goNext, goPrev } = usePeriodBorders(
 		"week",
@@ -634,8 +635,9 @@ const ClientProfile = () => {
 					<div className={styles.sectionCard}>
 						<h2 className={styles.infoTitle}>Общая информация</h2>
 
-						<div className={styles.infoGrid}>
-							<div className={styles.statCard}>
+							<div className={styles.infoGrid}>
+								{!shouldHidePurchasedHours && (
+									<div className={styles.statCard}>
 								<div className={styles.statCardInner}>
 									<FcPlanner className={styles.statIcon} />
 
@@ -657,9 +659,10 @@ const ClientProfile = () => {
 										</div>
 									</div>
 								</div>
-							</div>
+									</div>
+								)}
 
-							<div className={styles.statCard}>
+								<div className={styles.statCard}>
 								<div className={styles.statCardInner}>
 									<MdAddTask className={styles.statIconBlue} />
 
@@ -673,7 +676,7 @@ const ClientProfile = () => {
 							</div>
 
 							<div className={styles.statCard}>
-								{!clientStats?.purchasedHours ? (
+								{!clientStats?.purchasedHours || shouldHidePurchasedHours ? (
 									<div className={styles.statCardInner}>
 										<FcConferenceCall className={styles.statIcon} />
 
@@ -711,11 +714,11 @@ const ClientProfile = () => {
 								)}
 							</div>
 
-							{!clientStats?.purchasedHours && !loadingStats && (
+							{(!clientStats?.purchasedHours || shouldHidePurchasedHours) && !loadingStats && (
 								<div className={`${styles.statCard} ${styles.periodCard}`}>
 									<div className={styles.periodHeader}>Период</div>
 
-									<SegmentedControl onChange={setPeriod} value={period} />
+									<SegmentedControl onChange={setPeriod} value={period} variant="light" />
 
 									<div className={styles.periodNavigation}>
 										<button

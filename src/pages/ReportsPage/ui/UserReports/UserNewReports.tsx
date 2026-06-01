@@ -19,6 +19,10 @@ import { Piecework } from "./Piecework";
 import cls from "./UserReports.module.scss";
 
 type UserReportsTab = "staff" | "piecework";
+type SelectedContext =
+	| { type: "employee"; id: string }
+	| { type: "client"; id: string }
+	| { type: "project"; id: string };
 
 type CrmItemListResponse<T> = {
 	result?: {
@@ -31,6 +35,7 @@ const REPORT_SELECT_FIELDS = [
 	"id",
 	"title",
 	"begindate",
+	ReportCodes.timeSpent,
 	ReportCodes.taskId,
 	`parentId${EntityTypeIds.tasks}`,
 ] as const;
@@ -74,6 +79,20 @@ const getReportTaskId = (report: ReportProps) => {
 	return taskId === null || taskId === undefined ? "" : String(taskId).trim();
 };
 
+const getNumberValue = (value: unknown) => {
+	if (typeof value === "number") {
+		return Number.isFinite(value) ? value : 0;
+	}
+
+	if (typeof value === "string") {
+		const numberValue = Number(value.trim().replace(",", "."));
+
+		return Number.isFinite(numberValue) ? numberValue : 0;
+	}
+
+	return 0;
+};
+
 const ProjectManagerUserCard = ({
 	user,
 	taskTitle,
@@ -115,9 +134,12 @@ export const NewUserReports = () => {
 	const { users, projects, clientsList } = useOutletContext<ReportsContext>();
 	const [activeUser, setActiveUser] = useState<User>();
 	const [activeProjectId, setActiveProjectId] = useState("");
+	const [activeClientId, setActiveClientId] = useState("");
+	const [selectedContext, setSelectedContext] = useState<SelectedContext>();
 	const [expandedClientId, setExpandedClientId] = useState("");
 	const [activeTab, setActiveTab] = useState<UserReportsTab>("staff");
 	const [allSprintTasks, setAllSprintTasks] = useState<TaskProps[]>([]);
+	const [allSprintReports, setAllSprintReports] = useState<ReportProps[]>([]);
 	const [isPmSidebarCollapsed, setIsPmSidebarCollapsed] = useState(false);
 	const { setDay, startOfTheWeek, endOfTheWeek } = useSprintBorders("workweek");
 	const staffUsers = useMemo(
@@ -139,7 +161,21 @@ export const NewUserReports = () => {
 	});
 
 	const sprintClients = useMemo(() => {
-		const projectTaskCounts = new Map<string, number>();
+		const reportsByTask = allSprintReports.reduce<Record<string, ReportProps[]>>(
+			(acc, report) => {
+				const taskId = getReportTaskId(report);
+
+				if (!taskId) {
+					return acc;
+				}
+
+				acc[taskId] = [...(acc[taskId] ?? []), report];
+
+				return acc;
+			},
+			{},
+		);
+		const projectStats = new Map<string, { tasksCount: number; hours: number }>();
 
 		allSprintTasks.forEach((task) => {
 			const projectId = String(
@@ -150,15 +186,24 @@ export const NewUserReports = () => {
 				return;
 			}
 
-			projectTaskCounts.set(projectId, (projectTaskCounts.get(projectId) ?? 0) + 1);
+			const taskHours = (reportsByTask[String(task.id)] ?? []).reduce(
+				(sum, report) => sum + getNumberValue(report[ReportCodes.timeSpent]),
+				0,
+			);
+			const current = projectStats.get(projectId);
+
+			projectStats.set(projectId, {
+				tasksCount: (current?.tasksCount ?? 0) + 1,
+				hours: (current?.hours ?? 0) + taskHours,
+			});
 		});
 
 		const projectsByClient = new Map<
 			string,
-			{ id: string; name: string; tasksCount: number }[]
+			{ id: string; name: string; tasksCount: number; hours: number }[]
 		>();
 
-		Array.from(projectTaskCounts.entries()).forEach(([projectId, tasksCount]) => {
+		Array.from(projectStats.entries()).forEach(([projectId, stats]) => {
 			const project = projects.find((item) => String(item.id) === projectId);
 
 			if (!project) {
@@ -176,7 +221,8 @@ export const NewUserReports = () => {
 				{
 					id: projectId,
 					name: project.name ?? project.title,
-					tasksCount,
+					tasksCount: stats.tasksCount,
+					hours: stats.hours,
 				},
 			]);
 		});
@@ -189,16 +235,19 @@ export const NewUserReports = () => {
 					id: clientId,
 					name: client?.NAME ?? client?.title ?? `Клиент #${clientId}`,
 					projects: clientProjects,
+					hours: clientProjects.reduce((sum, project) => sum + project.hours, 0),
 				};
 			},
 		);
-	}, [allSprintTasks, clientsList, projects]);
+	}, [allSprintReports, allSprintTasks, clientsList, projects]);
 
 	useEffect(() => {
-		if (!activeUser && !activeProjectId && staffUsers.length) {
-			setActiveUser(staffUsers[0]);
+		if (!selectedContext && staffUsers.length) {
+			const firstUser = staffUsers[0];
+			setActiveUser(firstUser);
+			setSelectedContext({ type: "employee", id: String(firstUser.id) });
 		}
-	}, [activeProjectId, activeUser, staffUsers]);
+	}, [selectedContext, staffUsers]);
 
 	useEffect(() => {
 		let isCancelled = false;
@@ -219,12 +268,15 @@ export const NewUserReports = () => {
 					return;
 				}
 
+				setAllSprintReports(reports);
+
 				const taskIds = Array.from(
 					new Set(reports.map(getReportTaskId).filter(Boolean)),
 				);
 
 				if (!taskIds.length) {
 					setAllSprintTasks([]);
+					setAllSprintReports([]);
 					return;
 				}
 
@@ -242,6 +294,7 @@ export const NewUserReports = () => {
 			} catch (error) {
 				if (!isCancelled) {
 					setAllSprintTasks([]);
+					setAllSprintReports([]);
 					console.log("Ошибка при загрузке проектов спринта", error);
 				}
 			}
@@ -330,10 +383,15 @@ export const NewUserReports = () => {
 										user={user}
 										taskTitle={currentTask?.title}
 										projectName={project?.name ?? project?.title}
-										isActive={activeUser?.id === user.id}
+										isActive={
+											selectedContext?.type === "employee" &&
+											selectedContext.id === String(user.id)
+										}
 										onClick={() => {
 											setActiveProjectId("");
+											setActiveClientId("");
 											setActiveUser(user);
+											setSelectedContext({ type: "employee", id: String(user.id) });
 										}}
 									/>
 								);
@@ -348,20 +406,44 @@ export const NewUserReports = () => {
 
 										return (
 											<div key={client.id} className={cls.pmClientGroup}>
-												<button
-													type="button"
-													className={`${cls.pmItem} ${cls.pmClient}`}
-													onClick={() =>
-														setExpandedClientId((current) =>
-															current === client.id ? "" : client.id,
-														)
-													}
+												<div
+													className={`${cls.pmItem} ${cls.pmClientShell} ${
+														selectedContext?.type === "client" &&
+														selectedContext.id === client.id
+															? cls.pmItemActive
+															: ""
+													}`}
 												>
+													<button
+														type="button"
+														className={cls.pmClient}
+														title={client.name}
+														onClick={() => {
+															setActiveUser(undefined);
+															setActiveProjectId("");
+															setActiveClientId(client.id);
+															setSelectedContext({ type: "client", id: client.id });
+														}}
+													>
+														<span className={cls.pmLetterAvatar}>{client.name.trim().charAt(0)}</span>
 													<span className={cls.pmItemTitle}>{client.name}</span>
-													<span className={cls.pmItemMeta}>
-														Проектов: {client.projects.length}
-													</span>
-												</button>
+														<span className={cls.pmItemMeta}>{client.hours} ч</span>
+													</button>
+
+													<button
+														type="button"
+														className={cls.pmClientToggle}
+														aria-expanded={isExpanded}
+														title={isExpanded ? "Скрыть проекты" : "Показать проекты"}
+														onClick={() => {
+															setExpandedClientId((current) =>
+																current === client.id ? "" : client.id,
+															);
+														}}
+													>
+														{isExpanded ? "⌃" : "⌄"}
+													</button>
+												</div>
 
 												{isExpanded && (
 													<div className={cls.pmClientProjects}>
@@ -370,18 +452,25 @@ export const NewUserReports = () => {
 																key={project.id}
 																type="button"
 																className={`${cls.pmItem} ${cls.pmProject} ${
-																	activeProjectId === project.id
+																	selectedContext?.type === "project" &&
+																	selectedContext.id === project.id
 																		? cls.pmItemActive
 																		: ""
 																}`}
 																onClick={() => {
 																	setActiveUser(undefined);
+																	setActiveClientId("");
 																	setActiveProjectId(project.id);
+																	setSelectedContext({
+																		type: "project",
+																		id: project.id,
+																	});
 																}}
 															>
+																<span className={cls.pmLetterAvatar}>{project.name.trim().charAt(0)}</span>
 																<span className={cls.pmItemTitle}>{project.name}</span>
 																<span className={cls.pmItemMeta}>
-																	Задач: {project.tasksCount}
+																	{project.hours} ч · Задач: {project.tasksCount}
 																</span>
 															</button>
 														))}
@@ -398,9 +487,10 @@ export const NewUserReports = () => {
 					</aside>
 
 					<section className={cls.pmDetail}>
-						{activeUser || activeProjectId ? (
+						{activeUser || activeClientId || activeProjectId ? (
 							<StatsModal
 								user={activeUser}
+								selectedClientId={activeClientId}
 								selectedProjectId={activeProjectId}
 								sprintStart={startOfTheWeek}
 								sprintEnd={endOfTheWeek}
