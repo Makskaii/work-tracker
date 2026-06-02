@@ -1,7 +1,15 @@
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
+import type { ProjectGanttCodes } from "./constants";
 
-export type ProfitabilityProject = ClientProjectProps & {
+type ProjectGanttFieldCode =
+	(typeof ProjectGanttCodes)[keyof typeof ProjectGanttCodes];
+
+type ProjectGanttFields = {
+	[field in ProjectGanttFieldCode]?: string | number | null;
+};
+
+export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 	tasks: TaskProps[];
 	reports: ReportProps[];
 };

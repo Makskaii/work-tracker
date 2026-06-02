@@ -1,11 +1,8 @@
 import type { User } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
-import {
-	formatHours,
-} from "../model/profitabilityUtils";
+import { formatHours } from "../model/profitabilityUtils";
 import type { DealSummary, ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
-import { DealGantt } from "./DealGantt";
 import { MetricCard } from "./MetricCard";
 import { ProjectsTable } from "./ProjectsTable";
 
@@ -23,7 +20,6 @@ export const DealTab = ({
 	users,
 }: DealTabProps) => (
 	<div className={styles.tabContent}>
-		<DealGantt selectedDeal={selectedDeal} />
 		<ProjectsTable
 			projects={projects}
 			purchasedHours={summary.purchasedHours}

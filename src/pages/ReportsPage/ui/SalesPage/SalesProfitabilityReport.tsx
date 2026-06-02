@@ -85,7 +85,7 @@ export const SalesProfitabilityReport = ({
 					)}
 				</select>
 				<button type="button" disabled>
-					Гант по сделке
+					Гант по проекту
 				</button>
 			</div>
 
