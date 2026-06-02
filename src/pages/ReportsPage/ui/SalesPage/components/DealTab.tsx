@@ -3,6 +3,7 @@ import type { Deal } from "../../../types/deals.types";
 import { formatHours } from "../model/profitabilityUtils";
 import type { DealSummary, ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { DealWorkDensityChart } from "./DealWorkDensityChart";
 import { MetricCard } from "./MetricCard";
 import { ProjectsTable } from "./ProjectsTable";
 
@@ -20,6 +21,7 @@ export const DealTab = ({
 	users,
 }: DealTabProps) => (
 	<div className={styles.tabContent}>
+		<DealWorkDensityChart projects={projects} users={users} />
 		<ProjectsTable
 			projects={projects}
 			purchasedHours={summary.purchasedHours}
