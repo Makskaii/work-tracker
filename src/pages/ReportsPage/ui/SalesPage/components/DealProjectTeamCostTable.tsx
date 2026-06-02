@@ -213,7 +213,7 @@ const buildTeamMembers = (
 
 const getGroups = (members: TeamMember[]): TeamGroup[] => {
 	const unknownMembers = members.filter((member) => member.role === "unknown");
-	const visibleRoles = unknownMembers.length
+	const visibleRoles: TeamRole[] = unknownMembers.length
 		? [...FIXED_ROLE_ORDER, "unknown"]
 		: FIXED_ROLE_ORDER;
 
