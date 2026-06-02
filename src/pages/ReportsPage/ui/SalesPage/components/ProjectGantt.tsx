@@ -1,12 +1,11 @@
 import { useMemo } from "react";
-import type { Deal } from "../../../types/deals.types";
 import type {
 	GanttMilestone,
 	GanttStage,
 	GanttTimeline,
 } from "../model/ganttTypes";
 import {
-	buildDealGantt,
+	buildProjectGantt,
 	formatDateFull,
 	formatDateShort,
 	formatDeviation,
@@ -19,9 +18,14 @@ import {
 	getStageDeviation,
 	getStageStatus,
 } from "../model/ganttUtils";
+import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
-export const DealGantt = ({ selectedDeal }: { selectedDeal: Deal | null }) => {
+export const ProjectGantt = ({
+	project,
+}: {
+	project: ProfitabilityProject | null;
+}) => {
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -32,8 +36,8 @@ export const DealGantt = ({ selectedDeal }: { selectedDeal: Deal | null }) => {
 		);
 	}, []);
 	const gantt = useMemo(
-		() => buildDealGantt(selectedDeal, today),
-		[selectedDeal, today],
+		() => buildProjectGantt(project, today),
+		[project, today],
 	);
 	const timeline = useMemo(
 		() => getGanttTimeline(gantt.rows, today),
@@ -123,7 +127,7 @@ export const DealGantt = ({ selectedDeal }: { selectedDeal: Deal | null }) => {
 					)
 				) : (
 					<div className={styles.ganttEmpty}>
-						Заполните даты и длительности этапов в сделке, чтобы построить Гант.
+						Заполните даты и длительности этапов в проекте, чтобы построить Гант.
 					</div>
 				)}
 			</div>
@@ -332,7 +336,6 @@ const GanttMilestoneRow = ({
 	milestone: GanttMilestone;
 	timeline: GanttTimeline;
 }) => {
-	console.log("Render Milestone:", milestone.title, milestone.date);
 	return (
 		<>
 			<div className={styles.ganttRowInfo}>

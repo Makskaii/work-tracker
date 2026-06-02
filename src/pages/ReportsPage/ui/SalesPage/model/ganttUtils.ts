@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { DealCodes, type Deal } from "../../../types/deals.types";
+import { ProjectGanttCodes } from "./constants";
 import { toNumber } from "./profitabilityUtils";
 import type {
 	GanttMonthTick,
@@ -7,6 +7,7 @@ import type {
 	GanttStage,
 	GanttTimeline,
 } from "./ganttTypes";
+import type { ProfitabilityProject } from "./types";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -129,61 +130,68 @@ export const getStageDeviation = (stage: GanttStage, today: Date) => {
 	return null;
 };
 
-export const buildDealGantt = (deal: Deal | null, today: Date) => {
-	const tzStart = parseGanttDate(deal?.[DealCodes.ganttTzStart]);
+export const buildProjectGantt = (
+	project: ProfitabilityProject | null,
+	today: Date,
+) => {
+	const tzStart = parseGanttDate(project?.[ProjectGanttCodes.ganttTzStart]);
 	const tzPlanEnd = getStagePlanEnd(
 		tzStart,
-		deal?.[DealCodes.ganttTzWeeks],
-		parseGanttDate(deal?.[DealCodes.ganttTzPlanEnd]),
+		project?.[ProjectGanttCodes.ganttTzWeeks],
+		parseGanttDate(project?.[ProjectGanttCodes.ganttTzPlanEnd]),
 	);
-	const tzFactEnd = parseGanttDate(deal?.[DealCodes.ganttTzFactEnd]);
+	const tzFactEnd = parseGanttDate(project?.[ProjectGanttCodes.ganttTzFactEnd]);
 	const rootShiftDays =
 		tzPlanEnd && tzFactEnd ? daysBetween(tzPlanEnd, tzFactEnd) : 0;
-	const tzSignDate = parseGanttDate(deal?.[DealCodes.ganttTzSignDate]);
+	const tzSignDate = parseGanttDate(
+		project?.[ProjectGanttCodes.ganttTzSignDate],
+	);
 
 	const developmentPlanStart =
 		tzSignDate ??
 		tzFactEnd ??
 		tzPlanEnd ??
 		shiftDependentDate(
-			parseGanttDate(deal?.[DealCodes.ganttDevPlanStart]),
+			parseGanttDate(project?.[ProjectGanttCodes.ganttDevPlanStart]),
 			rootShiftDays,
 		);
 	const developmentPlanEnd = getStagePlanEnd(
 		developmentPlanStart,
-		deal?.[DealCodes.ganttDevWeeks],
+		project?.[ProjectGanttCodes.ganttDevWeeks],
 		shiftDependentDate(
-			parseGanttDate(deal?.[DealCodes.ganttDevPlanEnd]),
+			parseGanttDate(project?.[ProjectGanttCodes.ganttDevPlanEnd]),
 			rootShiftDays,
 		),
 	);
 	const developmentFactStart = parseGanttDate(
-		deal?.[DealCodes.ganttDevFactStart],
+		project?.[ProjectGanttCodes.ganttDevFactStart],
 	);
-	const developmentFactEnd = parseGanttDate(deal?.[DealCodes.ganttDevFactEnd]);
+	const developmentFactEnd = parseGanttDate(
+		project?.[ProjectGanttCodes.ganttDevFactEnd],
+	);
 
 	const educationPlanStart =
 		developmentFactEnd ??
 		developmentPlanEnd ??
 		shiftDependentDate(
-			parseGanttDate(deal?.[DealCodes.ganttEducationPlanStart]),
+			parseGanttDate(project?.[ProjectGanttCodes.ganttEducationPlanStart]),
 			rootShiftDays,
 		);
 	const educationPlanEnd = getStagePlanEnd(
 		educationPlanStart,
-		deal?.[DealCodes.ganttEducationWeeks],
+		project?.[ProjectGanttCodes.ganttEducationWeeks],
 		shiftDependentDate(
-			parseGanttDate(deal?.[DealCodes.ganttEducationPlanEnd]),
+			parseGanttDate(project?.[ProjectGanttCodes.ganttEducationPlanEnd]),
 			rootShiftDays,
 		),
 	);
 	const educationFactStart = parseGanttDate(
-		deal?.[DealCodes.ganttEducationFactStart],
+		project?.[ProjectGanttCodes.ganttEducationFactStart],
 	);
 	const educationFactEnd = parseGanttDate(
-		deal?.[DealCodes.ganttEducationFactEnd],
+		project?.[ProjectGanttCodes.ganttEducationFactEnd],
 	);
-	const closeDate = parseGanttDate(deal?.[DealCodes.ganttCloseDate]);
+	const closeDate = parseGanttDate(project?.[ProjectGanttCodes.ganttCloseDate]);
 
 	const stages: GanttStage[] = [
 		{
@@ -263,7 +271,7 @@ export const buildDealGantt = (deal: Deal | null, today: Date) => {
 		stages,
 		milestones,
 		summary: {
-			projectTitle: deal?.title ?? "Сделка не выбрана",
+			projectTitle: project?.title ?? "Проект не выбран",
 			finalPlanEnd,
 			currentFinish,
 			projectDeviation,
