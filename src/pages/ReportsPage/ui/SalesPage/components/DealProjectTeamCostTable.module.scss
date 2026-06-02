@@ -1,0 +1,213 @@
+.teamCard {
+	min-width: 0;
+	max-width: 100%;
+	border: 1px solid var(--color-border);
+	border-radius: 18px;
+	background: rgba(15, 28, 44, 0.72);
+	overflow: hidden;
+}
+
+.teamSection {
+	border-bottom: 1px solid var(--color-border);
+}
+
+.teamSection:last-child {
+	border-bottom: 0;
+}
+
+.teamHeader {
+	padding: 16px;
+}
+
+.teamTitle {
+	font-size: 18px;
+	font-weight: 900;
+	text-align: left;
+}
+
+.teamSubtitle {
+	margin-top: 5px;
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 12px;
+	font-weight: 800;
+	text-align: left;
+}
+
+.teamCostTableWrapper {
+	width: 100%;
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.teamCostTable {
+	min-width: 980px;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.projectTeamTable {
+	min-width: 0;
+}
+
+.projectTeamHead,
+.projectTeamRow,
+.projectTeamTotalRow {
+	display: grid;
+	grid-template-columns: minmax(170px, 0.7fr) minmax(280px, 1.4fr) 160px;
+	gap: 16px;
+	align-items: center;
+	padding: 14px 16px;
+	border-top: 1px solid var(--color-border);
+	text-align: left;
+}
+
+.projectTeamHead {
+	background: rgba(22, 36, 55, 0.72);
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.projectTeamRow,
+.projectTeamTotalRow {
+	color: var(--color-text);
+}
+
+.projectTeamRow > strong {
+	font-size: 15px;
+	font-weight: 950;
+}
+
+.projectTeamTotalRow {
+	background: rgba(22, 36, 55, 0.42);
+	color: rgba(238, 245, 255, 0.72);
+	font-weight: 900;
+}
+
+.emptyEmployee {
+	color: rgba(238, 245, 255, 0.5);
+	font-weight: 900;
+}
+
+.teamHead,
+.teamRow,
+.groupTotal,
+.grandTotal {
+	display: grid;
+	grid-template-columns: 130px minmax(210px, 1.4fr) 105px 95px 95px 95px 130px 140px;
+	gap: 12px;
+	align-items: center;
+	padding: 12px 16px;
+	border-top: 1px solid var(--color-border);
+	text-align: left;
+}
+
+.teamHead {
+	background: rgba(22, 36, 55, 0.72);
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.teamRow {
+	color: var(--color-text);
+}
+
+.teamRow span,
+.teamRow strong,
+.groupTotal span,
+.grandTotal span,
+.grandTotal strong {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.roleCell {
+	display: inline-flex;
+	width: fit-content;
+	max-width: 100%;
+	padding: 5px 9px;
+	border-radius: 999px;
+	background: rgba(111, 168, 255, 0.14);
+	color: var(--color-accent-blue);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.roleCellEmpty {
+	display: block;
+	min-width: 0;
+}
+
+.employeeCell {
+	min-width: 0;
+}
+
+.employeeCell strong,
+.employeeCell span {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.employeeCell span {
+	margin-top: 4px;
+	color: rgba(238, 245, 255, 0.66);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.hoursBadge {
+	display: inline-flex;
+	width: fit-content;
+	padding: 5px 9px;
+	border-radius: 999px;
+	background: rgba(111, 168, 255, 0.16);
+	color: #7fb0ff;
+	font-weight: 950;
+}
+
+.factBadgeGood {
+	background: rgba(72, 217, 140, 0.14);
+	color: #48d98c;
+}
+
+.factBadgeOverrun {
+	background: rgba(255, 107, 107, 0.14);
+	color: #ff6b6b;
+}
+
+.costCell {
+	font-weight: 950;
+	color: var(--color-text);
+}
+
+.groupTotal {
+	background: rgba(22, 36, 55, 0.42);
+	color: rgba(238, 245, 255, 0.72);
+	font-size: 13px;
+	font-weight: 900;
+}
+
+.grandTotal {
+	background: rgba(57, 214, 238, 0.12);
+	color: var(--color-text);
+	font-size: 14px;
+	font-weight: 950;
+}
+
+.emptyState {
+	padding: 20px;
+	color: rgba(238, 245, 255, 0.64);
+	text-align: center;
+	font-weight: 800;
+}
+
+@media (max-width: 1500px) {
+	.teamCostTableWrapper {
+		overflow-x: auto;
+	}
+}

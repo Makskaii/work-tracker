@@ -209,16 +209,20 @@
 
 .valueLabel {
 	position: absolute;
-	top: -2px;
+	top: 7px;
 	left: 50%;
 	transform: translateX(-50%);
-	color: rgba(238, 245, 255, 0.82);
+	z-index: 2;
+	color: #ffffff;
 	font-size: 11px;
 	font-weight: 950;
+	line-height: 1;
+	text-shadow: 0 1px 3px rgba(1, 8, 14, 0.72);
 	white-space: nowrap;
 }
 
 .bar {
+	position: relative;
 	display: flex;
 	flex-direction: column-reverse;
 	width: 32px;
@@ -226,6 +230,11 @@
 	border-radius: 999px 999px 4px 4px;
 	background: rgba(238, 245, 255, 0.08);
 	overflow: hidden;
+}
+
+.barLow .valueLabel {
+	top: 50%;
+	transform: translate(-50%, -50%);
 }
 
 .barEmpty {

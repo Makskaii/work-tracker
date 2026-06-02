@@ -41,6 +41,7 @@ export const SalesProfitabilityReport = ({
 }: SalesProfitabilityReportProps) => {
 	const [selectedDealId, setSelectedDealId] = useState("");
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("deal");
+	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
 
 	const selectedDeal = useMemo(() => {
@@ -89,9 +90,25 @@ export const SalesProfitabilityReport = ({
 				</button>
 			</div>
 
-			<div className={styles.layout}>
+			<div
+				className={`${styles.layout} ${
+					isStructureCollapsed ? styles.layoutCollapsed : ""
+				}`}
+			>
 				<aside className={styles.structure}>
 					<div className={styles.structureHeader}>
+						<button
+							type="button"
+							className={styles.structureToggle}
+							onClick={() => setIsStructureCollapsed((prev) => !prev)}
+							title={
+								isStructureCollapsed
+									? "Развернуть структуру"
+									: "Свернуть структуру"
+							}
+						>
+							{isStructureCollapsed ? "⇥" : "⇤"}
+						</button>
 						<h3>Структура</h3>
 					</div>
 					<div className={styles.dealsList}>
@@ -99,12 +116,15 @@ export const SalesProfitabilityReport = ({
 							<button
 								key={deal.id}
 								type="button"
+								title={deal.title}
 								className={`${styles.dealButton} ${
 									String(deal.id) === selectedDealId ? styles.activeDeal : ""
 								}`}
 								onClick={() => setSelectedDealId(String(deal.id))}
 							>
-								<span className={styles.dealChevron}>›</span>
+								<span className={styles.dealChevron}>
+									{deal.title.trim().charAt(0)}
+								</span>
 								<span>
 									<strong>{deal.title}</strong>
 									<small>CRM-сделка</small>

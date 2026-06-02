@@ -322,23 +322,24 @@ export const DealWorkDensityChart = ({
 								{density.weeks.map((week) => {
 									const weekHours = getWeekHours(week, activeFilter);
 									const barHeight = axisMax ? (weekHours / axisMax) * 100 : 0;
+									const isLowBar = weekHours > 0 && barHeight < 22;
 
 									return (
 										<div key={week.start.toISOString()} className={styles.barColumn}>
-											<span className={styles.valueLabel}>
-												{weekHours > 0 ? formatHoursShort(weekHours) : "0"}
-											</span>
 											<div
 												className={`${styles.bar} ${
 													weekHours === 0 ? styles.barEmpty : ""
-												}`}
+												} ${isLowBar ? styles.barLow : ""}`}
 												title={`${formatDate(week.start)} - ${formatDate(
 													week.end,
 												)}: ${formatHoursShort(weekHours)}`}
 												style={{
-													height: `${Math.max(barHeight, weekHours ? 4 : 0)}%`,
+													height: `${Math.max(barHeight, weekHours ? 14 : 0)}%`,
 												}}
 											>
+												<span className={styles.valueLabel}>
+													{weekHours > 0 ? formatHoursShort(weekHours) : "0"}
+												</span>
 												{activeFilter === "all" ? (
 													DEPARTMENTS.map((department) => {
 														const segmentHours = week.hours[department.key];
