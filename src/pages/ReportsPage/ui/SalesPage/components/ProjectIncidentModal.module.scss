@@ -83,7 +83,7 @@
 	gap: 10px;
 	margin-top: 14px;
 
-	div {
+	> div {
 		padding: 10px 12px;
 		border: 1px solid rgba(93, 141, 206, 0.22);
 		border-radius: 12px;
@@ -103,6 +103,59 @@
 		font-size: 13px;
 		line-height: 1.45;
 	}
+}
+
+.filesList {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.fileLink {
+	display: grid;
+	grid-template-columns: 44px minmax(0, 1fr);
+	gap: 10px;
+	align-items: center;
+	padding: 8px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: rgba(15, 28, 44, 0.7);
+	color: var(--color-accent);
+	text-decoration: none;
+
+	img {
+		width: 44px;
+		height: 44px;
+		border-radius: 8px;
+		object-fit: cover;
+	}
+
+	span,
+	small {
+		display: block;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	span {
+		font-size: 13px;
+		font-weight: 900;
+	}
+
+	small {
+		margin-top: 3px;
+		color: rgba(238, 245, 255, 0.6);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.fileLink:hover {
+	border-color: var(--color-border-active);
+	background: var(--color-surface-hover);
 }
 
 .empty {

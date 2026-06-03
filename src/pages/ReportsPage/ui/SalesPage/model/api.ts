@@ -76,15 +76,22 @@ const PROJECT_INCIDENT_SELECT_FIELDS = [
 	ProjectIncidentCodes.incidentDates,
 ] as const;
 
-const getProjectIncidentFilter = (
-	project: ProfitabilityProject,
-	includeCompany: boolean,
-) => {
+const getProjectIncidentFilter = ({
+	includeCompany,
+	includeProject,
+	project,
+}: {
+	includeCompany: boolean;
+	includeProject: boolean;
+	project: ProfitabilityProject;
+}) => {
 	const projectId = String(project.projectId ?? project.id);
 	const companyId = project[ProjectCodes.company];
-	const filter: Record<string, unknown> = {
-		[ProjectIncidentCodes.project]: projectId,
-	};
+	const filter: Record<string, unknown> = {};
+
+	if (includeProject) {
+		filter[ProjectIncidentCodes.project] = projectId;
+	}
 
 	if (includeCompany && companyId) {
 		filter[ProjectIncidentCodes.company] = companyId;
@@ -100,17 +107,40 @@ export const fetchProjectIncidents = async ({
 	project: ProfitabilityProject;
 	signal?: AbortSignal;
 }) => {
-	const request = (includeCompany: boolean) =>
+	const companyId = project[ProjectCodes.company];
+	const request = (includeProject: boolean, includeCompany: boolean) =>
 		fetchAllCrmItems<ProjectIncident>({
 			entityTypeId: 1140,
 			select: PROJECT_INCIDENT_SELECT_FIELDS,
-			filter: getProjectIncidentFilter(project, includeCompany),
+			filter: getProjectIncidentFilter({
+				includeCompany,
+				includeProject,
+				project,
+			}),
 			signal,
 		});
+	const safeRequest = async (
+		includeProject: boolean,
+		includeCompany: boolean,
+	) => {
+		try {
+			return await request(includeProject, includeCompany);
+		} catch {
+			return [];
+		}
+	};
 
-	try {
-		return await request(true);
-	} catch {
-		return request(false);
+	const strictItems = await safeRequest(true, true);
+
+	if (strictItems.length) {
+		return strictItems;
 	}
+
+	const projectItems = await safeRequest(true, false);
+
+	if (projectItems.length || !companyId) {
+		return projectItems;
+	}
+
+	return safeRequest(false, true);
 };
