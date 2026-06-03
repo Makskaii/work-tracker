@@ -209,9 +209,11 @@ const getWeekHours = (week: WeekBucket, activeFilter: DepartmentKey) =>
 
 export const DealWorkDensityChart = ({
 	projects,
+	title = "Плотность работ по сделке",
 	users,
 }: {
 	projects: ProfitabilityProject[];
+	title?: string;
 	users: User[];
 }) => {
 	const [activeFilter, setActiveFilter] = useState<DepartmentKey>("all");
@@ -244,7 +246,7 @@ export const DealWorkDensityChart = ({
 		<section className={styles.chartCard}>
 			<div className={styles.chartHeader}>
 				<div>
-					<h3 className={styles.chartTitle}>Плотность работ по сделке</h3>
+					<h3 className={styles.chartTitle}>{title}</h3>
 					<p className={styles.chartSubtitle}>
 						Сумма часов по ежедневным отчётам, сгруппированная по неделям
 					</p>

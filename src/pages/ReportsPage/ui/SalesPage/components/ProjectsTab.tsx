@@ -7,7 +7,6 @@ import { DealWorkDensityChart } from "./DealWorkDensityChart";
 import { ProjectGantt } from "./ProjectGantt";
 
 type ProjectsTabProps = {
-	onProjectSelect: (projectId: string) => void;
 	projects: ProfitabilityProject[];
 	selectedDeal: Deal | null;
 	selectedProjectId: string | null;
@@ -18,7 +17,6 @@ const getProjectId = (project: ProfitabilityProject) =>
 	String(project.projectId ?? project.id);
 
 export const ProjectsTab = ({
-	onProjectSelect,
 	projects,
 	selectedDeal,
 	selectedProjectId,
@@ -31,40 +29,14 @@ export const ProjectsTab = ({
 
 	return (
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
-			<div className={styles.projectSelectCard}>
-				<label
-					className={styles.projectSelectLabel}
-					htmlFor="profitability-project-select"
-				>
-					Выбор проекта
-				</label>
-				<select
-					id="profitability-project-select"
-					className={styles.projectSelect}
-					disabled={!projects.length}
-					onChange={(event) => onProjectSelect(event.target.value)}
-					value={selectedProjectId ?? ""}
-				>
-					{projects.length ? (
-						projects.map((project) => {
-							const projectId = getProjectId(project);
-
-							return (
-								<option key={projectId} value={projectId}>
-									{project.title}
-								</option>
-							);
-						})
-					) : (
-						<option value="">Проектов нет</option>
-					)}
-				</select>
-			</div>
-
 			{selectedProject ? (
 				<>
 					<ProjectGantt project={selectedProject} />
-					<DealWorkDensityChart projects={selectedProjects} users={users} />
+					<DealWorkDensityChart
+						projects={selectedProjects}
+						title="Плотность работ по проекту"
+						users={users}
+					/>
 					<DealProjectTeamCostTable
 						projects={selectedProjects}
 						selectedDeal={selectedDeal}

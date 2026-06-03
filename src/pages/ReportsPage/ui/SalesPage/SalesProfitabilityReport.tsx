@@ -177,7 +177,6 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "projects" && (
 								<ProjectsTab
-									onProjectSelect={setSelectedProjectId}
 									projects={projects}
 									selectedDeal={selectedDeal}
 									selectedProjectId={selectedProjectId}
