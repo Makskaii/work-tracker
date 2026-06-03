@@ -782,6 +782,34 @@
 	white-space: nowrap;
 }
 
+.ganttOverdueMarker {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: calc(100% - 8px);
+	min-height: 18px;
+	padding: 0 7px;
+	border: 1px solid rgba(255, 255, 255, 0.62);
+	border-radius: 999px;
+	background: rgba(98, 6, 18, 0.74);
+	color: #ffffff;
+	font: inherit;
+	font-size: 10px;
+	font-weight: 950;
+	line-height: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+	box-shadow: 0 4px 10px rgba(1, 8, 14, 0.28);
+}
+
+.ganttOverdueMarker:hover,
+.ganttOverdueMarker:focus-visible {
+	border-color: #ffffff;
+	background: rgba(128, 10, 24, 0.88);
+	outline: none;
+}
+
 .ganttReserve {
 	z-index: 2;
 	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);

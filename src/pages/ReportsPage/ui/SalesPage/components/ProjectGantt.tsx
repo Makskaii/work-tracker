@@ -1,4 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
+import {
+	fetchProjectIncidents,
+	type ProjectIncident,
+} from "../model/api";
 import type {
 	GanttMilestone,
 	GanttStage,
@@ -20,12 +25,17 @@ import {
 } from "../model/ganttUtils";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { ProjectIncidentModal } from "./ProjectIncidentModal";
 
 export const ProjectGantt = ({
 	project,
 }: {
 	project: ProfitabilityProject | null;
 }) => {
+	const [incidents, setIncidents] = useState<ProjectIncident[]>([]);
+	const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
+	const [isIncidentsLoading, setIsIncidentsLoading] = useState(false);
+	const { openTask } = useBitrixSlider();
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -49,8 +59,28 @@ export const ProjectGantt = ({
 			? row.milestone.date
 			: row.stage.planStart || row.stage.planEnd || row.stage.factStart,
 	);
+	const handleOverdueClick = async () => {
+		if (!project) {
+			setIncidents([]);
+			setIsIncidentModalOpen(true);
+			return;
+		}
+
+		setIsIncidentModalOpen(true);
+		setIsIncidentsLoading(true);
+
+		try {
+			const items = await fetchProjectIncidents({ project });
+			setIncidents(items);
+		} catch {
+			setIncidents([]);
+		} finally {
+			setIsIncidentsLoading(false);
+		}
+	};
 
 	return (
+		<>
 		<div className={styles.ganttCard}>
 			<div className={styles.ganttHeader}>
 				<div>
@@ -119,6 +149,7 @@ export const ProjectGantt = ({
 						) : (
 							<GanttStageRow
 								key={row.stage.id}
+								onOverdueClick={handleOverdueClick}
 								stage={row.stage}
 								timeline={timeline}
 								today={today}
@@ -134,6 +165,14 @@ export const ProjectGantt = ({
 
 			<GanttStageTable stages={gantt.stages} today={today} />
 		</div>
+		<ProjectIncidentModal
+			incidents={incidents}
+			isLoading={isIncidentsLoading}
+			isOpen={isIncidentModalOpen}
+			onClose={() => setIsIncidentModalOpen(false)}
+			onIncidentOpen={(incidentId) => openTask(incidentId, 1140)}
+		/>
+		</>
 	);
 };
 
@@ -194,10 +233,12 @@ const GanttLegend = () => (
 );
 
 const GanttStageRow = ({
+	onOverdueClick,
 	stage,
 	timeline,
 	today,
 }: {
+	onOverdueClick: () => void;
 	stage: GanttStage;
 	timeline: GanttTimeline;
 	today: Date;
@@ -308,7 +349,13 @@ const GanttStageRow = ({
 						className={`${styles.ganttSegment} ${styles.ganttOverdue}`}
 						style={getSegmentStyle(overdue.start, overdue.end, timeline)}
 					>
-						Просрочка
+						<button
+							type="button"
+							className={styles.ganttOverdueMarker}
+							onClick={onOverdueClick}
+						>
+							! Просрочен
+						</button>
 					</span>
 				) : null}
 				{factSegment ? (
