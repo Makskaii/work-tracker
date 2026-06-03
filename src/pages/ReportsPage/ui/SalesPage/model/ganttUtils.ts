@@ -1,12 +1,14 @@
 import type { CSSProperties } from "react";
 import { ProjectGanttCodes } from "./constants";
-import { toNumber } from "./profitabilityUtils";
 import type {
+	GanttDayTick,
 	GanttMonthTick,
 	GanttRow,
 	GanttStage,
 	GanttTimeline,
+	GanttWeekTick,
 } from "./ganttTypes";
+import { toNumber } from "./profitabilityUtils";
 import type { ProfitabilityProject } from "./types";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -354,9 +356,7 @@ export const getMonthTicks = (timeline: GanttTimeline): GanttMonthTick[] => {
 	const ticks: GanttMonthTick[] = [];
 
 	while (cursor <= timeline.end) {
-		const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
 		const start = cursor < timeline.start ? timeline.start : cursor;
-		const end = nextMonth > timeline.end ? timeline.end : nextMonth;
 
 		ticks.push({
 			date: new Date(cursor),
@@ -365,9 +365,46 @@ export const getMonthTicks = (timeline: GanttTimeline): GanttMonthTick[] => {
 			})
 				.format(cursor)
 				.replace(".", ""),
-			style: getSegmentStyle(start, end, timeline),
+			style: {
+				...getMilestoneStyle(start, timeline),
+				width: "auto",
+			},
 		});
 		cursor.setMonth(cursor.getMonth() + 1);
+	}
+
+	return ticks;
+};
+
+export const getDayTicks = (timeline: GanttTimeline): GanttDayTick[] => {
+	const ticks: GanttDayTick[] = [];
+	const cursor = new Date(timeline.start);
+
+	while (cursor <= timeline.end) {
+		const day = cursor.getDate();
+
+		ticks.push({
+			date: new Date(cursor),
+			isMajor: day % 5 === 0,
+			style: getMilestoneStyle(cursor, timeline),
+		});
+		cursor.setDate(cursor.getDate() + 1);
+	}
+
+	return ticks;
+};
+
+export const getWeekTicks = (timeline: GanttTimeline): GanttWeekTick[] => {
+	const ticks: GanttWeekTick[] = [];
+	const cursor = new Date(timeline.start);
+
+	while (cursor <= timeline.end) {
+		ticks.push({
+			date: new Date(cursor),
+			label: formatDateShort(cursor),
+			style: getMilestoneStyle(cursor, timeline),
+		});
+		cursor.setDate(cursor.getDate() + 7);
 	}
 
 	return ticks;

@@ -1,11 +1,21 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { FaExclamationTriangle } from "react-icons/fa";
+import { EntityTypeIds } from "@/shared/constants/const";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
+import {
+	fetchProjectIncidents,
+	type ProjectIncident,
+} from "../model/api";
 import type {
 	GanttMilestone,
+	GanttMonthTick,
 	GanttStage,
 	GanttTimeline,
+	GanttWeekTick,
 } from "../model/ganttTypes";
 import {
 	buildProjectGantt,
+	daysBetween,
 	formatDateFull,
 	formatDateShort,
 	formatDeviation,
@@ -17,15 +27,21 @@ import {
 	getSegmentStyle,
 	getStageDeviation,
 	getStageStatus,
+	getWeekTicks,
 } from "../model/ganttUtils";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { ProjectIncidentModal } from "./ProjectIncidentModal";
 
 export const ProjectGantt = ({
 	project,
 }: {
 	project: ProfitabilityProject | null;
 }) => {
+	const [incidents, setIncidents] = useState<ProjectIncident[]>([]);
+	const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
+	const [isIncidentsLoading, setIsIncidentsLoading] = useState(false);
+	const { openTask } = useBitrixSlider();
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -44,96 +60,127 @@ export const ProjectGantt = ({
 		[gantt.rows, today],
 	);
 	const monthTicks = useMemo(() => getMonthTicks(timeline), [timeline]);
+	const weekTicks = useMemo(() => getWeekTicks(timeline), [timeline]);
 	const hasDates = gantt.rows.some((row) =>
 		row.type === "milestone"
 			? row.milestone.date
 			: row.stage.planStart || row.stage.planEnd || row.stage.factStart,
 	);
+	const handleOverdueClick = async () => {
+		if (!project) {
+			setIncidents([]);
+			setIsIncidentModalOpen(true);
+			return;
+		}
+
+		setIsIncidentModalOpen(true);
+		setIsIncidentsLoading(true);
+
+		try {
+			const items = await fetchProjectIncidents({ project });
+			setIncidents(items);
+		} catch {
+			setIncidents([]);
+		} finally {
+			setIsIncidentsLoading(false);
+		}
+	};
 
 	return (
-		<div className={styles.ganttCard}>
-			<div className={styles.ganttHeader}>
-				<div>
-					<h3>Диаграмма Ганта: {gantt.summary.projectTitle}</h3>
-					<p>План пересчитывается по зависимостям между этапами</p>
-				</div>
-			</div>
-
-			<div className={styles.ganttMetrics}>
-				<GanttMetric title="Проект" value={gantt.summary.projectTitle} accent />
-				<GanttMetric
-					title="Плановое завершение"
-					value={formatDateShort(gantt.summary.finalPlanEnd)}
-				/>
-				<GanttMetric
-					title="Факт / текущее завершение"
-					value={formatDateShort(gantt.summary.currentFinish)}
-				/>
-				<GanttMetric
-					title="Отклонение проекта"
-					value={formatDeviation(gantt.summary.projectDeviation)}
-					danger={(gantt.summary.projectDeviation ?? 0) > 0}
-				/>
-				<GanttMetric
-					title="Просроченных этапов"
-					value={String(gantt.summary.overdueStages)}
-					danger={gantt.summary.overdueStages > 0}
-				/>
-				<GanttMetric
-					title="Этапов раньше плана"
-					value={String(gantt.summary.earlyStages)}
-					success={gantt.summary.earlyStages > 0}
-				/>
-				<GanttMetric
-					title="Суммарная просрочка"
-					value={`${gantt.summary.totalOverdueDays} дн.`}
-					danger={gantt.summary.totalOverdueDays > 0}
-				/>
-				<GanttMetric
-					title="Дата подписания ТЗ"
-					value={formatDateShort(gantt.summary.tzSignDate)}
-					warning
-				/>
-			</div>
-
-			<GanttLegend />
-
-			<div className={styles.ganttBoard}>
-				<div className={styles.ganttScaleLabel}>Этапы проекта</div>
-				<div className={styles.ganttScale}>
-					{monthTicks.map((tick) => (
-						<span key={tick.date.toISOString()} style={tick.style}>
-							{tick.label}
-						</span>
-					))}
-				</div>
-
-				{hasDates ? (
-					gantt.rows.map((row) =>
-						row.type === "milestone" ? (
-							<GanttMilestoneRow
-								key={row.milestone.id}
-								milestone={row.milestone}
-								timeline={timeline}
-							/>
-						) : (
-							<GanttStageRow
-								key={row.stage.id}
-								stage={row.stage}
-								timeline={timeline}
-								today={today}
-							/>
-						),
-					)
-				) : (
-					<div className={styles.ganttEmpty}>
-						Заполните даты и длительности этапов в проекте, чтобы построить Гант.
+		<>
+			<div className={styles.ganttCard}>
+				<div className={styles.ganttHeader}>
+					<div>
+						<h3>Диаграмма Ганта: {gantt.summary.projectTitle}</h3>
+						<p>План пересчитывается по зависимостям между этапами</p>
 					</div>
-				)}
-			</div>
+				</div>
 
-			<GanttStageTable stages={gantt.stages} today={today} />
-		</div>
+				<div className={styles.ganttMetrics}>
+					<GanttMetric title="Проект" value={gantt.summary.projectTitle} accent />
+					<GanttMetric
+						title="Плановое завершение"
+						value={formatDateShort(gantt.summary.finalPlanEnd)}
+					/>
+					<GanttMetric
+						title="Факт / текущее завершение"
+						value={formatDateShort(gantt.summary.currentFinish)}
+					/>
+					<GanttMetric
+						title="Отклонение проекта"
+						value={formatDeviation(gantt.summary.projectDeviation)}
+						danger={(gantt.summary.projectDeviation ?? 0) > 0}
+					/>
+					<GanttMetric
+						title="Просроченных этапов"
+						value={String(gantt.summary.overdueStages)}
+						danger={gantt.summary.overdueStages > 0}
+					/>
+					<GanttMetric
+						title="Этапов раньше плана"
+						value={String(gantt.summary.earlyStages)}
+						success={gantt.summary.earlyStages > 0}
+					/>
+					<GanttMetric
+						title="Суммарная просрочка"
+						value={`${gantt.summary.totalOverdueDays} дн.`}
+						danger={gantt.summary.totalOverdueDays > 0}
+					/>
+					<GanttMetric
+						title="Дата подписания ТЗ"
+						value={formatDateShort(gantt.summary.tzSignDate)}
+						warning
+					/>
+				</div>
+
+				<GanttLegend />
+
+				<div className={styles.ganttBoard}>
+					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
+					<GanttScale monthTicks={monthTicks} weekTicks={weekTicks} />
+
+					{hasDates ? (
+						gantt.rows.map((row) =>
+							row.type === "milestone" ? (
+								<GanttMilestoneRow
+									key={row.milestone.id}
+									milestone={row.milestone}
+									monthTicks={monthTicks}
+									timeline={timeline}
+									weekTicks={weekTicks}
+								/>
+							) : (
+								<GanttStageRow
+									key={row.stage.id}
+									monthTicks={monthTicks}
+									onOverdueClick={handleOverdueClick}
+									stage={row.stage}
+									timeline={timeline}
+									today={today}
+									weekTicks={weekTicks}
+								/>
+							),
+						)
+					) : (
+						<div className={styles.ganttEmpty}>
+							Заполните даты и длительности этапов в проекте, чтобы построить
+							Гант.
+						</div>
+					)}
+				</div>
+
+				<GanttStageTable stages={gantt.stages} today={today} />
+			</div>
+			<ProjectIncidentModal
+				incidents={incidents}
+				isLoading={isIncidentsLoading}
+				isOpen={isIncidentModalOpen}
+				onClose={() => setIsIncidentModalOpen(false)}
+				onIncidentOpen={(incidentId) =>
+					openTask(incidentId, EntityTypeIds.projectIncidents)
+				}
+			/>
+		</>
 	);
 };
 
@@ -193,19 +240,88 @@ const GanttLegend = () => (
 	</div>
 );
 
+const GanttScale = ({
+	monthTicks,
+	weekTicks,
+}: {
+	monthTicks: GanttMonthTick[];
+	weekTicks: GanttWeekTick[];
+}) => (
+	<div className={styles.ganttScaleHeader}>
+		<div className={styles.ganttMonthScale}>
+			{monthTicks.map((tick) => (
+				<span key={tick.date.toISOString()} style={tick.style}>
+					{tick.label}
+				</span>
+			))}
+		</div>
+		<div className={styles.ganttWeekScale}>
+			{weekTicks.map((tick) => (
+				<span key={tick.date.toISOString()} style={tick.style}>
+					{tick.label}
+				</span>
+			))}
+		</div>
+	</div>
+);
+
+const GanttTrackGrid = ({
+	monthTicks,
+	weekTicks,
+}: {
+	monthTicks: GanttMonthTick[];
+	weekTicks: GanttWeekTick[];
+}) => (
+	<>
+		{weekTicks.map((tick) => (
+			<i
+				key={`week-${tick.date.toISOString()}`}
+				className={styles.ganttTrackWeekLine}
+				style={tick.style}
+			/>
+		))}
+		{monthTicks.map((tick) => (
+			<i
+				key={`month-${tick.date.toISOString()}`}
+				className={styles.ganttTrackMonthLine}
+				style={{ left: tick.style.left }}
+			/>
+		))}
+	</>
+);
+
+const getStageTooltip = (stage: GanttStage, today: Date) => {
+	const deviation = getStageDeviation(stage, today);
+
+	return [
+		stage.title,
+		`План: ${formatDateFull(stage.planStart)} — ${formatDateFull(stage.planEnd)}`,
+		`Факт: ${formatDateFull(stage.factStart)} — ${formatDateFull(stage.factEnd)}`,
+		`Отклонение: ${formatDeviation(deviation)}`,
+		`Статус: ${getStageStatus(stage, today)}`,
+	].join("\n");
+};
+
 const GanttStageRow = ({
+	monthTicks,
+	onOverdueClick,
 	stage,
 	timeline,
 	today,
+	weekTicks,
 }: {
+	monthTicks: GanttMonthTick[];
+	onOverdueClick: () => void;
 	stage: GanttStage;
 	timeline: GanttTimeline;
 	today: Date;
+	weekTicks: GanttWeekTick[];
 }) => {
 	const factEnd =
 		stage.factEnd ??
 		(stage.factStart ? getDateMax(stage.factStart, today) : null);
 	const status = getStageStatus(stage, today);
+	const tooltip = getStageTooltip(stage, today);
 	const planSegment =
 		stage.planStart && stage.planEnd
 			? {
@@ -252,6 +368,7 @@ const GanttStageRow = ({
 					end: stage.factEnd ?? today,
 				}
 			: null;
+	const overdueDays = overdue ? daysBetween(overdue.start, overdue.end) : 0;
 	const reserve =
 		stage.planEnd && stage.factEnd && stage.factEnd < stage.planEnd
 			? {
@@ -262,19 +379,20 @@ const GanttStageRow = ({
 
 	return (
 		<>
-			<div className={styles.ganttRowInfo}>
+			<div className={styles.ganttRowInfo} title={tooltip}>
 				<strong>{stage.title}</strong>
 				<span>{stage.description}</span>
 				<small>
-					План: {formatDateFull(stage.planStart)} -{" "}
+					План: {formatDateFull(stage.planStart)} —{" "}
 					{formatDateFull(stage.planEnd)}
 				</small>
 				<small>
-					Факт: {formatDateFull(stage.factStart)} -{" "}
+					Факт: {formatDateFull(stage.factStart)} —{" "}
 					{formatDateFull(stage.factEnd)}
 				</small>
 			</div>
-			<div className={styles.ganttTrack}>
+			<div className={styles.ganttTrack} title={tooltip}>
+				<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
 				{planSegment ? (
 					<span
 						className={`${styles.ganttSegment} ${styles.ganttPlan}`}
@@ -283,33 +401,51 @@ const GanttStageRow = ({
 							planSegment.end,
 							timeline,
 						)}
+						title={tooltip}
 					/>
 				) : null}
 				{earlyStart ? (
 					<span
 						className={`${styles.ganttSegment} ${styles.ganttEarly}`}
 						style={getSegmentStyle(earlyStart.start, earlyStart.end, timeline)}
+						title={tooltip}
 					/>
 				) : null}
 				{lateStart ? (
 					<span
 						className={`${styles.ganttSegment} ${styles.ganttLate}`}
 						style={getSegmentStyle(lateStart.start, lateStart.end, timeline)}
+						title={tooltip}
 					/>
 				) : null}
 				{reserve ? (
 					<span
 						className={`${styles.ganttSegment} ${styles.ganttReserve}`}
 						style={getSegmentStyle(reserve.start, reserve.end, timeline)}
+						title={tooltip}
 					/>
 				) : null}
 				{overdue ? (
 					<span
 						className={`${styles.ganttSegment} ${styles.ganttOverdue}`}
 						style={getSegmentStyle(overdue.start, overdue.end, timeline)}
+						title={tooltip}
+					/>
+				) : null}
+				{overdue ? (
+					<button
+						type="button"
+						className={styles.ganttOverdueBadge}
+						style={getSegmentStyle(overdue.start, overdue.end, timeline)}
+						onClick={onOverdueClick}
+						title={`Просрочка: +${overdueDays} дн.`}
 					>
-						Просрочка
-					</span>
+						<FaExclamationTriangle
+							aria-hidden="true"
+							className={styles.ganttOverdueIcon}
+						/>
+						Просрочка +{overdueDays} дн.
+					</button>
 				) : null}
 				{factSegment ? (
 					<span
@@ -319,6 +455,7 @@ const GanttStageRow = ({
 							factSegment.end,
 							timeline,
 						)}
+						title={tooltip}
 					>
 						Факт
 					</span>
@@ -331,43 +468,46 @@ const GanttStageRow = ({
 
 const GanttMilestoneRow = ({
 	milestone,
+	monthTicks,
 	timeline,
+	weekTicks,
 }: {
 	milestone: GanttMilestone;
+	monthTicks: GanttMonthTick[];
 	timeline: GanttTimeline;
-}) => {
-	return (
-		<>
-			<div className={styles.ganttRowInfo}>
-				<strong>{milestone.title}</strong>
-				<span>{milestone.description}</span>
-			</div>
-			<div className={styles.ganttTrack}>
-				{milestone.date ? (
-					<span
-						className={`${styles.ganttMilestone} ${
-							milestone.color === "warning"
-								? styles.ganttMilestoneWarning
-								: styles.ganttMilestoneAccent
-						}`}
-						style={getMilestoneStyle(milestone.date, timeline)}
-					>
-						<b />
-						<small>
-							{milestone.title === "Подписание ТЗ"
-								? "ТЗ подписано"
-								: "Акт / закрытие"}
-							<br />
-							{formatDateShort(milestone.date)}
-						</small>
-					</span>
-				) : (
-					<span className={styles.ganttNoDate}>Дата не заполнена</span>
-				)}
-			</div>
-		</>
-	);
-};
+	weekTicks: GanttWeekTick[];
+}) => (
+	<>
+		<div className={styles.ganttRowInfo}>
+			<strong>{milestone.title}</strong>
+			<span>{milestone.description}</span>
+		</div>
+		<div className={styles.ganttTrack}>
+			<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+			{milestone.date ? (
+				<span
+					className={`${styles.ganttMilestone} ${
+						milestone.color === "warning"
+							? styles.ganttMilestoneWarning
+							: styles.ganttMilestoneAccent
+					}`}
+					style={getMilestoneStyle(milestone.date, timeline)}
+				>
+					<b />
+					<small>
+						{milestone.title === "Подписание ТЗ"
+							? "ТЗ подписано"
+							: "Акт / закрытие"}
+						<br />
+						{formatDateShort(milestone.date)}
+					</small>
+				</span>
+			) : (
+				<span className={styles.ganttNoDate}>Дата не заполнена</span>
+			)}
+		</div>
+	</>
+);
 
 const GanttStageTable = ({
 	stages,
@@ -392,10 +532,10 @@ const GanttStageTable = ({
 				<div key={stage.id} className={styles.ganttTableRow}>
 					<strong>{stage.title}</strong>
 					<span>
-						{formatDateFull(stage.planStart)} - {formatDateFull(stage.planEnd)}
+						{formatDateFull(stage.planStart)} — {formatDateFull(stage.planEnd)}
 					</span>
 					<span>
-						{formatDateFull(stage.factStart)} - {formatDateFull(stage.factEnd)}
+						{formatDateFull(stage.factStart)} — {formatDateFull(stage.factEnd)}
 					</span>
 					<span>{formatDeviation(deviation)}</span>
 					<span

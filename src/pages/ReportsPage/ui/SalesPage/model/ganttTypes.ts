@@ -39,3 +39,15 @@ export type GanttMonthTick = {
 	label: string;
 	style: CSSProperties;
 };
+
+export type GanttDayTick = {
+	date: Date;
+	isMajor: boolean;
+	style: CSSProperties;
+};
+
+export type GanttWeekTick = {
+	date: Date;
+	label: string;
+	style: CSSProperties;
+};

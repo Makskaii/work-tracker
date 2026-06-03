@@ -782,6 +782,53 @@
 	white-space: nowrap;
 }
 
+.ganttOverdueMarker {
+	display: none;
+}
+
+.ganttOverdueBadge {
+	position: absolute;
+	top: 18px;
+	z-index: 7;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: auto !important;
+	min-width: max-content;
+	min-height: 20px;
+	padding: 0 8px;
+	transform: translateY(-100%);
+	border: 1px solid rgba(255, 196, 87, 0.72);
+	border-radius: 999px;
+	background: rgba(116, 26, 20, 0.92);
+	color: #ffffff;
+	font-size: 10px;
+	font-weight: 950;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	box-shadow: 0 8px 18px rgba(1, 8, 14, 0.34);
+}
+
+.ganttOverdueIcon {
+	flex: 0 0 auto;
+	font-size: 10px;
+}
+
+.ganttBoard > .ganttScaleLabel:nth-last-child(2),
+.ganttBoard > .ganttScale:last-child {
+	border-top: 1px solid var(--color-border);
+	border-bottom: 0;
+}
+
+.ganttOverdueBadge:hover,
+.ganttOverdueBadge:focus-visible {
+	border-color: #ffd36f;
+	background: rgba(145, 34, 24, 0.96);
+	outline: none;
+}
+
 .ganttReserve {
 	z-index: 2;
 	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
@@ -1013,4 +1060,159 @@
 	.ganttMetrics {
 		grid-template-columns: 1fr;
 	}
+}
+
+.ganttDayTick {
+	position: absolute;
+	bottom: 17px;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	width: 1px;
+	height: 7px;
+	transform: translateX(-50%);
+	background: rgba(238, 245, 255, 0.22);
+	color: rgba(238, 245, 255, 0.58);
+	font-style: normal;
+	font-size: 10px;
+	font-weight: 900;
+	line-height: 1;
+	pointer-events: none;
+}
+
+.ganttDayTickMajor {
+	height: 14px;
+	background: rgba(38, 231, 223, 0.44);
+}
+
+.ganttDayTickMajor::before {
+	content: "";
+	position: absolute;
+	bottom: 0;
+	width: 1px;
+	height: 14px;
+	background: rgba(38, 231, 223, 0.44);
+}
+
+.ganttDayTickMajor {
+	background: transparent;
+	padding-bottom: 17px;
+}
+
+.ganttScale span {
+	align-items: flex-end;
+	justify-content: flex-start;
+	padding-bottom: 2px;
+	transform: translateX(6px);
+}
+
+.ganttDayTick {
+	bottom: 17px;
+	width: 1px;
+	height: 7px;
+	padding: 0;
+	background: rgba(238, 245, 255, 0.22);
+	color: transparent;
+}
+
+.ganttDayTickMajor {
+	bottom: 13px;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	align-items: flex-start;
+	background: transparent;
+	color: rgba(238, 245, 255, 0.62);
+}
+
+.ganttDayTickMajor::before {
+	bottom: 0;
+	height: 14px;
+}
+
+.ganttScaleLabel {
+	position: sticky;
+	left: 0;
+	z-index: 8;
+	min-height: 54px;
+	background: rgba(15, 28, 44, 0.96);
+}
+
+.ganttScaleHeader {
+	position: relative;
+	min-width: 720px;
+	min-height: 54px;
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(15, 28, 44, 0.72);
+}
+
+.ganttMonthScale,
+.ganttWeekScale {
+	position: relative;
+	min-width: 720px;
+}
+
+.ganttMonthScale {
+	height: 25px;
+	border-bottom: 1px solid rgba(93, 141, 206, 0.18);
+}
+
+.ganttWeekScale {
+	height: 28px;
+}
+
+.ganttMonthScale span,
+.ganttWeekScale span {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	height: 100%;
+	color: rgba(238, 245, 255, 0.66);
+	font-weight: 900;
+	white-space: nowrap;
+}
+
+.ganttMonthScale span {
+	justify-content: flex-start;
+	transform: translateX(6px);
+	font-size: 12px;
+	text-transform: lowercase;
+}
+
+.ganttWeekScale span {
+	justify-content: center;
+	transform: translateX(-50%);
+	font-size: 10px;
+	color: rgba(238, 245, 255, 0.46);
+}
+
+.ganttRowInfo {
+	position: sticky;
+	left: 0;
+	z-index: 6;
+	background: rgba(15, 28, 44, 0.96);
+}
+
+.ganttTrack {
+	background: linear-gradient(180deg, rgba(22, 36, 55, 0.72), rgba(15, 28, 44, 0.72));
+	overflow: visible;
+}
+
+.ganttTrackWeekLine,
+.ganttTrackMonthLine {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+
+.ganttTrackWeekLine {
+	background: rgba(93, 141, 206, 0.18);
+}
+
+.ganttTrackMonthLine {
+	z-index: 1;
+	background: rgba(38, 231, 223, 0.36);
 }
