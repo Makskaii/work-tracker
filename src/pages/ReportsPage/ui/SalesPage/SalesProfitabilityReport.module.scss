@@ -337,6 +337,41 @@
 	padding: 0 20px 20px;
 }
 
+.projectsTabContent {
+	gap: 22px;
+}
+
+.projectSelectCard {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	padding: 14px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 18px;
+	background: rgba(15, 28, 44, 0.72);
+	text-align: left;
+}
+
+.projectSelectLabel {
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.projectSelect {
+	min-width: min(420px, 100%);
+	min-height: 42px;
+	padding: 0 12px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font-weight: 800;
+}
+
 .notice {
 	padding: 12px 14px;
 	border: 1px solid var(--color-border);

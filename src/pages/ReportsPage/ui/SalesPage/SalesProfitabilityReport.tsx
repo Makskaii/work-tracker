@@ -40,6 +40,9 @@ export const SalesProfitabilityReport = ({
 	loading,
 }: SalesProfitabilityReportProps) => {
 	const [selectedDealId, setSelectedDealId] = useState("");
+	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+		null,
+	);
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("deal");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
@@ -54,6 +57,21 @@ export const SalesProfitabilityReport = ({
 			setSelectedDealId(String(deals[0].id));
 		}
 	}, [deals, selectedDealId]);
+
+	useEffect(() => {
+		const projectIds = projects.map((project) =>
+			String(project.projectId ?? project.id),
+		);
+
+		if (!projectIds.length) {
+			setSelectedProjectId((current) => (current ? null : current));
+			return;
+		}
+
+		setSelectedProjectId((current) =>
+			current && projectIds.includes(current) ? current : projectIds[0],
+		);
+	}, [projects]);
 
 	const summary = getDealSummary(projects, selectedDeal);
 	const isBusy = loading || isLoadingDetails;
@@ -145,7 +163,12 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "deal" && (
 								<DealTab
+									onProjectSelect={(projectId) => {
+										setSelectedProjectId(projectId);
+										setActiveTab("projects");
+									}}
 									projects={projects}
+									selectedProjectId={selectedProjectId}
 									summary={summary}
 									selectedDeal={selectedDeal}
 									users={users}
@@ -154,8 +177,10 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "projects" && (
 								<ProjectsTab
+									onProjectSelect={setSelectedProjectId}
 									projects={projects}
-									purchasedHours={summary.purchasedHours}
+									selectedDeal={selectedDeal}
+									selectedProjectId={selectedProjectId}
 									users={users}
 								/>
 							)}

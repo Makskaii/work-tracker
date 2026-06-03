@@ -1,4 +1,6 @@
 .teamCard {
+	box-sizing: border-box;
+	width: 100%;
 	min-width: 0;
 	max-width: 100%;
 	border: 1px solid var(--color-border);
@@ -34,13 +36,15 @@
 }
 
 .teamCostTableWrapper {
+	box-sizing: border-box;
 	width: 100%;
 	max-width: 100%;
 	overflow-x: auto;
+	overflow-y: hidden;
 }
 
 .teamCostTable {
-	min-width: 980px;
+	min-width: 1180px;
 	width: 100%;
 	box-sizing: border-box;
 }
@@ -93,6 +97,7 @@
 .teamRow,
 .groupTotal,
 .grandTotal {
+	box-sizing: border-box;
 	display: grid;
 	grid-template-columns: 130px minmax(210px, 1.4fr) 105px 95px 95px 95px 130px 140px;
 	gap: 12px;
