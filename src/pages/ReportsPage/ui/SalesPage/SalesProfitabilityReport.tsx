@@ -66,30 +66,6 @@ export const SalesProfitabilityReport = ({
 
 	return (
 		<section className={styles.section}>
-			<div className={styles.toolbar}>
-				<div className={styles.searchMock}>
-					Поиск клиента, сделки или проекта
-				</div>
-				<select
-					value={selectedDealId}
-					onChange={(event) => setSelectedDealId(event.target.value)}
-					disabled={loading || !deals.length}
-				>
-					{deals.length ? (
-						deals.map((deal) => (
-							<option key={deal.id} value={deal.id}>
-								{deal.title}
-							</option>
-						))
-					) : (
-						<option value="">Сделок нет</option>
-					)}
-				</select>
-				<button type="button" disabled>
-					Гант по проекту
-				</button>
-			</div>
-
 			<div
 				className={`${styles.layout} ${
 					isStructureCollapsed ? styles.layoutCollapsed : ""
@@ -162,9 +138,6 @@ export const SalesProfitabilityReport = ({
 								<div>
 									<span>Сделка</span>
 									<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
-								</div>
-								<div className={styles.contentMeta}>
-									Всего: {projects.length} проектов, {allTasks.length} задач
 								</div>
 							</div>
 
