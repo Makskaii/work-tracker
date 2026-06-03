@@ -40,6 +40,9 @@ export const SalesProfitabilityReport = ({
 	loading,
 }: SalesProfitabilityReportProps) => {
 	const [selectedDealId, setSelectedDealId] = useState("");
+	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+		null,
+	);
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("deal");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
@@ -55,6 +58,22 @@ export const SalesProfitabilityReport = ({
 		}
 	}, [deals, selectedDealId]);
 
+	const effectiveSelectedProjectId = useMemo(() => {
+		const projectIds = projects.map((project) =>
+			String(project.projectId ?? project.id),
+		);
+
+		if (!projectIds.length) {
+			return null;
+		}
+
+		if (selectedProjectId && projectIds.includes(selectedProjectId)) {
+			return selectedProjectId;
+		}
+
+		return projectIds[0];
+	}, [projects, selectedProjectId]);
+
 	const summary = getDealSummary(projects, selectedDeal);
 	const isBusy = loading || isLoadingDetails;
 	const allTasks = projects.flatMap((project) =>
@@ -66,30 +85,6 @@ export const SalesProfitabilityReport = ({
 
 	return (
 		<section className={styles.section}>
-			<div className={styles.toolbar}>
-				<div className={styles.searchMock}>
-					Поиск клиента, сделки или проекта
-				</div>
-				<select
-					value={selectedDealId}
-					onChange={(event) => setSelectedDealId(event.target.value)}
-					disabled={loading || !deals.length}
-				>
-					{deals.length ? (
-						deals.map((deal) => (
-							<option key={deal.id} value={deal.id}>
-								{deal.title}
-							</option>
-						))
-					) : (
-						<option value="">Сделок нет</option>
-					)}
-				</select>
-				<button type="button" disabled>
-					Гант по проекту
-				</button>
-			</div>
-
 			<div
 				className={`${styles.layout} ${
 					isStructureCollapsed ? styles.layoutCollapsed : ""
@@ -163,16 +158,18 @@ export const SalesProfitabilityReport = ({
 									<span>Сделка</span>
 									<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
 								</div>
-								<div className={styles.contentMeta}>
-									Всего: {projects.length} проектов, {allTasks.length} задач
-								</div>
 							</div>
 
 							<SummaryCards summary={summary} />
 
 							{activeTab === "deal" && (
 								<DealTab
+									onProjectSelect={(projectId) => {
+										setSelectedProjectId(projectId);
+										setActiveTab("projects");
+									}}
 									projects={projects}
+									selectedProjectId={effectiveSelectedProjectId}
 									summary={summary}
 									selectedDeal={selectedDeal}
 									users={users}
@@ -182,7 +179,8 @@ export const SalesProfitabilityReport = ({
 							{activeTab === "projects" && (
 								<ProjectsTab
 									projects={projects}
-									purchasedHours={summary.purchasedHours}
+									selectedDeal={selectedDeal}
+									selectedProjectId={effectiveSelectedProjectId}
 									users={users}
 								/>
 							)}

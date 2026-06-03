@@ -1,4 +1,5 @@
 .section {
+	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
@@ -11,45 +12,13 @@
 	box-shadow: 0 18px 44px rgba(1, 8, 14, 0.28);
 }
 
-.toolbar {
-	display: grid;
-	grid-template-columns: minmax(260px, 1fr) minmax(280px, 0.7fr) auto;
-	gap: 12px;
-	min-width: 0;
-
-	select,
-	button,
-	.searchMock {
-		min-height: 46px;
-		border: 1px solid var(--color-border);
-		border-radius: 14px;
-		background: var(--color-surface-soft);
-		color: var(--color-text);
-		font-weight: 800;
-	}
-
-	select,
-	.searchMock {
-		min-width: 0;
-		padding: 0 14px;
-	}
-
-	button:disabled {
-		color: rgba(238, 245, 255, 0.48);
-	}
-}
-
-.searchMock {
-	display: flex;
-	align-items: center;
-	color: rgba(238, 245, 255, 0.54);
-}
-
 .layout {
+	box-sizing: border-box;
 	display: grid;
 	--structure-width: 320px;
 	grid-template-columns: var(--structure-width) minmax(0, 1fr);
-	gap: 16px;
+	gap: 18px;
+	align-items: start;
 	min-width: 0;
 	transition: grid-template-columns 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -59,6 +28,7 @@
 }
 
 .content {
+	box-sizing: border-box;
 	min-width: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 20px;
@@ -67,11 +37,13 @@
 }
 
 .structure {
+	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	gap: 14px;
 	min-width: 0;
-	width: var(--structure-width);
+	width: 100%;
+	max-width: 100%;
 	padding: 14px;
 	border: 1px solid var(--color-border);
 	border-radius: 22px;
@@ -212,7 +184,7 @@
 }
 
 .layoutCollapsed .structure {
-	width: var(--structure-width);
+	width: 100%;
 	padding: 10px;
 	align-items: stretch;
 }
@@ -256,18 +228,19 @@
 .tabs {
 	display: flex;
 	align-items: center;
-	gap: 20px;
-	padding: 0 18px;
+	gap: 16px;
+	padding: 0 16px;
 	border-bottom: 1px solid var(--color-border);
 	overflow-x: auto;
 
 	button {
-		min-height: 52px;
+		min-height: 44px;
 		padding: 0;
 		border: 0;
 		border-radius: 0;
 		background: transparent;
 		color: rgba(238, 245, 255, 0.68);
+		font-size: 14px;
 		font-weight: 900;
 		white-space: nowrap;
 	}
@@ -289,18 +262,17 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
-	padding: 20px 20px 10px;
+	padding: 16px 20px 8px;
 
-	span,
-	.contentMeta {
+	span {
 		color: rgba(238, 245, 255, 0.68);
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 800;
 	}
 
 	h3 {
 		margin: 4px 0 0;
-		font-size: 22px;
+		font-size: 20px;
 	}
 }
 
@@ -308,14 +280,14 @@
 .detailStats {
 	display: grid;
 	grid-template-columns: repeat(6, minmax(120px, 1fr));
-	gap: 10px;
-	padding: 10px 20px 18px;
+	gap: 9px;
+	padding: 8px 20px 14px;
 }
 
 .metricCard {
 	position: relative;
 	min-width: 0;
-	padding: 14px;
+	padding: 12px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
 	background: var(--color-surface-soft);
@@ -325,20 +297,20 @@
 	small {
 		display: block;
 		color: rgba(238, 245, 255, 0.68);
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 900;
 	}
 
 	strong {
 		display: block;
-		margin-top: 10px;
-		font-size: 24px;
+		margin-top: 8px;
+		font-size: 22px;
 		color: var(--color-text);
 		white-space: nowrap;
 	}
 
 	small {
-		margin-top: 6px;
+		margin-top: 5px;
 		color: rgba(238, 245, 255, 0.44);
 	}
 }
@@ -364,6 +336,10 @@
 	flex-direction: column;
 	gap: 18px;
 	padding: 0 20px 20px;
+}
+
+.projectsTabContent {
+	gap: 22px;
 }
 
 .notice {
@@ -1024,7 +1000,6 @@
 }
 
 @media (max-width: 1100px) {
-	.toolbar,
 	.layout {
 		grid-template-columns: 1fr;
 	}

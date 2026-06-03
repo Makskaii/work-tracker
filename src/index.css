@@ -128,9 +128,16 @@ button:hover {
 	border-color: var(--color-accent);
 }
 
-button:focus,
+button[class*="Active"]:hover {
+	border-color: inherit;
+}
+
+button:focus {
+	outline: none;
+}
+
 button:focus-visible {
-	outline: 2px solid var(--color-accent);
+	outline: 1px solid rgba(38, 231, 223, 0.45);
 	outline-offset: 2px;
 }
 
@@ -165,7 +172,7 @@ textarea:focus {
 	[class*="block"],
 	[class*="Block"],
 	[class*="section"],
-	[class*="Section"]):hover {
+	[class*="Section"]):not([class*="Active"]):hover {
 	border-color: var(--color-accent);
 }
 
