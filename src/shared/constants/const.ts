@@ -27,6 +27,7 @@ export const EntityTypeIds = {
 	reports: 1060,
 	tasks: 1072,
 	projects: 1092,
+	projectIncidents: 1140,
 	default: 2,
 	companies: 4,
 };

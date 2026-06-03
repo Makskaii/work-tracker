@@ -1,5 +1,5 @@
 import { $api } from "@/shared/config";
-import { Endpoints } from "@/shared/constants/const";
+import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { ProfitabilityProject } from "./types";
 
@@ -110,7 +110,7 @@ export const fetchProjectIncidents = async ({
 	const companyId = project[ProjectCodes.company];
 	const request = (includeProject: boolean, includeCompany: boolean) =>
 		fetchAllCrmItems<ProjectIncident>({
-			entityTypeId: 1140,
+			entityTypeId: EntityTypeIds.projectIncidents,
 			select: PROJECT_INCIDENT_SELECT_FIELDS,
 			filter: getProjectIncidentFilter({
 				includeCompany,

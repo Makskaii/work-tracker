@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { FaExclamationTriangle } from "react-icons/fa";
+import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import {
 	fetchProjectIncidents,
@@ -174,7 +176,9 @@ export const ProjectGantt = ({
 				isLoading={isIncidentsLoading}
 				isOpen={isIncidentModalOpen}
 				onClose={() => setIsIncidentModalOpen(false)}
-				onIncidentOpen={(incidentId) => openTask(incidentId, 1140)}
+				onIncidentOpen={(incidentId) =>
+					openTask(incidentId, EntityTypeIds.projectIncidents)
+				}
 			/>
 		</>
 	);
@@ -436,7 +440,11 @@ const GanttStageRow = ({
 						onClick={onOverdueClick}
 						title={`Просрочка: +${overdueDays} дн.`}
 					>
-						⚠ Просрочка +{overdueDays} дн.
+						<FaExclamationTriangle
+							aria-hidden="true"
+							className={styles.ganttOverdueIcon}
+						/>
+						Просрочка +{overdueDays} дн.
 					</button>
 				) : null}
 				{factSegment ? (

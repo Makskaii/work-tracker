@@ -793,6 +793,7 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	gap: 4px;
 	width: auto !important;
 	min-width: max-content;
 	min-height: 20px;
@@ -808,6 +809,11 @@
 	white-space: nowrap;
 	cursor: pointer;
 	box-shadow: 0 8px 18px rgba(1, 8, 14, 0.34);
+}
+
+.ganttOverdueIcon {
+	flex: 0 0 auto;
+	font-size: 10px;
 }
 
 .ganttBoard > .ganttScaleLabel:nth-last-child(2),

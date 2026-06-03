@@ -3,6 +3,7 @@ import {
 	ProjectIncidentCodes,
 	type ProjectIncident,
 } from "../model/api";
+import { formatDateFull } from "../model/ganttUtils";
 import styles from "./ProjectIncidentModal.module.scss";
 
 type NormalizedFile = {
@@ -11,18 +12,14 @@ type NormalizedFile = {
 	isImage: boolean;
 };
 
-const formatDate = (value: unknown) => {
+const formatIncidentDate = (value: unknown) => {
 	const date = new Date(String(value));
 
 	if (Number.isNaN(date.getTime())) {
 		return String(value);
 	}
 
-	return new Intl.DateTimeFormat("ru-RU", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	}).format(date);
+	return formatDateFull(date);
 };
 
 const formatIncidentDates = (value: unknown) => {
@@ -31,7 +28,7 @@ const formatIncidentDates = (value: unknown) => {
 	}
 
 	const dates = Array.isArray(value) ? value : [value];
-	const formattedDates = dates.filter(Boolean).map(formatDate);
+	const formattedDates = dates.filter(Boolean).map(formatIncidentDate);
 
 	return formattedDates.length ? formattedDates.join(" — ") : "—";
 };
