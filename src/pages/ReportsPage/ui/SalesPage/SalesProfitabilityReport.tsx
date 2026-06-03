@@ -58,20 +58,21 @@ export const SalesProfitabilityReport = ({
 		}
 	}, [deals, selectedDealId]);
 
-	useEffect(() => {
+	const effectiveSelectedProjectId = useMemo(() => {
 		const projectIds = projects.map((project) =>
 			String(project.projectId ?? project.id),
 		);
 
 		if (!projectIds.length) {
-			setSelectedProjectId((current) => (current ? null : current));
-			return;
+			return null;
 		}
 
-		setSelectedProjectId((current) =>
-			current && projectIds.includes(current) ? current : projectIds[0],
-		);
-	}, [projects]);
+		if (selectedProjectId && projectIds.includes(selectedProjectId)) {
+			return selectedProjectId;
+		}
+
+		return projectIds[0];
+	}, [projects, selectedProjectId]);
 
 	const summary = getDealSummary(projects, selectedDeal);
 	const isBusy = loading || isLoadingDetails;
@@ -168,7 +169,7 @@ export const SalesProfitabilityReport = ({
 										setActiveTab("projects");
 									}}
 									projects={projects}
-									selectedProjectId={selectedProjectId}
+									selectedProjectId={effectiveSelectedProjectId}
 									summary={summary}
 									selectedDeal={selectedDeal}
 									users={users}
@@ -179,7 +180,7 @@ export const SalesProfitabilityReport = ({
 								<ProjectsTab
 									projects={projects}
 									selectedDeal={selectedDeal}
-									selectedProjectId={selectedProjectId}
+									selectedProjectId={effectiveSelectedProjectId}
 									users={users}
 								/>
 							)}
