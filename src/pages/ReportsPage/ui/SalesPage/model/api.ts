@@ -49,14 +49,6 @@ export const fetchAllCrmItems = async <T,>({
 	return items;
 };
 
-export const ProjectIncidentCodes = {
-	comment: "ufCrm30_1780490532",
-	info: "ufCrm30_1780490581",
-	incidentDates: "ufCrm30_1780490526415",
-	project: "parentId1092",
-	company: "companyId",
-} as const;
-
 export type ProjectIncident = {
 	id: number | string;
 	title?: string;
@@ -70,10 +62,10 @@ const PROJECT_INCIDENT_SELECT_FIELDS = [
 	"title",
 	"createdTime",
 	"updatedTime",
-	ProjectIncidentCodes.project,
-	ProjectIncidentCodes.comment,
-	ProjectIncidentCodes.info,
-	ProjectIncidentCodes.incidentDates,
+	ProjectCodes.project,
+	ProjectCodes.comment,
+	ProjectCodes.info,
+	ProjectCodes.incidentDates,
 ] as const;
 
 const getProjectIncidentFilter = ({
@@ -90,11 +82,11 @@ const getProjectIncidentFilter = ({
 	const filter: Record<string, unknown> = {};
 
 	if (includeProject) {
-		filter[ProjectIncidentCodes.project] = projectId;
+		filter[ProjectCodes.project] = projectId;
 	}
 
 	if (includeCompany && companyId) {
-		filter[ProjectIncidentCodes.company] = companyId;
+		filter[ProjectCodes.incidentCompany] = companyId;
 	}
 
 	return filter;

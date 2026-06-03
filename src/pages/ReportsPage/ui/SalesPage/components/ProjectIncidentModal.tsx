@@ -1,8 +1,6 @@
 import Modal from "@/components/modal/Modal";
-import {
-	ProjectIncidentCodes,
-	type ProjectIncident,
-} from "../model/api";
+import { ProjectCodes } from "@/components/calendar/constants/const";
+import { type ProjectIncident } from "../model/api";
 import { formatDateFull } from "../model/ganttUtils";
 import styles from "./ProjectIncidentModal.module.scss";
 
@@ -152,7 +150,7 @@ export const ProjectIncidentModal = ({
 				<div className={styles.list}>
 					{incidents.map((incident) => {
 						const incidentFiles = normalizeIncidentFiles(
-							incident[ProjectIncidentCodes.info],
+							incident[ProjectCodes.info],
 						);
 
 						return (
@@ -175,7 +173,7 @@ export const ProjectIncidentModal = ({
 									<div>
 										<span>Комментарий</span>
 										<p>
-											{getTextValue(incident, ProjectIncidentCodes.comment)}
+											{getTextValue(incident, ProjectCodes.comment)}
 										</p>
 									</div>
 									<div>
@@ -210,7 +208,7 @@ export const ProjectIncidentModal = ({
 										<span>Даты инцидента</span>
 										<p>
 											{formatIncidentDates(
-												incident[ProjectIncidentCodes.incidentDates],
+												incident[ProjectCodes.incidentDates],
 											)}
 										</p>
 									</div>
