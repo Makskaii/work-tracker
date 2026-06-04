@@ -5,6 +5,7 @@ import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
 import type { ActivityListItem } from "../../types/types";
 import { DealTab } from "./components/DealTab";
+import { MarginalityTab } from "./components/MarginalityTab";
 import { ProfitabilitySkeleton } from "./components/ProfitabilitySkeleton";
 import { ProjectsTab } from "./components/ProjectsTab";
 import { ReportsTab } from "./components/ReportsTab";
@@ -27,6 +28,7 @@ type SalesProfitabilityReportProps = {
 };
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
+	{ id: "marginality", title: "Маржинальность" },
 	{ id: "deal", title: "Сделка" },
 	{ id: "projects", title: "Проекты" },
 	{ id: "tasks", title: "Задачи" },
@@ -146,21 +148,33 @@ export const SalesProfitabilityReport = ({
 								{tab.title}
 							</button>
 						))}
-						<strong>Маржинальность</strong>
 					</div>
 
 					{isBusy ? (
 						<ProfitabilitySkeleton />
 					) : (
 						<>
-							<div className={styles.contentHeader}>
-								<div>
-									<span>Сделка</span>
-									<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
-								</div>
-							</div>
+							{activeTab !== "marginality" && (
+								<>
+									<div className={styles.contentHeader}>
+										<div>
+											<span>Сделка</span>
+											<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
+										</div>
+									</div>
 
-							<SummaryCards summary={summary} />
+									<SummaryCards summary={summary} />
+								</>
+							)}
+
+							{activeTab === "marginality" && (
+								<MarginalityTab
+									deals={deals}
+									projects={projects}
+									selectedDeal={selectedDeal}
+									selectedProjectId={effectiveSelectedProjectId}
+								/>
+							)}
 
 							{activeTab === "deal" && (
 								<DealTab

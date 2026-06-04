@@ -18,7 +18,18 @@ import {
 	REPORT_SELECT_FIELDS,
 } from "./constants";
 import { getDealProjectIds } from "./profitabilityUtils";
-import type { ProfitabilityProject } from "./types";
+import type { ProfitabilityProject, ProjectPayment } from "./types";
+
+const PROJECT_PAYMENT_SELECT_FIELDS = [
+	"id",
+	"title",
+	"createdTime",
+	ProjectCodes.paymentStage,
+	ProjectCodes.paymentStageBinding,
+	ProjectCodes.paymentPercent,
+	ProjectCodes.paymentAmount,
+	ProjectCodes.paymentProject,
+] as const;
 
 export const useDealProjects = (selectedDeal: Deal | null) => {
 	const [projects, setProjects] = useState<ProfitabilityProject[]>([]);
@@ -59,7 +70,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 							project[ProjectCodes.company] ?? "",
 						).trim();
 
-						const [tasks, reports] = await Promise.all([
+						const [tasks, reports, payments] = await Promise.all([
 							fetchAllCrmItems<TaskProps>({
 								entityTypeId: EntityTypeIds.tasks,
 								select: TASK_SELECT_FIELDS,
@@ -79,6 +90,14 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 								},
 								signal: controller.signal,
 							}),
+							fetchAllCrmItems<ProjectPayment>({
+								entityTypeId: EntityTypeIds.projectPayments,
+								select: PROJECT_PAYMENT_SELECT_FIELDS,
+								filter: {
+									[ProjectCodes.paymentProject]: projectId,
+								},
+								signal: controller.signal,
+							}),
 						]);
 
 						return {
@@ -86,6 +105,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 							projectId,
 							tasks,
 							reports,
+							payments,
 						};
 					}),
 				);

@@ -12,6 +12,15 @@ type ProjectGanttFields = {
 export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 	tasks: TaskProps[];
 	reports: ReportProps[];
+	payments: ProjectPayment[];
+};
+
+export type ProjectPayment = {
+	id: number | string;
+	title?: string;
+	createdTime?: string;
+	stageId?: string;
+	[key: string]: unknown;
 };
 
 export type DealSummary = {
@@ -26,7 +35,12 @@ export type DealSummary = {
 	mockProfit: number;
 };
 
-export type SalesProfitabilityTab = "deal" | "projects" | "tasks" | "reports";
+export type SalesProfitabilityTab =
+	| "marginality"
+	| "deal"
+	| "projects"
+	| "tasks"
+	| "reports";
 
 export type ProfitabilityTaskItem = {
 	task: TaskProps;
