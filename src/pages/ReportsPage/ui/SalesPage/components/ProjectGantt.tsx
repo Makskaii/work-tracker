@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { FaExclamationTriangle } from "react-icons/fa";
+import { FaExclamationTriangle, FaMoneyBillWave } from "react-icons/fa";
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import {
@@ -29,14 +30,129 @@ import {
 	getStageStatus,
 	getWeekTicks,
 } from "../model/ganttUtils";
-import type { ProfitabilityProject } from "../model/types";
+import { formatMoney, toNumber } from "../model/profitabilityUtils";
+import type { ProfitabilityProject, ProjectPayment } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { ProjectIncidentModal } from "./ProjectIncidentModal";
 
+const PAYMENT_MARKER_BASE_HEIGHT = 92;
+const PAYMENT_MARKER_MIN_DISTANCE = 5;
+const PAYMENT_MARKER_SLOT_HEIGHT = 58;
+
+const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
+	"403": "Не привязано к этапу",
+	"404": "Написание ТЗ",
+	"405": "Подписание ТЗ",
+	"406": "Разработка",
+	"407": "Обучение / сдача",
+	"408": "Закрытие проекта",
+};
+
+const getRawPaymentAmount = (payment: ProjectPayment) =>
+	toNumber(payment[ProjectCodes.paymentAmount]);
+
+const getRawPaymentPercent = (payment: ProjectPayment) =>
+	toNumber(payment[ProjectCodes.paymentPercent]);
+
+const getPaymentAmount = (payment: ProjectPayment, dealAmount: number) => {
+	const amount = getRawPaymentAmount(payment);
+
+	if (amount) {
+		return amount;
+	}
+
+	const percent = getRawPaymentPercent(payment);
+
+	return dealAmount && percent ? Math.round((dealAmount * percent) / 100) : 0;
+};
+
+const getPaymentPercent = (payment: ProjectPayment, dealAmount: number) => {
+	const percent = getRawPaymentPercent(payment);
+
+	if (percent) {
+		return percent;
+	}
+
+	const amount = getRawPaymentAmount(payment);
+
+	return dealAmount && amount ? Math.round((amount / dealAmount) * 100) : 0;
+};
+
+const getPaymentDisplayValue = (value: unknown): string => {
+	if (value === null || value === undefined || value === "") {
+		return "—";
+	}
+
+	if (typeof value === "string" || typeof value === "number") {
+		return String(value);
+	}
+
+	if (Array.isArray(value)) {
+		const values = value
+			.map((item) => getPaymentDisplayValue(item))
+			.filter((item) => item !== "—");
+
+		return values.length ? values.join(", ") : "—";
+	}
+
+	if (typeof value === "object") {
+		const record = value as Record<string, unknown>;
+
+		return getPaymentDisplayValue(
+			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label,
+		);
+	}
+
+	return "—";
+};
+
+const getPaymentStageBindingLabel = (value: unknown) => {
+	const rawValue = getPaymentDisplayValue(value);
+
+	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;
+};
+
+const getPaymentMarkerClass = (stageId = "") => {
+	const normalizedStage = stageId.toLowerCase();
+
+	if (normalizedStage.includes("success") || normalizedStage.includes("paid")) {
+		return styles.ganttPaymentPaid;
+	}
+
+	if (normalizedStage.includes("fail") || normalizedStage.includes("cancel")) {
+		return styles.ganttPaymentCanceled;
+	}
+
+	if (normalizedStage.includes("debt")) {
+		return styles.ganttPaymentDebt;
+	}
+
+	return styles.ganttPaymentPlanned;
+};
+
+const getPaymentTooltip = (payment: ProjectPayment, dealAmount: number) => {
+	const date = payment.createdTime
+		? formatDateFull(new Date(payment.createdTime))
+		: "—";
+	const amount = getPaymentAmount(payment, dealAmount);
+	const percent = getPaymentPercent(payment, dealAmount);
+
+	return [
+		"Оплата",
+		`Сумма: ${formatMoney(amount)}`,
+		`Процент: ${percent}%`,
+		`Дата: ${date}`,
+		`Стадия: ${payment.stageId ?? "—"}`,
+		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
+	].join("\n");
+};
+
 export const ProjectGantt = ({
 	project,
+	dealAmount = 0,
 }: {
 	project: ProfitabilityProject | null;
+	dealAmount?: number;
 }) => {
 	const [incidents, setIncidents] = useState<ProjectIncident[]>([]);
 	const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
@@ -66,6 +182,63 @@ export const ProjectGantt = ({
 			? row.milestone.date
 			: row.stage.planStart || row.stage.planEnd || row.stage.factStart,
 	);
+	const paymentMarkers = useMemo(() => {
+		if (!project) {
+			return [];
+		}
+
+		const markerLevels: number[] = [];
+
+		return project.payments
+			.map((payment) => {
+				const date = payment.createdTime ? new Date(payment.createdTime) : null;
+
+				if (!date || Number.isNaN(date.getTime())) {
+					return null;
+				}
+
+				return {
+					date,
+					payment,
+				};
+			})
+			.filter(
+				(
+					marker,
+				): marker is {
+					date: Date;
+					payment: ProjectPayment;
+				} => Boolean(marker),
+			)
+			.toSorted((a, b) => a.date.getTime() - b.date.getTime())
+			.map((marker) => {
+				const style = getMilestoneStyle(marker.date, timeline);
+				const left = Number.parseFloat(String(style.left ?? 0));
+				let level = markerLevels.findIndex(
+					(levelLeft) => left - levelLeft >= PAYMENT_MARKER_MIN_DISTANCE,
+				);
+
+				if (level === -1) {
+					level = markerLevels.length;
+				}
+
+				markerLevels[level] = left;
+
+				return {
+					...marker,
+					level,
+				};
+			}) as Array<{ date: Date; level: number; payment: ProjectPayment }>;
+	}, [project, timeline]);
+	const paymentRowHeight =
+		paymentMarkers.length > 0
+			? Math.max(
+					PAYMENT_MARKER_BASE_HEIGHT,
+					PAYMENT_MARKER_BASE_HEIGHT +
+						Math.max(...paymentMarkers.map((marker) => marker.level)) *
+							PAYMENT_MARKER_SLOT_HEIGHT,
+				)
+			: PAYMENT_MARKER_BASE_HEIGHT;
 	const handleOverdueClick = async () => {
 		if (!project) {
 			setIncidents([]);
@@ -138,6 +311,29 @@ export const ProjectGantt = ({
 				<div className={styles.ganttBoard}>
 					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
 					<GanttScale monthTicks={monthTicks} weekTicks={weekTicks} />
+					<div
+						className={styles.ganttRowInfo}
+						style={{ minHeight: paymentRowHeight }}
+					>
+						<strong>Оплаты</strong>
+						<span>Смарт-процесс оплат по проекту</span>
+					</div>
+					<div
+						className={styles.ganttTrack}
+						style={{ minHeight: paymentRowHeight }}
+					>
+						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+						{paymentMarkers.map(({ date, level, payment }) => (
+							<GanttPaymentMarker
+								key={String(payment.id)}
+								date={date}
+								dealAmount={dealAmount}
+								level={level}
+								payment={payment}
+								timeline={timeline}
+							/>
+						))}
+					</div>
 
 					{hasDates ? (
 						gantt.rows.map((row) =>
@@ -508,6 +704,46 @@ const GanttMilestoneRow = ({
 		</div>
 	</>
 );
+
+const GanttPaymentMarker = ({
+	date,
+	dealAmount,
+	level,
+	payment,
+	timeline,
+}: {
+	date: Date;
+	dealAmount: number;
+	level: number;
+	payment: ProjectPayment;
+	timeline: GanttTimeline;
+}) => {
+	const amount = getPaymentAmount(payment, dealAmount);
+	const percent = getPaymentPercent(payment, dealAmount);
+	const style = {
+		...getMilestoneStyle(date, timeline),
+		top: `${16 + level * PAYMENT_MARKER_SLOT_HEIGHT}px`,
+	};
+
+	return (
+		<span
+			className={`${styles.ganttPaymentMarker} ${getPaymentMarkerClass(
+				payment.stageId,
+			)}`}
+			style={style}
+			title={getPaymentTooltip(payment, dealAmount)}
+		>
+			<b>
+				<FaMoneyBillWave aria-hidden="true" />
+			</b>
+			<small>
+				Оплата{percent ? ` ${percent}%` : ""}
+				<br />
+				{formatMoney(amount)}
+			</small>
+		</span>
+	);
+};
 
 const GanttStageTable = ({
 	stages,

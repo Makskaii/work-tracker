@@ -28,7 +28,6 @@ type SalesProfitabilityReportProps = {
 };
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
-	{ id: "marginality", title: "Маржинальность" },
 	{ id: "deal", title: "Сделка" },
 	{ id: "projects", title: "Проекты" },
 	{ id: "tasks", title: "Задачи" },
@@ -189,6 +188,15 @@ export const SalesProfitabilityReport = ({
 								{tab.title}
 							</button>
 						))}
+						<button
+							type="button"
+							className={`${styles.marginalityTabButton} ${
+								activeTab === "marginality" ? styles.activeTab : ""
+							}`}
+							onClick={() => setActiveTab("marginality")}
+						>
+							Маржинальность
+						</button>
 					</div>
 
 					{isBusy ? (

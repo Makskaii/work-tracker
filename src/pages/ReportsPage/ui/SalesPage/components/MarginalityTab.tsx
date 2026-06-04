@@ -14,6 +14,15 @@ type MarginalityTabProps = {
 	selectedProjectId: string | null;
 };
 
+const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
+	"403": "Не привязано к этапу",
+	"404": "Написание ТЗ",
+	"405": "Подписание ТЗ",
+	"406": "Разработка",
+	"407": "Обучение / сдача",
+	"408": "Закрытие проекта",
+};
+
 const paymentStageMeta = (stageId: string) => {
 	const normalizedStage = stageId.toLowerCase();
 
@@ -44,20 +53,71 @@ const paymentStageMeta = (stageId: string) => {
 	};
 };
 
-const getPaymentAmount = (payment: ProjectPayment) =>
+const getDisplayValue = (value: unknown): string => {
+	if (value === null || value === undefined || value === "") {
+		return "—";
+	}
+
+	if (typeof value === "string" || typeof value === "number") {
+		return String(value);
+	}
+
+	if (Array.isArray(value)) {
+		const values = value
+			.map((item) => getDisplayValue(item))
+			.filter((item) => item !== "—");
+
+		return values.length ? values.join(", ") : "—";
+	}
+
+	if (typeof value === "object") {
+		const record = value as Record<string, unknown>;
+		const text =
+			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label;
+
+		return getDisplayValue(text);
+	}
+
+	return "—";
+};
+
+const getPaymentStageBindingLabel = (value: unknown) => {
+	const rawValue = getDisplayValue(value);
+
+	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;
+};
+
+const getRawPaymentAmount = (payment: ProjectPayment) =>
 	toNumber(payment[ProjectCodes.paymentAmount]);
 
+const getRawPaymentPercent = (payment: ProjectPayment) =>
+	toNumber(payment[ProjectCodes.paymentPercent]);
+
+const getPaymentAmount = (payment: ProjectPayment, dealAmount: number) => {
+	const amount = getRawPaymentAmount(payment);
+
+	if (amount) {
+		return amount;
+	}
+
+	const percent = getRawPaymentPercent(payment);
+
+	return dealAmount && percent ? Math.round((dealAmount * percent) / 100) : 0;
+};
+
 const getPaymentPercent = (payment: ProjectPayment, dealAmount: number) => {
-	const percent = toNumber(payment[ProjectCodes.paymentPercent]);
+	const percent = getRawPaymentPercent(payment);
 
 	if (percent) {
 		return percent;
 	}
 
-	const amount = getPaymentAmount(payment);
+	const amount = getRawPaymentAmount(payment);
 
 	return dealAmount ? Math.round((amount / dealAmount) * 100) : 0;
 };
+
+const formatPercent = (value: number) => `${Number.isFinite(value) ? value : 0}%`;
 
 const formatDate = (value?: string) => {
 	if (!value) {
@@ -75,6 +135,34 @@ const formatDate = (value?: string) => {
 		month: "2-digit",
 		year: "numeric",
 	}).format(date);
+};
+
+const getPaymentDate = (value?: string) => {
+	if (!value) {
+		return null;
+	}
+
+	const date = new Date(value);
+
+	return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getMonthKey = (date: Date) =>
+	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const formatMonthLabel = (date: Date) =>
+	new Intl.DateTimeFormat("ru-RU", {
+		month: "short",
+		year: "2-digit",
+	})
+		.format(date)
+		.replace(".", "");
+
+const getMonthKeyTime = (key: string) => {
+	const [year, month] = key.split("-").map(Number);
+	const date = new Date(year, month - 1, 1);
+
+	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
 };
 
 export const MarginalityTab = ({
@@ -97,11 +185,11 @@ export const MarginalityTab = ({
 		const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
 
 		return stageMeta.className === styles.paymentPaid
-			? sum + getPaymentAmount(item.payment)
+			? sum + getPaymentAmount(item.payment, dealAmount)
 			: sum;
 	}, 0);
 	const totalPaymentAmount = payments.reduce(
-		(sum, item) => sum + getPaymentAmount(item.payment),
+		(sum, item) => sum + getPaymentAmount(item.payment, dealAmount),
 		0,
 	);
 	const debtAmount = Math.max((dealAmount || totalPaymentAmount) - paidAmount, 0);
@@ -109,20 +197,60 @@ export const MarginalityTab = ({
 		dealAmount || totalPaymentAmount
 			? Math.round((paidAmount / (dealAmount || totalPaymentAmount)) * 100)
 			: 0;
-	const paymentsByDate = useMemo(() => {
+	const paymentsByMonth = useMemo(() => {
 		return payments.reduce(
 			(result, item) => {
-				const date = formatDate(item.payment.createdTime);
-				const group = result.get(date) ?? [];
+				const date = getPaymentDate(item.payment.createdTime);
 
-				group.push(item);
-				result.set(date, group);
+				if (!date) {
+					return result;
+				}
+
+				const key = getMonthKey(date);
+				const group = result.get(key) ?? {
+					date,
+					items: [],
+				};
+
+				group.items.push(item);
+				result.set(key, group);
 
 				return result;
 			},
-			new Map<string, typeof payments>(),
+			new Map<string, { date: Date; items: typeof payments }>(),
 		);
 	}, [payments]);
+	const chartColumns = useMemo(() => {
+		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
+			const amount = group.items.reduce(
+				(sum, item) => sum + getPaymentAmount(item.payment, dealAmount),
+				0,
+			);
+			const segments = group.items
+				.map((item) => ({
+					...item,
+					amount: getPaymentAmount(item.payment, dealAmount),
+					percent: getPaymentPercent(item.payment, dealAmount),
+				}))
+				.filter((item) => item.amount > 0);
+
+			return {
+				key,
+				date: group.date,
+				items: group.items,
+				amount,
+				segments,
+			};
+		});
+		columns.sort((a, b) => getMonthKeyTime(a.key) - getMonthKeyTime(b.key));
+		const maxAmount = Math.max(...columns.map((column) => column.amount), 1);
+
+		return columns.map((column) => ({
+			...column,
+			maxAmount,
+		}));
+	}, [dealAmount, paymentsByMonth]);
+	const hasChartColumns = chartColumns.length > 0;
 
 	return (
 		<div className={styles.tabContent}>
@@ -200,37 +328,65 @@ export const MarginalityTab = ({
 					<span className={styles.paymentCanceled}>отменено</span>
 				</div>
 				<div className={styles.paymentChart}>
-					{Array.from(paymentsByDate.entries()).map(([date, items]) => {
-						const dayAmount = items.reduce(
-							(sum, item) => sum + getPaymentAmount(item.payment),
-							0,
-						);
-
-						return (
-							<div key={date} className={styles.paymentColumn}>
-								<strong>{date}</strong>
-								<small>{formatMoney(dayAmount)}</small>
-								<div className={styles.paymentStack}>
-									{items.map(({ payment }) => {
-										const percent = getPaymentPercent(payment, dealAmount);
-										const stageMeta = paymentStageMeta(payment.stageId ?? "");
+					{hasChartColumns ? (
+						<div className={styles.paymentChartPlot}>
+							<div className={styles.paymentAxisLabel}>к оплате</div>
+							<div className={styles.paymentColumns}>
+								{chartColumns.map(
+									({ key, date, amount: periodAmount, maxAmount, segments }) => {
+										const columnHeight = periodAmount
+											? Math.max((periodAmount / maxAmount) * 170, 30)
+											: 0;
 
 										return (
-											<span
-												key={String(payment.id)}
-												className={stageMeta.className}
-												style={{
-													height: `${Math.max(percent, 8)}px`,
-												}}
-											>
-												{percent}%
-											</span>
+											<div key={key} className={styles.paymentColumn}>
+												<div className={styles.paymentColumnHeader}>
+													<strong>{formatMonthLabel(date)}</strong>
+													<small>{formatMoney(periodAmount)}</small>
+												</div>
+												<div
+													className={styles.paymentStack}
+													style={{ height: `${columnHeight}px` }}
+												>
+													{segments.length ? (
+														segments.map(({ amount, payment, percent }) => {
+															const stageMeta = paymentStageMeta(
+																payment.stageId ?? "",
+															);
+
+															return (
+																<span
+																	key={String(payment.id)}
+																	className={stageMeta.className}
+																	style={{
+																		height: `${Math.max(
+																			(amount / periodAmount) * columnHeight,
+																			18,
+																		)}px`,
+																	}}
+																	title={`${formatMoney(amount)} · ${formatPercent(
+																		percent,
+																	)}`}
+																>
+																	{formatPercent(percent)}
+																</span>
+															);
+														})
+													) : (
+														<span className={styles.paymentZeroSegment} />
+													)}
+												</div>
+											</div>
 										);
-									})}
-								</div>
+									},
+								)}
 							</div>
-						);
-					})}
+						</div>
+					) : (
+						<div className={styles.paymentChartEmpty}>
+							Платежи по выбранному контексту не найдены
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -240,16 +396,25 @@ export const MarginalityTab = ({
 					{payments.length ? (
 						payments.map(({ payment, project }) => {
 							const stageMeta = paymentStageMeta(payment.stageId ?? "");
-							const amount = getPaymentAmount(payment);
+							const amount = getPaymentAmount(payment, dealAmount);
 							const percent = getPaymentPercent(payment, dealAmount);
 
 							return (
 								<article key={String(payment.id)} className={styles.paymentItem}>
 									<div>
 										<strong>
-											{payment.title ?? project.title} · {percent}%
+											{getDisplayValue(payment.title) !== "—"
+												? getDisplayValue(payment.title)
+												: project.title}{" "}
+											· {formatPercent(percent)}
 										</strong>
 										<span>Дата создания: {formatDate(payment.createdTime)}</span>
+										<small>
+											Этап:{" "}
+											{getPaymentStageBindingLabel(
+												payment[ProjectCodes.paymentStageBinding],
+											)}
+										</small>
 									</div>
 									<b>{formatMoney(amount)}</b>
 									<em className={stageMeta.className}>{stageMeta.label}</em>

@@ -342,6 +342,11 @@
 	}
 }
 
+.marginalityTabButton {
+	margin-left: auto;
+	color: var(--color-accent) !important;
+}
+
 .activeTab {
 	color: var(--color-accent-blue) !important;
 	box-shadow: inset 0 -3px 0 var(--color-accent);
@@ -512,7 +517,7 @@
 }
 
 .successText {
-	color: var(--color-payment-client) !important;
+	color: #48d98c !important;
 }
 
 .warningText {
@@ -542,29 +547,106 @@
 	margin-bottom: 16px;
 }
 
+.paymentLegend .paymentPaid {
+	background: rgba(72, 217, 140, 0.16);
+	color: #48d98c;
+}
+
+.paymentLegend .paymentPlanned {
+	background: rgba(255, 191, 77, 0.16);
+	color: #ffbf4d;
+}
+
+.paymentLegend .paymentDebt {
+	background: rgba(111, 168, 255, 0.16);
+	color: #6fa8ff;
+}
+
+.paymentLegend .paymentCanceled {
+	background: rgba(255, 107, 107, 0.16);
+	color: #ff6b6b;
+}
+
 .paymentChart {
-	display: flex;
-	align-items: flex-end;
-	gap: 18px;
-	min-height: 260px;
-	padding: 18px;
+	display: block;
+	position: relative;
+	min-height: 300px;
+	padding: 20px 22px;
 	border: 1px solid var(--color-border);
 	border-radius: 16px;
-	background: var(--color-surface);
+	background:
+		linear-gradient(180deg, rgba(93, 141, 206, 0.14) 1px, transparent 1px) 0 76px / 100% 52px,
+		rgba(9, 20, 36, 0.58);
 	overflow-x: auto;
+}
+
+.paymentChartEmpty {
+	display: flex;
+	width: 100%;
+	min-height: 180px;
+	align-items: center;
+	justify-content: center;
+	color: rgba(238, 245, 255, 0.62);
+	font-weight: 800;
+}
+
+.paymentChartPlot {
+	display: grid;
+	grid-template-columns: 92px minmax(0, 1fr);
+	gap: 18px;
+	height: 246px;
+	min-height: 246px;
+	align-items: end;
+	min-width: max-content;
+}
+
+.paymentAxisLabel {
+	margin-bottom: 34px;
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.paymentColumns {
+	display: flex;
+	align-items: flex-end;
+	gap: 34px;
+	height: 100%;
+	min-height: 246px;
+	padding: 0 12px 10px 0;
 }
 
 .paymentColumn {
 	display: flex;
-	flex: 0 0 130px;
+	flex: 0 0 112px;
 	flex-direction: column;
 	align-items: center;
-	gap: 6px;
+	justify-content: flex-end;
+	position: relative;
+	height: 100%;
+	min-height: 0;
+	padding-top: 48px;
+	gap: 12px;
+}
+
+.paymentColumnHeader {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	width: 140px;
+	transform: translateX(-50%);
 
 	strong {
 		color: rgba(238, 245, 255, 0.72);
 		font-size: 12px;
 		font-weight: 900;
+		text-transform: lowercase;
 	}
 
 	small {
@@ -577,21 +659,67 @@
 .paymentStack {
 	display: flex;
 	width: 100%;
-	min-height: 120px;
+	min-height: 8px;
+	max-height: 170px;
 	flex-direction: column-reverse;
 	justify-content: flex-start;
 	overflow: hidden;
-	border-radius: 12px;
-	background: rgba(22, 36, 55, 0.5);
+	border: 1px solid rgba(93, 141, 206, 0.18);
+	border-radius: 11px;
+	background: rgba(22, 36, 55, 0.18);
+	box-shadow: 0 12px 28px rgba(1, 8, 14, 0.28);
 
 	span {
 		display: flex;
+		width: 100%;
 		align-items: center;
 		justify-content: center;
-		min-height: 20px;
+		padding: 0 6px;
+		border-radius: 0;
 		font-size: 11px;
 		font-weight: 950;
+		color: #ffffff;
+		line-height: 1;
+		box-sizing: border-box;
 	}
+}
+
+.paymentStack span + span {
+	border-bottom: 1px solid rgba(238, 245, 255, 0.16);
+}
+
+.paymentStack .paymentPaid,
+.paymentStack .paymentPlanned,
+.paymentStack .paymentDebt,
+.paymentStack .paymentCanceled {
+	width: 100%;
+	border-radius: 0;
+	padding: 0 8px;
+}
+
+.paymentStack .paymentPaid {
+	background: linear-gradient(180deg, #64e89f, #42d782);
+	color: #062313;
+}
+
+.paymentStack .paymentPlanned {
+	background: linear-gradient(180deg, #ffd35f, #ffc23d);
+	color: #211506;
+}
+
+.paymentStack .paymentDebt {
+	background: linear-gradient(180deg, #6fb2ff, #58a0f5);
+	color: #06172b;
+}
+
+.paymentStack .paymentCanceled {
+	background: linear-gradient(180deg, #ff7676, #ff626a);
+	color: #2a080b;
+}
+
+.paymentZeroSegment {
+	background: rgba(158, 176, 199, 0.28);
+	color: transparent;
 }
 
 .paymentsList {
@@ -625,6 +753,14 @@
 		margin-top: 5px;
 		color: rgba(238, 245, 255, 0.62);
 		font-size: 12px;
+		font-weight: 700;
+	}
+
+	small {
+		display: block;
+		margin-top: 4px;
+		color: rgba(238, 245, 255, 0.52);
+		font-size: 11px;
 		font-weight: 700;
 	}
 
@@ -1214,6 +1350,61 @@
 
 .ganttMilestoneAccent b {
 	background: #7662ff;
+}
+
+.ganttPaymentMarker {
+	position: absolute;
+	top: 14px;
+	transform: translateX(-50%);
+	z-index: 6;
+
+	b {
+		display: flex;
+		width: 20px;
+		height: 20px;
+		align-items: center;
+		justify-content: center;
+		border: 3px solid var(--color-surface);
+		border-radius: 999px;
+		color: #06111e;
+		font-size: 11px;
+		font-weight: 950;
+		box-shadow: 0 6px 12px rgba(1, 8, 14, 0.28);
+
+		svg {
+			width: 11px;
+			height: 11px;
+		}
+	}
+
+	small {
+		position: absolute;
+		top: 26px;
+		left: 50%;
+		width: 116px;
+		transform: translateX(-50%);
+		color: rgba(238, 245, 255, 0.78);
+		font-size: 10px;
+		font-weight: 900;
+		line-height: 1.2;
+		text-align: center;
+	}
+}
+
+.ganttPaymentPaid b {
+	background: var(--color-payment-client);
+}
+
+.ganttPaymentPlanned b {
+	background: var(--color-payment-company);
+}
+
+.ganttPaymentDebt b {
+	background: var(--color-accent-blue);
+}
+
+.ganttPaymentCanceled b {
+	background: var(--color-payment-unpaid);
 }
 
 .ganttNoDate {

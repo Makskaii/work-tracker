@@ -81,7 +81,7 @@ export const NAV_ITEMS: NavItem[] = [
 	},
 	{
 		key: "profitability-report",
-		label: "Отчет рентабельности",
+		label: "Список оплат",
 		to: "/reports/profitability",
 		type: "link",
 		icon: "₽",
