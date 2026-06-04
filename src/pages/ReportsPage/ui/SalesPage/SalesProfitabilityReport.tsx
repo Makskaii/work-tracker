@@ -109,30 +109,71 @@ export const SalesProfitabilityReport = ({
 						<h3>Структура</h3>
 					</div>
 					<div className={styles.dealsList}>
-						{deals.map((deal) => (
-							<button
-								key={deal.id}
-								type="button"
-								title={deal.title}
-								className={`${styles.dealButton} ${
-									String(deal.id) === selectedDealId ? styles.activeDeal : ""
-								}`}
-								onClick={() => setSelectedDealId(String(deal.id))}
-							>
-								<span className={styles.dealChevron}>
-									{deal.title.trim().charAt(0)}
-								</span>
-								<span>
-									<strong>{deal.title}</strong>
-									<small>CRM-сделка</small>
-								</span>
-								<em>
-									{toNumber(deal.opportunity)
-										? formatMoney(toNumber(deal.opportunity))
-										: `#${deal.id}`}
-								</em>
-							</button>
-						))}
+						{deals.map((deal) => {
+							const isActiveDeal = String(deal.id) === selectedDealId;
+
+							return (
+								<div key={deal.id} className={styles.dealGroup}>
+									<button
+										type="button"
+										title={deal.title}
+										className={`${styles.dealButton} ${
+											isActiveDeal ? styles.activeDeal : ""
+										}`}
+										onClick={() => setSelectedDealId(String(deal.id))}
+									>
+										<span className={styles.dealChevron}>
+											{deal.title.trim().charAt(0)}
+										</span>
+										<span>
+											<strong>{deal.title}</strong>
+											<small>CRM-сделка</small>
+										</span>
+										<em>
+											{toNumber(deal.opportunity)
+												? formatMoney(toNumber(deal.opportunity))
+												: `#${deal.id}`}
+										</em>
+									</button>
+
+									{isActiveDeal && projects.length ? (
+										<div className={styles.dealProjectsList}>
+											{projects.map((project) => {
+												const projectId = String(project.projectId ?? project.id);
+												const isActiveProject =
+													projectId === effectiveSelectedProjectId;
+
+												return (
+													<button
+														key={projectId}
+														type="button"
+														title={project.title}
+														className={`${styles.dealProjectButton} ${
+															isActiveProject ? styles.activeProject : ""
+														}`}
+														onClick={() => {
+															setSelectedProjectId(projectId);
+															setActiveTab("projects");
+														}}
+													>
+														<span className={styles.dealProjectIcon}>
+															{project.title.trim().charAt(0)}
+														</span>
+														<span>
+															<strong>{project.title}</strong>
+															<small>
+																{project.tasks.length} задач ·{" "}
+																{project.reports.length} отчётов
+															</small>
+														</span>
+													</button>
+												);
+											})}
+										</div>
+									) : null}
+								</div>
+							);
+						})}
 					</div>
 				</aside>
 
@@ -185,7 +226,6 @@ export const SalesProfitabilityReport = ({
 									projects={projects}
 									selectedProjectId={effectiveSelectedProjectId}
 									summary={summary}
-									selectedDeal={selectedDeal}
 									users={users}
 								/>
 							)}

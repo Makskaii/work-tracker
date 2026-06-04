@@ -111,6 +111,13 @@
 	display: none;
 }
 
+.dealGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
 .dealButton {
 	display: grid;
 	grid-template-columns: 30px minmax(0, 1fr) auto;
@@ -183,6 +190,88 @@
 	outline: none;
 }
 
+.dealProjectsList {
+	display: grid;
+	gap: 8px;
+	width: calc(100% - 34px);
+	margin-left: 34px;
+	padding-left: 10px;
+	border-left: 2px solid rgba(38, 231, 223, 0.45);
+	box-sizing: border-box;
+}
+
+.dealProjectButton {
+	display: grid;
+	grid-template-columns: 26px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 42px;
+	padding: 8px 10px;
+	border: 1px solid transparent;
+	border-radius: 12px;
+	background: rgba(22, 36, 55, 0.24);
+	color: var(--color-text);
+	text-align: left;
+	cursor: pointer;
+	box-sizing: border-box;
+
+	strong,
+	small {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	strong {
+		font-size: 13px;
+		font-weight: 900;
+	}
+
+	small {
+		margin-top: 2px;
+		color: rgba(238, 245, 255, 0.6);
+		font-size: 11px;
+		font-weight: 700;
+	}
+}
+
+.dealProjectButton:not(.activeProject):hover {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.08);
+}
+
+.dealProjectIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 999px;
+	background: rgba(46, 197, 173, 0.12);
+	color: var(--color-accent);
+	font-size: 12px;
+	font-weight: 900;
+	text-transform: uppercase;
+}
+
+.activeProject {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.12);
+	box-shadow: none;
+	outline: none;
+}
+
+.activeProject:hover,
+.activeProject:focus,
+.activeProject:focus-visible {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.12);
+	box-shadow: none;
+	outline: none;
+}
+
 .layoutCollapsed .structure {
 	width: 100%;
 	padding: 10px;
@@ -200,7 +289,8 @@
 
 .layoutCollapsed .structureHeader h3,
 .layoutCollapsed .dealButton span:not(.dealChevron),
-.layoutCollapsed .dealButton em {
+.layoutCollapsed .dealButton em,
+.layoutCollapsed .dealProjectsList {
 	display: none;
 }
 
