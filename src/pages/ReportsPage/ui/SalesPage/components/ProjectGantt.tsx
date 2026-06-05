@@ -7,6 +7,11 @@ import {
 	fetchProjectIncidents,
 	type ProjectIncident,
 } from "../model/api";
+import {
+	getPaymentAmount,
+	getPaymentPercent,
+	getPaymentStageBindingLabel,
+} from "../model/paymentUtils";
 import type {
 	GanttMilestone,
 	GanttMonthTick,
@@ -30,7 +35,7 @@ import {
 	getStageStatus,
 	getWeekTicks,
 } from "../model/ganttUtils";
-import { formatMoney, toNumber } from "../model/profitabilityUtils";
+import { formatMoney } from "../model/profitabilityUtils";
 import type { ProfitabilityProject, ProjectPayment } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { ProjectIncidentModal } from "./ProjectIncidentModal";
@@ -38,79 +43,6 @@ import { ProjectIncidentModal } from "./ProjectIncidentModal";
 const PAYMENT_MARKER_BASE_HEIGHT = 92;
 const PAYMENT_MARKER_MIN_DISTANCE = 5;
 const PAYMENT_MARKER_SLOT_HEIGHT = 58;
-
-const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
-	"403": "Не привязано к этапу",
-	"404": "Написание ТЗ",
-	"405": "Подписание ТЗ",
-	"406": "Разработка",
-	"407": "Обучение / сдача",
-	"408": "Закрытие проекта",
-};
-
-const getRawPaymentAmount = (payment: ProjectPayment) =>
-	toNumber(payment[ProjectCodes.paymentAmount]);
-
-const getRawPaymentPercent = (payment: ProjectPayment) =>
-	toNumber(payment[ProjectCodes.paymentPercent]);
-
-const getPaymentAmount = (payment: ProjectPayment, dealAmount: number) => {
-	const amount = getRawPaymentAmount(payment);
-
-	if (amount) {
-		return amount;
-	}
-
-	const percent = getRawPaymentPercent(payment);
-
-	return dealAmount && percent ? Math.round((dealAmount * percent) / 100) : 0;
-};
-
-const getPaymentPercent = (payment: ProjectPayment, dealAmount: number) => {
-	const percent = getRawPaymentPercent(payment);
-
-	if (percent) {
-		return percent;
-	}
-
-	const amount = getRawPaymentAmount(payment);
-
-	return dealAmount && amount ? Math.round((amount / dealAmount) * 100) : 0;
-};
-
-const getPaymentDisplayValue = (value: unknown): string => {
-	if (value === null || value === undefined || value === "") {
-		return "—";
-	}
-
-	if (typeof value === "string" || typeof value === "number") {
-		return String(value);
-	}
-
-	if (Array.isArray(value)) {
-		const values = value
-			.map((item) => getPaymentDisplayValue(item))
-			.filter((item) => item !== "—");
-
-		return values.length ? values.join(", ") : "—";
-	}
-
-	if (typeof value === "object") {
-		const record = value as Record<string, unknown>;
-
-		return getPaymentDisplayValue(
-			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label,
-		);
-	}
-
-	return "—";
-};
-
-const getPaymentStageBindingLabel = (value: unknown) => {
-	const rawValue = getPaymentDisplayValue(value);
-
-	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;
-};
 
 const getPaymentMarkerClass = (stageId = "") => {
 	const normalizedStage = stageId.toLowerCase();

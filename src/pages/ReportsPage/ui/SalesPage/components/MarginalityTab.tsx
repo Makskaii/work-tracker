@@ -6,6 +6,11 @@ import type { Deal } from "../../../types/deals.types";
 import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "../model/api";
 import { PROJECT_SELECT_FIELDS } from "../model/constants";
 import {
+	getPaymentAmount,
+	getPaymentPercent,
+	getPaymentStageBindingLabel,
+} from "../model/paymentUtils";
+import {
 	formatMoney,
 	getDealProjectIds,
 	toNumber,
@@ -30,15 +35,6 @@ type PaymentProjectInfo = {
 type PaymentItem = {
 	payment: ProjectPayment;
 	project: PaymentProjectInfo;
-};
-
-const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
-	"403": "Не привязано к этапу",
-	"404": "Написание ТЗ",
-	"405": "Подписание ТЗ",
-	"406": "Разработка",
-	"407": "Обучение / сдача",
-	"408": "Закрытие проекта",
 };
 
 const paymentStageMeta = (stageId: string) => {
@@ -69,70 +65,6 @@ const paymentStageMeta = (stageId: string) => {
 		label: "нужно выполнить",
 		className: styles.paymentPlanned,
 	};
-};
-
-const getDisplayValue = (value: unknown): string => {
-	if (value === null || value === undefined || value === "") {
-		return "—";
-	}
-
-	if (typeof value === "string" || typeof value === "number") {
-		return String(value);
-	}
-
-	if (Array.isArray(value)) {
-		const values = value
-			.map((item) => getDisplayValue(item))
-			.filter((item) => item !== "—");
-
-		return values.length ? values.join(", ") : "—";
-	}
-
-	if (typeof value === "object") {
-		const record = value as Record<string, unknown>;
-		const text =
-			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label;
-
-		return getDisplayValue(text);
-	}
-
-	return "—";
-};
-
-const getPaymentStageBindingLabel = (value: unknown) => {
-	const rawValue = getDisplayValue(value);
-
-	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;
-};
-
-const getRawPaymentAmount = (payment: ProjectPayment) =>
-	toNumber(payment[ProjectCodes.paymentAmount]);
-
-const getRawPaymentPercent = (payment: ProjectPayment) =>
-	toNumber(payment[ProjectCodes.paymentPercent]);
-
-const getPaymentAmount = (payment: ProjectPayment, dealAmount: number) => {
-	const amount = getRawPaymentAmount(payment);
-
-	if (amount) {
-		return amount;
-	}
-
-	const percent = getRawPaymentPercent(payment);
-
-	return dealAmount && percent ? Math.round((dealAmount * percent) / 100) : 0;
-};
-
-const getPaymentPercent = (payment: ProjectPayment, dealAmount: number) => {
-	const percent = getRawPaymentPercent(payment);
-
-	if (percent) {
-		return percent;
-	}
-
-	const amount = getRawPaymentAmount(payment);
-
-	return dealAmount ? Math.round((amount / dealAmount) * 100) : 0;
 };
 
 const formatPercent = (value: number) => `${Number.isFinite(value) ? value : 0}%`;
