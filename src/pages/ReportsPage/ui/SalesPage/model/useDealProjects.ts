@@ -74,13 +74,6 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 					linkedProjects,
 					fallbackProjects,
 				]);
-				console.log("Profitability projects debug", {
-					selectedDealId: selectedDeal.id,
-					dealProjectIds: projectIds,
-					linkedProjectIds: linkedProjects.map((project) => project.id),
-					fallbackProjectIds: fallbackProjects.map((project) => project.id),
-					mergedProjectIds: dealProjects.map((project) => project.id),
-				});
 
 				if (!dealProjects.length) {
 					setProjects([]);

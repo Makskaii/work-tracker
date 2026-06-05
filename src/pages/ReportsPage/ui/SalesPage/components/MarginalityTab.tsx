@@ -286,7 +286,7 @@ export const MarginalityTab = ({
 						entityTypeId: EntityTypeIds.projects,
 						select: PROJECT_SELECT_FIELDS,
 						filter: {
-							[ProjectCodes.parentproject]: dealId,
+							[ProjectCodes.parentDeal]: dealId,
 						},
 						signal: controller.signal,
 					}),
@@ -482,7 +482,7 @@ export const MarginalityTab = ({
 			<div className={styles.marginalityMetrics}>
 				<div>
 					<span>Сделок</span>
-					<strong>{scope === "all" ? deals.length : selectedDeal ? 1 : 0}</strong>
+					<strong>{scopeDeals.length}</strong>
 				</div>
 				<div>
 					<span>Маржа</span>
