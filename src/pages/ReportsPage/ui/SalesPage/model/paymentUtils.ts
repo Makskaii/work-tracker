@@ -11,6 +11,37 @@ export const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
 	"408": "Закрытие проекта",
 };
 
+export const ProjectPaymentStageIds = {
+	planned: "DT1144_35:NEW",
+	debt: "DT1144_35:CLIENT",
+	canceled: "DT1144_35:FAIL",
+	paid: "DT1144_35:SUCCESS",
+} as const;
+
+export type ProjectPaymentStageType =
+	| "planned"
+	| "debt"
+	| "canceled"
+	| "paid";
+
+export const getProjectPaymentStageType = (
+	stageId?: string | null,
+): ProjectPaymentStageType => {
+	const normalizedStage = String(stageId ?? "").trim().toUpperCase();
+
+	switch (normalizedStage) {
+		case ProjectPaymentStageIds.paid:
+			return "paid";
+		case ProjectPaymentStageIds.canceled:
+			return "canceled";
+		case ProjectPaymentStageIds.debt:
+			return "debt";
+		case ProjectPaymentStageIds.planned:
+		default:
+			return "planned";
+	}
+};
+
 const getDisplayValue = (value: unknown): string => {
 	if (value === null || value === undefined || value === "") {
 		return "—";

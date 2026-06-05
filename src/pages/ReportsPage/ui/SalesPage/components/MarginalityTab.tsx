@@ -9,6 +9,7 @@ import {
 	getPaymentAmount,
 	getPaymentPercent,
 	getPaymentStageBindingLabel,
+	getProjectPaymentStageType,
 } from "../model/paymentUtils";
 import {
 	formatMoney,
@@ -38,23 +39,23 @@ type PaymentItem = {
 };
 
 const paymentStageMeta = (stageId: string) => {
-	const normalizedStage = stageId.toLowerCase();
+	const stageType = getProjectPaymentStageType(stageId);
 
-	if (normalizedStage.includes("success") || normalizedStage.includes("paid")) {
+	if (stageType === "paid") {
 		return {
 			label: "оплачено",
 			className: styles.paymentPaid,
 		};
 	}
 
-	if (normalizedStage.includes("fail") || normalizedStage.includes("cancel")) {
+	if (stageType === "canceled") {
 		return {
 			label: "отменено",
 			className: styles.paymentCanceled,
 		};
 	}
 
-	if (normalizedStage.includes("debt")) {
+	if (stageType === "debt") {
 		return {
 			label: "дебиторка",
 			className: styles.paymentDebt,
@@ -137,6 +138,29 @@ const mergeProjects = (projectGroups: ClientProjectProps[][]) => {
 
 const getProjectPaymentId = (payment: ProjectPayment) =>
 	String(payment[ProjectCodes.paymentProject] ?? "").trim();
+
+const getDealCompanyTitle = (deal: Deal | null) => {
+	if (!deal) {
+		return "клиенту";
+	}
+
+	const record = deal as Deal & Record<string, unknown>;
+	const company = record.company;
+	const companyRecord =
+		company && typeof company === "object"
+			? (company as Record<string, unknown>)
+			: null;
+	const title =
+		record.companyTitle ??
+		record.companyName ??
+		record.COMPANY_TITLE ??
+		record.COMPANY_NAME ??
+		companyRecord?.title ??
+		companyRecord?.name;
+	const normalizedTitle = String(title ?? "").trim();
+
+	return normalizedTitle || `Клиент #${deal.companyId ?? "—"}`;
+};
 
 export const MarginalityTab = ({
 	deals,
@@ -376,6 +400,8 @@ export const MarginalityTab = ({
 						? ` по проекту ${selectedProject.title}`
 						: scope === "deal" && selectedDeal
 							? ` по сделке ${selectedDeal.title}`
+							: scope === "client"
+								? ` по ${getDealCompanyTitle(selectedDeal)}`
 							: " по всем клиентам"}
 				</h3>
 
@@ -406,7 +432,7 @@ export const MarginalityTab = ({
 						className={scope === "projects" ? styles.activeFilter : ""}
 						onClick={() => setScope("projects")}
 					>
-						Проекты сделки
+						Проект
 					</button>
 				</div>
 			</div>

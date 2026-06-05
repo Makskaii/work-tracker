@@ -150,10 +150,7 @@ export const SalesProfitabilityReport = ({
 														className={`${styles.dealProjectButton} ${
 															isActiveProject ? styles.activeProject : ""
 														}`}
-														onClick={() => {
-															setSelectedProjectId(projectId);
-															setActiveTab("projects");
-														}}
+														onClick={() => setSelectedProjectId(projectId)}
 													>
 														<span className={styles.dealProjectIcon}>
 															{project.title.trim().charAt(0)}

@@ -12,6 +12,7 @@ import {
 	getPaymentAmount,
 	getPaymentPercent,
 	getPaymentStageBindingLabel,
+	getProjectPaymentStageType,
 } from "../model/paymentUtils";
 import type {
 	GanttMilestone,
@@ -46,17 +47,17 @@ const PAYMENT_MARKER_MIN_DISTANCE = 5;
 const PAYMENT_MARKER_SLOT_HEIGHT = 58;
 
 const getPaymentMarkerClass = (stageId = "") => {
-	const normalizedStage = stageId.toLowerCase();
+	const stageType = getProjectPaymentStageType(stageId);
 
-	if (normalizedStage.includes("success") || normalizedStage.includes("paid")) {
+	if (stageType === "paid") {
 		return styles.ganttPaymentPaid;
 	}
 
-	if (normalizedStage.includes("fail") || normalizedStage.includes("cancel")) {
+	if (stageType === "canceled") {
 		return styles.ganttPaymentCanceled;
 	}
 
-	if (normalizedStage.includes("debt")) {
+	if (stageType === "debt") {
 		return styles.ganttPaymentDebt;
 	}
 
