@@ -176,11 +176,18 @@ export const MarginalityTab = ({
 	const selectedProject = projects.find(
 		(project) => String(project.projectId ?? project.id) === selectedProjectId,
 	);
-	const scopedProjects =
-		scope === "projects" && selectedProject ? [selectedProject] : projects;
-	const payments = scopedProjects.flatMap((project) =>
-		project.payments.map((payment) => ({ payment, project })),
-	);
+	const scopedProjects = useMemo(() => {
+		if (scope === "projects") {
+			return selectedProject ? [selectedProject] : projects;
+		}
+
+		return projects;
+	}, [projects, scope, selectedProject]);
+	const payments = useMemo(() => {
+		return scopedProjects.flatMap((project) =>
+			project.payments.map((payment) => ({ payment, project })),
+		);
+	}, [scopedProjects]);
 	const paidAmount = payments.reduce((sum, item) => {
 		const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
 
@@ -192,7 +199,14 @@ export const MarginalityTab = ({
 		(sum, item) => sum + getPaymentAmount(item.payment, dealAmount),
 		0,
 	);
-	const debtAmount = Math.max((dealAmount || totalPaymentAmount) - paidAmount, 0);
+	const debtAmount = payments.reduce((sum, item) => {
+		const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
+
+		return stageMeta.className === styles.paymentPlanned
+			? sum + getPaymentAmount(item.payment, dealAmount)
+			: sum;
+	}, 0);
+	const requestAmount = Math.max((dealAmount || totalPaymentAmount) - paidAmount, 0);
 	const marginPercent =
 		dealAmount || totalPaymentAmount
 			? Math.round((paidAmount / (dealAmount || totalPaymentAmount)) * 100)
@@ -251,12 +265,28 @@ export const MarginalityTab = ({
 		}));
 	}, [dealAmount, paymentsByMonth]);
 	const hasChartColumns = chartColumns.length > 0;
+	const paymentListItems = useMemo(() => {
+		const stageCounters = new Map<string, number>();
+
+		return payments.map((item) => {
+			const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
+			const nextPaymentNumber = (stageCounters.get(stageMeta.label) ?? 0) + 1;
+
+			stageCounters.set(stageMeta.label, nextPaymentNumber);
+
+			return {
+				...item,
+				paymentNumber: nextPaymentNumber,
+				stageMeta,
+			};
+		});
+	}, [payments]);
 
 	return (
 		<div className={styles.tabContent}>
 			<div className={styles.marginalityHeader}>
 				<h3>
-					Маржинальность
+					Список оплат
 					{scope === "projects" && selectedProject
 						? ` по проекту ${selectedProject.title}`
 						: scope === "deal" && selectedDeal
@@ -307,7 +337,9 @@ export const MarginalityTab = ({
 				</div>
 				<div>
 					<span>Сумма</span>
-					<strong>{formatMoney(dealAmount || totalPaymentAmount)}</strong>
+					<strong className={styles.amountText}>
+						{formatMoney(dealAmount || totalPaymentAmount)}
+					</strong>
 				</div>
 				<div>
 					<span>Оплачено</span>
@@ -317,6 +349,10 @@ export const MarginalityTab = ({
 					<span>Дебиторка</span>
 					<strong className={styles.warningText}>{formatMoney(debtAmount)}</strong>
 				</div>
+			</div>
+			<div className={styles.requestCard}>
+				<span>Запросить</span>
+				<strong className={styles.requestText}>{formatMoney(requestAmount)}</strong>
 			</div>
 
 			<div className={styles.marginalityCard}>
@@ -329,58 +365,58 @@ export const MarginalityTab = ({
 				</div>
 				<div className={styles.paymentChart}>
 					{hasChartColumns ? (
-						<div className={styles.paymentChartPlot}>
-							<div className={styles.paymentAxisLabel}>к оплате</div>
-							<div className={styles.paymentColumns}>
-								{chartColumns.map(
-									({ key, date, amount: periodAmount, maxAmount, segments }) => {
-										const columnHeight = periodAmount
-											? Math.max((periodAmount / maxAmount) * 170, 30)
-											: 0;
+						<div
+							className={`${styles.chartPlot} ${
+								chartColumns.length === 1 ? styles.chartPlotSingle : ""
+							}`}
+						>
+							<div className={styles.chartAxisLabel}>к оплате</div>
+							{chartColumns.map(
+								({ key, date, amount: periodAmount, maxAmount, segments }) => {
+									const columnHeight = periodAmount
+										? Math.max((periodAmount / maxAmount) * 150, 48)
+										: 0;
 
-										return (
-											<div key={key} className={styles.paymentColumn}>
-												<div className={styles.paymentColumnHeader}>
-													<strong>{formatMonthLabel(date)}</strong>
-													<small>{formatMoney(periodAmount)}</small>
-												</div>
-												<div
-													className={styles.paymentStack}
-													style={{ height: `${columnHeight}px` }}
-												>
-													{segments.length ? (
-														segments.map(({ amount, payment, percent }) => {
-															const stageMeta = paymentStageMeta(
-																payment.stageId ?? "",
-															);
-
-															return (
-																<span
-																	key={String(payment.id)}
-																	className={stageMeta.className}
-																	style={{
-																		height: `${Math.max(
-																			(amount / periodAmount) * columnHeight,
-																			18,
-																		)}px`,
-																	}}
-																	title={`${formatMoney(amount)} · ${formatPercent(
-																		percent,
-																	)}`}
-																>
-																	{formatPercent(percent)}
-																</span>
-															);
-														})
-													) : (
-														<span className={styles.paymentZeroSegment} />
-													)}
-												</div>
+									return (
+										<div key={key} className={styles.periodColumn}>
+											<div className={styles.periodHeader}>
+												<strong>{formatMonthLabel(date)}</strong>
+												<small>{formatMoney(periodAmount)}</small>
 											</div>
-										);
-									},
-								)}
-							</div>
+											<div
+												className={styles.stackedBar}
+												style={{ height: `${columnHeight}px` }}
+											>
+												{segments.length ? (
+													segments.map(({ amount, payment, percent }) => {
+														const stageMeta = paymentStageMeta(payment.stageId ?? "");
+
+														return (
+															<span
+																key={String(payment.id)}
+																className={`${styles.paymentSegment} ${stageMeta.className}`}
+																style={{
+																	height: `${Math.max(
+																		(amount / periodAmount) * columnHeight,
+																		16,
+																	)}px`,
+																}}
+																title={`${formatMoney(amount)} · ${formatPercent(
+																	percent,
+																)}`}
+															>
+																{formatPercent(percent)}
+															</span>
+														);
+													})
+												) : (
+													<span className={styles.paymentZeroSegment} />
+												)}
+											</div>
+										</div>
+									);
+								},
+							)}
 						</div>
 					) : (
 						<div className={styles.paymentChartEmpty}>
@@ -394,8 +430,7 @@ export const MarginalityTab = ({
 				<h4>Платежи</h4>
 				<div className={styles.paymentsList}>
 					{payments.length ? (
-						payments.map(({ payment, project }) => {
-							const stageMeta = paymentStageMeta(payment.stageId ?? "");
+						paymentListItems.map(({ payment, paymentNumber, project, stageMeta }) => {
 							const amount = getPaymentAmount(payment, dealAmount);
 							const percent = getPaymentPercent(payment, dealAmount);
 
@@ -403,10 +438,8 @@ export const MarginalityTab = ({
 								<article key={String(payment.id)} className={styles.paymentItem}>
 									<div>
 										<strong>
-											{getDisplayValue(payment.title) !== "—"
-												? getDisplayValue(payment.title)
-												: project.title}{" "}
-											· {formatPercent(percent)}
+											{project.title} · {paymentNumber} платеж ·{" "}
+											{formatPercent(percent)}
 										</strong>
 										<span>Дата создания: {formatDate(payment.createdTime)}</span>
 										<small>

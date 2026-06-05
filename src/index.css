@@ -163,19 +163,6 @@ textarea:focus {
 	outline: 2px solid rgba(57, 214, 238, 0.24);
 }
 
-:where([class*="card"],
-	[class*="Card"],
-	[class*="item"],
-	[class*="Item"],
-	[class*="row"],
-	[class*="Row"],
-	[class*="block"],
-	[class*="Block"],
-	[class*="section"],
-	[class*="Section"]):not([class*="Active"]):hover {
-	border-color: var(--color-accent);
-}
-
 @media (prefers-color-scheme: light) {
 	:root {
 		color: var(--color-text);

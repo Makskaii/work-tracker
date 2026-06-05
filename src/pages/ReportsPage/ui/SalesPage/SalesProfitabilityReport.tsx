@@ -195,7 +195,7 @@ export const SalesProfitabilityReport = ({
 							}`}
 							onClick={() => setActiveTab("marginality")}
 						>
-							Маржинальность
+							Список оплат
 						</button>
 					</div>
 

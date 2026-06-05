@@ -520,8 +520,49 @@
 	color: #48d98c !important;
 }
 
+.amountText {
+	color: var(--color-accent-blue) !important;
+}
+
 .warningText {
 	color: var(--color-payment-company) !important;
+}
+
+.requestText {
+	color: var(--color-accent-blue) !important;
+}
+
+.requestCard {
+	display: flex;
+	grid-column: 1 / -1;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 24px;
+	width: 100%;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: var(--color-surface-soft);
+	text-align: left;
+
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 11px;
+		font-weight: 900;
+		text-transform: uppercase;
+	}
+
+	strong {
+		color: var(--color-accent-blue);
+		font-size: 20px;
+		font-weight: 950;
+		white-space: nowrap;
+	}
 }
 
 .marginalityCard {
@@ -570,13 +611,10 @@
 .paymentChart {
 	display: block;
 	position: relative;
-	min-height: 300px;
-	padding: 20px 22px;
+	padding: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 16px;
-	background:
-		linear-gradient(180deg, rgba(93, 141, 206, 0.14) 1px, transparent 1px) 0 76px / 100% 52px,
-		rgba(9, 20, 36, 0.58);
+	background: rgba(9, 20, 36, 0.58);
 	overflow-x: auto;
 }
 
@@ -590,131 +628,135 @@
 	font-weight: 800;
 }
 
-.paymentChartPlot {
-	display: grid;
-	grid-template-columns: 92px minmax(0, 1fr);
-	gap: 18px;
-	height: 246px;
-	min-height: 246px;
-	align-items: end;
+.chartPlot {
+	position: relative;
+	display: flex;
+	align-items: flex-end;
+	gap: 72px;
 	min-width: max-content;
+	min-height: 280px;
+	padding: 56px 32px 32px;
+	background:
+		linear-gradient(180deg, rgba(93, 141, 206, 0.12) 1px, transparent 1px) 0 68px / 100% 44px,
+		rgba(8, 18, 32, 0.35);
+	box-sizing: border-box;
 }
 
-.paymentAxisLabel {
-	margin-bottom: 34px;
+.chartPlot::after {
+	content: "";
+	position: absolute;
+	right: 32px;
+	bottom: 31px;
+	left: 32px;
+	height: 1px;
+	background: rgba(93, 141, 206, 0.42);
+}
+
+.chartPlotSingle {
+	justify-content: flex-start;
+	padding-left: 150px;
+}
+
+.chartAxisLabel {
+	position: absolute;
+	left: 32px;
+	bottom: 44px;
 	color: rgba(238, 245, 255, 0.68);
 	font-size: 12px;
 	font-weight: 900;
-	text-align: left;
 	white-space: nowrap;
 }
 
-.paymentColumns {
-	display: flex;
-	align-items: flex-end;
-	gap: 34px;
-	height: 100%;
-	min-height: 246px;
-	padding: 0 12px 10px 0;
-}
-
-.paymentColumn {
-	display: flex;
-	flex: 0 0 112px;
-	flex-direction: column;
-	align-items: center;
-	justify-content: flex-end;
+.periodColumn {
 	position: relative;
+	z-index: 1;
+	display: flex;
+	flex: 0 0 150px;
+	flex-direction: column;
+	align-items: end;
+	justify-content: flex-end;
+	min-width: 150px;
 	height: 100%;
-	min-height: 0;
-	padding-top: 48px;
-	gap: 12px;
 }
 
-.paymentColumnHeader {
+.periodColumn:not(:last-child)::after {
+	content: "";
 	position: absolute;
 	top: 0;
-	left: 50%;
+	right: -36px;
+	bottom: 0;
+	width: 1px;
+	background: rgba(93, 141, 206, 0.22);
+}
+
+.periodHeader {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 4px;
-	width: 140px;
-	transform: translateX(-50%);
+	width: 100%;
+	margin-bottom: 12px;
+	text-align: center;
 
 	strong {
-		color: rgba(238, 245, 255, 0.72);
-		font-size: 12px;
-		font-weight: 900;
+		color: rgba(238, 245, 255, 0.82);
+		font-size: 13px;
+		font-weight: 950;
 		text-transform: lowercase;
 	}
 
 	small {
 		color: var(--color-text);
-		font-size: 13px;
-		font-weight: 900;
+		font-size: 14px;
+		font-weight: 950;
 	}
 }
 
-.paymentStack {
+.stackedBar {
 	display: flex;
-	width: 100%;
-	min-height: 8px;
-	max-height: 170px;
+	width: 150px;
+	min-height: 12px;
+	max-height: 150px;
 	flex-direction: column-reverse;
 	justify-content: flex-start;
 	overflow: hidden;
-	border: 1px solid rgba(93, 141, 206, 0.18);
-	border-radius: 11px;
-	background: rgba(22, 36, 55, 0.18);
-	box-shadow: 0 12px 28px rgba(1, 8, 14, 0.28);
-
-	span {
-		display: flex;
-		width: 100%;
-		align-items: center;
-		justify-content: center;
-		padding: 0 6px;
-		border-radius: 0;
-		font-size: 11px;
-		font-weight: 950;
-		color: #ffffff;
-		line-height: 1;
-		box-sizing: border-box;
-	}
+	border-radius: 12px;
+	background: rgba(22, 36, 55, 0.06);
+	box-shadow: 0 10px 22px rgba(1, 8, 14, 0.22);
 }
 
-.paymentStack span + span {
+.paymentSegment {
+	display: flex !important;
+	width: 100% !important;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6px !important;
+	border-radius: 0 !important;
+	color: #06111e !important;
+	font-size: 11px;
+	font-weight: 950;
+	line-height: 1;
+	box-sizing: border-box;
+}
+
+.paymentSegment + .paymentSegment {
 	border-bottom: 1px solid rgba(238, 245, 255, 0.16);
 }
 
-.paymentStack .paymentPaid,
-.paymentStack .paymentPlanned,
-.paymentStack .paymentDebt,
-.paymentStack .paymentCanceled {
-	width: 100%;
-	border-radius: 0;
-	padding: 0 8px;
-}
-
-.paymentStack .paymentPaid {
+.stackedBar .paymentPaid {
 	background: linear-gradient(180deg, #64e89f, #42d782);
-	color: #062313;
 }
 
-.paymentStack .paymentPlanned {
+.stackedBar .paymentPlanned {
 	background: linear-gradient(180deg, #ffd35f, #ffc23d);
-	color: #211506;
 }
 
-.paymentStack .paymentDebt {
+.stackedBar .paymentDebt {
 	background: linear-gradient(180deg, #6fb2ff, #58a0f5);
-	color: #06172b;
 }
 
-.paymentStack .paymentCanceled {
+.stackedBar .paymentCanceled {
 	background: linear-gradient(180deg, #ff7676, #ff626a);
-	color: #2a080b;
 }
 
 .paymentZeroSegment {
