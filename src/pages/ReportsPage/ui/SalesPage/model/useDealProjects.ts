@@ -47,7 +47,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 			setIsLoadingDetails(true);
 
 			try {
-				const linkedProjects = await fetchAllCrmItems<ClientProjectProps>({
+				const linkedProjectsRequest = fetchAllCrmItems<ClientProjectProps>({
 					entityTypeId: EntityTypeIds.projects,
 					select: PROJECT_SELECT_FIELDS,
 					filter: {
@@ -55,10 +55,8 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 					},
 					signal: controller.signal,
 				});
-				const fallbackProjects =
-					linkedProjects.length || !projectIds.length
-						? []
-						: await fetchAllCrmItems<ClientProjectProps>({
+				const fallbackProjectsRequest = projectIds.length
+					? fetchAllCrmItems<ClientProjectProps>({
 							entityTypeId: EntityTypeIds.projects,
 							select: PROJECT_SELECT_FIELDS,
 							filter:
@@ -66,11 +64,23 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 									? { id: projectIds[0] }
 									: { "@id": projectIds },
 							signal: controller.signal,
-						});
+						})
+					: Promise.resolve([]);
+				const [linkedProjects, fallbackProjects] = await Promise.all([
+					linkedProjectsRequest,
+					fallbackProjectsRequest,
+				]);
 				const dealProjects = mergeProjectsById([
 					linkedProjects,
 					fallbackProjects,
 				]);
+				console.log("Profitability projects debug", {
+					selectedDealId: selectedDeal.id,
+					dealProjectIds: projectIds,
+					linkedProjectIds: linkedProjects.map((project) => project.id),
+					fallbackProjectIds: fallbackProjects.map((project) => project.id),
+					mergedProjectIds: dealProjects.map((project) => project.id),
+				});
 
 				if (!dealProjects.length) {
 					setProjects([]);
