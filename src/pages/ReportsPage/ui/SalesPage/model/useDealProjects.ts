@@ -51,7 +51,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 					entityTypeId: EntityTypeIds.projects,
 					select: PROJECT_SELECT_FIELDS,
 					filter: {
-						[ProjectCodes.parentproject]: selectedDeal.id,
+						[ProjectCodes.parentDeal]: selectedDeal.id,
 					},
 					signal: controller.signal,
 				});
