@@ -1,7 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProjectCodes } from "@/components/calendar/constants/const";
+import { EntityTypeIds } from "@/shared/constants/const";
+import type { ClientProjectProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
-import { formatMoney, toNumber } from "../model/profitabilityUtils";
+import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "../model/api";
+import { PROJECT_SELECT_FIELDS } from "../model/constants";
+import {
+	formatMoney,
+	getDealProjectIds,
+	toNumber,
+} from "../model/profitabilityUtils";
 import type { ProfitabilityProject, ProjectPayment } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
@@ -12,6 +20,16 @@ type MarginalityTabProps = {
 	projects: ProfitabilityProject[];
 	selectedDeal: Deal | null;
 	selectedProjectId: string | null;
+};
+
+type PaymentProjectInfo = {
+	id: string;
+	title: string;
+};
+
+type PaymentItem = {
+	payment: ProjectPayment;
+	project: PaymentProjectInfo;
 };
 
 const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
@@ -165,6 +183,29 @@ const getMonthKeyTime = (key: string) => {
 	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
 };
 
+const getUniqueValues = (values: Array<string | number | null | undefined>) =>
+	Array.from(
+		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
+	);
+
+const getProjectId = (project: {
+	id: string | number;
+	projectId?: string | number | null;
+}) => String(project.projectId ?? project.id);
+
+const mergeProjects = (projectGroups: ClientProjectProps[][]) => {
+	const result = new Map<string, ClientProjectProps>();
+
+	projectGroups.flat().forEach((project) => {
+		result.set(String(project.id), project);
+	});
+
+	return Array.from(result.values());
+};
+
+const getProjectPaymentId = (payment: ProjectPayment) =>
+	String(payment[ProjectCodes.paymentProject] ?? "").trim();
+
 export const MarginalityTab = ({
 	deals,
 	projects,
@@ -172,22 +213,134 @@ export const MarginalityTab = ({
 	selectedProjectId,
 }: MarginalityTabProps) => {
 	const [scope, setScope] = useState<MarginalityScope>("all");
-	const dealAmount = toNumber(selectedDeal?.opportunity);
+	const [payments, setPayments] = useState<PaymentItem[]>([]);
 	const selectedProject = projects.find(
 		(project) => String(project.projectId ?? project.id) === selectedProjectId,
 	);
-	const scopedProjects = useMemo(() => {
-		if (scope === "projects") {
-			return selectedProject ? [selectedProject] : projects;
+	const currentDealProjectIds = useMemo(
+		() => getUniqueValues(projects.map((project) => getProjectId(project))),
+		[projects],
+	);
+	const scopeDeals = useMemo(() => {
+		if (scope === "all") {
+			return deals;
 		}
 
-		return projects;
-	}, [projects, scope, selectedProject]);
-	const payments = useMemo(() => {
-		return scopedProjects.flatMap((project) =>
-			project.payments.map((payment) => ({ payment, project })),
+		if (scope === "client") {
+			const companyId = String(selectedDeal?.companyId ?? "").trim();
+
+			return companyId
+				? deals.filter((deal) => String(deal.companyId ?? "").trim() === companyId)
+				: selectedDeal
+					? [selectedDeal]
+					: [];
+		}
+
+		return selectedDeal ? [selectedDeal] : [];
+	}, [deals, scope, selectedDeal]);
+	const dealAmount = scopeDeals.reduce(
+		(sum, deal) => sum + toNumber(deal.opportunity),
+		0,
+	);
+
+	useEffect(() => {
+		const controller = new AbortController();
+		const currentProjectTitleById = new Map(
+			projects.map((project) => [
+				getProjectId(project),
+				project.title || `Проект #${getProjectId(project)}`,
+			]),
 		);
-	}, [scopedProjects]);
+
+		const loadScopePayments = async () => {
+			const dealProjectIds = getUniqueValues(
+				scopeDeals.flatMap((deal) => getDealProjectIds(deal)),
+			);
+			const projectIds =
+				scope === "projects" && selectedProjectId
+					? [selectedProjectId]
+					: getUniqueValues([...dealProjectIds, ...currentDealProjectIds]);
+			const scopeDealIds =
+				scope === "projects" && selectedProjectId
+					? []
+					: getUniqueValues(scopeDeals.map((deal) => deal.id));
+			const projectRequests: Array<Promise<ClientProjectProps[]>> = [];
+
+			if (projectIds.length) {
+				projectRequests.push(
+					fetchAllCrmItems<ClientProjectProps>({
+						entityTypeId: EntityTypeIds.projects,
+						select: PROJECT_SELECT_FIELDS,
+						filter:
+							projectIds.length === 1
+								? { id: projectIds[0] }
+								: { "@id": projectIds },
+						signal: controller.signal,
+					}),
+				);
+			}
+
+			projectRequests.push(
+				...scopeDealIds.map((dealId) =>
+					fetchAllCrmItems<ClientProjectProps>({
+						entityTypeId: EntityTypeIds.projects,
+						select: PROJECT_SELECT_FIELDS,
+						filter: {
+							[ProjectCodes.parentproject]: dealId,
+						},
+						signal: controller.signal,
+					}),
+				),
+			);
+
+			const scopeProjects = mergeProjects(await Promise.all(projectRequests));
+			const scopeProjectIds = getUniqueValues([
+				...projectIds,
+				...scopeProjects.map((project) => getProjectId(project)),
+			]);
+			const projectTitleById = new Map(currentProjectTitleById);
+
+			scopeProjects.forEach((project) => {
+				const projectId = getProjectId(project);
+
+				projectTitleById.set(projectId, project.title || `Проект #${projectId}`);
+			});
+
+			const scopePayments = await fetchProjectPaymentsByProjectIds({
+				projectIds: scopeProjectIds,
+				signal: controller.signal,
+			});
+
+			if (controller.signal.aborted) {
+				return;
+			}
+
+			setPayments(
+				scopePayments.map((payment) => {
+					const projectId = getProjectPaymentId(payment);
+
+					return {
+						payment,
+						project: {
+							id: projectId,
+							title: projectTitleById.get(projectId) ?? `Проект #${projectId}`,
+						},
+					};
+				}),
+			);
+		};
+
+		loadScopePayments().catch((error) => {
+			if (!controller.signal.aborted) {
+				console.error("Failed to fetch marginality payments", error);
+				setPayments([]);
+			}
+		});
+
+		return () => {
+			controller.abort();
+		};
+	}, [currentDealProjectIds, projects, scope, scopeDeals, selectedProjectId]);
 	const paidAmount = payments.reduce((sum, item) => {
 		const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
 
