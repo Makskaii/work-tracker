@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { FaExclamationTriangle, FaMoneyBillWave } from "react-icons/fa";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { EntityTypeIds } from "@/shared/constants/const";
@@ -63,8 +64,9 @@ const getPaymentMarkerClass = (stageId = "") => {
 };
 
 const getPaymentTooltip = (payment: ProjectPayment, dealAmount: number) => {
-	const date = payment.createdTime
-		? formatDateFull(new Date(payment.createdTime))
+	const paymentDate = payment.createdTime ? dayjs(payment.createdTime) : null;
+	const date = paymentDate?.isValid()
+		? paymentDate.format("DD.MM.YYYY")
 		: "—";
 	const amount = getPaymentAmount(payment, dealAmount);
 	const percent = getPaymentPercent(payment, dealAmount);
@@ -123,14 +125,14 @@ export const ProjectGantt = ({
 
 		return project.payments
 			.map((payment) => {
-				const date = payment.createdTime ? new Date(payment.createdTime) : null;
+				const paymentDate = payment.createdTime ? dayjs(payment.createdTime) : null;
 
-				if (!date || Number.isNaN(date.getTime())) {
+				if (!paymentDate?.isValid()) {
 					return null;
 				}
 
 				return {
-					date,
+					date: paymentDate.toDate(),
 					payment,
 				};
 			})
