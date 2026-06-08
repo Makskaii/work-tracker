@@ -44,7 +44,7 @@ type CompanyFromCrm = {
 	TITLE?: string | null;
 };
 
-const paymentStageMeta = (stageId: unknown) => {
+const paymentStageMeta = (stageId: string) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {

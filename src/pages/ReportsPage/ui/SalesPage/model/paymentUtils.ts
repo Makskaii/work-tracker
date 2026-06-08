@@ -32,20 +32,9 @@ export type ProjectPaymentStageType =
 	| "paid";
 
 export const getProjectPaymentStageType = (
-	stageId?: unknown,
+	stageId?: string | null,
 ): ProjectPaymentStageType => {
 	const stageValues = getStageValues(stageId);
-	const semantics = stageValues
-		.map((value) => value.toLowerCase())
-		.find((value) => ["success", "failure", "process"].includes(value));
-
-	if (semantics === "success") {
-		return "paid";
-	}
-
-	if (semantics === "failure") {
-		return "canceled";
-	}
 
 	for (const stageValue of stageValues) {
 		switch (stageValue) {
@@ -69,40 +58,20 @@ export const getProjectPaymentStageType = (
 	return "planned";
 };
 
-export const getPaymentStageDisplayValue = (stageId: unknown) =>
+export const getPaymentStageDisplayValue = (stageId?: string | null) =>
 	getStageValues(stageId)[0] ?? "-";
 
-const getStageValues = (stage: unknown): string[] => {
+const getStageValues = (stage?: string | null): string[] => {
 	if (stage === null || stage === undefined || stage === "") {
 		return [];
 	}
 
-	if (Array.isArray(stage)) {
-		return stage.flatMap(getStageValues);
-	}
+	const normalized = stage.trim().toUpperCase();
+	const shortStageId = normalized.includes(":")
+		? normalized.split(":").at(-1)
+		: normalized;
 
-	if (typeof stage === "object") {
-		const record = stage as Record<string, unknown>;
-
-		return [
-			record.ID,
-			record.id,
-			record.STATUS_ID,
-			record.statusId,
-			record.VALUE,
-			record.value,
-			record.NAME,
-			record.name,
-			(record.EXTRA as Record<string, unknown> | undefined)?.SEMANTICS,
-			(record.extra as Record<string, unknown> | undefined)?.semantics,
-			record.SEMANTICS,
-			record.semantics,
-		].flatMap(getStageValues);
-	}
-
-	const normalized = String(stage).trim().toUpperCase();
-
-	return normalized ? [normalized] : [];
+	return Array.from(new Set([normalized, shortStageId].filter(Boolean)));
 };
 
 const getDisplayValue = (value: unknown): string => {
