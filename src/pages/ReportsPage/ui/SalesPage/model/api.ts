@@ -1,7 +1,7 @@
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";
-import type { ProfitabilityProject } from "./types";
+import type { ProfitabilityProject, ProjectPayment } from "./types";
 
 type CrmItemListResponse<T> = {
 	result?: {
@@ -47,6 +47,48 @@ export const fetchAllCrmItems = async <T,>({
 	}
 
 	return items;
+};
+
+const PROJECT_PAYMENT_SELECT_FIELDS = [
+	"id",
+	"title",
+	"createdTime",
+	ProjectCodes.paymentStage,
+	ProjectCodes.paymentStageBinding,
+	ProjectCodes.paymentPercent,
+	ProjectCodes.paymentAmount,
+	ProjectCodes.paymentProject,
+] as const;
+
+export const fetchProjectPaymentsByProjectIds = async ({
+	projectIds,
+	signal,
+}: {
+	projectIds: string[];
+	signal?: AbortSignal;
+}) => {
+	const normalizedProjectIds = Array.from(
+		new Set(projectIds.map((projectId) => String(projectId).trim()).filter(Boolean)),
+	);
+	const payments = await Promise.all(
+		normalizedProjectIds.map((projectId) =>
+			fetchAllCrmItems<ProjectPayment>({
+				entityTypeId: EntityTypeIds.projectPayments,
+				select: PROJECT_PAYMENT_SELECT_FIELDS,
+				filter: {
+					[ProjectCodes.paymentProject]: projectId,
+				},
+				signal,
+			}),
+		),
+	);
+	const result = new Map<string, ProjectPayment>();
+
+	payments.flat().forEach((payment) => {
+		result.set(String(payment.id), payment);
+	});
+
+	return Array.from(result.values());
 };
 
 export type ProjectIncident = {

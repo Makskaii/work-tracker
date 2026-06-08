@@ -5,6 +5,7 @@ import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
 import type { ActivityListItem } from "../../types/types";
 import { DealTab } from "./components/DealTab";
+import { MarginalityTab } from "./components/MarginalityTab";
 import { ProfitabilitySkeleton } from "./components/ProfitabilitySkeleton";
 import { ProjectsTab } from "./components/ProjectsTab";
 import { ReportsTab } from "./components/ReportsTab";
@@ -107,30 +108,68 @@ export const SalesProfitabilityReport = ({
 						<h3>Структура</h3>
 					</div>
 					<div className={styles.dealsList}>
-						{deals.map((deal) => (
-							<button
-								key={deal.id}
-								type="button"
-								title={deal.title}
-								className={`${styles.dealButton} ${
-									String(deal.id) === selectedDealId ? styles.activeDeal : ""
-								}`}
-								onClick={() => setSelectedDealId(String(deal.id))}
-							>
-								<span className={styles.dealChevron}>
-									{deal.title.trim().charAt(0)}
-								</span>
-								<span>
-									<strong>{deal.title}</strong>
-									<small>CRM-сделка</small>
-								</span>
-								<em>
-									{toNumber(deal.opportunity)
-										? formatMoney(toNumber(deal.opportunity))
-										: `#${deal.id}`}
-								</em>
-							</button>
-						))}
+						{deals.map((deal) => {
+							const isActiveDeal = String(deal.id) === selectedDealId;
+
+							return (
+								<div key={deal.id} className={styles.dealGroup}>
+									<button
+										type="button"
+										title={deal.title}
+										className={`${styles.dealButton} ${
+											isActiveDeal ? styles.activeDeal : ""
+										}`}
+										onClick={() => setSelectedDealId(String(deal.id))}
+									>
+										<span className={styles.dealChevron}>
+											{deal.title.trim().charAt(0)}
+										</span>
+										<span>
+											<strong>{deal.title}</strong>
+											<small>CRM-сделка</small>
+										</span>
+										<em>
+											{toNumber(deal.opportunity)
+												? formatMoney(toNumber(deal.opportunity))
+												: `#${deal.id}`}
+										</em>
+									</button>
+
+									{isActiveDeal && projects.length ? (
+										<div className={styles.dealProjectsList}>
+											{projects.map((project) => {
+												const projectId = String(project.projectId ?? project.id);
+												const isActiveProject =
+													projectId === effectiveSelectedProjectId;
+
+												return (
+													<button
+														key={projectId}
+														type="button"
+														title={project.title}
+														className={`${styles.dealProjectButton} ${
+															isActiveProject ? styles.activeProject : ""
+														}`}
+														onClick={() => setSelectedProjectId(projectId)}
+													>
+														<span className={styles.dealProjectIcon}>
+															{project.title.trim().charAt(0)}
+														</span>
+														<span>
+															<strong>{project.title}</strong>
+															<small>
+																{project.tasks.length} задач ·{" "}
+																{project.reports.length} отчётов
+															</small>
+														</span>
+													</button>
+												);
+											})}
+										</div>
+									) : null}
+								</div>
+							);
+						})}
 					</div>
 				</aside>
 
@@ -146,21 +185,42 @@ export const SalesProfitabilityReport = ({
 								{tab.title}
 							</button>
 						))}
-						<strong>Маржинальность</strong>
+						<button
+							type="button"
+							className={`${styles.marginalityTabButton} ${
+								activeTab === "marginality" ? styles.activeTab : ""
+							}`}
+							onClick={() => setActiveTab("marginality")}
+						>
+							Список оплат
+						</button>
 					</div>
 
 					{isBusy ? (
 						<ProfitabilitySkeleton />
 					) : (
 						<>
-							<div className={styles.contentHeader}>
-								<div>
-									<span>Сделка</span>
-									<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
-								</div>
-							</div>
+							{activeTab !== "marginality" && (
+								<>
+									<div className={styles.contentHeader}>
+										<div>
+											<span>Сделка</span>
+											<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
+										</div>
+									</div>
 
-							<SummaryCards summary={summary} />
+									<SummaryCards summary={summary} />
+								</>
+							)}
+
+							{activeTab === "marginality" && (
+								<MarginalityTab
+									deals={deals}
+									projects={projects}
+									selectedDeal={selectedDeal}
+									selectedProjectId={effectiveSelectedProjectId}
+								/>
+							)}
 
 							{activeTab === "deal" && (
 								<DealTab
@@ -171,7 +231,6 @@ export const SalesProfitabilityReport = ({
 									projects={projects}
 									selectedProjectId={effectiveSelectedProjectId}
 									summary={summary}
-									selectedDeal={selectedDeal}
 									users={users}
 								/>
 							)}

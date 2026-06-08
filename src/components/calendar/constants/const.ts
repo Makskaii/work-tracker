@@ -36,11 +36,18 @@ export enum ProjectCodes {
 	qa = "ufCrm20_1777028582",
 	company = "ufCrm20_1774879746",
 	parentproject = "ufCrm20_1774856819",
+	parentDeal = "parentId2",
 	comment = "ufCrm30_1780490532",
 	info = "ufCrm30_1780490581",
 	incidentDates = "ufCrm30_1780490526415",
 	project = "parentId1092",
 	incidentCompany = "companyId",
+	paymentStage = "stageId",
+	paymentStageBinding = "ufCrm31_1780568517",
+	paymentPercent = "ufCrm31_1780568744067",
+	paymentAmount = "ufCrm31_1780568762673",
+	paymentProject = "parentId1092",
+	projectPayment = "parentId1144",
 }
 
 export enum TaskCodes {

@@ -111,6 +111,13 @@
 	display: none;
 }
 
+.dealGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
 .dealButton {
 	display: grid;
 	grid-template-columns: 30px minmax(0, 1fr) auto;
@@ -183,6 +190,88 @@
 	outline: none;
 }
 
+.dealProjectsList {
+	display: grid;
+	gap: 8px;
+	width: calc(100% - 34px);
+	margin-left: 34px;
+	padding-left: 10px;
+	border-left: 2px solid rgba(38, 231, 223, 0.45);
+	box-sizing: border-box;
+}
+
+.dealProjectButton {
+	display: grid;
+	grid-template-columns: 26px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 42px;
+	padding: 8px 10px;
+	border: 1px solid transparent;
+	border-radius: 12px;
+	background: rgba(22, 36, 55, 0.24);
+	color: var(--color-text);
+	text-align: left;
+	cursor: pointer;
+	box-sizing: border-box;
+
+	strong,
+	small {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	strong {
+		font-size: 13px;
+		font-weight: 900;
+	}
+
+	small {
+		margin-top: 2px;
+		color: rgba(238, 245, 255, 0.6);
+		font-size: 11px;
+		font-weight: 700;
+	}
+}
+
+.dealProjectButton:not(.activeProject):hover {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.08);
+}
+
+.dealProjectIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 999px;
+	background: rgba(46, 197, 173, 0.12);
+	color: var(--color-accent);
+	font-size: 12px;
+	font-weight: 900;
+	text-transform: uppercase;
+}
+
+.activeProject {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.12);
+	box-shadow: none;
+	outline: none;
+}
+
+.activeProject:hover,
+.activeProject:focus,
+.activeProject:focus-visible {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.12);
+	box-shadow: none;
+	outline: none;
+}
+
 .layoutCollapsed .structure {
 	width: 100%;
 	padding: 10px;
@@ -200,7 +289,8 @@
 
 .layoutCollapsed .structureHeader h3,
 .layoutCollapsed .dealButton span:not(.dealChevron),
-.layoutCollapsed .dealButton em {
+.layoutCollapsed .dealButton em,
+.layoutCollapsed .dealProjectsList {
 	display: none;
 }
 
@@ -250,6 +340,11 @@
 		color: var(--color-accent);
 		white-space: nowrap;
 	}
+}
+
+.marginalityTabButton {
+	margin-left: auto;
+	color: var(--color-accent) !important;
 }
 
 .activeTab {
@@ -340,6 +435,426 @@
 
 .projectsTabContent {
 	gap: 22px;
+}
+
+.marginalityHeader {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 18px 20px 0;
+	text-align: left;
+
+	h3 {
+		margin: 0;
+		color: var(--color-text);
+		font-size: 22px;
+		font-weight: 950;
+	}
+}
+
+.marginalityFilters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+
+	button {
+		min-height: 38px;
+		padding: 0 14px;
+		border: 1px solid var(--color-border);
+		border-radius: 999px;
+		background: rgba(22, 36, 55, 0.38);
+		color: var(--color-text);
+		font-size: 13px;
+		font-weight: 900;
+		cursor: pointer;
+	}
+
+	button:not(.activeFilter):hover {
+		border-color: var(--color-border-active);
+		background: rgba(46, 197, 173, 0.08);
+	}
+}
+
+.activeFilter {
+	border-color: var(--color-border-active) !important;
+	background: rgba(46, 197, 173, 0.14) !important;
+	color: var(--color-accent) !important;
+	box-shadow: none;
+	outline: none;
+}
+
+.marginalityMetrics {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(130px, 1fr));
+	gap: 10px;
+
+	div {
+		padding: 14px;
+		border: 1px solid var(--color-border);
+		border-radius: 14px;
+		background: var(--color-surface-soft);
+		text-align: left;
+	}
+
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 11px;
+		font-weight: 900;
+		text-transform: uppercase;
+	}
+
+	strong {
+		margin-top: 8px;
+		color: var(--color-text);
+		font-size: 20px;
+		font-weight: 950;
+	}
+}
+
+.successText {
+	color: #48d98c !important;
+}
+
+.amountText {
+	color: var(--color-accent-blue) !important;
+}
+
+.warningText {
+	color: var(--color-payment-company) !important;
+}
+
+.requestText {
+	color: var(--color-accent-blue) !important;
+}
+
+.requestCard {
+	display: flex;
+	grid-column: 1 / -1;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 24px;
+	width: 100%;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: var(--color-surface-soft);
+	text-align: left;
+
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 11px;
+		font-weight: 900;
+		text-transform: uppercase;
+	}
+
+	strong {
+		color: var(--color-accent-blue);
+		font-size: 20px;
+		font-weight: 950;
+		white-space: nowrap;
+	}
+}
+
+.marginalityCard {
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: 18px;
+	background: rgba(15, 28, 44, 0.72);
+	text-align: left;
+	overflow: hidden;
+
+	h4 {
+		margin: 0 0 14px;
+		color: var(--color-text);
+		font-size: 17px;
+		font-weight: 950;
+	}
+}
+
+.paymentLegend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.paymentLegend .paymentPaid {
+	background: rgba(72, 217, 140, 0.16);
+	color: #48d98c;
+}
+
+.paymentLegend .paymentPlanned {
+	background: rgba(255, 191, 77, 0.16);
+	color: #ffbf4d;
+}
+
+.paymentLegend .paymentDebt {
+	background: rgba(111, 168, 255, 0.16);
+	color: #6fa8ff;
+}
+
+.paymentLegend .paymentCanceled {
+	background: rgba(255, 107, 107, 0.16);
+	color: #ff6b6b;
+}
+
+.paymentChart {
+	display: block;
+	position: relative;
+	padding: 0;
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	background: rgba(9, 20, 36, 0.58);
+	overflow-x: auto;
+}
+
+.paymentChartEmpty {
+	display: flex;
+	width: 100%;
+	min-height: 180px;
+	align-items: center;
+	justify-content: center;
+	color: rgba(238, 245, 255, 0.62);
+	font-weight: 800;
+}
+
+.chartPlot {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	gap: 72px;
+	min-width: max-content;
+	min-height: 280px;
+	padding: 48px 32px 20px;
+	background:
+		linear-gradient(180deg, rgba(93, 141, 206, 0.12) 1px, transparent 1px) 0 68px / 100% 44px,
+		rgba(8, 18, 32, 0.35);
+	box-sizing: border-box;
+}
+
+.chartPlot::after {
+	content: "";
+	position: absolute;
+	right: 32px;
+	bottom: 19px;
+	left: 32px;
+	height: 1px;
+	background: rgba(93, 141, 206, 0.42);
+}
+
+.chartPlotSingle {
+	justify-content: flex-start;
+	padding-left: 150px;
+}
+
+.chartAxisLabel {
+	position: absolute;
+	left: 32px;
+	bottom: 32px;
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+	white-space: nowrap;
+}
+
+.periodColumn {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex: 0 0 150px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-end;
+	min-width: 150px;
+	align-self: stretch;
+}
+
+.periodColumn:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: -36px;
+	bottom: 0;
+	width: 1px;
+	background: rgba(93, 141, 206, 0.22);
+}
+
+.periodHeader {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	width: 100%;
+	margin-bottom: 12px;
+	text-align: center;
+
+	strong {
+		color: rgba(238, 245, 255, 0.82);
+		font-size: 13px;
+		font-weight: 950;
+		text-transform: lowercase;
+	}
+
+	small {
+		color: var(--color-text);
+		font-size: 14px;
+		font-weight: 950;
+	}
+}
+
+.stackedBar {
+	display: flex;
+	width: 150px;
+	min-height: 12px;
+	max-height: 150px;
+	flex-direction: column-reverse;
+	justify-content: flex-start;
+	overflow: hidden;
+	border-radius: 12px;
+	background: rgba(22, 36, 55, 0.06);
+	box-shadow: 0 10px 22px rgba(1, 8, 14, 0.22);
+}
+
+.paymentSegment {
+	display: flex !important;
+	width: 100% !important;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6px !important;
+	border-radius: 0 !important;
+	color: #06111e !important;
+	font-size: 11px;
+	font-weight: 950;
+	line-height: 1;
+	box-sizing: border-box;
+}
+
+.paymentSegment + .paymentSegment {
+	border-bottom: 1px solid rgba(238, 245, 255, 0.16);
+}
+
+.stackedBar .paymentPaid {
+	background: linear-gradient(180deg, #64e89f, #42d782);
+}
+
+.stackedBar .paymentPlanned {
+	background: linear-gradient(180deg, #ffd35f, #ffc23d);
+}
+
+.stackedBar .paymentDebt {
+	background: linear-gradient(180deg, #6fb2ff, #58a0f5);
+}
+
+.stackedBar .paymentCanceled {
+	background: linear-gradient(180deg, #ff7676, #ff626a);
+}
+
+.paymentZeroSegment {
+	background: rgba(158, 176, 199, 0.28);
+	color: transparent;
+}
+
+.paymentsList {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.paymentItem {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	align-items: center;
+	gap: 12px;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	background: var(--color-surface-soft);
+
+	strong,
+	span {
+		display: block;
+	}
+
+	strong {
+		color: var(--color-text);
+		font-size: 15px;
+		font-weight: 950;
+	}
+
+	span {
+		margin-top: 5px;
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 12px;
+		font-weight: 700;
+	}
+
+	small {
+		display: block;
+		margin-top: 4px;
+		color: rgba(238, 245, 255, 0.52);
+		font-size: 11px;
+		font-weight: 700;
+	}
+
+	b {
+		color: var(--color-text);
+		font-size: 15px;
+		font-weight: 950;
+		white-space: nowrap;
+	}
+
+	em {
+		font-style: normal;
+	}
+}
+
+.paymentPaid,
+.paymentPlanned,
+.paymentDebt,
+.paymentCanceled {
+	display: inline-flex;
+	align-items: center;
+	width: fit-content;
+	padding: 5px 9px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+.paymentPaid {
+	background: var(--color-payment-client-surface);
+	color: var(--color-payment-client);
+}
+
+.paymentItem .paymentPaid {
+	background: rgba(72, 217, 140, 0.16);
+	color: #48d98c;
+}
+
+.paymentPlanned {
+	background: var(--color-payment-company-surface);
+	color: var(--color-payment-company);
+}
+
+.paymentDebt {
+	background: rgba(111, 168, 255, 0.16);
+	color: var(--color-accent-blue);
+}
+
+.paymentCanceled {
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
 }
 
 .notice {
@@ -882,6 +1397,61 @@
 
 .ganttMilestoneAccent b {
 	background: #7662ff;
+}
+
+.ganttPaymentMarker {
+	position: absolute;
+	top: 14px;
+	transform: translateX(-50%);
+	z-index: 6;
+
+	b {
+		display: flex;
+		width: 20px;
+		height: 20px;
+		align-items: center;
+		justify-content: center;
+		border: 3px solid var(--color-surface);
+		border-radius: 999px;
+		color: #06111e;
+		font-size: 11px;
+		font-weight: 950;
+		box-shadow: 0 6px 12px rgba(1, 8, 14, 0.28);
+
+		svg {
+			width: 11px;
+			height: 11px;
+		}
+	}
+
+	small {
+		position: absolute;
+		top: 26px;
+		left: 50%;
+		width: 116px;
+		transform: translateX(-50%);
+		color: rgba(238, 245, 255, 0.78);
+		font-size: 10px;
+		font-weight: 900;
+		line-height: 1.2;
+		text-align: center;
+	}
+}
+
+.ganttPaymentPaid b {
+	background: var(--color-payment-client);
+}
+
+.ganttPaymentPlanned b {
+	background: var(--color-payment-company);
+}
+
+.ganttPaymentDebt b {
+	background: var(--color-accent-blue);
+}
+
+.ganttPaymentCanceled b {
+	background: var(--color-payment-unpaid);
 }
 
 .ganttNoDate {

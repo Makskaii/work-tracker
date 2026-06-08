@@ -27,4 +27,5 @@ export interface Deal {
 	[DealCodes.purchasedHours]?: string | number | null;
 	assignedById: number;
 	companyId?: string | number | null;
+	companyTitle?: string | null;
 }

@@ -12,13 +12,23 @@ import {
 } from "@/shared/constants/const";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
-import { fetchAllCrmItems } from "./api";
+import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
 import {
 	PROJECT_SELECT_FIELDS,
 	REPORT_SELECT_FIELDS,
 } from "./constants";
 import { getDealProjectIds } from "./profitabilityUtils";
 import type { ProfitabilityProject } from "./types";
+
+const mergeProjectsById = (projectGroups: ClientProjectProps[][]) => {
+	const result = new Map<string, ClientProjectProps>();
+
+	projectGroups.flat().forEach((project) => {
+		result.set(String(project.id), project);
+	});
+
+	return Array.from(result.values());
+};
 
 export const useDealProjects = (selectedDeal: Deal | null) => {
 	const [projects, setProjects] = useState<ProfitabilityProject[]>([]);
@@ -34,23 +44,39 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 		const projectIds = getDealProjectIds(selectedDeal);
 
 		const fetchDealProjects = async () => {
-			if (!projectIds.length) {
-				setProjects([]);
-				return;
-			}
-
 			setIsLoadingDetails(true);
 
 			try {
-				const dealProjects = await fetchAllCrmItems<ClientProjectProps>({
-					entityTypeId: EntityTypeIds.projects,
-					select: PROJECT_SELECT_FIELDS,
-					filter:
-						projectIds.length === 1
-							? { id: projectIds[0] }
-							: { "@id": projectIds },
-					signal: controller.signal,
-				});
+				const [linkedProjects, fallbackProjects] = await Promise.all([
+					fetchAllCrmItems<ClientProjectProps>({
+						entityTypeId: EntityTypeIds.projects,
+						select: PROJECT_SELECT_FIELDS,
+						filter: {
+							[ProjectCodes.parentDeal]: selectedDeal.id,
+						},
+						signal: controller.signal,
+					}),
+					projectIds.length
+						? fetchAllCrmItems<ClientProjectProps>({
+								entityTypeId: EntityTypeIds.projects,
+								select: PROJECT_SELECT_FIELDS,
+								filter:
+									projectIds.length === 1
+										? { id: projectIds[0] }
+										: { "@id": projectIds },
+								signal: controller.signal,
+							})
+						: Promise.resolve([]),
+				]);
+				const dealProjects = mergeProjectsById([
+					linkedProjects,
+					fallbackProjects,
+				]);
+
+				if (!dealProjects.length) {
+					setProjects([]);
+					return;
+				}
 
 				const preparedProjects = await Promise.all(
 					dealProjects.map(async (project) => {
@@ -58,25 +84,67 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 						const companyId = String(
 							project[ProjectCodes.company] ?? "",
 						).trim();
+						const tasksProjectFilter = {
+							[TaskCodes.parentproject]: projectId,
+						};
+						const tasksStrictFilter = {
+							...tasksProjectFilter,
+							...(companyId ? { [TaskCodes.company]: companyId } : {}),
+						};
+						const reportsProjectFilter = {
+							[ReportCodes.parentproject]: projectId,
+							stageId: ReportStageIds.confirmed,
+						};
+						const reportsStrictFilter = {
+							...reportsProjectFilter,
+							...(companyId ? { [ReportCodes.company]: companyId } : {}),
+						};
 
-						const [tasks, reports] = await Promise.all([
-							fetchAllCrmItems<TaskProps>({
+						const fetchProjectTasks = async () => {
+							const tasks = await fetchAllCrmItems<TaskProps>({
 								entityTypeId: EntityTypeIds.tasks,
 								select: TASK_SELECT_FIELDS,
-								filter: {
-									[TaskCodes.parentproject]: projectId,
-									...(companyId ? { [TaskCodes.company]: companyId } : {}),
-								},
+								filter: tasksStrictFilter,
 								signal: controller.signal,
-							}),
-							fetchAllCrmItems<ReportProps>({
+							});
+
+							if (tasks.length || !companyId) {
+								return tasks;
+							}
+
+							return fetchAllCrmItems<TaskProps>({
+								entityTypeId: EntityTypeIds.tasks,
+								select: TASK_SELECT_FIELDS,
+								filter: tasksProjectFilter,
+								signal: controller.signal,
+							});
+						};
+
+						const fetchProjectReports = async () => {
+							const reports = await fetchAllCrmItems<ReportProps>({
 								entityTypeId: EntityTypeIds.reports,
 								select: REPORT_SELECT_FIELDS,
-								filter: {
-									[ReportCodes.parentproject]: projectId,
-									...(companyId ? { [ReportCodes.company]: companyId } : {}),
-									stageId: ReportStageIds.confirmed,
-								},
+								filter: reportsStrictFilter,
+								signal: controller.signal,
+							});
+
+							if (reports.length || !companyId) {
+								return reports;
+							}
+
+							return fetchAllCrmItems<ReportProps>({
+								entityTypeId: EntityTypeIds.reports,
+								select: REPORT_SELECT_FIELDS,
+								filter: reportsProjectFilter,
+								signal: controller.signal,
+							});
+						};
+
+						const [tasks, reports, payments] = await Promise.all([
+							fetchProjectTasks(),
+							fetchProjectReports(),
+							fetchProjectPaymentsByProjectIds({
+								projectIds: [projectId],
 								signal: controller.signal,
 							}),
 						]);
@@ -86,6 +154,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 							projectId,
 							tasks,
 							reports,
+							payments,
 						};
 					}),
 				);

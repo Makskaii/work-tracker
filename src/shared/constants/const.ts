@@ -28,6 +28,7 @@ export const EntityTypeIds = {
 	tasks: 1072,
 	projects: 1092,
 	projectIncidents: 1140,
+	projectPayments: 1144,
 	default: 2,
 	companies: 4,
 };
