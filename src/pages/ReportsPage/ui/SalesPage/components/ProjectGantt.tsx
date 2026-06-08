@@ -11,6 +11,7 @@ import {
 import {
 	getPaymentAmount,
 	getPaymentPercent,
+	getPaymentStageDisplayValue,
 	getPaymentStageBindingLabel,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
@@ -46,7 +47,7 @@ const PAYMENT_MARKER_BASE_HEIGHT = 92;
 const PAYMENT_MARKER_MIN_DISTANCE = 5;
 const PAYMENT_MARKER_SLOT_HEIGHT = 58;
 
-const getPaymentMarkerClass = (stageId = "") => {
+const getPaymentMarkerClass = (stageId: unknown = "") => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {
@@ -77,7 +78,7 @@ const getPaymentTooltip = (payment: ProjectPayment, dealAmount: number) => {
 		`Сумма: ${formatMoney(amount)}`,
 		`Процент: ${percent}%`,
 		`Дата: ${date}`,
-		`Стадия: ${payment.stageId ?? "—"}`,
+		`Стадия: ${getPaymentStageDisplayValue(payment.stageId)}`,
 		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
 	].join("\n");
 };

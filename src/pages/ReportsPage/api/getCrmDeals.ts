@@ -11,6 +11,7 @@ type CrmDeal = {
 	OPPORTUNITY: string;
 	ASSIGNED_BY_ID: string | number;
 	COMPANY_ID?: string | number | null;
+	COMPANY_TITLE?: string | null;
 	DATE_CREATE?: string;
 	MOVED_TIME?: string;
 	[DealCodes.parentProject]?: string | number | Array<string | number> | null;
@@ -30,6 +31,7 @@ const DEAL_SELECT_FIELDS = [
 	"OPPORTUNITY",
 	"ASSIGNED_BY_ID",
 	"COMPANY_ID",
+	"COMPANY_TITLE",
 	"DATE_CREATE",
 	"MOVED_TIME",
 	DealCodes.parentProject,
@@ -44,6 +46,7 @@ const mapCrmDeal = (deal: CrmDeal): Deal => ({
 	opportunity: deal.OPPORTUNITY,
 	assignedById: Number(deal.ASSIGNED_BY_ID),
 	companyId: deal.COMPANY_ID,
+	companyTitle: deal.COMPANY_TITLE ?? null,
 	createdTime: deal.DATE_CREATE ?? "",
 	movedTime: deal.MOVED_TIME ?? "",
 	createdBy: "",

@@ -18,6 +18,13 @@ export const ProjectPaymentStageIds = {
 	paid: "DT1144_35:SUCCESS",
 } as const;
 
+const ProjectPaymentStageStatusIds = {
+	planned: "NEW",
+	debt: "CLIENT",
+	canceled: "FAIL",
+	paid: "SUCCESS",
+} as const;
+
 export type ProjectPaymentStageType =
 	| "planned"
 	| "debt"
@@ -25,21 +32,77 @@ export type ProjectPaymentStageType =
 	| "paid";
 
 export const getProjectPaymentStageType = (
-	stageId?: string | null,
+	stageId?: unknown,
 ): ProjectPaymentStageType => {
-	const normalizedStage = String(stageId ?? "").trim().toUpperCase();
+	const stageValues = getStageValues(stageId);
+	const semantics = stageValues
+		.map((value) => value.toLowerCase())
+		.find((value) => ["success", "failure", "process"].includes(value));
 
-	switch (normalizedStage) {
+	if (semantics === "success") {
+		return "paid";
+	}
+
+	if (semantics === "failure") {
+		return "canceled";
+	}
+
+	for (const stageValue of stageValues) {
+		switch (stageValue) {
 		case ProjectPaymentStageIds.paid:
+		case ProjectPaymentStageStatusIds.paid:
 			return "paid";
 		case ProjectPaymentStageIds.canceled:
+		case ProjectPaymentStageStatusIds.canceled:
 			return "canceled";
 		case ProjectPaymentStageIds.debt:
+		case ProjectPaymentStageStatusIds.debt:
 			return "debt";
 		case ProjectPaymentStageIds.planned:
-		default:
+		case ProjectPaymentStageStatusIds.planned:
 			return "planned";
+		default:
+			break;
+		}
 	}
+
+	return "planned";
+};
+
+export const getPaymentStageDisplayValue = (stageId: unknown) =>
+	getStageValues(stageId)[0] ?? "-";
+
+const getStageValues = (stage: unknown): string[] => {
+	if (stage === null || stage === undefined || stage === "") {
+		return [];
+	}
+
+	if (Array.isArray(stage)) {
+		return stage.flatMap(getStageValues);
+	}
+
+	if (typeof stage === "object") {
+		const record = stage as Record<string, unknown>;
+
+		return [
+			record.ID,
+			record.id,
+			record.STATUS_ID,
+			record.statusId,
+			record.VALUE,
+			record.value,
+			record.NAME,
+			record.name,
+			(record.EXTRA as Record<string, unknown> | undefined)?.SEMANTICS,
+			(record.extra as Record<string, unknown> | undefined)?.semantics,
+			record.SEMANTICS,
+			record.semantics,
+		].flatMap(getStageValues);
+	}
+
+	const normalized = String(stage).trim().toUpperCase();
+
+	return normalized ? [normalized] : [];
 };
 
 const getDisplayValue = (value: unknown): string => {

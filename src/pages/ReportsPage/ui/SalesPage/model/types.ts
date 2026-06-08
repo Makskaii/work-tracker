@@ -19,7 +19,7 @@ export type ProjectPayment = {
 	id: number | string;
 	title?: string;
 	createdTime?: string;
-	stageId?: string;
+	stageId?: unknown;
 	[key: string]: unknown;
 };
 

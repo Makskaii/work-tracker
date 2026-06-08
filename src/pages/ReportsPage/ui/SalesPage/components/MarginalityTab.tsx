@@ -38,7 +38,13 @@ type PaymentItem = {
 	project: PaymentProjectInfo;
 };
 
-const paymentStageMeta = (stageId: string) => {
+type CompanyFromCrm = {
+	id: string | number;
+	title?: string | null;
+	TITLE?: string | null;
+};
+
+const paymentStageMeta = (stageId: unknown) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {
@@ -139,7 +145,13 @@ const mergeProjects = (projectGroups: ClientProjectProps[][]) => {
 const getProjectPaymentId = (payment: ProjectPayment) =>
 	String(payment[ProjectCodes.paymentProject] ?? "").trim();
 
-const getDealCompanyTitle = (deal: Deal | null) => {
+const getCompanyTitle = (company: CompanyFromCrm) =>
+	String(company.title ?? company.TITLE ?? "").trim();
+
+const getDealCompanyTitle = (
+	deal: Deal | null,
+	companyTitleById: Map<string, string>,
+) => {
 	if (!deal) {
 		return "клиенту";
 	}
@@ -158,8 +170,13 @@ const getDealCompanyTitle = (deal: Deal | null) => {
 		companyRecord?.title ??
 		companyRecord?.name;
 	const normalizedTitle = String(title ?? "").trim();
+	const companyId = String(deal.companyId ?? "").trim();
 
-	return normalizedTitle || `Клиент #${deal.companyId ?? "—"}`;
+	return (
+		normalizedTitle ||
+		(companyId ? companyTitleById.get(companyId) : "") ||
+		`Клиент #${deal.companyId ?? "—"}`
+	);
 };
 
 export const MarginalityTab = ({
@@ -170,8 +187,15 @@ export const MarginalityTab = ({
 }: MarginalityTabProps) => {
 	const [scope, setScope] = useState<MarginalityScope>("all");
 	const [payments, setPayments] = useState<PaymentItem[]>([]);
+	const [companyTitleById, setCompanyTitleById] = useState<Map<string, string>>(
+		() => new Map(),
+	);
 	const selectedProject = projects.find(
 		(project) => String(project.projectId ?? project.id) === selectedProjectId,
+	);
+	const companyIds = useMemo(
+		() => getUniqueValues(deals.map((deal) => deal.companyId)),
+		[deals],
 	);
 	const currentDealProjectIds = useMemo(
 		() => getUniqueValues(projects.map((project) => getProjectId(project))),
@@ -198,6 +222,69 @@ export const MarginalityTab = ({
 		(sum, deal) => sum + toNumber(deal.opportunity),
 		0,
 	);
+
+	useEffect(() => {
+		const controller = new AbortController();
+
+		const loadCompanyTitles = async () => {
+			const dealTitleByCompanyId = new Map<string, string>();
+
+			deals.forEach((deal) => {
+				const companyId = String(deal.companyId ?? "").trim();
+				const title = String(deal.companyTitle ?? "").trim();
+
+				if (companyId && title) {
+					dealTitleByCompanyId.set(companyId, title);
+				}
+			});
+
+			const missingCompanyIds = companyIds.filter(
+				(companyId) => !dealTitleByCompanyId.has(companyId),
+			);
+
+			if (!missingCompanyIds.length) {
+				setCompanyTitleById(dealTitleByCompanyId);
+				return;
+			}
+
+			const companies = await fetchAllCrmItems<CompanyFromCrm>({
+				entityTypeId: EntityTypeIds.companies,
+				select: ["id", "title"],
+				filter:
+					missingCompanyIds.length === 1
+						? { id: missingCompanyIds[0] }
+						: { "@id": missingCompanyIds },
+				signal: controller.signal,
+			});
+
+			if (controller.signal.aborted) {
+				return;
+			}
+
+			const nextCompanyTitleById = new Map(dealTitleByCompanyId);
+
+			companies.forEach((company) => {
+				const companyId = String(company.id ?? "").trim();
+				const title = getCompanyTitle(company);
+
+				if (companyId && title) {
+					nextCompanyTitleById.set(companyId, title);
+				}
+			});
+
+			setCompanyTitleById(nextCompanyTitleById);
+		};
+
+		loadCompanyTitles().catch((error) => {
+			if (!controller.signal.aborted) {
+				console.error("Failed to fetch deal companies", error);
+			}
+		});
+
+		return () => {
+			controller.abort();
+		};
+	}, [companyIds, deals]);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -401,7 +488,7 @@ export const MarginalityTab = ({
 						: scope === "deal" && selectedDeal
 							? ` по сделке ${selectedDeal.title}`
 							: scope === "client"
-								? ` по ${getDealCompanyTitle(selectedDeal)}`
+								? ` по ${getDealCompanyTitle(selectedDeal, companyTitleById)}`
 							: " по всем клиентам"}
 				</h3>
 
