@@ -34,7 +34,7 @@ type DealWithCompanyInfo = Deal & {
 	COMPANY_NAME?: string | number | null;
 };
 
-const paymentStageMeta = (stageId: string) => {
+const paymentStageMeta = (stageId?: string | null) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {
@@ -175,7 +175,8 @@ export const MarginalityTab = ({
 		0,
 	);
 
-	const { payments, companyTitleById } = useMarginalityPayments({
+	const { payments, companyTitleById, isLoading, error } =
+		useMarginalityPayments({
 		deals,
 		projects,
 		scope,
@@ -196,7 +197,7 @@ export const MarginalityTab = ({
 	const debtAmount = payments.reduce((sum, item) => {
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
-		return stageType === "planned"
+		return stageType === "debt"
 			? sum + getPaymentAmount(item.payment, dealAmount)
 			: sum;
 	}, 0);
@@ -425,7 +426,11 @@ export const MarginalityTab = ({
 			<div className={styles.marginalityCard}>
 				<h4>Платежи</h4>
 				<div className={styles.paymentsList}>
-					{payments.length ? (
+					{error ? (
+						<div className={styles.emptyState}>Не удалось загрузить оплаты</div>
+					) : isLoading ? (
+						<div className={styles.emptyState}>Загрузка оплат...</div>
+					) : payments.length ? (
 						paymentListItems.map(({ payment, paymentNumber, project, stageMeta }) => {
 							const amount = getPaymentAmount(payment, dealAmount);
 							const percent = getPaymentPercent(payment, dealAmount);

@@ -19,8 +19,8 @@ export type ProjectPayment = {
 	id: number | string;
 	title?: string;
 	createdTime?: string;
-	stageId: string;
-	[key: string]: string | number | null | undefined;
+	stageId?: string | null;
+	[key: string]: unknown;
 };
 
 export type DealSummary = {

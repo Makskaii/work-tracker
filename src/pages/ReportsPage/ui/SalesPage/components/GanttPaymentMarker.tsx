@@ -14,7 +14,7 @@ import { formatMoney } from "../model/profitabilityUtils";
 import type { ProjectPayment } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
-const getPaymentMarkerClass = (stageId: string) => {
+const getPaymentMarkerClass = (stageId?: string | null) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {
@@ -45,7 +45,7 @@ const getPaymentTooltip = (payment: ProjectPayment, dealAmount: number) => {
 		`Сумма: ${formatMoney(amount)}`,
 		`Процент: ${percent}%`,
 		`Дата: ${date}`,
-		`Стадия: ${payment.stageId}`,
+		`Стадия: ${payment.stageId ?? "—"}`,
 		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
 	].join("\n");
 };
