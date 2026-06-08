@@ -20,21 +20,8 @@ export type ProjectPayment = {
 	title?: string;
 	createdTime?: string;
 	stageId: string;
-	[key: string]: BitrixFieldValue;
+	[key: string]: string | number | null | undefined;
 };
-
-export type BitrixFieldPrimitive = string | number | boolean | null | undefined;
-
-export type BitrixFieldValue =
-	| BitrixFieldPrimitive
-	| BitrixFieldPrimitive[]
-	| {
-			title?: BitrixFieldPrimitive;
-			name?: BitrixFieldPrimitive;
-			value?: BitrixFieldPrimitive;
-			VALUE?: BitrixFieldPrimitive;
-			label?: BitrixFieldPrimitive;
-	  };
 
 export type DealSummary = {
 	purchasedHours: number;

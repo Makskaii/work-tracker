@@ -11,7 +11,6 @@ import {
 import {
 	getPaymentAmount,
 	getPaymentPercent,
-	getPaymentStageDisplayValue,
 	getPaymentStageBindingLabel,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
@@ -78,7 +77,7 @@ const getPaymentTooltip = (payment: ProjectPayment, dealAmount: number) => {
 		`Сумма: ${formatMoney(amount)}`,
 		`Процент: ${percent}%`,
 		`Дата: ${date}`,
-		`Стадия: ${getPaymentStageDisplayValue(payment.stageId)}`,
+		`Стадия: ${payment.stageId}`,
 		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
 	].join("\n");
 };
