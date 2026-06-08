@@ -47,7 +47,7 @@ const PAYMENT_MARKER_BASE_HEIGHT = 92;
 const PAYMENT_MARKER_MIN_DISTANCE = 5;
 const PAYMENT_MARKER_SLOT_HEIGHT = 58;
 
-const getPaymentMarkerClass = (stageId = "") => {
+const getPaymentMarkerClass = (stageId: string) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {

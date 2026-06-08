@@ -44,6 +44,18 @@ type CompanyFromCrm = {
 	TITLE?: string | null;
 };
 
+type DealCompanyInfo = {
+	title?: string | number | null;
+	name?: string | number | null;
+};
+
+type DealWithCompanyInfo = Deal & {
+	company?: DealCompanyInfo | null;
+	companyName?: string | number | null;
+	COMPANY_TITLE?: string | number | null;
+	COMPANY_NAME?: string | number | null;
+};
+
 const paymentStageMeta = (stageId: string) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
@@ -156,11 +168,11 @@ const getDealCompanyTitle = (
 		return "клиенту";
 	}
 
-	const record = deal as Deal & Record<string, unknown>;
+	const record = deal as DealWithCompanyInfo;
 	const company = record.company;
 	const companyRecord =
 		company && typeof company === "object"
-			? (company as Record<string, unknown>)
+			? company
 			: null;
 	const title =
 		record.companyTitle ??
@@ -385,7 +397,7 @@ export const MarginalityTab = ({
 		};
 	}, [currentDealProjectIds, projects, scope, scopeDeals, selectedProjectId]);
 	const paidAmount = payments.reduce((sum, item) => {
-		const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
+		const stageMeta = paymentStageMeta(item.payment.stageId);
 
 		return stageMeta.className === styles.paymentPaid
 			? sum + getPaymentAmount(item.payment, dealAmount)
@@ -396,7 +408,7 @@ export const MarginalityTab = ({
 		0,
 	);
 	const debtAmount = payments.reduce((sum, item) => {
-		const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
+		const stageMeta = paymentStageMeta(item.payment.stageId);
 
 		return stageMeta.className === styles.paymentPlanned
 			? sum + getPaymentAmount(item.payment, dealAmount)
@@ -465,7 +477,7 @@ export const MarginalityTab = ({
 		const stageCounters = new Map<string, number>();
 
 		return payments.map((item) => {
-			const stageMeta = paymentStageMeta(item.payment.stageId ?? "");
+			const stageMeta = paymentStageMeta(item.payment.stageId);
 			const nextPaymentNumber = (stageCounters.get(stageMeta.label) ?? 0) + 1;
 
 			stageCounters.set(stageMeta.label, nextPaymentNumber);
@@ -587,7 +599,7 @@ export const MarginalityTab = ({
 											>
 												{segments.length ? (
 													segments.map(({ amount, payment, percent }) => {
-														const stageMeta = paymentStageMeta(payment.stageId ?? "");
+														const stageMeta = paymentStageMeta(payment.stageId);
 
 														return (
 															<span

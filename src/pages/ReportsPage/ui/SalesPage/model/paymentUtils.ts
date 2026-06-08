@@ -1,6 +1,6 @@
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { toNumber } from "./profitabilityUtils";
-import type { ProjectPayment } from "./types";
+import type { BitrixFieldValue, ProjectPayment } from "./types";
 
 export const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
 	"403": "Не привязано к этапу",
@@ -31,9 +31,7 @@ export type ProjectPaymentStageType =
 	| "canceled"
 	| "paid";
 
-export const getProjectPaymentStageType = (
-	stageId?: string | null,
-): ProjectPaymentStageType => {
+export const getProjectPaymentStageType = (stageId: string): ProjectPaymentStageType => {
 	const stageValues = getStageValues(stageId);
 
 	for (const stageValue of stageValues) {
@@ -58,11 +56,11 @@ export const getProjectPaymentStageType = (
 	return "planned";
 };
 
-export const getPaymentStageDisplayValue = (stageId?: string | null) =>
+export const getPaymentStageDisplayValue = (stageId: string) =>
 	getStageValues(stageId)[0] ?? "-";
 
-const getStageValues = (stage?: string | null): string[] => {
-	if (stage === null || stage === undefined || stage === "") {
+const getStageValues = (stage: string): string[] => {
+	if (stage === "") {
 		return [];
 	}
 
@@ -74,7 +72,7 @@ const getStageValues = (stage?: string | null): string[] => {
 	return Array.from(new Set([normalized, shortStageId]));
 };
 
-const getDisplayValue = (value: unknown): string => {
+const getDisplayValue = (value: BitrixFieldValue): string => {
 	if (value === null || value === undefined || value === "") {
 		return "—";
 	}
@@ -92,9 +90,8 @@ const getDisplayValue = (value: unknown): string => {
 	}
 
 	if (typeof value === "object") {
-		const record = value as Record<string, unknown>;
 		const text =
-			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label;
+			value.title ?? value.name ?? value.value ?? value.VALUE ?? value.label;
 
 		return getDisplayValue(text);
 	}
@@ -102,7 +99,7 @@ const getDisplayValue = (value: unknown): string => {
 	return "—";
 };
 
-export const getPaymentStageBindingLabel = (value: unknown) => {
+export const getPaymentStageBindingLabel = (value: BitrixFieldValue) => {
 	const rawValue = getDisplayValue(value);
 
 	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;
