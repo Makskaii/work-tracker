@@ -25,9 +25,11 @@ export type ProjectPaymentStageType =
 	| "paid";
 
 export const getProjectPaymentStageType = (
-	stageId: string,
+	stageId?: string | null,
 ): ProjectPaymentStageType => {
-	switch (stageId) {
+	const normalizedStage = String(stageId ?? "").trim().toUpperCase();
+
+	switch (normalizedStage) {
 		case ProjectPaymentStageId.Paid:
 			return "paid";
 		case ProjectPaymentStageId.Canceled:
@@ -40,14 +42,38 @@ export const getProjectPaymentStageType = (
 	}
 };
 
-export const getPaymentStageBindingLabel = (
-	value: string | number | null | undefined,
-) => {
+const getDisplayValue = (value: unknown): string => {
 	if (value === null || value === undefined || value === "") {
 		return "—";
 	}
 
-	const rawValue = String(value);
+	if (typeof value === "string" || typeof value === "number") {
+		return String(value);
+	}
+
+	if (Array.isArray(value)) {
+		const values = value
+			.map((item) => getDisplayValue(item))
+			.filter((item) => item !== "—");
+
+		return values.length ? values.join(", ") : "—";
+	}
+
+	if (typeof value === "object") {
+		const record = value as Record<string, unknown>;
+		const text =
+			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label;
+
+		return getDisplayValue(text);
+	}
+
+	return "—";
+};
+
+export const getPaymentStageBindingLabel = (
+	value: unknown,
+) => {
+	const rawValue = getDisplayValue(value);
 
 	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;
 };

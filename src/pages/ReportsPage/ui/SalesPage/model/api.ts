@@ -49,6 +49,28 @@ export const fetchAllCrmItems = async <T,>({
 	return items;
 };
 
+export const fetchCrmChildrenByParent = async <T,>({
+	childEntityTypeId,
+	parentFieldCode,
+	parentId,
+	select,
+	signal,
+}: {
+	childEntityTypeId: number;
+	parentFieldCode: string;
+	parentId: string | number;
+	select: readonly string[];
+	signal?: AbortSignal;
+}) =>
+	fetchAllCrmItems<T>({
+		entityTypeId: childEntityTypeId,
+		select,
+		filter: {
+			[parentFieldCode]: parentId,
+		},
+		signal,
+	});
+
 const PROJECT_PAYMENT_SELECT_FIELDS = [
 	"id",
 	"title",
@@ -70,14 +92,37 @@ export const fetchProjectPaymentsByProjectIds = async ({
 	const normalizedProjectIds = Array.from(
 		new Set(projectIds.map((projectId) => String(projectId).trim()).filter(Boolean)),
 	);
+	if (!normalizedProjectIds.length) {
+		return [];
+	}
+
+	try {
+		const payments = await fetchAllCrmItems<ProjectPayment>({
+			entityTypeId: EntityTypeIds.projectPayments,
+			select: PROJECT_PAYMENT_SELECT_FIELDS,
+			filter:
+				normalizedProjectIds.length === 1
+					? { [ProjectCodes.paymentProject]: normalizedProjectIds[0] }
+					: { [`@${ProjectCodes.paymentProject}`]: normalizedProjectIds },
+			signal,
+		});
+
+		return Array.from(
+			new Map(payments.map((payment) => [String(payment.id), payment])).values(),
+		);
+	} catch (error) {
+		if (signal?.aborted) {
+			throw error;
+		}
+	}
+
 	const payments = await Promise.all(
 		normalizedProjectIds.map((projectId) =>
-			fetchAllCrmItems<ProjectPayment>({
-				entityTypeId: EntityTypeIds.projectPayments,
+			fetchCrmChildrenByParent<ProjectPayment>({
+				childEntityTypeId: EntityTypeIds.projectPayments,
+				parentFieldCode: ProjectCodes.paymentProject,
+				parentId: projectId,
 				select: PROJECT_PAYMENT_SELECT_FIELDS,
-				filter: {
-					[ProjectCodes.paymentProject]: projectId,
-				},
 				signal,
 			}),
 		),
