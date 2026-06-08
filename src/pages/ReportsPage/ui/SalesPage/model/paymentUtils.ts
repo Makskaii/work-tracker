@@ -68,10 +68,10 @@ const getStageValues = (stage?: string | null): string[] => {
 
 	const normalized = stage.trim().toUpperCase();
 	const shortStageId = normalized.includes(":")
-		? normalized.split(":").at(-1)
+		? normalized.split(":").pop() || normalized
 		: normalized;
 
-	return Array.from(new Set([normalized, shortStageId].filter(Boolean)));
+	return Array.from(new Set([normalized, shortStageId]));
 };
 
 const getDisplayValue = (value: unknown): string => {
