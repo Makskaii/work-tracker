@@ -1,6 +1,8 @@
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";
+import type { ClientProjectProps } from "@/shared/types/types";
+import { PROJECT_SELECT_FIELDS } from "./constants";
 import type { ProfitabilityProject, ProjectPayment } from "./types";
 
 type CrmItemListResponse<T> = {
@@ -49,28 +51,6 @@ export const fetchAllCrmItems = async <T,>({
 	return items;
 };
 
-export const fetchCrmChildrenByParent = async <T,>({
-	childEntityTypeId,
-	parentFieldCode,
-	parentId,
-	select,
-	signal,
-}: {
-	childEntityTypeId: number;
-	parentFieldCode: string;
-	parentId: string | number;
-	select: readonly string[];
-	signal?: AbortSignal;
-}) =>
-	fetchAllCrmItems<T>({
-		entityTypeId: childEntityTypeId,
-		select,
-		filter: {
-			[parentFieldCode]: parentId,
-		},
-		signal,
-	});
-
 const PROJECT_PAYMENT_SELECT_FIELDS = [
 	"id",
 	"title",
@@ -81,6 +61,19 @@ const PROJECT_PAYMENT_SELECT_FIELDS = [
 	ProjectCodes.paymentAmount,
 	ProjectCodes.paymentProject,
 ] as const;
+
+export const fetchPaymentsByProjectId = (
+	projectId: string,
+	signal?: AbortSignal,
+) =>
+	fetchAllCrmItems<ProjectPayment>({
+		entityTypeId: EntityTypeIds.projectPayments,
+		select: PROJECT_PAYMENT_SELECT_FIELDS,
+		filter: {
+			[ProjectCodes.paymentProject]: projectId,
+		},
+		signal,
+	});
 
 export const fetchProjectPaymentsByProjectIds = async ({
 	projectIds,
@@ -118,13 +111,7 @@ export const fetchProjectPaymentsByProjectIds = async ({
 
 	const payments = await Promise.all(
 		normalizedProjectIds.map((projectId) =>
-			fetchCrmChildrenByParent<ProjectPayment>({
-				childEntityTypeId: EntityTypeIds.projectPayments,
-				parentFieldCode: ProjectCodes.paymentProject,
-				parentId: projectId,
-				select: PROJECT_PAYMENT_SELECT_FIELDS,
-				signal,
-			}),
+			fetchPaymentsByProjectId(projectId, signal),
 		),
 	);
 	const result = new Map<string, ProjectPayment>();
@@ -135,6 +122,16 @@ export const fetchProjectPaymentsByProjectIds = async ({
 
 	return Array.from(result.values());
 };
+
+export const fetchProjectsByDealId = (dealId: string, signal?: AbortSignal) =>
+	fetchAllCrmItems<ClientProjectProps>({
+		entityTypeId: EntityTypeIds.projects,
+		select: PROJECT_SELECT_FIELDS,
+		filter: {
+			[ProjectCodes.parentDeal]: dealId,
+		},
+		signal,
+	});
 
 export type ProjectIncident = {
 	id: number | string;
@@ -164,7 +161,7 @@ const getProjectIncidentFilter = ({
 	includeProject: boolean;
 	project: ProfitabilityProject;
 }) => {
-	const projectId = String(project.projectId ?? project.id);
+	const projectId = String(project.projectId ?? "");
 	const companyId = project[ProjectCodes.company];
 	const filter: Record<string, unknown> = {};
 

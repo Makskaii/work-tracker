@@ -22,18 +22,6 @@ type MarginalityTabProps = {
 	selectedProjectId: string | null;
 };
 
-type DealCompanyInfo = {
-	title?: string | number | null;
-	name?: string | number | null;
-};
-
-type DealWithCompanyInfo = Deal & {
-	company?: DealCompanyInfo | null;
-	companyName?: string | number | null;
-	COMPANY_TITLE?: string | number | null;
-	COMPANY_NAME?: string | number | null;
-};
-
 const paymentStageMeta = (stageId?: string | null) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
@@ -120,20 +108,7 @@ const getDealCompanyTitle = (
 		return "клиенту";
 	}
 
-	const record = deal as DealWithCompanyInfo;
-	const company = record.company;
-	const companyRecord =
-		company && typeof company === "object"
-			? company
-			: null;
-	const title =
-		record.companyTitle ??
-		record.companyName ??
-		record.COMPANY_TITLE ??
-		record.COMPANY_NAME ??
-		companyRecord?.title ??
-		companyRecord?.name;
-	const normalizedTitle = String(title ?? "").trim();
+	const normalizedTitle = String(deal.companyTitle ?? "").trim();
 	const companyId = String(deal.companyId ?? "").trim();
 
 	return (
@@ -151,7 +126,7 @@ export const MarginalityTab = ({
 }: MarginalityTabProps) => {
 	const [scope, setScope] = useState<MarginalityScope>("all");
 	const selectedProject = projects.find(
-		(project) => String(project.projectId ?? project.id) === selectedProjectId,
+		(project) => String(project.projectId ?? "") === selectedProjectId,
 	);
 	const scopeDeals = useMemo(() => {
 		if (scope === "all") {

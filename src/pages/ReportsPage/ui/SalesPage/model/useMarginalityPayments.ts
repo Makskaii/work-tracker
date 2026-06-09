@@ -5,8 +5,8 @@ import type { ClientProjectProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
 import {
 	fetchAllCrmItems,
-	fetchCrmChildrenByParent,
 	fetchProjectPaymentsByProjectIds,
+	fetchProjectsByDealId,
 } from "./api";
 import { PROJECT_SELECT_FIELDS } from "./constants";
 import { getDealProjectIds } from "./profitabilityUtils";
@@ -24,10 +24,13 @@ export type MarginalityPaymentItem = {
 	project: PaymentProjectInfo;
 };
 
+type NormalizedClientProject = ClientProjectProps & {
+	projectId: string;
+};
+
 type CompanyFromCrm = {
 	id: string | number;
 	title?: string | null;
-	TITLE?: string | null;
 };
 
 type UseMarginalityPaymentsParams = {
@@ -43,13 +46,16 @@ const getUniqueValues = (values: Array<string | number | null | undefined>) =>
 		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
 	);
 
-const getProjectId = (project: {
-	id: string | number;
-	projectId?: string | number | null;
-}) => String(project.projectId ?? project.id);
+const normalizeProject = (project: ClientProjectProps): NormalizedClientProject => ({
+	...project,
+	projectId: String(project.projectId ?? project.id),
+});
 
-const mergeProjects = (projectGroups: ClientProjectProps[][]) => {
-	const result = new Map<string, ClientProjectProps>();
+const getProjectId = (project: { projectId?: string | number | null }) =>
+	String(project.projectId ?? "");
+
+const mergeProjects = (projectGroups: NormalizedClientProject[][]) => {
+	const result = new Map<string, NormalizedClientProject>();
 
 	projectGroups.flat().forEach((project) => {
 		result.set(String(project.id), project);
@@ -62,7 +68,7 @@ const getProjectPaymentId = (payment: ProjectPayment) =>
 	String(payment[ProjectCodes.paymentProject] ?? "").trim();
 
 const getCompanyTitle = (company: CompanyFromCrm) =>
-	String(company.title ?? company.TITLE ?? "").trim();
+	String(company.title ?? "").trim();
 
 export const useMarginalityPayments = ({
 	deals,
@@ -183,7 +189,7 @@ export const useMarginalityPayments = ({
 				scope === "projects" && selectedProjectId
 					? []
 					: getUniqueValues(scopeDeals.map((deal) => deal.id));
-			const projectRequests: Array<Promise<ClientProjectProps[]>> = [];
+			const projectRequests: Array<Promise<NormalizedClientProject[]>> = [];
 
 			if (projectIds.length) {
 				projectRequests.push(
@@ -195,19 +201,15 @@ export const useMarginalityPayments = ({
 								? { id: projectIds[0] }
 								: { "@id": projectIds },
 						signal: controller.signal,
-					}),
+					}).then((items) => items.map(normalizeProject)),
 				);
 			}
 
 			projectRequests.push(
 				...scopeDealIds.map((dealId) =>
-					fetchCrmChildrenByParent<ClientProjectProps>({
-						childEntityTypeId: EntityTypeIds.projects,
-						parentFieldCode: ProjectCodes.parentDeal,
-						parentId: dealId,
-						select: PROJECT_SELECT_FIELDS,
-						signal: controller.signal,
-					}),
+					fetchProjectsByDealId(dealId, controller.signal).then((items) =>
+						items.map(normalizeProject),
+					),
 				),
 			);
 
