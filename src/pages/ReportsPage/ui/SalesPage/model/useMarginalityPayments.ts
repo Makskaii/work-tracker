@@ -122,10 +122,7 @@ export const useMarginalityPayments = ({
 			const companies = await fetchAllCrmItems<CompanyFromCrm>({
 				entityTypeId: EntityTypeIds.companies,
 				select: ["id", "title"],
-				filter:
-					missingCompanyIds.length === 1
-						? { id: missingCompanyIds[0] }
-						: { "@id": missingCompanyIds },
+				filter: { "@id": missingCompanyIds },
 				signal: controller.signal,
 			});
 
@@ -192,31 +189,26 @@ export const useMarginalityPayments = ({
 				scope === "projects" && selectedProjectId
 					? []
 					: getUniqueValues(scopeDeals.map((deal) => deal.id));
-			const projectRequests: Array<Promise<NormalizedClientProject[]>> = [];
-
-			if (projectIds.length) {
-				projectRequests.push(
-					fetchAllCrmItems<ClientProjectProps>({
+			const projectsByIdsRequest = projectIds.length
+				? fetchAllCrmItems<ClientProjectProps>({
 						entityTypeId: EntityTypeIds.projects,
 						select: PROJECT_SELECT_FIELDS,
-						filter:
-							projectIds.length === 1
-								? { id: projectIds[0] }
-								: { "@id": projectIds },
+						filter: { "@id": projectIds },
 						signal: controller.signal,
-					}).then((items) => items.map(normalizeProject)),
-				);
-			}
-
-			projectRequests.push(
-				...scopeDealIds.map((dealId) =>
-					fetchProjectsByDealId(dealId, controller.signal).then((items) =>
-						items.map(normalizeProject),
-					),
+					}).then((items) => items.map(normalizeProject))
+				: Promise.resolve([]);
+			const projectsByDealsRequests = scopeDealIds.map((dealId) =>
+				fetchProjectsByDealId(dealId, controller.signal).then((items) =>
+					items.map(normalizeProject),
 				),
 			);
 
-			const scopeProjects = mergeProjects(await Promise.all(projectRequests));
+			const scopeProjects = mergeProjects(
+				await Promise.all([
+					projectsByIdsRequest,
+					...projectsByDealsRequests,
+				]),
+			);
 			const scopeProjectIds = getUniqueValues([
 				...projectIds,
 				...scopeProjects.map((project) => getProjectId(project)),

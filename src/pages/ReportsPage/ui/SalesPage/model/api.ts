@@ -5,7 +5,7 @@ import type { ClientProjectProps } from "@/shared/types/types";
 import { PROJECT_SELECT_FIELDS } from "./constants";
 import type { ProfitabilityProject, ProjectPayment } from "./types";
 
-type CrmItemWithId<T> = Omit<T, "id"> & {
+type RawProjectPayment = Omit<ProjectPayment, "id"> & {
 	id: string | number;
 };
 
@@ -67,7 +67,7 @@ const PROJECT_PAYMENT_SELECT_FIELDS = [
 ] as const;
 
 const normalizeProjectPayment = (
-	payment: CrmItemWithId<ProjectPayment>,
+	payment: RawProjectPayment,
 ): ProjectPayment => ({
 	...payment,
 	id: String(payment.id),
@@ -77,7 +77,7 @@ export const fetchPaymentsByProjectId = (
 	projectId: string,
 	signal?: AbortSignal,
 ) =>
-	fetchAllCrmItems<CrmItemWithId<ProjectPayment>>({
+	fetchAllCrmItems<RawProjectPayment>({
 		entityTypeId: EntityTypeIds.projectPayments,
 		select: PROJECT_PAYMENT_SELECT_FIELDS,
 		filter: {
@@ -101,13 +101,10 @@ export const fetchProjectPaymentsByProjectIds = async ({
 	}
 
 	try {
-		const payments = await fetchAllCrmItems<CrmItemWithId<ProjectPayment>>({
+		const payments = await fetchAllCrmItems<RawProjectPayment>({
 			entityTypeId: EntityTypeIds.projectPayments,
 			select: PROJECT_PAYMENT_SELECT_FIELDS,
-			filter:
-				normalizedProjectIds.length === 1
-					? { [ProjectCodes.paymentProject]: normalizedProjectIds[0] }
-					: { [`@${ProjectCodes.paymentProject}`]: normalizedProjectIds },
+			filter: { [`@${ProjectCodes.paymentProject}`]: normalizedProjectIds },
 			signal,
 		});
 		const normalizedPayments = payments.map(normalizeProjectPayment);
@@ -153,10 +150,12 @@ export type ProjectIncident = {
 	[key: string]: unknown;
 };
 
-type CrmProjectIncident = CrmItemWithId<ProjectIncident>;
+type RawProjectIncident = Omit<ProjectIncident, "id"> & {
+	id: string | number;
+};
 
 const normalizeProjectIncident = (
-	incident: CrmProjectIncident,
+	incident: RawProjectIncident,
 ): ProjectIncident => ({
 	...incident,
 	id: String(incident.id),
@@ -206,7 +205,7 @@ export const fetchProjectIncidents = async ({
 }) => {
 	const companyId = project[ProjectCodes.company];
 	const request = (includeProject: boolean, includeCompany: boolean) =>
-		fetchAllCrmItems<CrmProjectIncident>({
+		fetchAllCrmItems<RawProjectIncident>({
 			entityTypeId: EntityTypeIds.projectIncidents,
 			select: PROJECT_INCIDENT_SELECT_FIELDS,
 			filter: getProjectIncidentFilter({
