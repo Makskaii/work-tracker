@@ -98,6 +98,7 @@ export const useMarginalityPayments = ({
 
 		const loadCompanyTitles = async () => {
 			setIsCompaniesLoading(true);
+			setError(null);
 			const dealTitleByCompanyId = new Map<string, string>();
 
 			deals.forEach((deal) => {
@@ -178,6 +179,7 @@ export const useMarginalityPayments = ({
 
 		const loadScopePayments = async () => {
 			setIsPaymentsLoading(true);
+			setError(null);
 			const dealProjectIds = getUniqueValues(
 				scopeDeals.flatMap((deal) => getDealProjectIds(deal)),
 			);
