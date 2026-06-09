@@ -29,7 +29,7 @@ type NormalizedClientProject = ClientProjectProps & {
 };
 
 type CompanyFromCrm = {
-	id: string | number;
+	id: string;
 	title?: string | null;
 };
 
@@ -51,7 +51,7 @@ const normalizeProject = (project: ClientProjectProps): NormalizedClientProject 
 	projectId: String(project.projectId ?? project.id),
 });
 
-const getProjectId = (project: { projectId?: string | number | null }) =>
+const getProjectId = (project: { projectId?: string | null }) =>
 	String(project.projectId ?? "");
 
 const mergeProjects = (projectGroups: NormalizedClientProject[][]) => {

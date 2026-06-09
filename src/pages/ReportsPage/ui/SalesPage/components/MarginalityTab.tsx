@@ -126,7 +126,7 @@ export const MarginalityTab = ({
 }: MarginalityTabProps) => {
 	const [scope, setScope] = useState<MarginalityScope>("all");
 	const selectedProject = projects.find(
-		(project) => String(project.projectId ?? "") === selectedProjectId,
+		(project) => project.projectId === selectedProjectId,
 	);
 	const scopeDeals = useMemo(() => {
 		if (scope === "all") {

@@ -60,9 +60,7 @@ export const SalesProfitabilityReport = ({
 	}, [deals, selectedDealId]);
 
 	const effectiveSelectedProjectId = useMemo(() => {
-		const projectIds = projects.map((project) =>
-			String(project.projectId ?? project.id),
-		);
+		const projectIds = projects.map((project) => project.projectId);
 
 		if (!projectIds.length) {
 			return null;
@@ -138,7 +136,7 @@ export const SalesProfitabilityReport = ({
 									{isActiveDeal && projects.length ? (
 										<div className={styles.dealProjectsList}>
 											{projects.map((project) => {
-												const projectId = String(project.projectId ?? project.id);
+												const projectId = project.projectId;
 												const isActiveProject =
 													projectId === effectiveSelectedProjectId;
 

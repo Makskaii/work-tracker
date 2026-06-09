@@ -1,3 +1,4 @@
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { ProjectGanttCodes } from "./constants";
@@ -16,10 +17,14 @@ export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 };
 
 export type ProjectPayment = {
-	id: number | string;
+	id: string;
 	title?: string;
 	createdTime?: string;
 	stageId?: string | null;
+	[ProjectCodes.paymentStageBinding]?: string | number | null;
+	[ProjectCodes.paymentPercent]?: string | number | null;
+	[ProjectCodes.paymentAmount]?: string | number | null;
+	[ProjectCodes.paymentProject]?: string | null;
 	[key: string]: unknown;
 };
 

@@ -83,7 +83,7 @@ export const fetchProjectPaymentsByProjectIds = async ({
 	signal?: AbortSignal;
 }) => {
 	const normalizedProjectIds = Array.from(
-		new Set(projectIds.map((projectId) => String(projectId).trim()).filter(Boolean)),
+		new Set(projectIds.map((projectId) => projectId.trim()).filter(Boolean)),
 	);
 	if (!normalizedProjectIds.length) {
 		return [];
@@ -134,7 +134,7 @@ export const fetchProjectsByDealId = (dealId: string, signal?: AbortSignal) =>
 	});
 
 export type ProjectIncident = {
-	id: number | string;
+	id: string;
 	title?: string;
 	createdTime?: string;
 	updatedTime?: string;
@@ -161,7 +161,7 @@ const getProjectIncidentFilter = ({
 	includeProject: boolean;
 	project: ProfitabilityProject;
 }) => {
-	const projectId = String(project.projectId ?? "");
+	const projectId = project.projectId;
 	const companyId = project[ProjectCodes.company];
 	const filter: Record<string, unknown> = {};
 

@@ -42,7 +42,9 @@ export const getProjectPaymentStageType = (
 	}
 };
 
-const getDisplayValue = (value: unknown): string => {
+type PaymentStageBindingValue = string | number | null | undefined;
+
+const getDisplayValue = (value: PaymentStageBindingValue): string => {
 	if (value === null || value === undefined || value === "") {
 		return "—";
 	}
@@ -51,27 +53,11 @@ const getDisplayValue = (value: unknown): string => {
 		return String(value);
 	}
 
-	if (Array.isArray(value)) {
-		const values = value
-			.map((item) => getDisplayValue(item))
-			.filter((item) => item !== "—");
-
-		return values.length ? values.join(", ") : "—";
-	}
-
-	if (typeof value === "object") {
-		const record = value as Record<string, unknown>;
-		const text =
-			record.title ?? record.name ?? record.value ?? record.VALUE ?? record.label;
-
-		return getDisplayValue(text);
-	}
-
 	return "—";
 };
 
 export const getPaymentStageBindingLabel = (
-	value: unknown,
+	value: PaymentStageBindingValue,
 ) => {
 	const rawValue = getDisplayValue(value);
 
