@@ -171,10 +171,11 @@ export const useMarginalityPayments = ({
 	useEffect(() => {
 		const controller = new AbortController();
 		const currentProjectTitleById = new Map(
-			projects.map((project) => [
-				getProjectId(project),
-				project.title || `Проект #${getProjectId(project)}`,
-			]),
+			projects.map((project) => {
+				const projectId = getProjectId(project);
+
+				return [projectId, project.title || `Проект #${projectId}`];
+			}),
 		);
 
 		const loadScopePayments = async () => {

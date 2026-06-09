@@ -21,11 +21,10 @@ export type ProjectPayment = {
 	title?: string;
 	createdTime?: string;
 	stageId?: string | null;
-	[ProjectCodes.paymentStageBinding]?: string | number | null;
-	[ProjectCodes.paymentPercent]?: string | number | null;
-	[ProjectCodes.paymentAmount]?: string | number | null;
+	[ProjectCodes.paymentStageBinding]?: string | null;
+	[ProjectCodes.paymentPercent]?: string | null;
+	[ProjectCodes.paymentAmount]?: string | null;
 	[ProjectCodes.paymentProject]?: string | null;
-	[key: string]: unknown;
 };
 
 export type DealSummary = {
