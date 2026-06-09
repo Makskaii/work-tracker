@@ -1,3 +1,4 @@
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { ProjectGanttCodes } from "./constants";
@@ -16,25 +17,15 @@ export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 };
 
 export type ProjectPayment = {
-	id: number | string;
+	id: string;
 	title?: string;
 	createdTime?: string;
-	stageId: string;
-	[key: string]: BitrixFieldValue;
+	stageId?: string | null;
+	[ProjectCodes.paymentStageBinding]?: string | null;
+	[ProjectCodes.paymentPercent]?: string | null;
+	[ProjectCodes.paymentAmount]?: string | null;
+	[ProjectCodes.paymentProject]?: string | null;
 };
-
-export type BitrixFieldPrimitive = string | number | boolean | null | undefined;
-
-export type BitrixFieldValue =
-	| BitrixFieldPrimitive
-	| BitrixFieldPrimitive[]
-	| {
-			title?: BitrixFieldPrimitive;
-			name?: BitrixFieldPrimitive;
-			value?: BitrixFieldPrimitive;
-			VALUE?: BitrixFieldPrimitive;
-			label?: BitrixFieldPrimitive;
-	  };
 
 export type DealSummary = {
 	purchasedHours: number;

@@ -135,7 +135,7 @@ export const ProjectIncidentModal = ({
 	isLoading: boolean;
 	isOpen: boolean;
 	onClose: () => void;
-	onIncidentOpen: (incidentId: string | number) => void;
+	onIncidentOpen: (incidentId: string) => void;
 }) => (
 	<Modal isOpen={isOpen} onClose={onClose} size="small" innerScroll>
 		<div className={styles.modal}>

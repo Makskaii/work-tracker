@@ -1,6 +1,6 @@
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { toNumber } from "./profitabilityUtils";
-import type { BitrixFieldValue, ProjectPayment } from "./types";
+import type { ProjectPayment } from "./types";
 
 export const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
 	"403": "Не привязано к этапу",
@@ -11,19 +11,12 @@ export const PAYMENT_STAGE_BINDING_LABELS: Record<string, string> = {
 	"408": "Закрытие проекта",
 };
 
-export const ProjectPaymentStageIds = {
-	planned: "DT1144_35:NEW",
-	debt: "DT1144_35:CLIENT",
-	canceled: "DT1144_35:FAIL",
-	paid: "DT1144_35:SUCCESS",
-} as const;
-
-const ProjectPaymentStageStatusIds = {
-	planned: "NEW",
-	debt: "CLIENT",
-	canceled: "FAIL",
-	paid: "SUCCESS",
-} as const;
+export enum ProjectPaymentStageId {
+	Planned = "DT1144_35:NEW",
+	Debt = "DT1144_35:CLIENT",
+	Canceled = "DT1144_35:FAIL",
+	Paid = "DT1144_35:SUCCESS",
+}
 
 export type ProjectPaymentStageType =
 	| "planned"
@@ -31,75 +24,41 @@ export type ProjectPaymentStageType =
 	| "canceled"
 	| "paid";
 
-export const getProjectPaymentStageType = (stageId: string): ProjectPaymentStageType => {
-	const stageValues = getStageValues(stageId);
+export const getProjectPaymentStageType = (
+	stageId?: string | null,
+): ProjectPaymentStageType => {
+	const normalizedStage = String(stageId ?? "").trim().toUpperCase();
 
-	for (const stageValue of stageValues) {
-		switch (stageValue) {
-		case ProjectPaymentStageIds.paid:
-		case ProjectPaymentStageStatusIds.paid:
+	switch (normalizedStage) {
+		case ProjectPaymentStageId.Paid:
 			return "paid";
-		case ProjectPaymentStageIds.canceled:
-		case ProjectPaymentStageStatusIds.canceled:
+		case ProjectPaymentStageId.Canceled:
 			return "canceled";
-		case ProjectPaymentStageIds.debt:
-		case ProjectPaymentStageStatusIds.debt:
+		case ProjectPaymentStageId.Debt:
 			return "debt";
-		case ProjectPaymentStageIds.planned:
-		case ProjectPaymentStageStatusIds.planned:
-			return "planned";
+		case ProjectPaymentStageId.Planned:
 		default:
-			break;
-		}
+			return "planned";
 	}
-
-	return "planned";
 };
 
-export const getPaymentStageDisplayValue = (stageId: string) =>
-	getStageValues(stageId)[0] ?? "-";
+type PaymentStageBindingValue = string | null | undefined;
 
-const getStageValues = (stage: string): string[] => {
-	if (stage === "") {
-		return [];
-	}
-
-	const normalized = stage.trim().toUpperCase();
-	const shortStageId = normalized.includes(":")
-		? normalized.split(":").pop() || normalized
-		: normalized;
-
-	return Array.from(new Set([normalized, shortStageId]));
-};
-
-const getDisplayValue = (value: BitrixFieldValue): string => {
+const getDisplayValue = (value: PaymentStageBindingValue): string => {
 	if (value === null || value === undefined || value === "") {
 		return "—";
 	}
 
-	if (typeof value === "string" || typeof value === "number") {
+	if (typeof value === "string") {
 		return String(value);
-	}
-
-	if (Array.isArray(value)) {
-		const values = value
-			.map((item) => getDisplayValue(item))
-			.filter((item) => item !== "—");
-
-		return values.length ? values.join(", ") : "—";
-	}
-
-	if (typeof value === "object") {
-		const text =
-			value.title ?? value.name ?? value.value ?? value.VALUE ?? value.label;
-
-		return getDisplayValue(text);
 	}
 
 	return "—";
 };
 
-export const getPaymentStageBindingLabel = (value: BitrixFieldValue) => {
+export const getPaymentStageBindingLabel = (
+	value: PaymentStageBindingValue,
+) => {
 	const rawValue = getDisplayValue(value);
 
 	return PAYMENT_STAGE_BINDING_LABELS[rawValue] ?? rawValue;

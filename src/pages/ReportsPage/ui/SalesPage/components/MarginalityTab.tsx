@@ -1,25 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ProjectCodes } from "@/components/calendar/constants/const";
-import { EntityTypeIds } from "@/shared/constants/const";
-import type { ClientProjectProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
-import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "../model/api";
-import { PROJECT_SELECT_FIELDS } from "../model/constants";
 import {
 	getPaymentAmount,
 	getPaymentPercent,
 	getPaymentStageBindingLabel,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
+import { formatMoney, toNumber } from "../model/profitabilityUtils";
+import type { ProfitabilityProject } from "../model/types";
 import {
-	formatMoney,
-	getDealProjectIds,
-	toNumber,
-} from "../model/profitabilityUtils";
-import type { ProfitabilityProject, ProjectPayment } from "../model/types";
+	type MarginalityScope,
+	useMarginalityPayments,
+} from "../model/useMarginalityPayments";
 import styles from "../SalesProfitabilityReport.module.scss";
-
-type MarginalityScope = "all" | "client" | "deal" | "projects";
 
 type MarginalityTabProps = {
 	deals: Deal[];
@@ -28,35 +22,7 @@ type MarginalityTabProps = {
 	selectedProjectId: string | null;
 };
 
-type PaymentProjectInfo = {
-	id: string;
-	title: string;
-};
-
-type PaymentItem = {
-	payment: ProjectPayment;
-	project: PaymentProjectInfo;
-};
-
-type CompanyFromCrm = {
-	id: string | number;
-	title?: string | null;
-	TITLE?: string | null;
-};
-
-type DealCompanyInfo = {
-	title?: string | number | null;
-	name?: string | number | null;
-};
-
-type DealWithCompanyInfo = Deal & {
-	company?: DealCompanyInfo | null;
-	companyName?: string | number | null;
-	COMPANY_TITLE?: string | number | null;
-	COMPANY_NAME?: string | number | null;
-};
-
-const paymentStageMeta = (stageId: string) => {
+const paymentStageMeta = (stageId?: string | null) => {
 	const stageType = getProjectPaymentStageType(stageId);
 
 	if (stageType === "paid") {
@@ -134,32 +100,6 @@ const getMonthKeyTime = (key: string) => {
 	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
 };
 
-const getUniqueValues = (values: Array<string | number | null | undefined>) =>
-	Array.from(
-		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
-	);
-
-const getProjectId = (project: {
-	id: string | number;
-	projectId?: string | number | null;
-}) => String(project.projectId ?? project.id);
-
-const mergeProjects = (projectGroups: ClientProjectProps[][]) => {
-	const result = new Map<string, ClientProjectProps>();
-
-	projectGroups.flat().forEach((project) => {
-		result.set(String(project.id), project);
-	});
-
-	return Array.from(result.values());
-};
-
-const getProjectPaymentId = (payment: ProjectPayment) =>
-	String(payment[ProjectCodes.paymentProject] ?? "").trim();
-
-const getCompanyTitle = (company: CompanyFromCrm) =>
-	String(company.title ?? company.TITLE ?? "").trim();
-
 const getDealCompanyTitle = (
 	deal: Deal | null,
 	companyTitleById: Map<string, string>,
@@ -168,20 +108,7 @@ const getDealCompanyTitle = (
 		return "клиенту";
 	}
 
-	const record = deal as DealWithCompanyInfo;
-	const company = record.company;
-	const companyRecord =
-		company && typeof company === "object"
-			? company
-			: null;
-	const title =
-		record.companyTitle ??
-		record.companyName ??
-		record.COMPANY_TITLE ??
-		record.COMPANY_NAME ??
-		companyRecord?.title ??
-		companyRecord?.name;
-	const normalizedTitle = String(title ?? "").trim();
+	const normalizedTitle = String(deal.companyTitle ?? "").trim();
 	const companyId = String(deal.companyId ?? "").trim();
 
 	return (
@@ -198,20 +125,8 @@ export const MarginalityTab = ({
 	selectedProjectId,
 }: MarginalityTabProps) => {
 	const [scope, setScope] = useState<MarginalityScope>("all");
-	const [payments, setPayments] = useState<PaymentItem[]>([]);
-	const [companyTitleById, setCompanyTitleById] = useState<Map<string, string>>(
-		() => new Map(),
-	);
 	const selectedProject = projects.find(
-		(project) => String(project.projectId ?? project.id) === selectedProjectId,
-	);
-	const companyIds = useMemo(
-		() => getUniqueValues(deals.map((deal) => deal.companyId)),
-		[deals],
-	);
-	const currentDealProjectIds = useMemo(
-		() => getUniqueValues(projects.map((project) => getProjectId(project))),
-		[projects],
+		(project) => project.projectId === selectedProjectId,
 	);
 	const scopeDeals = useMemo(() => {
 		if (scope === "all") {
@@ -235,171 +150,18 @@ export const MarginalityTab = ({
 		0,
 	);
 
-	useEffect(() => {
-		const controller = new AbortController();
-
-		const loadCompanyTitles = async () => {
-			const dealTitleByCompanyId = new Map<string, string>();
-
-			deals.forEach((deal) => {
-				const companyId = String(deal.companyId ?? "").trim();
-				const title = String(deal.companyTitle ?? "").trim();
-
-				if (companyId && title) {
-					dealTitleByCompanyId.set(companyId, title);
-				}
-			});
-
-			const missingCompanyIds = companyIds.filter(
-				(companyId) => !dealTitleByCompanyId.has(companyId),
-			);
-
-			if (!missingCompanyIds.length) {
-				setCompanyTitleById(dealTitleByCompanyId);
-				return;
-			}
-
-			const companies = await fetchAllCrmItems<CompanyFromCrm>({
-				entityTypeId: EntityTypeIds.companies,
-				select: ["id", "title"],
-				filter:
-					missingCompanyIds.length === 1
-						? { id: missingCompanyIds[0] }
-						: { "@id": missingCompanyIds },
-				signal: controller.signal,
-			});
-
-			if (controller.signal.aborted) {
-				return;
-			}
-
-			const nextCompanyTitleById = new Map(dealTitleByCompanyId);
-
-			companies.forEach((company) => {
-				const companyId = String(company.id ?? "").trim();
-				const title = getCompanyTitle(company);
-
-				if (companyId && title) {
-					nextCompanyTitleById.set(companyId, title);
-				}
-			});
-
-			setCompanyTitleById(nextCompanyTitleById);
-		};
-
-		loadCompanyTitles().catch((error) => {
-			if (!controller.signal.aborted) {
-				console.error("Failed to fetch deal companies", error);
-			}
-		});
-
-		return () => {
-			controller.abort();
-		};
-	}, [companyIds, deals]);
-
-	useEffect(() => {
-		const controller = new AbortController();
-		const currentProjectTitleById = new Map(
-			projects.map((project) => [
-				getProjectId(project),
-				project.title || `Проект #${getProjectId(project)}`,
-			]),
-		);
-
-		const loadScopePayments = async () => {
-			const dealProjectIds = getUniqueValues(
-				scopeDeals.flatMap((deal) => getDealProjectIds(deal)),
-			);
-			const projectIds =
-				scope === "projects" && selectedProjectId
-					? [selectedProjectId]
-					: getUniqueValues([...dealProjectIds, ...currentDealProjectIds]);
-			const scopeDealIds =
-				scope === "projects" && selectedProjectId
-					? []
-					: getUniqueValues(scopeDeals.map((deal) => deal.id));
-			const projectRequests: Array<Promise<ClientProjectProps[]>> = [];
-
-			if (projectIds.length) {
-				projectRequests.push(
-					fetchAllCrmItems<ClientProjectProps>({
-						entityTypeId: EntityTypeIds.projects,
-						select: PROJECT_SELECT_FIELDS,
-						filter:
-							projectIds.length === 1
-								? { id: projectIds[0] }
-								: { "@id": projectIds },
-						signal: controller.signal,
-					}),
-				);
-			}
-
-			projectRequests.push(
-				...scopeDealIds.map((dealId) =>
-					fetchAllCrmItems<ClientProjectProps>({
-						entityTypeId: EntityTypeIds.projects,
-						select: PROJECT_SELECT_FIELDS,
-						filter: {
-							[ProjectCodes.parentDeal]: dealId,
-						},
-						signal: controller.signal,
-					}),
-				),
-			);
-
-			const scopeProjects = mergeProjects(await Promise.all(projectRequests));
-			const scopeProjectIds = getUniqueValues([
-				...projectIds,
-				...scopeProjects.map((project) => getProjectId(project)),
-			]);
-			const projectTitleById = new Map(currentProjectTitleById);
-
-			scopeProjects.forEach((project) => {
-				const projectId = getProjectId(project);
-
-				projectTitleById.set(projectId, project.title || `Проект #${projectId}`);
-			});
-
-			const scopePayments = await fetchProjectPaymentsByProjectIds({
-				projectIds: scopeProjectIds,
-				signal: controller.signal,
-			});
-
-			if (controller.signal.aborted) {
-				return;
-			}
-
-			setPayments(
-				scopePayments.map((payment) => {
-					const projectId = getProjectPaymentId(payment);
-
-					return {
-						payment,
-						project: {
-							id: projectId,
-							title: projectTitleById.get(projectId) ?? `Проект #${projectId}`,
-						},
-					};
-				}),
-			);
-		};
-
-		loadScopePayments().catch((error) => {
-			if (!controller.signal.aborted) {
-				console.error("Failed to fetch marginality payments", error);
-				setPayments([]);
-			}
-		});
-
-		return () => {
-			controller.abort();
-		};
-	}, [currentDealProjectIds, projects, scope, scopeDeals, selectedProjectId]);
+	const { payments, companyTitleById, isLoading, error } =
+		useMarginalityPayments({
+		deals,
+		projects,
+		scope,
+		scopeDeals,
+		selectedProjectId,
+	});
 	const paidAmount = payments.reduce((sum, item) => {
-		const stageMeta = paymentStageMeta(item.payment.stageId);
+		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
-		return stageMeta.className === styles.paymentPaid
+		return stageType === "paid"
 			? sum + getPaymentAmount(item.payment, dealAmount)
 			: sum;
 	}, 0);
@@ -408,9 +170,9 @@ export const MarginalityTab = ({
 		0,
 	);
 	const debtAmount = payments.reduce((sum, item) => {
-		const stageMeta = paymentStageMeta(item.payment.stageId);
+		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
-		return stageMeta.className === styles.paymentPlanned
+		return stageType === "debt"
 			? sum + getPaymentAmount(item.payment, dealAmount)
 			: sum;
 	}, 0);
@@ -639,7 +401,11 @@ export const MarginalityTab = ({
 			<div className={styles.marginalityCard}>
 				<h4>Платежи</h4>
 				<div className={styles.paymentsList}>
-					{payments.length ? (
+					{error ? (
+						<div className={styles.emptyState}>Не удалось загрузить оплаты</div>
+					) : isLoading ? (
+						<div className={styles.emptyState}>Загрузка оплат...</div>
+					) : payments.length ? (
 						paymentListItems.map(({ payment, paymentNumber, project, stageMeta }) => {
 							const amount = getPaymentAmount(payment, dealAmount);
 							const percent = getPaymentPercent(payment, dealAmount);

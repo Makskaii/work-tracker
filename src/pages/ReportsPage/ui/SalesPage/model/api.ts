@@ -1,6 +1,8 @@
 import { $api } from "@/shared/config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";
+import type { ClientProjectProps } from "@/shared/types/types";
+import { PROJECT_SELECT_FIELDS } from "./constants";
 import type { ProfitabilityProject, ProjectPayment } from "./types";
 
 type CrmItemListResponse<T> = {
@@ -60,6 +62,26 @@ const PROJECT_PAYMENT_SELECT_FIELDS = [
 	ProjectCodes.paymentProject,
 ] as const;
 
+const normalizeProjectPayment = (
+	payment: ProjectPayment,
+): ProjectPayment => ({
+	...payment,
+	id: String(payment.id),
+});
+
+export const fetchPaymentsByProjectId = (
+	projectId: string,
+	signal?: AbortSignal,
+) =>
+	fetchAllCrmItems<ProjectPayment>({
+		entityTypeId: EntityTypeIds.projectPayments,
+		select: PROJECT_PAYMENT_SELECT_FIELDS,
+		filter: {
+			[ProjectCodes.paymentProject]: projectId,
+		},
+		signal,
+	}).then((payments) => payments.map(normalizeProjectPayment));
+
 export const fetchProjectPaymentsByProjectIds = async ({
 	projectIds,
 	signal,
@@ -68,18 +90,33 @@ export const fetchProjectPaymentsByProjectIds = async ({
 	signal?: AbortSignal;
 }) => {
 	const normalizedProjectIds = Array.from(
-		new Set(projectIds.map((projectId) => String(projectId).trim()).filter(Boolean)),
+		new Set(projectIds.map((projectId) => projectId.trim()).filter(Boolean)),
 	);
+	if (!normalizedProjectIds.length) {
+		return [];
+	}
+
+	try {
+		const payments = await fetchAllCrmItems<ProjectPayment>({
+			entityTypeId: EntityTypeIds.projectPayments,
+			select: PROJECT_PAYMENT_SELECT_FIELDS,
+			filter: { [`@${ProjectCodes.paymentProject}`]: normalizedProjectIds },
+			signal,
+		});
+		const normalizedPayments = payments.map(normalizeProjectPayment);
+
+		return Array.from(
+			new Map(normalizedPayments.map((payment) => [payment.id, payment])).values(),
+		);
+	} catch (error) {
+		if (signal?.aborted) {
+			throw error;
+		}
+	}
+
 	const payments = await Promise.all(
 		normalizedProjectIds.map((projectId) =>
-			fetchAllCrmItems<ProjectPayment>({
-				entityTypeId: EntityTypeIds.projectPayments,
-				select: PROJECT_PAYMENT_SELECT_FIELDS,
-				filter: {
-					[ProjectCodes.paymentProject]: projectId,
-				},
-				signal,
-			}),
+			fetchPaymentsByProjectId(projectId, signal),
 		),
 	);
 	const result = new Map<string, ProjectPayment>();
@@ -91,13 +128,30 @@ export const fetchProjectPaymentsByProjectIds = async ({
 	return Array.from(result.values());
 };
 
+export const fetchProjectsByDealId = (dealId: string, signal?: AbortSignal) =>
+	fetchAllCrmItems<ClientProjectProps>({
+		entityTypeId: EntityTypeIds.projects,
+		select: PROJECT_SELECT_FIELDS,
+		filter: {
+			[ProjectCodes.parentDeal]: dealId,
+		},
+		signal,
+	});
+
 export type ProjectIncident = {
-	id: number | string;
+	id: string;
 	title?: string;
 	createdTime?: string;
 	updatedTime?: string;
 	[key: string]: unknown;
 };
+
+const normalizeProjectIncident = (
+	incident: ProjectIncident,
+): ProjectIncident => ({
+	...incident,
+	id: String(incident.id),
+});
 
 const PROJECT_INCIDENT_SELECT_FIELDS = [
 	"id",
@@ -119,7 +173,7 @@ const getProjectIncidentFilter = ({
 	includeProject: boolean;
 	project: ProfitabilityProject;
 }) => {
-	const projectId = String(project.projectId ?? project.id);
+	const projectId = project.projectId;
 	const companyId = project[ProjectCodes.company];
 	const filter: Record<string, unknown> = {};
 
@@ -158,7 +212,9 @@ export const fetchProjectIncidents = async ({
 		includeCompany: boolean,
 	) => {
 		try {
-			return await request(includeProject, includeCompany);
+			const incidents = await request(includeProject, includeCompany);
+
+			return incidents.map(normalizeProjectIncident);
 		} catch {
 			return [];
 		}

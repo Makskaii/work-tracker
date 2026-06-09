@@ -14,9 +14,6 @@ type ProjectsTabProps = {
 	users: User[];
 };
 
-const getProjectId = (project: ProfitabilityProject) =>
-	String(project.projectId ?? project.id);
-
 export const ProjectsTab = ({
 	projects,
 	selectedDeal,
@@ -24,7 +21,7 @@ export const ProjectsTab = ({
 	users,
 }: ProjectsTabProps) => {
 	const selectedProject =
-		projects.find((project) => getProjectId(project) === selectedProjectId) ??
+		projects.find((project) => project.projectId === selectedProjectId) ??
 		null;
 	const selectedProjects = selectedProject ? [selectedProject] : [];
 	const dealAmount = toNumber(selectedDeal?.opportunity);

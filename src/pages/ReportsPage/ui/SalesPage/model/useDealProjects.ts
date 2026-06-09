@@ -47,30 +47,31 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 			setIsLoadingDetails(true);
 
 			try {
-				const [linkedProjects, fallbackProjects] = await Promise.all([
-					fetchAllCrmItems<ClientProjectProps>({
-						entityTypeId: EntityTypeIds.projects,
-						select: PROJECT_SELECT_FIELDS,
-						filter: {
-							[ProjectCodes.parentDeal]: selectedDeal.id,
-						},
-						signal: controller.signal,
-					}),
-					projectIds.length
-						? fetchAllCrmItems<ClientProjectProps>({
-								entityTypeId: EntityTypeIds.projects,
-								select: PROJECT_SELECT_FIELDS,
-								filter:
-									projectIds.length === 1
-										? { id: projectIds[0] }
-										: { "@id": projectIds },
-								signal: controller.signal,
-							})
-						: Promise.resolve([]),
-				]);
+				const [linkedProjects, projectsByDealReverseParentField] =
+					await Promise.all([
+						fetchAllCrmItems<ClientProjectProps>({
+							entityTypeId: EntityTypeIds.projects,
+							select: PROJECT_SELECT_FIELDS,
+							filter: {
+								[ProjectCodes.parentDeal]: selectedDeal.id,
+							},
+							signal: controller.signal,
+						}),
+						projectIds.length
+							? fetchAllCrmItems<ClientProjectProps>({
+									entityTypeId: EntityTypeIds.projects,
+									select: PROJECT_SELECT_FIELDS,
+									filter:
+										projectIds.length === 1
+											? { id: projectIds[0] }
+											: { "@id": projectIds },
+									signal: controller.signal,
+								})
+							: Promise.resolve([]),
+					]);
 				const dealProjects = mergeProjectsById([
 					linkedProjects,
-					fallbackProjects,
+					projectsByDealReverseParentField,
 				]);
 
 				if (!dealProjects.length) {

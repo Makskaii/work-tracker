@@ -19,9 +19,6 @@ type ProjectsTableProps = {
 	users: User[];
 };
 
-const getProjectId = (project: ProfitabilityProject) =>
-	String(project.projectId ?? project.id);
-
 export const ProjectsTable = ({
 	onProjectSelect,
 	projects,
@@ -44,7 +41,7 @@ export const ProjectsTable = ({
 			</div>
 			{projects.length ? (
 				projects.map((project) => {
-					const projectId = getProjectId(project);
+					const projectId = project.projectId;
 					const isSelected = selectedProjectId === projectId;
 					const planHours = getProjectPlanHours(project.tasks);
 					const factHours = getProjectFactHours(project.reports);
