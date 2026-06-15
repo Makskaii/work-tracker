@@ -1,346 +1,32 @@
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router";
-import { ClientsCodes } from "@/shared/constants/const";
 import { Calendar } from "../../../../components/calendar/Calendar";
-import {
-	ActivityType,
-	months,
-	ProjectCodes,
-	years,
-} from "../../../../components/calendar/constants/const";
-import {
-	getPaymentKindFromReport,
-	getPaymentSortFromReport,
-	getPaymentSummary,
-	PAYMENT_KIND_BY_SORT,
-	PAYMENT_SORT_TITLES,
-	type PaymentSort,
-} from "../../../../components/calendar/helpers/paymentType";
-import {
-	DEPARTMENT_IDS,
-	EntityTypeIds,
-} from "../../../../shared/constants/const";
+import { getPaymentSummary } from "../../../../components/calendar/helpers/paymentType";
+import { EntityTypeIds } from "../../../../shared/constants/const";
 import { useBitrixSlider } from "../../../../shared/hooks/useBitrixSlider";
 import type { GroupedReportFields } from "../../../../shared/types/table";
-import type {
-	ClientListItems,
-	ClientProjectProps,
-	ReportsContext,
-	User,
-} from "../../../../shared/types/types";
-import type { ProjectFromList } from "../../ReportsPage";
-import type {
-	ActivityListItem,
-	ActivitySort,
-	GroupedClientItem,
-} from "../../types/types";
+import type { ReportsContext } from "../../../../shared/types/types";
+import { fetchCompanyTitlesByIds } from "./model/companyTitles";
+import { getEmployeeMetricsFromReports } from "./model/employeeMetrics";
+import {
+	buildClientTitleMap,
+	groupReportsByClientsProjectsAndActivities,
+} from "./model/groupReports";
+import type { EmployeeMetrics, ViewCalendar } from "./model/types";
+import {
+	createEmptyEmployeeMetrics,
+	getCapacityByView,
+	getDepartmentUsers,
+	getProjectKey,
+	parseTimeSpent,
+} from "./model/utils";
 import cls from "./ReportsCalendar.module.scss";
+import { EmployeesPanel } from "./ui/EmployeesPanel";
+import { PeriodControls } from "./ui/PeriodControls";
 import { ProjectActivitiesTree } from "./ui/ProjectActivitiesTree/ProjectActivitiesTree";
-
-const ACTIVITY_SORT_TITLES = PAYMENT_SORT_TITLES;
-
-const parseTimeSpent = (value: string | number | null | undefined): number => {
-	if (value == null) return 0;
-
-	const normalized = String(value).replace(",", ".").trim();
-	const parsed = Number(normalized);
-
-	return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
-
-const getCapacityByView = (view: ViewCalendar) => (view === "week" ? 40 : 160);
-
-const createEmptyEmployeeMetrics = (): EmployeeMetrics => ({
-	hours: new Map<string, number>(),
-	notAtWork: new Map<string, number>(),
-	totalHours: 0,
-	hasLoaded: false,
-});
-
-const isNotAtWorkReport = (
-	report: GroupedReportFields,
-	activities: ActivityListItem[],
-) => {
-	const activityId = Number(report.activity);
-
-	if (activityId === ActivityType.notAtWork) {
-		return true;
-	}
-
-	const activity = activities.find((item) => Number(item.ID) === activityId);
-	const searchableText = `${activity?.NAME ?? ""} ${activity?.CODE ?? ""}`
-		.trim()
-		.toLowerCase();
-
-	return searchableText.includes("not at work");
-};
-
-const getEmployeeMetricsFromReports = (
-	reports: GroupedReportFields[],
-	activities: ActivityListItem[],
-): EmployeeMetrics => {
-	const hours = new Map<string, number>();
-	const notAtWork = new Map<string, number>();
-	let totalHours = 0;
-
-	for (const report of reports) {
-		const userId = String(report.assignedById);
-		const timeSpent = parseTimeSpent(report.timeSpent);
-
-		totalHours += timeSpent;
-		hours.set(userId, (hours.get(userId) ?? 0) + timeSpent);
-
-		if (isNotAtWorkReport(report, activities)) {
-			notAtWork.set(userId, (notAtWork.get(userId) ?? 0) + timeSpent);
-		}
-	}
-
-	return {
-		hours,
-		notAtWork,
-		totalHours,
-		hasLoaded: true,
-	};
-};
-
-const getProjectCompanyId = (project: ClientProjectProps) => {
-	return Number(project[ProjectCodes.company] ?? 0);
-};
-
-export const groupReportsByClientsProjectsAndActivities = ({
-	reports,
-	projects,
-	activities,
-	clients,
-}: {
-	reports: GroupedReportFields[];
-	projects: ProjectFromList[];
-	activities: ActivityListItem[];
-	clients: (ClientListItems & { projects: ClientProjectProps[] })[];
-}): GroupedClientItem[] => {
-	const projectTitleMap = new Map<number, string>();
-	for (const project of projects) {
-		const projectTitle =
-			project.title || project.name || `Проект #${project.id}`;
-
-		projectTitleMap.set(Number(project.id), projectTitle);
-		projectTitleMap.set(Number(project[ClientsCodes.client]), projectTitle);
-	}
-
-	const clientTitleMap = new Map<number, string>();
-	for (const client of clients) {
-		clientTitleMap.set(Number(client.ID), client.NAME);
-
-		for (const project of client.projects ?? []) {
-			projectTitleMap.set(Number(project.id), project.title);
-
-			if (project.projectId) {
-				projectTitleMap.set(Number(project.projectId), project.title);
-			}
-
-			const companyId = getProjectCompanyId(project);
-
-			if (companyId) {
-				clientTitleMap.set(companyId, client.NAME);
-			}
-		}
-	}
-
-	const resultMap = new Map<number, GroupedClientItem>();
-
-	for (const report of reports) {
-		const clientId = Number(report.company ?? report.client);
-		const projectId = Number(report.parentproject ?? report.project);
-		const sort = getPaymentSortFromReport(report, activities);
-
-		if (!clientId || !projectId || sort === null) continue;
-
-		const timeSpent = parseTimeSpent(report.timeSpent);
-
-		if (!resultMap.has(clientId)) {
-			resultMap.set(clientId, {
-				clientId,
-				clientTitle: clientTitleMap.get(clientId) ?? `Компания #${clientId}`,
-				timeSpent: 0,
-				projects: [],
-			});
-		}
-
-		const clientGroup = resultMap.get(clientId)!;
-
-		let projectGroup = clientGroup.projects.find(
-			(item) => item.projectId === projectId,
-		);
-
-		if (!projectGroup) {
-			projectGroup = {
-				projectId,
-				projectTitle: projectTitleMap.get(projectId) ?? `Проект #${projectId}`,
-				timeSpent: 0,
-				categories: {
-					0: {
-						sort: 0,
-						title: ACTIVITY_SORT_TITLES[0],
-						timeSpent: 0,
-						activities: [],
-					},
-					1: {
-						sort: 1,
-						title: ACTIVITY_SORT_TITLES[1],
-						timeSpent: 0,
-						activities: [],
-					},
-					2: {
-						sort: 2,
-						title: ACTIVITY_SORT_TITLES[2],
-						timeSpent: 0,
-						activities: [],
-					},
-				},
-			};
-
-			clientGroup.projects.push(projectGroup);
-		}
-
-		const category = projectGroup.categories[sort];
-		const activityId = Number(report.activity);
-		const activityTitle =
-			activities.find((activity) => Number(activity.ID) === activityId)?.NAME ??
-			`Активность #${activityId}`;
-
-		let activityGroup = category.activities.find(
-			(item) => item.activityId === activityId,
-		);
-
-		if (!activityGroup) {
-			activityGroup = {
-				activityId,
-				activityTitle,
-				sort,
-				timeSpent: 0,
-				reports: [],
-			};
-
-			category.activities.push(activityGroup);
-		}
-
-		activityGroup.timeSpent += timeSpent;
-		activityGroup.reports.push({
-			id: report.id,
-			title: report.title,
-			begindate: report.day,
-			timeSpent,
-			rawTimeSpent: report.timeSpent,
-			taskId: report.taskId,
-			parentId: report.parentId,
-		});
-
-		category.timeSpent += timeSpent;
-		projectGroup.timeSpent += timeSpent;
-		clientGroup.timeSpent += timeSpent;
-	}
-
-	return Array.from(resultMap.values())
-		.map((client) => ({
-			...client,
-			projects: client.projects
-				.map((project) => ({
-					...project,
-					categories: {
-						0: {
-							...project.categories[0],
-							activities: [...project.categories[0].activities]
-								.map((activity) => ({
-									...activity,
-									reports: [...activity.reports].sort(
-										(a, b) =>
-											new Date(b.begindate).getTime() -
-											new Date(a.begindate).getTime(),
-									),
-								}))
-								.sort((a, b) => b.timeSpent - a.timeSpent),
-						},
-						1: {
-							...project.categories[1],
-							activities: [...project.categories[1].activities]
-								.map((activity) => ({
-									...activity,
-									reports: [...activity.reports].sort(
-										(a, b) =>
-											new Date(b.begindate).getTime() -
-											new Date(a.begindate).getTime(),
-									),
-								}))
-								.sort((a, b) => b.timeSpent - a.timeSpent),
-						},
-						2: {
-							...project.categories[2],
-							activities: [...project.categories[2].activities]
-								.map((activity) => ({
-									...activity,
-									reports: [...activity.reports].sort(
-										(a, b) =>
-											new Date(b.begindate).getTime() -
-											new Date(a.begindate).getTime(),
-									),
-								}))
-								.sort((a, b) => b.timeSpent - a.timeSpent),
-						},
-					},
-				}))
-				.sort((a, b) => b.timeSpent - a.timeSpent),
-		}))
-		.sort((a, b) => b.timeSpent - a.timeSpent);
-};
-
-type ViewCalendar = "month" | "week";
-type EmployeeMetrics = {
-	hours: Map<string, number>;
-	notAtWork: Map<string, number>;
-	totalHours: number;
-	hasLoaded: boolean;
-};
-
-const getProjectKey = (clientId: number, projectId: number) =>
-	`${clientId}-${projectId}`;
-
-const getDepartmentUsers = (users: User[]) => {
-	const filtered = users.filter((user) =>
-		[DEPARTMENT_IDS.ANALYTICS, DEPARTMENT_IDS.DEV].includes(user.department),
-	);
-
-	return filtered.length ? filtered : users;
-};
-
-const PanelSkeleton = ({
-	rows,
-	variant,
-}: {
-	rows: number;
-	variant: "employee" | "project" | "report";
-}) => (
-	<div className={cls.skeletonList} data-variant={variant}>
-		{Array.from({ length: rows }, (_, index) => (
-			<div key={index} className={cls.skeletonCard}>
-				{variant === "employee" && <span className={cls.skeletonAvatar} />}
-				<div className={cls.skeletonContent}>
-					<span className={cls.skeletonLine} />
-					<span className={cls.skeletonLineShort} />
-					{variant === "project" && (
-						<div className={cls.skeletonPills}>
-							<span />
-							<span />
-							<span />
-						</div>
-					)}
-				</div>
-				<span className={cls.skeletonValue} />
-			</div>
-		))}
-	</div>
-);
+import { ProjectCardsPanel } from "./ui/ProjectCardsPanel";
+import { ReportsPanel } from "./ui/ReportsPanel";
+import { SummaryCard } from "./ui/SummaryCard";
 
 const ReportsCalendar = () => {
 	const context = useOutletContext<ReportsContext>();
@@ -363,6 +49,10 @@ const ReportsCalendar = () => {
 		() => new Set(),
 	);
 	const [selectedProjectKey, setSelectedProjectKey] = useState("");
+	const [reportCompanyTitleById, setReportCompanyTitleById] = useState<
+		Map<number, string>
+	>(() => new Map());
+	const requestedCompanyIdsRef = useRef<Set<number>>(new Set());
 
 	const departmentUsers = useMemo(
 		() => getDepartmentUsers(context.users),
@@ -436,18 +126,82 @@ const ReportsCalendar = () => {
 		setSelectedYear(today.getFullYear());
 	};
 
+	useEffect(() => {
+		const clientTitleMap = buildClientTitleMap(context.clientsList);
+		const missingCompanyIds = Array.from(
+			new Set(
+				groupedByActivity
+					.map((report) => Number(report.company ?? report.client))
+					.filter(
+						(companyId) =>
+							companyId &&
+							!clientTitleMap.has(companyId) &&
+							!reportCompanyTitleById.has(companyId) &&
+							!requestedCompanyIdsRef.current.has(companyId),
+					),
+			),
+		);
+
+		if (!missingCompanyIds.length) return;
+
+		let isCancelled = false;
+		let shouldRetryOnCleanup = true;
+
+		for (const companyId of missingCompanyIds) {
+			requestedCompanyIdsRef.current.add(companyId);
+		}
+
+		fetchCompanyTitlesByIds(missingCompanyIds)
+			.then((companyTitleMap) => {
+				if (isCancelled || !companyTitleMap.size) return;
+
+				shouldRetryOnCleanup = false;
+
+				setReportCompanyTitleById((prev) => {
+					const next = new Map(prev);
+
+					for (const [companyId, title] of companyTitleMap) {
+						next.set(companyId, title);
+					}
+
+					return next;
+				});
+			})
+			.catch((error) => {
+				shouldRetryOnCleanup = false;
+
+				for (const companyId of missingCompanyIds) {
+					requestedCompanyIdsRef.current.delete(companyId);
+				}
+
+				console.error("Failed to fetch report companies", error);
+			});
+
+		return () => {
+			isCancelled = true;
+
+			if (shouldRetryOnCleanup) {
+				for (const companyId of missingCompanyIds) {
+					requestedCompanyIdsRef.current.delete(companyId);
+				}
+			}
+		};
+	}, [context.clientsList, groupedByActivity, reportCompanyTitleById]);
+
 	const groupedClientActivities = useMemo(() => {
 		return groupReportsByClientsProjectsAndActivities({
 			reports: groupedByActivity,
 			projects: context.projects,
 			activities: context.activities,
 			clients: context.clientsList,
+			companyTitleById: reportCompanyTitleById,
 		});
 	}, [
 		context.activities,
 		context.projects,
 		groupedByActivity,
 		context.clientsList,
+		reportCompanyTitleById,
 	]);
 
 	const firstProjectKey = groupedClientActivities[0]?.projects[0]
@@ -574,6 +328,24 @@ const ReportsCalendar = () => {
 	const selectedUserNotAtWork = selectedUserId
 		? (employeeMetrics.notAtWork.get(selectedUserId) ?? 0)
 		: 0;
+	const isEmployeeSidebarCompact =
+		isCalendarVisible && isEmployeeSidebarCollapsed;
+	const employeesPanel = (
+		<EmployeesPanel
+			users={departmentUsers}
+			view={view}
+			selectedUserId={selectedUserId}
+			employeeMetrics={employeeMetrics}
+			isCompact={isEmployeeSidebarCompact}
+			isCalendarVisible={isCalendarVisible}
+			isReportDataLoading={isReportDataLoading}
+			isMetricsLoading={employeeMetricsLoading}
+			sidebarTotalHours={sidebarTotalHours}
+			totalCapacity={totalCapacity}
+			periodCapacity={periodCapacity}
+			onUserChange={handleUserChange}
+		/>
+	);
 
 	const getActivityTitle = (activityId: number) =>
 		context.activities.find((activity) => Number(activity.ID) === activityId)
@@ -582,197 +354,6 @@ const ReportsCalendar = () => {
 	const getEmployeeTitle = (userId: string | number) =>
 		context.users.find((user) => String(user.id) === String(userId))?.title ??
 		`Сотрудник #${userId}`;
-
-	const renderPeriodControls = () => (
-		<div className={cls.periodControls}>
-			<button
-				type="button"
-				className={cls.iconButton}
-				onClick={handlePrevMonth}
-			>
-				‹
-			</button>
-			<select value={selectedMonth} onChange={handleMonthChange}>
-				{months.map((month, index) => (
-					<option key={month} value={index}>
-						{month}
-					</option>
-				))}
-			</select>
-			<select value={selectedYear} onChange={handleYearChange}>
-				{years.map((year) => (
-					<option key={year} value={year}>
-						{year}
-					</option>
-				))}
-			</select>
-			<button
-				type="button"
-				className={cls.iconButton}
-				onClick={handleNextMonth}
-			>
-				›
-			</button>
-			{isCalendarVisible && (
-				<button type="button" className={cls.todayButton} onClick={handleToday}>
-					Сегодня
-				</button>
-			)}
-		</div>
-	);
-
-	const isEmployeeSidebarCompact =
-		isCalendarVisible && isEmployeeSidebarCollapsed;
-	const getWorkloadPercent = (spent: number, capacity: number) => {
-		if (!capacity) return 0;
-
-		return Math.min(100, Math.round((spent / capacity) * 100));
-	};
-	const renderHoursPill = (value: number, isLoading: boolean) => (
-		<span className={cls.hoursPill}>
-			{isLoading ? <span className={cls.hoursSkeleton} /> : formatHours(value)}
-		</span>
-	);
-	const renderEmployeeWorkload = (
-		spent: number,
-		capacity: number,
-		notAtWork?: number,
-		isLoading = false,
-	) =>
-		isLoading ? (
-			<span className={cls.employeeWorkload}>
-				<span className={cls.employeeWorkloadMeta}>
-					<span className={cls.workloadTextSkeleton} />
-					{notAtWork !== undefined && (
-						<span className={cls.workloadTextSkeleton} />
-					)}
-				</span>
-				<span className={cls.employeeProgress}>
-					<span className={cls.progressSkeleton} />
-				</span>
-			</span>
-		) : (
-			<span className={cls.employeeWorkload}>
-				<span className={cls.employeeWorkloadMeta}>
-					<span>
-						{Number(spent.toFixed(1))} / {capacity} ч
-					</span>
-					{notAtWork !== undefined && (
-						<span>not at work {Number(notAtWork.toFixed(1))} ч</span>
-					)}
-				</span>
-				<span className={cls.employeeProgress}>
-					<span style={{ width: `${getWorkloadPercent(spent, capacity)}%` }} />
-				</span>
-			</span>
-		);
-
-	const renderEmployees = () => (
-		<section
-			className={`${cls.panel} ${cls.employeePanel} ${
-				isEmployeeSidebarCompact ? cls.employeePanelCollapsed : ""
-			}`}
-			aria-label="Сотрудники"
-		>
-			<div className={cls.panelHeader}>
-				<h3>Сотрудники</h3>
-				<span>
-					{employeeMetricsLoading ? (
-						<span className={cls.panelHeaderSkeleton} />
-					) : (
-						formatHours(sidebarTotalHours)
-					)}
-				</span>
-			</div>
-			<div className={cls.employeeList}>
-				{!isCalendarVisible && isReportDataLoading ? (
-					<PanelSkeleton rows={7} variant="employee" />
-				) : (
-					<>
-						<button
-							type="button"
-							className={`${cls.employeeCard} ${
-								selectedUserId === "" ? cls.activeCard : ""
-							}`}
-							onClick={() => handleUserChange("")}
-							title="Весь отдел"
-						>
-							<span className={cls.avatar}>▦</span>
-							<span className={cls.employeeInfo}>
-								<strong>Весь отдел</strong>
-								<small>Все сотрудники</small>
-								{renderEmployeeWorkload(
-									sidebarTotalHours,
-									totalCapacity,
-									undefined,
-									employeeMetricsLoading,
-								)}
-							</span>
-							{renderHoursPill(sidebarTotalHours, employeeMetricsLoading)}
-						</button>
-						{departmentUsers.map((user) => {
-							const spent = employeeMetrics.hours.get(user.id) ?? 0;
-							const notAtWork = employeeMetrics.notAtWork.get(user.id) ?? 0;
-
-							return (
-								<button
-									type="button"
-									key={user.id}
-									className={`${cls.employeeCard} ${
-										selectedUserId === user.id ? cls.activeCard : ""
-									}`}
-									onClick={() => handleUserChange(user.id)}
-									title={user.title}
-								>
-									{user.photo ? (
-										<img src={user.photo} alt="" className={cls.avatarImage} />
-									) : (
-										<span className={cls.avatar}>{user.title.charAt(0)}</span>
-									)}
-									<span className={cls.employeeInfo}>
-										<strong>{user.title}</strong>
-										<small>{view === "week" ? "неделя" : "месяц"}</small>
-										{renderEmployeeWorkload(
-											spent,
-											periodCapacity,
-											notAtWork,
-											employeeMetricsLoading,
-										)}
-									</span>
-									{renderHoursPill(spent, employeeMetricsLoading)}
-								</button>
-							);
-						})}
-					</>
-				)}
-			</div>
-		</section>
-	);
-
-	const renderSummary = () => (
-		<section className={cls.summaryCard}>
-			<h3>{selectedUser?.title ?? "Весь отдел"}</h3>
-			<div className={cls.summarySubtitle}>Сводка по выбранному периоду</div>
-			<div className={cls.summaryGrid}>
-				{([0, 1, 2] as PaymentSort[]).map((sort) => {
-					const kind = PAYMENT_KIND_BY_SORT[sort];
-
-					return (
-						<div key={sort} className={`${cls.summaryItem} ${cls[kind]}`}>
-							<span>{PAYMENT_SORT_TITLES[sort]}</span>
-							<strong>{formatHours(paymentSummary[sort])}</strong>
-						</div>
-					);
-				})}
-				{selectedUserId && (
-					<div className={`${cls.summaryItem} ${cls.notAtWork}`}>
-						<span>not at work</span>
-						<strong>{formatHours(selectedUserNotAtWork)}</strong>
-					</div>
-				)}
-			</div>
-		</section>
-	);
 
 	const toggleClient = (clientId: number) => {
 		setExpandedClients((prev) => {
@@ -787,171 +368,6 @@ const ReportsCalendar = () => {
 			return next;
 		});
 	};
-
-	const renderProjectCards = () => (
-		<section className={`${cls.panel} ${cls.projectsPanel}`}>
-			<div className={cls.panelHeader}>
-				<h3>Клиенты и проекты</h3>
-				<span>{groupedClientActivities.length}</span>
-			</div>
-			<div className={cls.projectCards}>
-				{isReportDataLoading ? (
-					<PanelSkeleton rows={6} variant="project" />
-				) : (
-					groupedClientActivities.map((client) => {
-						const isExpanded = expandedClients.has(client.clientId);
-						const firstProject = client.projects[0];
-						const clientSummary = client.projects.reduce(
-							(acc, project) => {
-								([0, 1, 2] as ActivitySort[]).forEach((sort) => {
-									acc[sort] += project.categories[sort].timeSpent;
-								});
-
-								return acc;
-							},
-							{ 0: 0, 1: 0, 2: 0 } as Record<ActivitySort, number>,
-						);
-
-						return (
-							<div key={client.clientId} className={cls.clientBlock}>
-								<button
-									type="button"
-									className={`${cls.clientCard} ${
-										firstProject &&
-										selectedProjectKey ===
-											getProjectKey(client.clientId, firstProject.projectId)
-											? cls.activeCard
-											: ""
-									}`}
-									onClick={() => {
-										if (firstProject) {
-											setSelectedProjectKey(
-												getProjectKey(client.clientId, firstProject.projectId),
-											);
-										}
-										toggleClient(client.clientId);
-									}}
-								>
-									<div>
-										<div className={cls.clientTitle}>
-											› {client.clientTitle}
-										</div>
-										<div className={cls.clientMeta}>
-											{client.projects.length} проектов
-										</div>
-										<div className={cls.clientPills}>
-											{([0, 1, 2] as ActivitySort[]).map((sort) => {
-												const kind = PAYMENT_KIND_BY_SORT[sort];
-
-												return (
-													<span key={sort} className={cls[kind]}>
-														{PAYMENT_SORT_TITLES[sort].replace(" paid", "")}{" "}
-														{Number(clientSummary[sort].toFixed(1))}
-													</span>
-												);
-											})}
-										</div>
-									</div>
-									<span className={cls.clientTotal}>
-										{formatHours(client.timeSpent)}
-									</span>
-								</button>
-								{isExpanded && (
-									<div className={cls.projectList}>
-										{client.projects.map((project) => (
-											<button
-												type="button"
-												key={project.projectId}
-												className={`${cls.projectButton} ${
-													selectedProjectKey ===
-													getProjectKey(client.clientId, project.projectId)
-														? cls.activeCard
-														: ""
-												}`}
-												onClick={() =>
-													setSelectedProjectKey(
-														getProjectKey(client.clientId, project.projectId),
-													)
-												}
-											>
-												<span>{project.projectTitle}</span>
-												<strong>{formatHours(project.timeSpent)}</strong>
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-						);
-					})
-				)}
-				{!isReportDataLoading && !groupedClientActivities.length && (
-					<div className={cls.emptyState}>Нет данных за выбранный период</div>
-				)}
-			</div>
-		</section>
-	);
-
-	const renderReportsPanel = () => (
-		<section className={`${cls.panel} ${cls.reportsPanel}`}>
-			<div className={cls.panelHeader}>
-				<h3>
-					Отчеты: {selectedClientProject?.client.clientTitle ?? "клиент"} -{" "}
-					{selectedClientProject?.project.projectTitle ?? "проект"}
-				</h3>
-				<span>{selectedProjectReports.length}</span>
-			</div>
-			<div className={cls.reportList}>
-				{isReportDataLoading ? (
-					<PanelSkeleton rows={8} variant="report" />
-				) : (
-					selectedProjectReports.map((report) => {
-						const paymentKind = getPaymentKindFromReport(
-							report,
-							context.activities,
-						);
-
-						return (
-							<button
-								type="button"
-								key={report.id}
-								className={cls.reportRow}
-								onClick={() => openTask(report.id, EntityTypeIds.reports)}
-							>
-								<div className={cls.reportMain}>
-									<strong>{report.title}</strong>
-									<small>
-										{getEmployeeTitle(report.assignedById)} ·{" "}
-										{new Date(report.day).toLocaleDateString("ru-RU")}
-									</small>
-								</div>
-								<span className={cls.activityBadge}>
-									{getActivityTitle(Number(report.activity))}
-								</span>
-								<span
-									className={`${cls.paymentLabel} ${
-										paymentKind ? cls[paymentKind] : ""
-									}`}
-								>
-									{paymentKind
-										? PAYMENT_SORT_TITLES[
-												getPaymentSortFromReport(report, context.activities) ??
-													0
-											]
-										: "Без типа"}
-								</span>
-								<strong className={cls.reportHours}>
-									{formatHours(parseTimeSpent(report.timeSpent))}
-								</strong>
-							</button>
-						);
-					})
-				)}
-				{!isReportDataLoading && !selectedProjectReports.length && (
-					<div className={cls.emptyState}>Выберите клиента или проект</div>
-				)}
-			</div>
-		</section>
-	);
 
 	return (
 		<div className={cls.page}>
@@ -1005,7 +421,18 @@ const ReportsCalendar = () => {
 								Неделя
 							</button>
 						</div>
-						{!isCalendarVisible && renderPeriodControls()}
+						{!isCalendarVisible && (
+							<PeriodControls
+								selectedMonth={selectedMonth}
+								selectedYear={selectedYear}
+								showToday={isCalendarVisible}
+								onMonthChange={handleMonthChange}
+								onYearChange={handleYearChange}
+								onPrevMonth={handlePrevMonth}
+								onNextMonth={handleNextMonth}
+								onToday={handleToday}
+							/>
+						)}
 					</div>
 				</header>
 
@@ -1020,14 +447,19 @@ const ReportsCalendar = () => {
 								isEmployeeSidebarCollapsed ? cls.sidebarCollapsed : ""
 							}`}
 						>
-							{renderEmployees()}
+							{employeesPanel}
 							{!isEmployeeSidebarCollapsed && (
 								<>
 									<section className={cls.clientsTree}>
 										<div className={cls.treeTitle}>Клиенты</div>
 										<ProjectActivitiesTree data={groupedClientActivities} />
 									</section>
-									{renderSummary()}
+									<SummaryCard
+										title={selectedUser?.title ?? "Весь отдел"}
+										paymentSummary={paymentSummary}
+										showNotAtWork={Boolean(selectedUserId)}
+										notAtWorkHours={selectedUserNotAtWork}
+									/>
 								</>
 							)}
 						</aside>
@@ -1069,9 +501,26 @@ const ReportsCalendar = () => {
 							onLoadingChange={setIsReportDataLoading}
 						/>
 						<div className={cls.hiddenCalendarLayout}>
-							{renderEmployees()}
-							{renderProjectCards()}
-							{renderReportsPanel()}
+							{employeesPanel}
+							<ProjectCardsPanel
+								clients={groupedClientActivities}
+								expandedClients={expandedClients}
+								selectedProjectKey={selectedProjectKey}
+								isLoading={isReportDataLoading}
+								onToggleClient={toggleClient}
+								onSelectProject={setSelectedProjectKey}
+							/>
+							<ReportsPanel
+								selectedClientProject={selectedClientProject}
+								reports={selectedProjectReports}
+								activities={context.activities}
+								isLoading={isReportDataLoading}
+								onOpenReport={(reportId) =>
+									openTask(reportId, EntityTypeIds.reports)
+								}
+								getEmployeeTitle={getEmployeeTitle}
+								getActivityTitle={getActivityTitle}
+							/>
 						</div>
 					</>
 				)}
