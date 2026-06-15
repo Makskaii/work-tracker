@@ -29,6 +29,8 @@ export enum ReportCodes {
 	taskType = "ufCrm11_1778666750123",
 }
 
+export type TaskType = "clients paid" | "company paid" | "unpaid";
+
 export enum ProjectCodes {
 	pm = "ASSIGNED_BY_ID",
 	analytic = "ufCrm20_1777028495",

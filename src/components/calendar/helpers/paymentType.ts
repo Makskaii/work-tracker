@@ -28,20 +28,68 @@ export const PAYMENT_CLASS_BY_KIND: Record<PaymentKind, string> = {
 	unpaid: "unpaid",
 };
 
-const normalizeTaskType = (value: unknown): string => {
-	if (value === null || value === undefined) return "";
+const TASK_TYPE_IDS = {
+	task: {
+		clientPaid: 393,
+		unpaid: 394,
+		companyPaid: 395,
+	},
+	report: {
+		clientPaid: 396,
+		unpaid: 397,
+		companyPaid: 398,
+	},
+} as const;
+
+const TASK_TYPE_SORT_BY_ID = new Map<number, PaymentSort>([
+	[TASK_TYPE_IDS.task.clientPaid, PAYMENT_SORT_BY_KIND.client],
+	[TASK_TYPE_IDS.task.companyPaid, PAYMENT_SORT_BY_KIND.company],
+	[TASK_TYPE_IDS.task.unpaid, PAYMENT_SORT_BY_KIND.unpaid],
+	[TASK_TYPE_IDS.report.clientPaid, PAYMENT_SORT_BY_KIND.client],
+	[TASK_TYPE_IDS.report.companyPaid, PAYMENT_SORT_BY_KIND.company],
+	[TASK_TYPE_IDS.report.unpaid, PAYMENT_SORT_BY_KIND.unpaid],
+]);
+
+const getTaskTypeCode = (value: unknown): number | null => {
+	if (typeof value === "number") {
+		return Number.isInteger(value) ? value : null;
+	}
+
+	if (typeof value === "string") {
+		const normalized = value.trim();
+
+		return /^\d+$/.test(normalized) ? Number(normalized) : null;
+	}
+
+	return null;
+};
+
+const getTaskTypeSortByCode = (value: unknown): PaymentSort | null => {
+	const code = getTaskTypeCode(value);
+
+	if (code !== null) {
+		return TASK_TYPE_SORT_BY_ID.get(code) ?? null;
+	}
 
 	if (Array.isArray(value)) {
-		return value.map(normalizeTaskType).join(" ");
+		for (const item of value) {
+			const sort = getTaskTypeSortByCode(item);
+
+			if (sort !== null) return sort;
+		}
+
+		return null;
 	}
 
 	if (typeof value === "object") {
-		return Object.values(value as Record<string, unknown>)
-			.map(normalizeTaskType)
-			.join(" ");
+		if (value === null) return null;
+
+		const item = value as { ID?: unknown; id?: unknown };
+
+		return getTaskTypeSortByCode(item.ID ?? item.id);
 	}
 
-	return String(value).trim().toLowerCase();
+	return null;
 };
 
 const getActivitySort = (
@@ -60,35 +108,9 @@ export const getPaymentSortFromReport = (
 	report: GroupedReportFields,
 	activities: ActivityListItem[] = [],
 ): PaymentSort | null => {
-	const taskType = normalizeTaskType(report.taskType);
+	const taskTypeSort = getTaskTypeSortByCode(report.taskType);
 
-	if (
-		taskType.includes("client") ||
-		taskType.includes("клиент") ||
-		taskType === "0"
-	) {
-		return 0;
-	}
-
-	if (
-		taskType.includes("company") ||
-		taskType.includes("ours") ||
-		taskType.includes("our") ||
-		taskType.includes("компан") ||
-		taskType.includes("внут") ||
-		taskType === "1"
-	) {
-		return 1;
-	}
-
-	if (
-		taskType.includes("unpaid") ||
-		taskType.includes("анпейд") ||
-		taskType.includes("неоплач") ||
-		taskType === "2"
-	) {
-		return 2;
-	}
+	if (taskTypeSort !== null) return taskTypeSort;
 
 	return getActivitySort(report, activities);
 };
