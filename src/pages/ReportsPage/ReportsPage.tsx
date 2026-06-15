@@ -244,7 +244,6 @@ const ReportsPage = () => {
 
 				const projectCompanyIds = getUniqueProjectCompanyIds(projectsResponse);
 
-				console.log({ projectCompanyIds });
 				const companiesResponse = projectCompanyIds.length
 					? await fetchAllCrmItems<CompanyFromCrm>({
 							entityTypeId: EntityTypeIds.companies,
