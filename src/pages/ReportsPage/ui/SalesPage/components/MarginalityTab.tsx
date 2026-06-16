@@ -420,7 +420,7 @@ export const MarginalityTab = ({
 											{formatPercent(percent)}
 										</strong>
 										<span>
-											Дата создания:{" "}
+											Дата платежа:{" "}
 											{formatDate(payment[ProjectCodes.paymentDate] ?? undefined)}
 										</span>
 										<small>
