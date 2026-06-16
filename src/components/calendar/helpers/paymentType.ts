@@ -124,6 +124,26 @@ export const getPaymentKindFromReport = (
 	return sort === null ? null : PAYMENT_KIND_BY_SORT[sort];
 };
 
+export const getPaymentSortFromReportTaskType = (
+	report: GroupedReportFields,
+	activities: ActivityListItem[] = [],
+): PaymentSort | null => {
+	const taskTypeSort = getTaskTypeSortByCode(report.reportTaskType);
+
+	if (taskTypeSort !== null) return taskTypeSort;
+
+	return getActivitySort(report, activities);
+};
+
+export const getPaymentKindFromReportTaskType = (
+	report: GroupedReportFields,
+	activities: ActivityListItem[] = [],
+): PaymentKind | null => {
+	const sort = getPaymentSortFromReportTaskType(report, activities);
+
+	return sort === null ? null : PAYMENT_KIND_BY_SORT[sort];
+};
+
 export const getPaymentSummary = (
 	reports: GroupedReportFields[] = [],
 	activities: ActivityListItem[] = [],

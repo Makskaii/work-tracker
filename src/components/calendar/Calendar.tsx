@@ -72,6 +72,7 @@ const mapReportToGroupedFields = (
 		company: companyId,
 		stageId: report.stageId,
 		taskType: taskType ?? report[ReportCodes.taskType] ?? null,
+		reportTaskType: report[ReportCodes.taskType] ?? null,
 	};
 };
 

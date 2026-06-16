@@ -1,6 +1,6 @@
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import {
-	getPaymentSortFromReport,
+	getPaymentSortFromReportTaskType,
 	PAYMENT_SORT_TITLES,
 } from "@/components/calendar/helpers/paymentType";
 import { ClientsCodes } from "@/shared/constants/const";
@@ -83,7 +83,7 @@ export const groupReportsByClientsProjectsAndActivities = ({
 	for (const report of reports) {
 		const clientId = Number(report.company ?? report.client);
 		const projectId = Number(report.parentproject ?? report.project);
-		const sort = getPaymentSortFromReport(report, activities);
+		const sort = getPaymentSortFromReportTaskType(report, activities);
 
 		if (!clientId || !projectId || sort === null) continue;
 
