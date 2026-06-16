@@ -54,7 +54,7 @@ export const fetchAllCrmItems = async <T,>({
 const PROJECT_PAYMENT_SELECT_FIELDS = [
 	"id",
 	"title",
-	"createdTime",
+	"ufCrm31_1781613488488",
 	ProjectCodes.paymentStage,
 	ProjectCodes.paymentStageBinding,
 	ProjectCodes.paymentPercent,
