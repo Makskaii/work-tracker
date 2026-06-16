@@ -24,6 +24,7 @@ export type ProjectPayment = {
 	[ProjectCodes.paymentStageBinding]?: string | null;
 	[ProjectCodes.paymentPercent]?: string | null;
 	[ProjectCodes.paymentAmount]?: string | null;
+	[ProjectCodes.paymentDate]?: string | null;
 	[ProjectCodes.paymentProject]?: string | null;
 };
 

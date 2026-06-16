@@ -48,6 +48,7 @@ export enum ProjectCodes {
 	paymentStageBinding = "ufCrm31_1780568517",
 	paymentPercent = "ufCrm31_1780568744067",
 	paymentAmount = "ufCrm31_1780568762673",
+	paymentDate = "ufCrm31_1781613488488",
 	paymentProject = "parentId1092",
 	projectPayment = "parentId1144",
 }

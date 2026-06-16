@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { GanttTimeline } from "./ganttTypes";
 import { getMilestoneStyle } from "./ganttUtils";
 import type { ProjectPayment } from "./types";
@@ -24,7 +25,9 @@ export const buildPaymentMarkers = (
 
 	return payments
 		.map((payment) => {
-			const paymentDate = payment.createdTime ? dayjs(payment.createdTime) : null;
+			const paymentDate = payment[ProjectCodes.paymentDate]
+				? dayjs(payment[ProjectCodes.paymentDate])
+				: null;
 
 			if (!paymentDate?.isValid()) {
 				return null;

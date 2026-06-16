@@ -184,7 +184,9 @@ export const MarginalityTab = ({
 	const paymentsByMonth = useMemo(() => {
 		return payments.reduce(
 			(result, item) => {
-				const date = getPaymentDate(item.payment.createdTime);
+				const date = getPaymentDate(
+					item.payment[ProjectCodes.paymentDate] ?? undefined,
+				);
 
 				if (!date) {
 					return result;
@@ -417,7 +419,10 @@ export const MarginalityTab = ({
 											{project.title} · {paymentNumber} платеж ·{" "}
 											{formatPercent(percent)}
 										</strong>
-										<span>Дата создания: {formatDate(payment.createdTime)}</span>
+										<span>
+											Дата создания:{" "}
+											{formatDate(payment[ProjectCodes.paymentDate] ?? undefined)}
+										</span>
 										<small>
 											Этап:{" "}
 											{getPaymentStageBindingLabel(

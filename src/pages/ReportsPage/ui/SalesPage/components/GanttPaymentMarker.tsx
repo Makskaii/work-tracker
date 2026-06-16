@@ -33,7 +33,9 @@ const getPaymentMarkerClass = (stageId?: string | null) => {
 };
 
 const getPaymentTooltip = (payment: ProjectPayment, dealAmount: number) => {
-	const paymentDate = payment.createdTime ? dayjs(payment.createdTime) : null;
+	const paymentDate = payment[ProjectCodes.paymentDate]
+		? dayjs(payment[ProjectCodes.paymentDate])
+		: null;
 	const date = paymentDate?.isValid()
 		? paymentDate.format("DD.MM.YYYY")
 		: "—";
