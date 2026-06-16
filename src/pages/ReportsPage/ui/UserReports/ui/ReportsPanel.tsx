@@ -1,6 +1,6 @@
 import {
-	getPaymentKindFromReport,
-	getPaymentSortFromReport,
+	getPaymentKindFromReportTaskType,
+	getPaymentSortFromReportTaskType,
 	PAYMENT_SORT_TITLES,
 } from "@/components/calendar/helpers/paymentType";
 import type { GroupedReportFields } from "@/shared/types/table";
@@ -50,7 +50,10 @@ export const ReportsPanel = ({
 				<PanelSkeleton rows={8} variant="report" />
 			) : (
 				reports.map((report) => {
-					const paymentKind = getPaymentKindFromReport(report, activities);
+					const paymentKind = getPaymentKindFromReportTaskType(
+						report,
+						activities,
+					);
 
 					return (
 						<button
@@ -76,7 +79,7 @@ export const ReportsPanel = ({
 							>
 								{paymentKind
 									? PAYMENT_SORT_TITLES[
-											getPaymentSortFromReport(report, activities) ?? 0
+											getPaymentSortFromReportTaskType(report, activities) ?? 0
 										]
 									: "Без типа"}
 							</span>

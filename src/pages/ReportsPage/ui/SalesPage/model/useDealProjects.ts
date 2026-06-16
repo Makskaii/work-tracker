@@ -6,19 +6,19 @@ import {
 	TaskCodes,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
-import {
-	EntityTypeIds,
-	TASK_SELECT_FIELDS,
-} from "@/shared/constants/const";
+import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
 import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
-import {
-	PROJECT_SELECT_FIELDS,
-	REPORT_SELECT_FIELDS,
-} from "./constants";
+import { PROJECT_SELECT_FIELDS, REPORT_SELECT_FIELDS } from "./constants";
 import { getDealProjectIds } from "./profitabilityUtils";
 import type { ProfitabilityProject } from "./types";
+
+type DealProjectsState = {
+	dealId: string | null;
+	isLoading: boolean;
+	projects: ProfitabilityProject[];
+};
 
 const mergeProjectsById = (projectGroups: ClientProjectProps[][]) => {
 	const result = new Map<string, ClientProjectProps>();
@@ -31,12 +31,15 @@ const mergeProjectsById = (projectGroups: ClientProjectProps[][]) => {
 };
 
 export const useDealProjects = (selectedDeal: Deal | null) => {
-	const [projects, setProjects] = useState<ProfitabilityProject[]>([]);
-	const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+	const [projectsState, setProjectsState] = useState<DealProjectsState>({
+		dealId: null,
+		isLoading: false,
+		projects: [],
+	});
+	const selectedDealId = selectedDeal ? String(selectedDeal.id) : null;
 
 	useEffect(() => {
 		if (!selectedDeal) {
-			setProjects([]);
 			return;
 		}
 
@@ -44,7 +47,11 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 		const projectIds = getDealProjectIds(selectedDeal);
 
 		const fetchDealProjects = async () => {
-			setIsLoadingDetails(true);
+			setProjectsState({
+				dealId: String(selectedDeal.id),
+				isLoading: true,
+				projects: [],
+			});
 
 			try {
 				const [linkedProjects, projectsByDealReverseParentField] =
@@ -75,7 +82,11 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 				]);
 
 				if (!dealProjects.length) {
-					setProjects([]);
+					setProjectsState({
+						dealId: String(selectedDeal.id),
+						isLoading: false,
+						projects: [],
+					});
 					return;
 				}
 
@@ -161,16 +172,20 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 				);
 
 				if (!controller.signal.aborted) {
-					setProjects(preparedProjects);
+					setProjectsState({
+						dealId: String(selectedDeal.id),
+						isLoading: false,
+						projects: preparedProjects,
+					});
 				}
 			} catch (error) {
 				if (!controller.signal.aborted) {
 					console.error("Failed to fetch deal profitability data", error);
-					setProjects([]);
-				}
-			} finally {
-				if (!controller.signal.aborted) {
-					setIsLoadingDetails(false);
+					setProjectsState({
+						dealId: String(selectedDeal.id),
+						isLoading: false,
+						projects: [],
+					});
 				}
 			}
 		};
@@ -182,8 +197,17 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 		};
 	}, [selectedDeal]);
 
+	if (!selectedDealId) {
+		return {
+			projects: [],
+			isLoadingDetails: false,
+		};
+	}
+
+	const isCurrentDealState = projectsState.dealId === selectedDealId;
+
 	return {
-		projects,
-		isLoadingDetails,
+		projects: isCurrentDealState ? projectsState.projects : [],
+		isLoadingDetails: isCurrentDealState ? projectsState.isLoading : true,
 	};
 };

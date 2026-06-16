@@ -237,6 +237,51 @@
 	}
 }
 
+.dealProjectSkeleton {
+	display: grid;
+	grid-template-columns: 26px minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 42px;
+	padding: 8px 10px;
+	border: 1px solid transparent;
+	border-radius: 12px;
+	background: rgba(22, 36, 55, 0.24);
+	box-sizing: border-box;
+}
+
+.dealProjectSkeletonIcon,
+.dealProjectSkeletonText span {
+	display: block;
+	border-radius: 999px;
+	background: linear-gradient(90deg, rgba(38, 58, 85, 0.84), rgba(57, 214, 238, 0.18), rgba(38, 58, 85, 0.84));
+	background-size: 220% 100%;
+	animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.dealProjectSkeletonIcon {
+	width: 26px;
+	height: 26px;
+}
+
+.dealProjectSkeletonText {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+
+	span:first-child {
+		width: 78%;
+		height: 12px;
+	}
+
+	span:last-child {
+		width: 48%;
+		height: 9px;
+		opacity: 0.72;
+	}
+}
+
 .dealProjectButton:not(.activeProject):hover {
 	border-color: var(--color-border-active);
 	background: rgba(46, 197, 173, 0.08);

@@ -41,4 +41,5 @@ export interface GroupedReportFields {
 	assignedById: string;
 	stageId: string;
 	taskType?: string | number | null;
+	reportTaskType?: string | number | null;
 }
