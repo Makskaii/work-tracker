@@ -20,7 +20,10 @@ const PAYMENT_STAGE_BINDING_ROW: Record<
 
 export type GanttPaymentAnchorData = {
 	date: Date;
+	rowId: string;
 	rowIndex: number;
+	rowTitle: string;
+	rowType: GanttRow["type"];
 };
 
 export type GanttPaymentMarkerData = {
@@ -30,7 +33,7 @@ export type GanttPaymentMarkerData = {
 	payment: ProjectPayment;
 };
 
-export const getPaymentMarkerTopPx = (level: number) =>
+const getPaymentMarkerTopPx = (level: number) =>
 	16 + level * PAYMENT_MARKER_SLOT_HEIGHT;
 
 export const getPaymentMarkerTop = (level: number) =>
@@ -83,13 +86,23 @@ const getPaymentAnchor = (
 			? row.stage.planEnd ?? fallbackDate
 			: row.milestone.date ?? fallbackDate;
 
-	return date ? { date, rowIndex } : null;
+	const rowTitle = row.type === "stage" ? row.stage.title : row.milestone.title;
+
+	return date
+		? {
+				date,
+				rowId: targetRow.id,
+				rowIndex,
+				rowTitle,
+				rowType: targetRow.type,
+			}
+		: null;
 };
 
 export const buildPaymentMarkers = (
 	payments: ProjectPayment[],
-	timeline: GanttTimeline,
 	rows: GanttRow[],
+	timeline: GanttTimeline,
 ): GanttPaymentMarkerData[] => {
 	const markerLevels: number[] = [];
 

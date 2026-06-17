@@ -1483,38 +1483,6 @@
 	}
 }
 
-.ganttPaymentLinks {
-	grid-column: 2;
-	grid-row: 1 / -1;
-	position: relative;
-	z-index: 5;
-	min-width: 720px;
-	height: 0;
-	pointer-events: none;
-
-	svg {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		overflow: visible;
-	}
-}
-
-.ganttPaymentLinkLine {
-	fill: none;
-	stroke: rgba(111, 168, 255, 0.58);
-	stroke-linecap: round;
-	stroke-linejoin: round;
-	stroke-width: 2;
-}
-
-.ganttPaymentLinkPoint {
-	fill: var(--color-surface);
-	stroke: rgba(111, 168, 255, 0.92);
-	stroke-width: 2;
-}
-
 .ganttPaymentPaid b {
 	background: var(--color-payment-client);
 }
@@ -1529,6 +1497,35 @@
 
 .ganttPaymentCanceled b {
 	background: var(--color-payment-unpaid);
+}
+
+.ganttPaymentMarkerLink {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	z-index: 5;
+	width: 10px;
+	height: 10px;
+	pointer-events: none;
+}
+
+.ganttPaymentMarkerConnector {
+	position: absolute;
+	left: 50%;
+	bottom: 5px;
+	width: 2px;
+	height: 100px;
+	transform: translateX(-50%);
+	background: rgba(111, 168, 255, 0.58);
+	border-radius: 999px;
+}
+
+.ganttPaymentMarkerAnchor {
+	position: absolute;
+	inset: 0;
+	border: 2px solid rgba(111, 168, 255, 0.92);
+	border-radius: 999px;
+	background: var(--color-surface);
+	box-shadow: 0 6px 12px rgba(1, 8, 14, 0.28);
 }
 
 .ganttNoDate {

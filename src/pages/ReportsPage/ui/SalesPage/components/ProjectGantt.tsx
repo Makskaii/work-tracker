@@ -31,18 +31,12 @@ import {
 } from "../model/ganttUtils";
 import {
 	buildPaymentMarkers,
-	getPaymentMarkerTopPx,
 	getPaymentRowHeight,
 } from "../model/ganttPaymentMarkers";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { GanttPaymentMarker } from "./GanttPaymentMarker";
 import { ProjectIncidentModal } from "./ProjectIncidentModal";
-
-const GANTT_SCALE_HEIGHT = 38;
-const GANTT_ROW_HEIGHT = 74;
-const PAYMENT_MARKER_CENTER_OFFSET = 10;
-const GANTT_ROW_CENTER_OFFSET = GANTT_ROW_HEIGHT / 2;
 
 export const ProjectGantt = ({
 	project,
@@ -84,11 +78,9 @@ export const ProjectGantt = ({
 			return [];
 		}
 
-		return buildPaymentMarkers(project.payments, timeline, gantt.rows);
+		return buildPaymentMarkers(project.payments, gantt.rows, timeline);
 	}, [gantt.rows, project, timeline]);
 	const paymentRowHeight = getPaymentRowHeight(paymentMarkers);
-	const paymentLinksHeight =
-		GANTT_SCALE_HEIGHT + paymentRowHeight + gantt.rows.length * GANTT_ROW_HEIGHT;
 	const handleOverdueClick = async () => {
 		if (!project) {
 			setIncidents([]);
@@ -161,12 +153,6 @@ export const ProjectGantt = ({
 				<div className={styles.ganttBoard}>
 					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
 					<GanttScale monthTicks={monthTicks} weekTicks={weekTicks} />
-					<GanttPaymentLinks
-						height={paymentLinksHeight}
-						markers={paymentMarkers}
-						paymentRowHeight={paymentRowHeight}
-						timeline={timeline}
-					/>
 					<div
 						className={styles.ganttRowInfo}
 						style={{ minHeight: paymentRowHeight }}
@@ -179,13 +165,15 @@ export const ProjectGantt = ({
 						style={{ minHeight: paymentRowHeight }}
 					>
 						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
-						{paymentMarkers.map(({ date, level, payment }) => (
+						{paymentMarkers.map(({ anchor, date, level, payment }) => (
 							<GanttPaymentMarker
+								anchor={anchor ?? undefined}
 								key={String(payment.id)}
 								date={date}
 								dealAmount={dealAmount}
 								level={level}
 								payment={payment}
+								paymentRowHeight={paymentRowHeight}
 								timeline={timeline}
 							/>
 						))}
@@ -233,92 +221,6 @@ export const ProjectGantt = ({
 				}
 			/>
 		</>
-	);
-};
-
-const getPaymentLinkX = (date: Date, timeline: GanttTimeline) =>
-	Number.parseFloat(String(getMilestoneStyle(date, timeline).left ?? 0));
-
-const GanttPaymentLinks = ({
-	height,
-	markers,
-	paymentRowHeight,
-	timeline,
-}: {
-	height: number;
-	markers: ReturnType<typeof buildPaymentMarkers>;
-	paymentRowHeight: number;
-	timeline: GanttTimeline;
-}) => {
-	const links = markers
-		.filter((marker) => marker.anchor)
-		.map((marker) => {
-			const anchor = marker.anchor;
-
-			if (!anchor) {
-				return null;
-			}
-
-			const startX = getPaymentLinkX(marker.date, timeline);
-			const endX = getPaymentLinkX(anchor.date, timeline);
-			const startY =
-				GANTT_SCALE_HEIGHT +
-				getPaymentMarkerTopPx(marker.level) +
-				PAYMENT_MARKER_CENTER_OFFSET;
-			const endY =
-				GANTT_SCALE_HEIGHT +
-				paymentRowHeight +
-				anchor.rowIndex * GANTT_ROW_HEIGHT +
-				GANTT_ROW_CENTER_OFFSET;
-
-			return {
-				endX,
-				endY,
-				id: String(marker.payment.id),
-				points: `${startX},${startY} ${startX},${endY} ${endX},${endY}`,
-			};
-		})
-		.filter(
-			(
-				link,
-			): link is {
-				endX: number;
-				endY: number;
-				id: string;
-				points: string;
-			} => Boolean(link),
-		);
-
-	if (!links.length) {
-		return null;
-	}
-
-	return (
-		<div className={styles.ganttPaymentLinks}>
-			<svg
-				aria-hidden="true"
-				height={height}
-				preserveAspectRatio="none"
-				viewBox={`0 0 100 ${height}`}
-			>
-				{links.map((link) => (
-					<g key={link.id}>
-						<polyline
-							className={styles.ganttPaymentLinkLine}
-							points={link.points}
-							vectorEffect="non-scaling-stroke"
-						/>
-						<circle
-							className={styles.ganttPaymentLinkPoint}
-							cx={link.endX}
-							cy={link.endY}
-							r="4"
-							vectorEffect="non-scaling-stroke"
-						/>
-					</g>
-				))}
-			</svg>
-		</div>
 	);
 };
 
