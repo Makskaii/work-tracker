@@ -4,6 +4,7 @@ import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { GanttTimeline } from "../model/ganttTypes";
 import {
 	getPaymentMarkerTop,
+	getPaymentMarkerTopPx,
 	type GanttPaymentAnchorData,
 } from "../model/ganttPaymentMarkers";
 import { getMilestoneStyle } from "../model/ganttUtils";
@@ -19,6 +20,10 @@ import styles from "../SalesProfitabilityReport.module.scss";
 
 const GANTT_ROW_HEIGHT = 74;
 const GANTT_ROW_CENTER_OFFSET = GANTT_ROW_HEIGHT / 2;
+const PAYMENT_MARKER_ICON_HEIGHT = 18;
+const PAYMENT_MARKER_ICON_CENTER_OFFSET = PAYMENT_MARKER_ICON_HEIGHT / 2;
+const PAYMENT_MARKER_EDGE_OFFSET = 3;
+const PAYMENT_MARKER_NEAR_START_THRESHOLD = 8;
 
 const getPaymentMarkerClass = (stageId?: string | null) => {
 	const stageType = getProjectPaymentStageType(stageId);
@@ -41,7 +46,7 @@ const getPaymentMarkerClass = (stageId?: string | null) => {
 const getPaymentTooltip = (
 	payment: ProjectPayment,
 	dealAmount: number,
-	anchorTitle?: string,
+	anchor?: GanttPaymentAnchorData,
 ) => {
 	const paymentDate = payment[ProjectCodes.paymentDate]
 		? dayjs(payment[ProjectCodes.paymentDate])
@@ -53,15 +58,19 @@ const getPaymentTooltip = (
 	const percent = getPaymentPercent(payment, dealAmount);
 	const lines = [
 		"Оплата",
+		`Дата платежа: ${date}`,
 		`Сумма: ${formatMoney(amount)}`,
 		`Процент: ${percent}%`,
-		`Дата: ${date}`,
 		`Стадия: ${payment.stageId ?? "—"}`,
 		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
 	];
 
-	if (anchorTitle) {
-		lines.push(`Привязка: ${anchorTitle}`);
+	if (anchor) {
+		lines.push(`Привязка к этапу: ${anchor.rowTitle}`);
+	}
+
+	if (anchor?.isFallbackDate) {
+		lines.push("Дата этапа не заполнена, использована последняя плановая дата");
 	}
 
 	return lines.join("\n");
@@ -86,8 +95,19 @@ export const GanttPaymentMarker = ({
 }) => {
 	const amount = getPaymentAmount(payment, dealAmount);
 	const percent = getPaymentPercent(payment, dealAmount);
+	const markerStyle = getMilestoneStyle(date, timeline);
+	const left = Number.parseFloat(String(markerStyle.left ?? 0));
+	const safeLeft = Number.isFinite(left)
+		? Math.min(Math.max(left, PAYMENT_MARKER_EDGE_OFFSET), 100 - PAYMENT_MARKER_EDGE_OFFSET)
+		: left;
+	const markerLeft = `${safeLeft}%`;
+	const isNearStart = safeLeft < PAYMENT_MARKER_NEAR_START_THRESHOLD;
+	const connectorLeft = isNearStart
+		? `calc(${markerLeft} + ${PAYMENT_MARKER_ICON_CENTER_OFFSET}px)`
+		: markerLeft;
 	const style = {
-		...getMilestoneStyle(date, timeline),
+		...markerStyle,
+		left: markerLeft,
 		top: getPaymentMarkerTop(level),
 	};
 	const anchorTop = anchor
@@ -95,10 +115,14 @@ export const GanttPaymentMarker = ({
 			anchor.rowIndex * GANTT_ROW_HEIGHT +
 			GANTT_ROW_CENTER_OFFSET
 		: 0;
+	const connectorTop =
+		getPaymentMarkerTopPx(level) + PAYMENT_MARKER_ICON_CENTER_OFFSET;
+	const connectorHeight = Math.max(anchorTop - connectorTop, 0);
 	const anchorStyle = anchor
 		? {
-				...getMilestoneStyle(anchor.date, timeline),
-				top: `${anchorTop}px`,
+				left: connectorLeft,
+				height: `${connectorHeight}px`,
+				top: `${connectorTop}px`,
 			}
 		: null;
 
@@ -107,9 +131,9 @@ export const GanttPaymentMarker = ({
 			<span
 				className={`${styles.ganttPaymentMarker} ${getPaymentMarkerClass(
 					payment.stageId,
-				)}`}
+				)} ${isNearStart ? styles.ganttPaymentMarkerNearStart : ""}`}
 				style={style}
-				title={getPaymentTooltip(payment, dealAmount, anchor?.rowTitle)}
+				title={getPaymentTooltip(payment, dealAmount, anchor)}
 			>
 				<b>
 					<FaMoneyBillWave aria-hidden="true" />
@@ -122,10 +146,7 @@ export const GanttPaymentMarker = ({
 			</span>
 			{anchorStyle ? (
 				<span className={styles.ganttPaymentMarkerLink} style={anchorStyle}>
-					<i
-						className={styles.ganttPaymentMarkerConnector}
-						style={{ height: `${Math.max(anchorTop - 10, 0)}px` }}
-					/>
+					<i className={styles.ganttPaymentMarkerConnector} />
 					<i className={styles.ganttPaymentMarkerAnchor} />
 				</span>
 			) : null}
