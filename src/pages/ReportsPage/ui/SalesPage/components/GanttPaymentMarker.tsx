@@ -1,10 +1,10 @@
 import dayjs from "dayjs";
+import { forwardRef } from "react";
 import { FaMoneyBillWave } from "react-icons/fa";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { GanttTimeline } from "../model/ganttTypes";
 import {
 	getPaymentMarkerTop,
-	getPaymentMarkerTopPx,
 	type GanttPaymentAnchorData,
 } from "../model/ganttPaymentMarkers";
 import { getMilestoneStyle } from "../model/ganttUtils";
@@ -18,12 +18,8 @@ import { formatMoney } from "../model/profitabilityUtils";
 import type { ProjectPayment } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
-const GANTT_ROW_HEIGHT = 74;
-const GANTT_ROW_CENTER_OFFSET = GANTT_ROW_HEIGHT / 2;
-const PAYMENT_MARKER_ICON_HEIGHT = 18;
-const PAYMENT_MARKER_ICON_CENTER_OFFSET = PAYMENT_MARKER_ICON_HEIGHT / 2;
-const PAYMENT_MARKER_EDGE_OFFSET = 3;
-const PAYMENT_MARKER_NEAR_START_THRESHOLD = 8;
+const PAYMENT_MARKER_EDGE_OFFSET = 8;
+const PAYMENT_MARKER_NEAR_START_THRESHOLD = 14;
 
 const getPaymentMarkerClass = (stageId?: string | null) => {
 	const stageType = getProjectPaymentStageType(stageId);
@@ -76,23 +72,26 @@ const getPaymentTooltip = (
 	return lines.join("\n");
 };
 
-export const GanttPaymentMarker = ({
-	anchor,
-	date,
-	dealAmount,
-	level,
-	payment,
-	paymentRowHeight,
-	timeline,
-}: {
+type GanttPaymentMarkerProps = {
 	anchor?: GanttPaymentAnchorData;
 	date: Date;
 	dealAmount: number;
 	level: number;
 	payment: ProjectPayment;
-	paymentRowHeight: number;
 	timeline: GanttTimeline;
-}) => {
+};
+
+export const GanttPaymentMarker = forwardRef<
+	HTMLSpanElement,
+	GanttPaymentMarkerProps
+>(({
+	anchor,
+	date,
+	dealAmount,
+	level,
+	payment,
+	timeline,
+}, ref) => {
 	const amount = getPaymentAmount(payment, dealAmount);
 	const percent = getPaymentPercent(payment, dealAmount);
 	const markerStyle = getMilestoneStyle(date, timeline);
@@ -102,33 +101,14 @@ export const GanttPaymentMarker = ({
 		: left;
 	const markerLeft = `${safeLeft}%`;
 	const isNearStart = safeLeft < PAYMENT_MARKER_NEAR_START_THRESHOLD;
-	const connectorLeft = isNearStart
-		? `calc(${markerLeft} + ${PAYMENT_MARKER_ICON_CENTER_OFFSET}px)`
-		: markerLeft;
 	const style = {
 		...markerStyle,
 		left: markerLeft,
 		top: getPaymentMarkerTop(level),
 	};
-	const anchorTop = anchor
-		? paymentRowHeight +
-			anchor.rowIndex * GANTT_ROW_HEIGHT +
-			GANTT_ROW_CENTER_OFFSET
-		: 0;
-	const connectorTop =
-		getPaymentMarkerTopPx(level) + PAYMENT_MARKER_ICON_CENTER_OFFSET;
-	const connectorHeight = Math.max(anchorTop - connectorTop, 0);
-	const anchorStyle = anchor
-		? {
-				left: connectorLeft,
-				height: `${connectorHeight}px`,
-				top: `${connectorTop}px`,
-			}
-		: null;
-
 	return (
-		<>
 			<span
+				ref={ref}
 				className={`${styles.ganttPaymentMarker} ${getPaymentMarkerClass(
 					payment.stageId,
 				)} ${isNearStart ? styles.ganttPaymentMarkerNearStart : ""}`}
@@ -144,12 +124,7 @@ export const GanttPaymentMarker = ({
 					{formatMoney(amount)}
 				</small>
 			</span>
-			{anchorStyle ? (
-				<span className={styles.ganttPaymentMarkerLink} style={anchorStyle}>
-					<i className={styles.ganttPaymentMarkerConnector} />
-					<i className={styles.ganttPaymentMarkerAnchor} />
-				</span>
-			) : null}
-		</>
 	);
-};
+});
+
+GanttPaymentMarker.displayName = "GanttPaymentMarker";

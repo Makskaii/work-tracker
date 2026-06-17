@@ -1,12 +1,12 @@
 import dayjs from "dayjs";
 import { ProjectCodes } from "@/components/calendar/constants/const";
-import type { GanttRow, GanttTimeline } from "./ganttTypes";
+import type { GanttRow, GanttStage, GanttTimeline } from "./ganttTypes";
 import { getMilestoneStyle } from "./ganttUtils";
 import type { ProjectPayment } from "./types";
 
 const PAYMENT_MARKER_BASE_HEIGHT = 92;
-const PAYMENT_MARKER_MIN_DISTANCE = 5;
-const PAYMENT_MARKER_SLOT_HEIGHT = 58;
+const PAYMENT_MARKER_MIN_DISTANCE = 12;
+const PAYMENT_MARKER_SLOT_HEIGHT = 68;
 const PAYMENT_STAGE_BINDING_ROW: Record<
 	string,
 	{ id: string; type: GanttRow["type"] }
@@ -30,6 +30,7 @@ export type GanttPaymentAnchorData = {
 export type GanttPaymentMarkerData = {
 	anchor: GanttPaymentAnchorData | null;
 	date: Date;
+	isPaymentDateFallback: boolean;
 	level: number;
 	payment: ProjectPayment;
 };
@@ -40,18 +41,29 @@ export const getPaymentMarkerTopPx = (level: number) =>
 export const getPaymentMarkerTop = (level: number) =>
 	`${getPaymentMarkerTopPx(level)}px`;
 
-const getLatestPlanEnd = (rows: GanttRow[]) =>
-	rows.reduce<Date | null>((latestDate, row) => {
-		if (row.type !== "stage" || !row.stage.planEnd) {
-			return latestDate;
+const getTzPlanStart = (rows: GanttRow[]) => {
+	const tzRow = rows.find(
+		(row) => row.type === "stage" && row.stage.id === "tz",
+	);
+
+	return tzRow?.type === "stage" ? tzRow.stage.planStart : null;
+};
+
+const getStageAnchorDate = (stage: GanttStage) => {
+	if (stage.factStart && stage.factEnd && stage.factEnd > stage.factStart) {
+		if (stage.planStart && stage.factStart < stage.planStart) {
+			return stage.planStart;
 		}
 
-		if (!latestDate || row.stage.planEnd > latestDate) {
-			return row.stage.planEnd;
+		if (stage.planEnd && stage.factEnd > stage.planEnd) {
+			return stage.planEnd;
 		}
 
-		return latestDate;
-	}, null);
+		return stage.factEnd;
+	}
+
+	return stage.planEnd;
+};
 
 const getPaymentAnchor = (
 	payment: ProjectPayment,
@@ -81,10 +93,10 @@ const getPaymentAnchor = (
 	}
 
 	const row = rows[rowIndex];
-	const fallbackDate = getLatestPlanEnd(rows);
+	const fallbackDate = getTzPlanStart(rows);
 	const ownDate =
 		row.type === "stage"
-			? row.stage.planEnd
+			? getStageAnchorDate(row.stage)
 			: row.milestone.date;
 	const date = ownDate ?? fallbackDate;
 
@@ -108,20 +120,27 @@ export const buildPaymentMarkers = (
 	timeline: GanttTimeline,
 ): GanttPaymentMarkerData[] => {
 	const markerLevels: number[] = [];
+	const fallbackPaymentDate = getTzPlanStart(rows);
 
 	return payments
 		.map((payment) => {
+			const anchor = getPaymentAnchor(payment, rows);
 			const paymentDate = payment[ProjectCodes.paymentDate]
 				? dayjs(payment[ProjectCodes.paymentDate])
 				: null;
+			const isPaymentDateFallback = !paymentDate?.isValid();
+			const date = paymentDate?.isValid()
+				? (anchor?.date ?? paymentDate.toDate())
+				: fallbackPaymentDate;
 
-			if (!paymentDate?.isValid()) {
+			if (!date) {
 				return null;
 			}
 
 			return {
-				anchor: getPaymentAnchor(payment, rows),
-				date: paymentDate.toDate(),
+				anchor,
+				date,
+				isPaymentDateFallback,
 				payment,
 			};
 		})
@@ -131,6 +150,7 @@ export const buildPaymentMarkers = (
 			): marker is {
 				anchor: GanttPaymentAnchorData | null;
 				date: Date;
+				isPaymentDateFallback: boolean;
 				payment: ProjectPayment;
 			} => Boolean(marker),
 		)
