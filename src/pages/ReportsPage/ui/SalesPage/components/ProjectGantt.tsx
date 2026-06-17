@@ -207,10 +207,6 @@ export const ProjectGantt = ({
 						board.scrollTop
 					: rowRect.top + rowRect.height / 2 - boardRect.top + board.scrollTop;
 				const getTargetX = () => {
-					if (marker.isPaymentDateFallback) {
-						return startX;
-					}
-
 					if (anchorRect) {
 						return anchor.rowType === "milestone"
 							? anchorRect.left +

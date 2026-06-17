@@ -129,9 +129,9 @@ export const buildPaymentMarkers = (
 				? dayjs(payment[ProjectCodes.paymentDate])
 				: null;
 			const isPaymentDateFallback = !paymentDate?.isValid();
-			const date = paymentDate?.isValid()
-				? (anchor?.date ?? paymentDate.toDate())
-				: fallbackPaymentDate;
+			const date =
+				anchor?.date ??
+				(paymentDate?.isValid() ? paymentDate.toDate() : fallbackPaymentDate);
 
 			if (!date) {
 				return null;

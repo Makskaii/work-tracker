@@ -238,7 +238,10 @@ export const SalesProfitabilityReport = ({
 										</div>
 									</div>
 
-									<SummaryCards summary={summary} />
+									<SummaryCards
+										dealTitle={selectedDeal?.title ?? "Сделка не выбрана"}
+										summary={summary}
+									/>
 								</>
 							)}
 

@@ -1,41 +1,70 @@
-import {
-	formatHours,
-	formatMoney,
-} from "../model/profitabilityUtils";
+import { formatHours, formatMoney } from "../model/profitabilityUtils";
 import type { DealSummary } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
-import { MetricCard } from "./MetricCard";
 
 type SummaryCardsProps = {
+	dealTitle: string;
 	summary: DealSummary;
 };
 
-export const SummaryCards = ({ summary }: SummaryCardsProps) => (
-	<div className={styles.summaryGrid}>
-		<MetricCard
-			title="Куплено часов"
-			value={formatHours(summary.purchasedHours)}
-		/>
-		<MetricCard
-			title="Сумма сделки"
-			value={formatMoney(summary.revenue)}
-			accent
-		/>
-		<MetricCard title="План из задач" value={formatHours(summary.planHours)} />
-		<MetricCard
-			title="Факт по отчётам"
-			value={formatHours(summary.factHours)}
-		/>
-		<MetricCard
-			title="Потери всего"
-			value={formatHours(summary.lossHours)}
-			danger
-		/>
-		<MetricCard
-			title="Маржа"
-			value={`${summary.mockMarginPercent}%`}
-			success
-			muted
-		/>
+export const SummaryCards = ({ dealTitle, summary }: SummaryCardsProps) => (
+	<div className={styles.dealSummary}>
+		<div className={styles.dealSummaryMain}>
+			<span className={styles.dealSummaryEyebrow}>Сделка</span>
+			<h3>{dealTitle}</h3>
+			<div className={styles.dealSummaryPrimaryStats}>
+				<div>
+					<span className={styles.dealSummaryLabel}>Сумма сделки</span>
+					<strong className={styles.dealSummaryAmount}>
+						{formatMoney(summary.revenue)}
+					</strong>
+				</div>
+				<div>
+					<span className={styles.dealSummaryLabel}>Маржа</span>
+					<strong className={styles.dealSummaryMargin}>
+						{summary.mockMarginPercent}%
+					</strong>
+					<small>mock / disabled</small>
+				</div>
+			</div>
+		</div>
+		<div className={styles.dealSummarySide}>
+			<div className={styles.dealSummaryStats}>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Куплено:</span>
+					<strong className={styles.dealSummaryValue}>
+						{formatHours(summary.purchasedHours)}
+					</strong>
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>План:</span>
+					<strong className={styles.dealSummaryValue}>
+						{formatHours(summary.planHours)}
+					</strong>
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Факт:</span>
+					<strong className={styles.dealSummaryValue}>
+						{formatHours(summary.factHours)}
+					</strong>
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Потери:</span>
+					<strong
+						className={`${styles.dealSummaryValue} ${styles.dealSummaryDanger}`}
+					>
+						{formatHours(summary.lossHours)}
+					</strong>
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>План. заверш.:</span>
+					<strong className={styles.dealSummaryValue}>—</strong>
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Факт. заверш.:</span>
+					<strong className={styles.dealSummaryValue}>—</strong>
+				</div>
+			</div>
+		</div>
 	</div>
 );
