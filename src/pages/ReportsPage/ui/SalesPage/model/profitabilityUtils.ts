@@ -6,27 +6,28 @@ import {
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { TaskProps, User } from "@/shared/types/types";
-import { type Deal, DealCodes } from "../../../types/deals.types";
 import type { ActivityListItem } from "../../../types/types";
 import { MOCK_MARGIN_PERCENT } from "./constants";
 import type {
 	CompanyFinancialGroup,
 	CompanyProjectGroup,
-	DealSummary,
+	FinancialProjectSummary,
 	ProfitabilityProject,
 } from "./types";
 
 export const toNumber = (value: unknown) => {
-	const parsed = Number(String(value ?? "0").replace(",", "."));
+	const normalized = String(value ?? "0")
+		.split("|")[0]
+		.replace(/\s/g, "")
+		.replace(",", ".")
+		.replace(/[^\d.-]/g, "");
+	const parsed = Number(normalized);
+
 	return Number.isFinite(parsed) ? parsed : 0;
 };
 
-export const getDealProjectIds = (deal: Deal | null) => {
-	const value = deal?.[DealCodes.parentProject];
-	const values = Array.isArray(value) ? value : [value];
-
-	return values.map((item) => String(item ?? "").trim()).filter(Boolean);
-};
+export const getProjectAmount = (project?: ProfitabilityProject | null) =>
+	toNumber(project?.[ProjectCodes.projectAmount]);
 
 export const hasFinancialProjectType = (
 	project: ProfitabilityProject,
@@ -223,10 +224,9 @@ export const getLossHours = (project: ProfitabilityProject) => {
 	);
 };
 
-export const getDealSummary = (
+export const getFinancialProjectSummary = (
 	projects: ProfitabilityProject[],
-	deal: Deal | null,
-): DealSummary => {
+): FinancialProjectSummary => {
 	const planHours = projects.reduce(
 		(acc, project) => acc + getProjectPlanHours(project.tasks),
 		0,
@@ -247,10 +247,13 @@ export const getDealSummary = (
 			unpaid: 0,
 		},
 	);
-	const revenue = toNumber(deal?.opportunity);
+	const revenue = projects.reduce(
+		(acc, project) => acc + getProjectAmount(project),
+		0,
+	);
 
 	return {
-		purchasedHours: toNumber(deal?.[DealCodes.purchasedHours]),
+		purchasedHours: 0,
 		revenue,
 		planHours,
 		factHours,

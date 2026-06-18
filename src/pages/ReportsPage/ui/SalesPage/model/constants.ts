@@ -31,6 +31,7 @@ export const PROJECT_SELECT_FIELDS = [
 	"stageId",
 	ProjectCodes.company,
 	ProjectCodes.financialProjectType,
+	ProjectCodes.projectAmount,
 	ProjectCodes.parentproject,
 	ProjectCodes.parentDeal,
 	...Object.values(ProjectGanttCodes),

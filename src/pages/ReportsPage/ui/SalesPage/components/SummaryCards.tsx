@@ -1,20 +1,20 @@
 import { formatHours, formatMoney } from "../model/profitabilityUtils";
-import type { DealSummary } from "../model/types";
+import type { FinancialProjectSummary } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
 type SummaryCardsProps = {
-	dealTitle: string;
-	summary: DealSummary;
+	projectTitle: string;
+	summary: FinancialProjectSummary;
 };
 
-export const SummaryCards = ({ dealTitle, summary }: SummaryCardsProps) => (
+export const SummaryCards = ({ projectTitle, summary }: SummaryCardsProps) => (
 	<div className={styles.dealSummary}>
 		<div className={styles.dealSummaryMain}>
 			<span className={styles.dealSummaryEyebrow}>Финансовый вотерфол проект</span>
-			<h3>{dealTitle}</h3>
+			<h3>{projectTitle}</h3>
 			<div className={styles.dealSummaryPrimaryStats}>
 				<div>
-					<span className={styles.dealSummaryLabel}>Сумма группы</span>
+					<span className={styles.dealSummaryLabel}>Сумма проекта</span>
 					<strong className={styles.dealSummaryAmount}>
 						{formatMoney(summary.revenue)}
 					</strong>

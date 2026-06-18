@@ -52,6 +52,7 @@ export enum ProjectCodes {
 	paymentProject = "parentId1092",
 	projectPayment = "parentId1144",
 	financialProjectType = "ufCrm20_1781683772",
+	projectAmount = "ufCrm20_1781794144345",
 }
 
 export const FINANCIAL_PROJECT_TYPE = {

@@ -13,7 +13,7 @@ import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
 import {
 	buildCompanyProjectGroups,
-	getDealSummary,
+	getFinancialProjectSummary,
 } from "./model/profitabilityUtils";
 import type { SalesProfitabilityTab } from "./model/types";
 import { useDealProjects } from "./model/useDealProjects";
@@ -98,7 +98,7 @@ export const SalesProfitabilityReport = ({
 		return projectIds[0];
 	}, [activeProjects, selectedProjectId]);
 
-	const summary = getDealSummary(activeProjects, null);
+	const summary = getFinancialProjectSummary(activeProjects);
 	const isBusy = loading || isLoadingDetails;
 	const allTasks = activeProjects.flatMap((project) =>
 		project.tasks.map((task) => ({ task, project })),
@@ -237,7 +237,7 @@ export const SalesProfitabilityReport = ({
 						<>
 							{activeTab !== "marginality" && (
 								<SummaryCards
-									dealTitle={
+									projectTitle={
 										activeFinancialGroup?.title ??
 										activeCompanyGroup?.title ??
 										"Компания не выбрана"

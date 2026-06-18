@@ -76,7 +76,7 @@ export const getRawPaymentPercent = (payment: ProjectPayment) =>
 
 export const getPaymentAmount = (
 	payment: ProjectPayment,
-	dealAmount: number,
+	projectAmount: number,
 ) => {
 	const amount = getRawPaymentAmount(payment);
 
@@ -86,12 +86,12 @@ export const getPaymentAmount = (
 
 	const percent = getRawPaymentPercent(payment);
 
-	return dealAmount && percent ? Math.round((dealAmount * percent) / 100) : 0;
+	return projectAmount && percent ? Math.round((projectAmount * percent) / 100) : 0;
 };
 
 export const getPaymentPercent = (
 	payment: ProjectPayment,
-	dealAmount: number,
+	projectAmount: number,
 ) => {
 	const percent = getRawPaymentPercent(payment);
 
@@ -101,5 +101,5 @@ export const getPaymentPercent = (
 
 	const amount = getRawPaymentAmount(payment);
 
-	return dealAmount && amount ? Math.round((amount / dealAmount) * 100) : 0;
+	return projectAmount && amount ? Math.round((amount / projectAmount) * 100) : 0;
 };

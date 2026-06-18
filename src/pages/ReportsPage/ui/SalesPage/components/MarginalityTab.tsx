@@ -6,7 +6,7 @@ import {
 	getPaymentPercent,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
-import { formatMoney } from "../model/profitabilityUtils";
+import { formatMoney, getProjectAmount } from "../model/profitabilityUtils";
 import type { ProfitabilityProject } from "../model/types";
 import {
 	type MarginalityScope,
@@ -146,7 +146,7 @@ export const MarginalityTab = ({
 	const selectedProject = projects.find(
 		(project) => project.projectId === selectedProjectId,
 	);
-	const baseAmount = 0;
+	const projectAmount = getProjectAmount(selectedProject ?? projects[0]);
 
 	const {
 		payments,
@@ -165,24 +165,20 @@ export const MarginalityTab = ({
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
 		return stageType === "paid"
-			? sum + getPaymentAmount(item.payment, baseAmount)
+			? sum + getPaymentAmount(item.payment, projectAmount)
 			: sum;
 	}, 0);
-	const totalPaymentAmount = payments.reduce(
-		(sum, item) => sum + getPaymentAmount(item.payment, baseAmount),
-		0,
-	);
 	const debtAmount = payments.reduce((sum, item) => {
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
 		return stageType === "debt"
-			? sum + getPaymentAmount(item.payment, baseAmount)
+			? sum + getPaymentAmount(item.payment, projectAmount)
 			: sum;
 	}, 0);
-	const requestAmount = Math.max((baseAmount || totalPaymentAmount) - paidAmount, 0);
+	const requestAmount = Math.max(projectAmount - paidAmount, 0);
 	const marginPercent =
-		baseAmount || totalPaymentAmount
-			? Math.round((paidAmount / (baseAmount || totalPaymentAmount)) * 100)
+		projectAmount
+			? Math.round((paidAmount / projectAmount) * 100)
 			: 0;
 	const paymentsByMonth = useMemo(() => {
 		return payments.reduce(
@@ -212,14 +208,14 @@ export const MarginalityTab = ({
 	const chartColumns = useMemo(() => {
 		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(
-				(sum, item) => sum + getPaymentAmount(item.payment, baseAmount),
+				(sum, item) => sum + getPaymentAmount(item.payment, projectAmount),
 				0,
 			);
 			const segments = group.items
 				.map((item) => ({
 					...item,
-					amount: getPaymentAmount(item.payment, baseAmount),
-					percent: getPaymentPercent(item.payment, baseAmount),
+					amount: getPaymentAmount(item.payment, projectAmount),
+					percent: getPaymentPercent(item.payment, projectAmount),
 				}))
 				.filter((item) => item.amount > 0);
 
@@ -238,7 +234,7 @@ export const MarginalityTab = ({
 			...column,
 			maxAmount,
 		}));
-	}, [paymentsByMonth]);
+	}, [paymentsByMonth, projectAmount]);
 	const hasChartColumns = chartColumns.length > 0;
 	const paymentListItems = useMemo(() => {
 		const stageCounters = new Map<string, number>();
@@ -306,7 +302,7 @@ export const MarginalityTab = ({
 				<div>
 					<span>Сумма</span>
 					<strong className={styles.amountText}>
-						{formatMoney(baseAmount || totalPaymentAmount)}
+						{formatMoney(projectAmount)}
 					</strong>
 				</div>
 				<div>
@@ -403,8 +399,8 @@ export const MarginalityTab = ({
 						<div className={styles.emptyState}>Загрузка оплат...</div>
 					) : payments.length ? (
 						paymentListItems.map(({ payment, paymentNumber, project, stageMeta }) => {
-							const amount = getPaymentAmount(payment, baseAmount);
-							const percent = getPaymentPercent(payment, baseAmount);
+							const amount = getPaymentAmount(payment, projectAmount);
+							const percent = getPaymentPercent(payment, projectAmount);
 
 							return (
 								<article key={String(payment.id)} className={styles.paymentItem}>

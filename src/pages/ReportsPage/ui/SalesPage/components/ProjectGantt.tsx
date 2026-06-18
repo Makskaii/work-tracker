@@ -64,6 +64,14 @@ type GanttPaymentLinksLayout = {
 
 const PAYMENT_OVERDUE_LINK_Y_OFFSET = 132;
 
+const getScaleWeekStep = (weekTicksCount: number) => {
+	if (weekTicksCount > 36) return 4;
+	if (weekTicksCount > 24) return 3;
+	if (weekTicksCount > 14) return 2;
+
+	return 1;
+};
+
 export const ProjectGantt = ({
 	project,
 	dealAmount = 0,
@@ -105,6 +113,11 @@ export const ProjectGantt = ({
 	);
 	const monthTicks = useMemo(() => getMonthTicks(timeline), [timeline]);
 	const weekTicks = useMemo(() => getWeekTicks(timeline), [timeline]);
+	const scaleWeekTicks = useMemo(() => {
+		const step = getScaleWeekStep(weekTicks.length);
+
+		return weekTicks.filter((_, index) => index % step === 0);
+	}, [weekTicks]);
 	const hasDates = gantt.rows.some((row) =>
 		row.type === "milestone"
 			? row.milestone.date
@@ -368,7 +381,7 @@ export const ProjectGantt = ({
 				<div ref={ganttBoardRef} className={styles.ganttBoard}>
 					<GanttPaymentLinks layout={paymentLinksLayout} />
 					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
-					<GanttScale monthTicks={monthTicks} weekTicks={weekTicks} />
+					<GanttScale monthTicks={monthTicks} weekTicks={scaleWeekTicks} />
 					<div
 						className={styles.ganttRowInfo}
 						style={{ minHeight: paymentRowHeight }}

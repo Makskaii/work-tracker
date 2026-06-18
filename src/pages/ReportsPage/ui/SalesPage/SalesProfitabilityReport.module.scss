@@ -1124,17 +1124,26 @@
 
 .ganttMetrics {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(150px, 1fr));
-	gap: 10px;
-	padding: 16px;
+	grid-template-columns: repeat(4, minmax(170px, 1fr));
+	gap: 0 22px;
+	margin: 10px 14px 8px;
+	padding: 10px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(22, 36, 55, 0.28);
 }
 
 .ganttMetric {
 	min-width: 0;
-	padding: 12px;
-	border: 1px solid var(--color-border);
-	border-radius: 10px;
-	background: var(--color-surface-soft);
+	display: grid;
+	grid-template-columns: minmax(110px, 1fr) auto;
+	align-items: baseline;
+	gap: 10px;
+	padding: 5px 0;
+	border: 0;
+	border-bottom: 1px solid rgba(93, 141, 206, 0.14);
+	border-radius: 0;
+	background: transparent;
 	text-align: left;
 
 	span,
@@ -1147,15 +1156,16 @@
 
 	span {
 		color: rgba(238, 245, 255, 0.64);
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 800;
 	}
 
 	strong {
-		margin-top: 6px;
+		margin-top: 0;
 		color: var(--color-text);
-		font-size: 18px;
+		font-size: 13px;
 		font-weight: 950;
+		text-align: right;
 	}
 }
 
@@ -1178,24 +1188,24 @@
 .ganttLegend {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px 14px;
-	padding: 0 16px 14px;
+	gap: 7px 10px;
+	padding: 0 14px 10px;
 	color: rgba(238, 245, 255, 0.66);
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 800;
 	text-align: left;
 
 	span {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: 5px;
 		white-space: nowrap;
 	}
 
 	i {
-		width: 12px;
-		height: 12px;
-		border-radius: 4px;
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
 	}
 }
 

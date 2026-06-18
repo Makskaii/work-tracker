@@ -15,6 +15,7 @@ export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 	reports: ReportProps[];
 	payments: ProjectPayment[];
 	[ProjectCodes.financialProjectType]?: string | string[] | null;
+	[ProjectCodes.projectAmount]?: string | number | null;
 };
 
 export type CompanyFinancialGroup = {
@@ -45,7 +46,7 @@ export type ProjectPayment = {
 	[ProjectCodes.paymentProject]?: string | null;
 };
 
-export type DealSummary = {
+export type FinancialProjectSummary = {
 	purchasedHours: number;
 	revenue: number;
 	planHours: number;

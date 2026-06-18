@@ -77,23 +77,23 @@ export const useMarginalityPayments = ({
 		const loadCompanyTitles = async () => {
 			setIsCompaniesLoading(true);
 			setError(null);
-			const dealTitleByCompanyId = new Map<string, string>();
+			const companyTitleFromDealsById = new Map<string, string>();
 
 			deals.forEach((deal) => {
 				const companyId = String(deal.companyId ?? "").trim();
 				const title = String(deal.companyTitle ?? "").trim();
 
 				if (companyId && title) {
-					dealTitleByCompanyId.set(companyId, title);
+					companyTitleFromDealsById.set(companyId, title);
 				}
 			});
 
 			const missingCompanyIds = companyIds.filter(
-				(companyId) => !dealTitleByCompanyId.has(companyId),
+				(companyId) => !companyTitleFromDealsById.has(companyId),
 			);
 
 			if (!missingCompanyIds.length) {
-				setCompanyTitleById(dealTitleByCompanyId);
+				setCompanyTitleById(companyTitleFromDealsById);
 				return;
 			}
 
@@ -108,7 +108,7 @@ export const useMarginalityPayments = ({
 				return;
 			}
 
-			const nextCompanyTitleById = new Map(dealTitleByCompanyId);
+			const nextCompanyTitleById = new Map(companyTitleFromDealsById);
 
 			companies.forEach((company) => {
 				const companyId = String(company.id ?? "").trim();
