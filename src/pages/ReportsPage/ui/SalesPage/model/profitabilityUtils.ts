@@ -121,6 +121,7 @@ const buildFinancialGroups = (
 
 export const buildCompanyProjectGroups = (
 	projects: ProfitabilityProject[],
+	companyTitleById: Map<string, string> = new Map(),
 ): CompanyProjectGroup[] => {
 	const projectsByCompany = new Map<string, ProfitabilityProject[]>();
 
@@ -135,6 +136,7 @@ export const buildCompanyProjectGroups = (
 	return Array.from(projectsByCompany.entries()).map(
 		([companyId, companyProjects]) => {
 			const companyTitle =
+				companyTitleById.get(companyId) ||
 				companyProjects.map(getProjectCompanyTitle).find(Boolean) ||
 				`Компания #${companyId}`;
 

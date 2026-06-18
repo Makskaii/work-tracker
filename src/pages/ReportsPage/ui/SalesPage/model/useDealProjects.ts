@@ -13,13 +13,25 @@ import { PROJECT_SELECT_FIELDS, REPORT_SELECT_FIELDS } from "./constants";
 import type { ProfitabilityProject } from "./types";
 
 type ProjectsState = {
+	companyTitleById: Map<string, string>;
 	isLoading: boolean;
 	projects: ProfitabilityProject[];
 };
 
+type CompanyFromCrm = {
+	id: string | number;
+	title?: string | null;
+};
+
+const getUniqueValues = (values: Array<string | number | null | undefined>) =>
+	Array.from(
+		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
+	);
+
 // TODO: rename to useCompanyProjects after the sales report fully drops deal-based naming.
 export const useDealProjects = () => {
 	const [projectsState, setProjectsState] = useState<ProjectsState>({
+		companyTitleById: new Map(),
 		isLoading: false,
 		projects: [],
 	});
@@ -29,6 +41,7 @@ export const useDealProjects = () => {
 
 		const fetchProjects = async () => {
 			setProjectsState({
+				companyTitleById: new Map(),
 				isLoading: true,
 				projects: [],
 			});
@@ -40,6 +53,26 @@ export const useDealProjects = () => {
 					filter: {},
 					signal: controller.signal,
 				});
+				const companyIds = getUniqueValues(
+					projects.map((project) => project[ProjectCodes.company]),
+				);
+				const companies = companyIds.length
+					? await fetchAllCrmItems<CompanyFromCrm>({
+							entityTypeId: EntityTypeIds.companies,
+							select: ["id", "title"],
+							filter: { "@id": companyIds },
+							signal: controller.signal,
+						})
+					: [];
+				const companyTitleEntries: Array<[string, string]> = companies
+					.map(
+						(company): [string, string] => [
+							String(company.id ?? "").trim(),
+							String(company.title ?? "").trim(),
+						],
+					)
+					.filter(([id, title]) => id && title);
+				const companyTitleById = new Map(companyTitleEntries);
 
 				const preparedProjects = await Promise.all(
 					projects.map(async (project) => {
@@ -124,6 +157,7 @@ export const useDealProjects = () => {
 
 				if (!controller.signal.aborted) {
 					setProjectsState({
+						companyTitleById,
 						isLoading: false,
 						projects: preparedProjects,
 					});
@@ -132,6 +166,7 @@ export const useDealProjects = () => {
 				if (!controller.signal.aborted) {
 					console.error("Failed to fetch company profitability data", error);
 					setProjectsState({
+						companyTitleById: new Map(),
 						isLoading: false,
 						projects: [],
 					});
@@ -147,6 +182,7 @@ export const useDealProjects = () => {
 	}, []);
 
 	return {
+		companyTitleById: projectsState.companyTitleById,
 		projects: projectsState.projects,
 		isLoadingDetails: projectsState.isLoading,
 	};

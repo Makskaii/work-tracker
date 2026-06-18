@@ -285,7 +285,7 @@ export const MarginalityTab = ({
 						className={scope === "deal" ? styles.activeFilter : ""}
 						onClick={() => setScope("deal")}
 					>
-						Финансовый проект
+						Финансовый вотерфол проект
 					</button>
 					<button
 						type="button"

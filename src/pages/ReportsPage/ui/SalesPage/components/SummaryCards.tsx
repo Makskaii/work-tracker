@@ -10,7 +10,7 @@ type SummaryCardsProps = {
 export const SummaryCards = ({ dealTitle, summary }: SummaryCardsProps) => (
 	<div className={styles.dealSummary}>
 		<div className={styles.dealSummaryMain}>
-			<span className={styles.dealSummaryEyebrow}>Финансовый проект</span>
+			<span className={styles.dealSummaryEyebrow}>Финансовый вотерфол проект</span>
 			<h3>{dealTitle}</h3>
 			<div className={styles.dealSummaryPrimaryStats}>
 				<div>

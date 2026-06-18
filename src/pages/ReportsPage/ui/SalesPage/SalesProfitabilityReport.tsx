@@ -67,10 +67,10 @@ export const SalesProfitabilityReport = ({
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("deal");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
-	const { projects, isLoadingDetails } = useDealProjects();
+	const { companyTitleById, projects, isLoadingDetails } = useDealProjects();
 	const companyGroups = useMemo(
-		() => buildCompanyProjectGroups(projects),
-		[projects],
+		() => buildCompanyProjectGroups(projects, companyTitleById),
+		[companyTitleById, projects],
 	);
 	const activeCompanyGroup =
 		companyGroups.find((company) => company.id === selectedCompanyId) ??
