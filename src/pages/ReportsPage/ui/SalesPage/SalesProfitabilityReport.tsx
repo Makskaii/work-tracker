@@ -27,7 +27,7 @@ type SalesProfitabilityReportProps = {
 };
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
-	{ id: "deal", title: "Финансовая группа" },
+	{ id: "deal", title: "Вотерфол проект" },
 	{ id: "projects", title: "Проекты" },
 	{ id: "tasks", title: "Задачи" },
 	{ id: "reports", title: "Отчёты сотрудников" },
@@ -172,9 +172,7 @@ export const SalesProfitabilityReport = ({
 											<div className={styles.dealProjectsList}>
 												{company.financialGroups.map((group) => {
 													const projectId =
-														group.parentProject?.projectId ??
-														group.projects[0]?.projectId ??
-														group.id;
+														group.parentProject.projectId ?? group.id;
 													const isActiveGroup =
 														group.id === activeFinancialGroup?.id;
 
@@ -195,41 +193,9 @@ export const SalesProfitabilityReport = ({
 																</span>
 																<span>
 																	<strong>{group.title}</strong>
-																	<small>{group.projects.length} проектов</small>
+																	<small>Вотерфол проект</small>
 																</span>
 															</button>
-
-															{group.projects.length > 1 ? (
-																<div className={styles.dealProjectsList}>
-																	{group.projects.map((project) => (
-																		<button
-																			key={project.projectId}
-																			type="button"
-																			title={project.title}
-																			className={`${styles.dealProjectButton} ${
-																				project.projectId === effectiveSelectedProjectId
-																					? styles.activeProject
-																					: ""
-																			}`}
-																			onClick={() => {
-																				setSelectedFinancialGroupId(group.id);
-																				setSelectedProjectId(project.projectId);
-																			}}
-																		>
-																			<span className={styles.dealProjectIcon}>
-																				{project.title.trim().charAt(0)}
-																			</span>
-																			<span>
-																				<strong>{project.title}</strong>
-																				<small>
-																					{project.tasks.length} задач ·{" "}
-																					{project.reports.length} отчётов
-																				</small>
-																			</span>
-																		</button>
-																	))}
-																</div>
-															) : null}
 														</div>
 													);
 												})}

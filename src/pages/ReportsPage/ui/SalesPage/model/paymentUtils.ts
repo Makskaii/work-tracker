@@ -42,15 +42,19 @@ export const getProjectPaymentStageType = (
 	}
 };
 
-type PaymentStageBindingValue = string | null | undefined;
+type PaymentStageBindingValue = string | string[] | null | undefined;
 
 const getDisplayValue = (value: PaymentStageBindingValue): string => {
 	if (value === null || value === undefined || value === "") {
 		return "—";
 	}
 
+	if (Array.isArray(value)) {
+		return value.map(String).map((item) => item.trim()).find(Boolean) ?? "—";
+	}
+
 	if (typeof value === "string") {
-		return String(value);
+		return value.trim() || "—";
 	}
 
 	return "—";

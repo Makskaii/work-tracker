@@ -4,7 +4,6 @@ import type { Deal } from "../../../types/deals.types";
 import {
 	getPaymentAmount,
 	getPaymentPercent,
-	getPaymentStageBindingLabel,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
 import { formatMoney } from "../model/profitabilityUtils";
@@ -72,6 +71,25 @@ const formatDate = (value?: string) => {
 	}).format(date);
 };
 
+const getStageBindingValues = (value?: string | string[] | null) => {
+	const values = Array.isArray(value) ? value : [value];
+
+	return values.map((item) => String(item ?? "").trim()).filter(Boolean);
+};
+
+const formatStageBindingValue = (
+	value: string | string[] | null | undefined,
+	labelById: Map<string, string>,
+) => {
+	const values = getStageBindingValues(value);
+
+	if (!values.length) {
+		return "—";
+	}
+
+	return values.map((item) => labelById.get(item) ?? item).join(", ");
+};
+
 const getPaymentDate = (value?: string) => {
 	if (!value) {
 		return null;
@@ -128,55 +146,43 @@ export const MarginalityTab = ({
 	const selectedProject = projects.find(
 		(project) => project.projectId === selectedProjectId,
 	);
-	const scopeDeals = useMemo(() => {
-		if (scope === "all") {
-			return deals;
-		}
+	const baseAmount = 0;
 
-		if (scope === "client") {
-			const companyId = String(selectedDeal?.companyId ?? "").trim();
-
-			return companyId
-				? deals.filter((deal) => String(deal.companyId ?? "").trim() === companyId)
-				: selectedDeal
-					? [selectedDeal]
-					: [];
-		}
-
-		return selectedDeal ? [selectedDeal] : [];
-	}, [deals, scope, selectedDeal]);
-	const dealAmount = 0;
-
-	const { payments, companyTitleById, isLoading, error } =
+	const {
+		payments,
+		companyTitleById,
+		paymentStageBindingLabelById,
+		isLoading,
+		error,
+	} =
 		useMarginalityPayments({
 		deals,
 		projects,
 		scope,
-		scopeDeals,
 		selectedProjectId,
 	});
 	const paidAmount = payments.reduce((sum, item) => {
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
 		return stageType === "paid"
-			? sum + getPaymentAmount(item.payment, dealAmount)
+			? sum + getPaymentAmount(item.payment, baseAmount)
 			: sum;
 	}, 0);
 	const totalPaymentAmount = payments.reduce(
-		(sum, item) => sum + getPaymentAmount(item.payment, dealAmount),
+		(sum, item) => sum + getPaymentAmount(item.payment, baseAmount),
 		0,
 	);
 	const debtAmount = payments.reduce((sum, item) => {
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
 		return stageType === "debt"
-			? sum + getPaymentAmount(item.payment, dealAmount)
+			? sum + getPaymentAmount(item.payment, baseAmount)
 			: sum;
 	}, 0);
-	const requestAmount = Math.max((dealAmount || totalPaymentAmount) - paidAmount, 0);
+	const requestAmount = Math.max((baseAmount || totalPaymentAmount) - paidAmount, 0);
 	const marginPercent =
-		dealAmount || totalPaymentAmount
-			? Math.round((paidAmount / (dealAmount || totalPaymentAmount)) * 100)
+		baseAmount || totalPaymentAmount
+			? Math.round((paidAmount / (baseAmount || totalPaymentAmount)) * 100)
 			: 0;
 	const paymentsByMonth = useMemo(() => {
 		return payments.reduce(
@@ -206,14 +212,14 @@ export const MarginalityTab = ({
 	const chartColumns = useMemo(() => {
 		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(
-				(sum, item) => sum + getPaymentAmount(item.payment, dealAmount),
+				(sum, item) => sum + getPaymentAmount(item.payment, baseAmount),
 				0,
 			);
 			const segments = group.items
 				.map((item) => ({
 					...item,
-					amount: getPaymentAmount(item.payment, dealAmount),
-					percent: getPaymentPercent(item.payment, dealAmount),
+					amount: getPaymentAmount(item.payment, baseAmount),
+					percent: getPaymentPercent(item.payment, baseAmount),
 				}))
 				.filter((item) => item.amount > 0);
 
@@ -256,11 +262,9 @@ export const MarginalityTab = ({
 			<div className={styles.marginalityHeader}>
 				<h3>
 					Список оплат
-					{scope === "projects" && selectedProject
-						? ` по проекту ${selectedProject.title}`
-						: scope === "deal" && selectedDeal
-							? ` по финансовому проекту ${selectedDeal.title}`
-							: scope === "client"
+					{scope === "project" && selectedProject
+						? ` по вотерфол проекту ${selectedProject.title}`
+						: scope === "client"
 								? ` по ${getDealCompanyTitle(selectedDeal, companyTitleById)}`
 							: " по всем клиентам"}
 				</h3>
@@ -282,17 +286,10 @@ export const MarginalityTab = ({
 					</button>
 					<button
 						type="button"
-						className={scope === "deal" ? styles.activeFilter : ""}
-						onClick={() => setScope("deal")}
+						className={scope === "project" ? styles.activeFilter : ""}
+						onClick={() => setScope("project")}
 					>
-						Финансовый вотерфол проект
-					</button>
-					<button
-						type="button"
-						className={scope === "projects" ? styles.activeFilter : ""}
-						onClick={() => setScope("projects")}
-					>
-						Проект
+						Вотерфол проект
 					</button>
 				</div>
 			</div>
@@ -309,7 +306,7 @@ export const MarginalityTab = ({
 				<div>
 					<span>Сумма</span>
 					<strong className={styles.amountText}>
-						{formatMoney(dealAmount || totalPaymentAmount)}
+						{formatMoney(baseAmount || totalPaymentAmount)}
 					</strong>
 				</div>
 				<div>
@@ -406,8 +403,8 @@ export const MarginalityTab = ({
 						<div className={styles.emptyState}>Загрузка оплат...</div>
 					) : payments.length ? (
 						paymentListItems.map(({ payment, paymentNumber, project, stageMeta }) => {
-							const amount = getPaymentAmount(payment, dealAmount);
-							const percent = getPaymentPercent(payment, dealAmount);
+							const amount = getPaymentAmount(payment, baseAmount);
+							const percent = getPaymentPercent(payment, baseAmount);
 
 							return (
 								<article key={String(payment.id)} className={styles.paymentItem}>
@@ -420,10 +417,11 @@ export const MarginalityTab = ({
 											Дата платежа:{" "}
 											{formatDate(payment[ProjectCodes.paymentDate] ?? undefined)}
 										</span>
-										<small>
-											Этап:{" "}
-											{getPaymentStageBindingLabel(
+										<small className={styles.paymentStageBinding}>
+											Привязка к этапу:{" "}
+											{formatStageBindingValue(
 												payment[ProjectCodes.paymentStageBinding],
+												paymentStageBindingLabelById,
 											)}
 										</small>
 									</div>

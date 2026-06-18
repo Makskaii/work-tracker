@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { EntityTypeIds } from "@/shared/constants/const";
 import type { Deal } from "../../../types/deals.types";
-import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
+import {
+	fetchAllCrmItems,
+	fetchProjectPaymentStageBindingLabels,
+	fetchProjectPaymentsByProjectIds,
+} from "./api";
 import type { ProfitabilityProject, ProjectPayment } from "./types";
 
-export type MarginalityScope = "all" | "client" | "deal" | "projects";
+export type MarginalityScope = "all" | "client" | "project";
 
 export type PaymentProjectInfo = {
 	id: string;
@@ -26,7 +30,6 @@ type UseMarginalityPaymentsParams = {
 	deals: Deal[];
 	projects: ProfitabilityProject[];
 	scope: MarginalityScope;
-	scopeDeals: Deal[];
 	selectedProjectId: string | null;
 };
 
@@ -54,6 +57,8 @@ export const useMarginalityPayments = ({
 	const [companyTitleById, setCompanyTitleById] = useState<Map<string, string>>(
 		() => new Map(),
 	);
+	const [paymentStageBindingLabelById, setPaymentStageBindingLabelById] =
+		useState<Map<string, string>>(() => new Map());
 	const [isCompaniesLoading, setIsCompaniesLoading] = useState(false);
 	const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
@@ -152,18 +157,29 @@ export const useMarginalityPayments = ({
 			setIsPaymentsLoading(true);
 			setError(null);
 			const projectIds =
-				scope === "projects" && selectedProjectId
+				scope === "project" && selectedProjectId
 					? [selectedProjectId]
 					: currentProjectIds;
 			const scopePayments = await fetchProjectPaymentsByProjectIds({
 				projectIds,
 				signal: controller.signal,
 			});
+			let stageBindingLabels = new Map<string, string>();
+
+			try {
+				stageBindingLabels =
+					await fetchProjectPaymentStageBindingLabels(controller.signal);
+			} catch (labelsError) {
+				if (controller.signal.aborted) {
+					throw labelsError;
+				}
+			}
 
 			if (controller.signal.aborted) {
 				return;
 			}
 
+			setPaymentStageBindingLabelById(stageBindingLabels);
 			setPayments(
 				scopePayments.map((payment) => {
 					const projectId = getProjectPaymentId(payment);
@@ -204,6 +220,7 @@ export const useMarginalityPayments = ({
 	return {
 		payments,
 		companyTitleById,
+		paymentStageBindingLabelById,
 		isLoading: isCompaniesLoading || isPaymentsLoading,
 		error,
 	};

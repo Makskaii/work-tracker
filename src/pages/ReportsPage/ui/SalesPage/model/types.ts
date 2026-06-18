@@ -20,10 +20,10 @@ export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 export type CompanyFinancialGroup = {
 	id: string;
 	title: string;
-	type: "waterfall" | "support" | "regular";
+	type: "waterfall";
 	companyId: string;
 	companyTitle: string;
-	parentProject: ProfitabilityProject | null;
+	parentProject: ProfitabilityProject;
 	projects: ProfitabilityProject[];
 };
 
@@ -38,7 +38,7 @@ export type ProjectPayment = {
 	title?: string;
 	createdTime?: string;
 	stageId?: string | null;
-	[ProjectCodes.paymentStageBinding]?: string | null;
+	[ProjectCodes.paymentStageBinding]?: string | string[] | null;
 	[ProjectCodes.paymentPercent]?: string | null;
 	[ProjectCodes.paymentAmount]?: string | null;
 	[ProjectCodes.paymentDate]?: string | null;

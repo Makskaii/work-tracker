@@ -59,14 +59,6 @@ const buildFinancialGroups = (
 	const waterfallProjects = projects.filter((project) =>
 		hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.WATERFALL),
 	);
-	const supportProjects = projects.filter((project) =>
-		hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
-	);
-	const regularProjects = projects.filter(
-		(project) =>
-			!hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.WATERFALL) &&
-			!hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
-	);
 	const groups: CompanyFinancialGroup[] = [];
 	const [mainWaterfallProject, ...extraWaterfallProjects] = waterfallProjects;
 
@@ -78,7 +70,7 @@ const buildFinancialGroups = (
 			companyId,
 			companyTitle,
 			parentProject: mainWaterfallProject,
-			projects: [mainWaterfallProject, ...regularProjects],
+			projects: [mainWaterfallProject],
 		});
 
 		extraWaterfallProjects.forEach((project) => {
@@ -92,29 +84,7 @@ const buildFinancialGroups = (
 				projects: [project],
 			});
 		});
-	} else if (regularProjects.length) {
-		groups.push({
-			id: `regular-${companyId}`,
-			title: "Без финансового вотерфол проекта",
-			type: "regular",
-			companyId,
-			companyTitle,
-			parentProject: null,
-			projects: regularProjects,
-		});
 	}
-
-	supportProjects.forEach((project) => {
-		groups.push({
-			id: `support-${project.projectId}`,
-			title: project.title || "Финансовый техпод проект",
-			type: "support",
-			companyId,
-			companyTitle,
-			parentProject: project,
-			projects: [project],
-		});
-	});
 
 	return groups;
 };
@@ -133,22 +103,27 @@ export const buildCompanyProjectGroups = (
 		projectsByCompany.set(companyId, companyProjects);
 	});
 
-	return Array.from(projectsByCompany.entries()).map(
+	return Array.from(projectsByCompany.entries()).flatMap(
 		([companyId, companyProjects]) => {
 			const companyTitle =
 				companyTitleById.get(companyId) ||
 				companyProjects.map(getProjectCompanyTitle).find(Boolean) ||
 				`Компания #${companyId}`;
+			const financialGroups = buildFinancialGroups(
+				companyId,
+				companyTitle,
+				companyProjects,
+			);
 
-			return {
+			if (!financialGroups.length) {
+				return [];
+			}
+
+			return [{
 				id: companyId,
 				title: companyTitle,
-				financialGroups: buildFinancialGroups(
-					companyId,
-					companyTitle,
-					companyProjects,
-				),
-			};
+				financialGroups,
+			}];
 		},
 	);
 };

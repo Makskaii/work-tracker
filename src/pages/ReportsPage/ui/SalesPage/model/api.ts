@@ -12,6 +12,21 @@ type CrmItemListResponse<T> = {
 	next?: number | null;
 };
 
+type CrmFieldEnumItem = {
+	ID?: string | number;
+	VALUE?: string | null;
+	id?: string | number;
+	value?: string | null;
+	title?: string | null;
+	name?: string | null;
+};
+
+type CrmItemFieldsResponse = {
+	result?: {
+		fields?: Record<string, { items?: CrmFieldEnumItem[] }>;
+	};
+};
+
 export const fetchAllCrmItems = async <T,>({
 	entityTypeId,
 	select,
@@ -68,6 +83,33 @@ const normalizeProjectPayment = (
 	...payment,
 	id: String(payment.id),
 });
+
+export const fetchProjectPaymentStageBindingLabels = async (
+	signal?: AbortSignal,
+) => {
+	const response = await $api.get<CrmItemFieldsResponse>(Endpoints.crmFeilds, {
+		params: {
+			entityTypeId: EntityTypeIds.projectPayments,
+		},
+		signal,
+	});
+	const field =
+		response.data.result?.fields?.[ProjectCodes.paymentStageBinding];
+	const labels = new Map<string, string>();
+
+	field?.items?.forEach((item) => {
+		const id = String(item.ID ?? item.id ?? "").trim();
+		const label = String(
+			item.VALUE ?? item.value ?? item.title ?? item.name ?? "",
+		).trim();
+
+		if (id && label) {
+			labels.set(id, label);
+		}
+	});
+
+	return labels;
+};
 
 export const fetchPaymentsByProjectId = (
 	projectId: string,
