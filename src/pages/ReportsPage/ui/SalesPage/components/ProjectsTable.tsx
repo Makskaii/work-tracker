@@ -27,7 +27,7 @@ export const ProjectsTable = ({
 	users,
 }: ProjectsTableProps) => (
 	<div className={styles.tableCard}>
-		<div className={styles.tableTitle}>Проекты внутри сделки</div>
+		<div className={styles.tableTitle}>Проекты компании</div>
 		<div className={styles.projectTable}>
 			<div className={styles.tableHead}>
 				<span>Проект</span>
@@ -47,6 +47,7 @@ export const ProjectsTable = ({
 					const factHours = getProjectFactHours(project.reports);
 					const losses = getLossHours(project);
 					const status = getProjectStatus(project);
+					const isProjectOk = factHours <= planHours;
 
 					return (
 						<div key={projectId} className={styles.projectGroup}>
@@ -79,9 +80,7 @@ export const ProjectsTable = ({
 									mock {MOCK_MARGIN_PERCENT}%
 								</span>
 								<span
-									className={
-										status === "В норме" ? styles.successPill : styles.dangerPill
-									}
+									className={isProjectOk ? styles.successPill : styles.dangerPill}
 								>
 									{status}
 								</span>
@@ -90,9 +89,7 @@ export const ProjectsTable = ({
 					);
 				})
 			) : (
-				<div className={styles.emptyState}>
-					Проект не найден по PARENT_ID_1092 этой сделки
-				</div>
+				<div className={styles.emptyState}>Проекты компании не найдены</div>
 			)}
 		</div>
 	</div>

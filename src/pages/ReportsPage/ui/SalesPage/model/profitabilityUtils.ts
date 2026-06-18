@@ -1,10 +1,19 @@
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import {
+	FINANCIAL_PROJECT_TYPE,
+	ProjectCodes,
+	ReportCodes,
+	TaskCodes,
+} from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { TaskProps, User } from "@/shared/types/types";
 import { type Deal, DealCodes } from "../../../types/deals.types";
 import type { ActivityListItem } from "../../../types/types";
 import { MOCK_MARGIN_PERCENT } from "./constants";
-import type { DealSummary, ProfitabilityProject } from "./types";
+import type {
+	CompanyFinancialGroup,
+	DealSummary,
+	ProfitabilityProject,
+} from "./types";
 
 export const toNumber = (value: unknown) => {
 	const parsed = Number(String(value ?? "0").replace(",", "."));
@@ -16,6 +25,113 @@ export const getDealProjectIds = (deal: Deal | null) => {
 	const values = Array.isArray(value) ? value : [value];
 
 	return values.map((item) => String(item ?? "").trim()).filter(Boolean);
+};
+
+export const hasFinancialType = (
+	project: ProfitabilityProject,
+	value: string,
+) => {
+	const fieldValue = project[ProjectCodes.financialProjectType];
+
+	if (Array.isArray(fieldValue)) {
+		return fieldValue.map(String).includes(value);
+	}
+
+	return String(fieldValue ?? "") === value;
+};
+
+const getProjectCompanyId = (project: ProfitabilityProject) =>
+	String(project[ProjectCodes.company] ?? "").trim();
+
+const getProjectCompanyTitle = (project: ProfitabilityProject) =>
+	String(
+		(project as { companyName?: unknown; companyTitle?: unknown }).companyName ??
+			(project as { companyName?: unknown; companyTitle?: unknown }).companyTitle ??
+			"",
+	).trim();
+
+export const buildCompanyFinancialGroups = (
+	projects: ProfitabilityProject[],
+): CompanyFinancialGroup[] => {
+	const projectsByCompany = new Map<string, ProfitabilityProject[]>();
+
+	projects.forEach((project) => {
+		const companyId = getProjectCompanyId(project) || "unknown";
+		const companyProjects = projectsByCompany.get(companyId) ?? [];
+
+		companyProjects.push(project);
+		projectsByCompany.set(companyId, companyProjects);
+	});
+
+	return Array.from(projectsByCompany.entries()).flatMap(
+		([companyId, companyProjects]) => {
+			const companyTitle =
+				companyProjects.map(getProjectCompanyTitle).find(Boolean) ||
+				`Компания #${companyId}`;
+			const waterfallProjects = companyProjects.filter((project) =>
+				hasFinancialType(project, FINANCIAL_PROJECT_TYPE.WATERFALL),
+			);
+			const supportProjects = companyProjects.filter((project) =>
+				hasFinancialType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
+			);
+			const regularProjects = companyProjects.filter(
+				(project) =>
+					!hasFinancialType(project, FINANCIAL_PROJECT_TYPE.WATERFALL) &&
+					!hasFinancialType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
+			);
+			const groups: CompanyFinancialGroup[] = [];
+			const [mainWaterfallProject, ...extraWaterfallProjects] = waterfallProjects;
+
+			if (mainWaterfallProject) {
+				groups.push({
+					id: `waterfall-${mainWaterfallProject.projectId}`,
+					title:
+						mainWaterfallProject.title || "Финансовый waterfall проект",
+					type: "waterfall",
+					companyId,
+					companyTitle,
+					parentProject: mainWaterfallProject,
+					projects: [mainWaterfallProject, ...regularProjects],
+				});
+
+				extraWaterfallProjects.forEach((project) => {
+					groups.push({
+						id: `waterfall-${project.projectId}`,
+						title: project.title || "Финансовый waterfall проект",
+						type: "waterfall",
+						companyId,
+						companyTitle,
+						parentProject: project,
+						projects: [project],
+					});
+				});
+			} else if (regularProjects.length) {
+				groups.push({
+					id: `regular-${companyId}`,
+					title: "Без финансового waterfall проекта",
+					type: "regular",
+					companyId,
+					companyTitle,
+					parentProject: null,
+					projects: regularProjects,
+				});
+			}
+
+			supportProjects.forEach((project) => {
+				groups.push({
+					id: `support-${project.projectId}`,
+					title: project.title || "Финансовый техпод проект",
+					type: "support",
+					companyId,
+					companyTitle,
+					parentProject: project,
+					projects: [project],
+				});
+			});
+
+			return groups;
+		},
+	);
 };
 
 export const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;

@@ -11,7 +11,6 @@ import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
 import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
 import { PROJECT_SELECT_FIELDS, REPORT_SELECT_FIELDS } from "./constants";
-import { getDealProjectIds } from "./profitabilityUtils";
 import type { ProfitabilityProject } from "./types";
 
 type DealProjectsState = {
@@ -36,54 +35,38 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 		isLoading: false,
 		projects: [],
 	});
-	const selectedDealId = selectedDeal ? String(selectedDeal.id) : null;
-
 	useEffect(() => {
 		if (!selectedDeal) {
 			return;
 		}
 
 		const controller = new AbortController();
-		const projectIds = getDealProjectIds(selectedDeal);
+		const companyId = String(selectedDeal.companyId ?? "").trim();
 
 		const fetchDealProjects = async () => {
 			setProjectsState({
-				dealId: String(selectedDeal.id),
+				dealId: companyId,
 				isLoading: true,
 				projects: [],
 			});
 
 			try {
-				const [linkedProjects, projectsByDealReverseParentField] =
-					await Promise.all([
-						fetchAllCrmItems<ClientProjectProps>({
-							entityTypeId: EntityTypeIds.projects,
-							select: PROJECT_SELECT_FIELDS,
-							filter: {
-								[ProjectCodes.parentDeal]: selectedDeal.id,
-							},
-							signal: controller.signal,
-						}),
-						projectIds.length
-							? fetchAllCrmItems<ClientProjectProps>({
-									entityTypeId: EntityTypeIds.projects,
-									select: PROJECT_SELECT_FIELDS,
-									filter:
-										projectIds.length === 1
-											? { id: projectIds[0] }
-											: { "@id": projectIds },
-									signal: controller.signal,
-								})
-							: Promise.resolve([]),
-					]);
-				const dealProjects = mergeProjectsById([
-					linkedProjects,
-					projectsByDealReverseParentField,
-				]);
+				const dealProjects = companyId
+					? mergeProjectsById([
+							await fetchAllCrmItems<ClientProjectProps>({
+								entityTypeId: EntityTypeIds.projects,
+								select: PROJECT_SELECT_FIELDS,
+								filter: {
+									[ProjectCodes.company]: companyId,
+								},
+								signal: controller.signal,
+							}),
+						])
+					: [];
 
 				if (!dealProjects.length) {
 					setProjectsState({
-						dealId: String(selectedDeal.id),
+						dealId: companyId,
 						isLoading: false,
 						projects: [],
 					});
@@ -173,7 +156,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 
 				if (!controller.signal.aborted) {
 					setProjectsState({
-						dealId: String(selectedDeal.id),
+						dealId: companyId,
 						isLoading: false,
 						projects: preparedProjects,
 					});
@@ -182,7 +165,7 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 				if (!controller.signal.aborted) {
 					console.error("Failed to fetch deal profitability data", error);
 					setProjectsState({
-						dealId: String(selectedDeal.id),
+						dealId: companyId,
 						isLoading: false,
 						projects: [],
 					});
@@ -197,14 +180,15 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 		};
 	}, [selectedDeal]);
 
-	if (!selectedDealId) {
+	if (!selectedDeal) {
 		return {
 			projects: [],
 			isLoadingDetails: false,
 		};
 	}
 
-	const isCurrentDealState = projectsState.dealId === selectedDealId;
+	const selectedCompanyId = String(selectedDeal.companyId ?? "").trim();
+	const isCurrentDealState = projectsState.dealId === selectedCompanyId;
 
 	return {
 		projects: isCurrentDealState ? projectsState.projects : [],

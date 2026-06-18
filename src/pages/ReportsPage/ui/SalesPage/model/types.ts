@@ -14,6 +14,17 @@ export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 	tasks: TaskProps[];
 	reports: ReportProps[];
 	payments: ProjectPayment[];
+	[ProjectCodes.financialProjectType]?: string | string[] | null;
+};
+
+export type CompanyFinancialGroup = {
+	id: string;
+	title: string;
+	type: "waterfall" | "support" | "regular";
+	companyId: string;
+	companyTitle: string;
+	parentProject: ProfitabilityProject | null;
+	projects: ProfitabilityProject[];
 };
 
 export type ProjectPayment = {

@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { EntityTypeIds } from "@/shared/constants/const";
-import type { ClientProjectProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
-import {
-	fetchAllCrmItems,
-	fetchProjectPaymentsByProjectIds,
-	fetchProjectsByDealId,
-} from "./api";
-import { PROJECT_SELECT_FIELDS } from "./constants";
-import { getDealProjectIds } from "./profitabilityUtils";
+import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
 import type { ProfitabilityProject, ProjectPayment } from "./types";
 
 export type MarginalityScope = "all" | "client" | "deal" | "projects";
@@ -22,10 +15,6 @@ export type PaymentProjectInfo = {
 export type MarginalityPaymentItem = {
 	payment: ProjectPayment;
 	project: PaymentProjectInfo;
-};
-
-type NormalizedClientProject = ClientProjectProps & {
-	projectId: string;
 };
 
 type CompanyFromCrm = {
@@ -46,23 +35,8 @@ const getUniqueValues = (values: Array<string | number | null | undefined>) =>
 		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
 	);
 
-const normalizeProject = (project: ClientProjectProps): NormalizedClientProject => ({
-	...project,
-	projectId: String(project.projectId ?? project.id),
-});
-
 const getProjectId = (project: { projectId?: string | null }) =>
 	String(project.projectId ?? "");
-
-const mergeProjects = (projectGroups: NormalizedClientProject[][]) => {
-	const result = new Map<string, NormalizedClientProject>();
-
-	projectGroups.flat().forEach((project) => {
-		result.set(String(project.id), project);
-	});
-
-	return Array.from(result.values());
-};
 
 const getProjectPaymentId = (payment: ProjectPayment) =>
 	String(payment[ProjectCodes.paymentProject] ?? "").trim();
@@ -74,7 +48,6 @@ export const useMarginalityPayments = ({
 	deals,
 	projects,
 	scope,
-	scopeDeals,
 	selectedProjectId,
 }: UseMarginalityPaymentsParams) => {
 	const [payments, setPayments] = useState<MarginalityPaymentItem[]>([]);
@@ -88,7 +61,7 @@ export const useMarginalityPayments = ({
 		() => getUniqueValues(deals.map((deal) => deal.companyId)),
 		[deals],
 	);
-	const currentDealProjectIds = useMemo(
+	const currentProjectIds = useMemo(
 		() => getUniqueValues(projects.map((project) => getProjectId(project))),
 		[projects],
 	);
@@ -178,51 +151,12 @@ export const useMarginalityPayments = ({
 		const loadScopePayments = async () => {
 			setIsPaymentsLoading(true);
 			setError(null);
-			const dealProjectIds = getUniqueValues(
-				scopeDeals.flatMap((deal) => getDealProjectIds(deal)),
-			);
 			const projectIds =
 				scope === "projects" && selectedProjectId
 					? [selectedProjectId]
-					: getUniqueValues([...dealProjectIds, ...currentDealProjectIds]);
-			const scopeDealIds =
-				scope === "projects" && selectedProjectId
-					? []
-					: getUniqueValues(scopeDeals.map((deal) => deal.id));
-			const projectsByIdsRequest = projectIds.length
-				? fetchAllCrmItems<ClientProjectProps>({
-						entityTypeId: EntityTypeIds.projects,
-						select: PROJECT_SELECT_FIELDS,
-						filter: { "@id": projectIds },
-						signal: controller.signal,
-					}).then((items) => items.map(normalizeProject))
-				: Promise.resolve([]);
-			const projectsByDealsRequests = scopeDealIds.map((dealId) =>
-				fetchProjectsByDealId(dealId, controller.signal).then((items) =>
-					items.map(normalizeProject),
-				),
-			);
-
-			const scopeProjects = mergeProjects(
-				await Promise.all([
-					projectsByIdsRequest,
-					...projectsByDealsRequests,
-				]),
-			);
-			const scopeProjectIds = getUniqueValues([
-				...projectIds,
-				...scopeProjects.map((project) => getProjectId(project)),
-			]);
-			const projectTitleById = new Map(currentProjectTitleById);
-
-			scopeProjects.forEach((project) => {
-				const projectId = getProjectId(project);
-
-				projectTitleById.set(projectId, project.title || `Проект #${projectId}`);
-			});
-
+					: currentProjectIds;
 			const scopePayments = await fetchProjectPaymentsByProjectIds({
-				projectIds: scopeProjectIds,
+				projectIds,
 				signal: controller.signal,
 			});
 
@@ -238,7 +172,7 @@ export const useMarginalityPayments = ({
 						payment,
 						project: {
 							id: projectId,
-							title: projectTitleById.get(projectId) ?? `Проект #${projectId}`,
+							title: currentProjectTitleById.get(projectId) ?? `Проект #${projectId}`,
 						},
 					};
 				}),
@@ -265,7 +199,7 @@ export const useMarginalityPayments = ({
 		return () => {
 			controller.abort();
 		};
-	}, [currentDealProjectIds, projects, scope, scopeDeals, selectedProjectId]);
+	}, [currentProjectIds, projects, scope, selectedProjectId]);
 
 	return {
 		payments,
