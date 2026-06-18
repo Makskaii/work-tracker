@@ -13,12 +13,8 @@ type CrmItemListResponse<T> = {
 };
 
 type CrmFieldEnumItem = {
-	ID?: string | number;
-	VALUE?: string | null;
-	id?: string | number;
-	value?: string | null;
-	title?: string | null;
-	name?: string | null;
+	ID: string | number;
+	VALUE: string | null;
 };
 
 type CrmItemFieldsResponse = {
@@ -98,10 +94,8 @@ export const fetchProjectPaymentStageBindingLabels = async (
 	const labels = new Map<string, string>();
 
 	field?.items?.forEach((item) => {
-		const id = String(item.ID ?? item.id ?? "").trim();
-		const label = String(
-			item.VALUE ?? item.value ?? item.title ?? item.name ?? "",
-		).trim();
+		const id = String(item.ID).trim();
+		const label = String(item.VALUE ?? "").trim();
 
 		if (id && label) {
 			labels.set(id, label);
