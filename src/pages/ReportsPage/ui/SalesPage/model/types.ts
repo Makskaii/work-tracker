@@ -27,6 +27,12 @@ export type CompanyFinancialGroup = {
 	projects: ProfitabilityProject[];
 };
 
+export type CompanyProjectGroup = {
+	id: string;
+	title: string;
+	financialGroups: CompanyFinancialGroup[];
+};
+
 export type ProjectPayment = {
 	id: string;
 	title?: string;

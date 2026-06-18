@@ -50,7 +50,7 @@ export const TasksTab = ({ items, users, openTask }: TasksTabProps) => (
 				))
 			) : (
 				<div className={styles.emptyState}>
-					Задачи по проектам сделки не найдены
+					Задачи по проектам финансовой группы не найдены
 				</div>
 			)}
 		</div>

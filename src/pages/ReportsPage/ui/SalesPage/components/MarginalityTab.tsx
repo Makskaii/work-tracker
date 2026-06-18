@@ -7,7 +7,7 @@ import {
 	getPaymentStageBindingLabel,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
-import { formatMoney, toNumber } from "../model/profitabilityUtils";
+import { formatMoney } from "../model/profitabilityUtils";
 import type { ProfitabilityProject } from "../model/types";
 import {
 	type MarginalityScope,
@@ -145,10 +145,7 @@ export const MarginalityTab = ({
 
 		return selectedDeal ? [selectedDeal] : [];
 	}, [deals, scope, selectedDeal]);
-	const dealAmount = scopeDeals.reduce(
-		(sum, deal) => sum + toNumber(deal.opportunity),
-		0,
-	);
+	const dealAmount = 0;
 
 	const { payments, companyTitleById, isLoading, error } =
 		useMarginalityPayments({
@@ -235,7 +232,7 @@ export const MarginalityTab = ({
 			...column,
 			maxAmount,
 		}));
-	}, [dealAmount, paymentsByMonth]);
+	}, [paymentsByMonth]);
 	const hasChartColumns = chartColumns.length > 0;
 	const paymentListItems = useMemo(() => {
 		const stageCounters = new Map<string, number>();
@@ -262,7 +259,7 @@ export const MarginalityTab = ({
 					{scope === "projects" && selectedProject
 						? ` по проекту ${selectedProject.title}`
 						: scope === "deal" && selectedDeal
-							? ` по сделке ${selectedDeal.title}`
+							? ` по финансовому проекту ${selectedDeal.title}`
 							: scope === "client"
 								? ` по ${getDealCompanyTitle(selectedDeal, companyTitleById)}`
 							: " по всем клиентам"}
@@ -288,7 +285,7 @@ export const MarginalityTab = ({
 						className={scope === "deal" ? styles.activeFilter : ""}
 						onClick={() => setScope("deal")}
 					>
-						Сделка
+						Финансовый проект
 					</button>
 					<button
 						type="button"
@@ -302,8 +299,8 @@ export const MarginalityTab = ({
 
 			<div className={styles.marginalityMetrics}>
 				<div>
-					<span>Сделок</span>
-					<strong>{scopeDeals.length}</strong>
+					<span>Проектов</span>
+					<strong>{projects.length}</strong>
 				</div>
 				<div>
 					<span>Маржа</span>

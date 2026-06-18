@@ -24,9 +24,7 @@ export const ReportsTab = ({
 	openReport,
 }: ReportsTabProps) => (
 	<div className={styles.tableCard}>
-		<div className={styles.tableTitle}>
-			Все отчёты сотрудников ({items.length})
-		</div>
+		<div className={styles.tableTitle}>Все отчёты сотрудников ({items.length})</div>
 		<div className={styles.reportsTable}>
 			<div className={styles.reportsHead}>
 				<span>Дата</span>
@@ -62,7 +60,7 @@ export const ReportsTab = ({
 				))
 			) : (
 				<div className={styles.emptyState}>
-					Отчёты по проектам сделки не найдены
+					Отчёты по проектам финансовой группы не найдены
 				</div>
 			)}
 		</div>

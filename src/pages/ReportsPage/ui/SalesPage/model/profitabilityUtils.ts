@@ -11,6 +11,7 @@ import type { ActivityListItem } from "../../../types/types";
 import { MOCK_MARGIN_PERCENT } from "./constants";
 import type {
 	CompanyFinancialGroup,
+	CompanyProjectGroup,
 	DealSummary,
 	ProfitabilityProject,
 } from "./types";
@@ -27,17 +28,17 @@ export const getDealProjectIds = (deal: Deal | null) => {
 	return values.map((item) => String(item ?? "").trim()).filter(Boolean);
 };
 
-export const hasFinancialType = (
+export const hasFinancialProjectType = (
 	project: ProfitabilityProject,
-	value: string,
+	type: string,
 ) => {
-	const fieldValue = project[ProjectCodes.financialProjectType];
+	const value = project[ProjectCodes.financialProjectType];
 
-	if (Array.isArray(fieldValue)) {
-		return fieldValue.map(String).includes(value);
+	if (Array.isArray(value)) {
+		return value.map(String).includes(type);
 	}
 
-	return String(fieldValue ?? "") === value;
+	return String(value ?? "") === type;
 };
 
 const getProjectCompanyId = (project: ProfitabilityProject) =>
@@ -50,9 +51,77 @@ const getProjectCompanyTitle = (project: ProfitabilityProject) =>
 			"",
 	).trim();
 
-export const buildCompanyFinancialGroups = (
+const buildFinancialGroups = (
+	companyId: string,
+	companyTitle: string,
 	projects: ProfitabilityProject[],
 ): CompanyFinancialGroup[] => {
+	const waterfallProjects = projects.filter((project) =>
+		hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.WATERFALL),
+	);
+	const supportProjects = projects.filter((project) =>
+		hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
+	);
+	const regularProjects = projects.filter(
+		(project) =>
+			!hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.WATERFALL) &&
+			!hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
+	);
+	const groups: CompanyFinancialGroup[] = [];
+	const [mainWaterfallProject, ...extraWaterfallProjects] = waterfallProjects;
+
+	if (mainWaterfallProject) {
+		groups.push({
+			id: `waterfall-${mainWaterfallProject.projectId}`,
+			title: mainWaterfallProject.title || "Финансовый вотерфол проект",
+			type: "waterfall",
+			companyId,
+			companyTitle,
+			parentProject: mainWaterfallProject,
+			projects: [mainWaterfallProject, ...regularProjects],
+		});
+
+		extraWaterfallProjects.forEach((project) => {
+			groups.push({
+				id: `waterfall-${project.projectId}`,
+				title: project.title || "Финансовый вотерфол проект",
+				type: "waterfall",
+				companyId,
+				companyTitle,
+				parentProject: project,
+				projects: [project],
+			});
+		});
+	} else if (regularProjects.length) {
+		groups.push({
+			id: `regular-${companyId}`,
+			title: "Без финансового вотерфол проекта",
+			type: "regular",
+			companyId,
+			companyTitle,
+			parentProject: null,
+			projects: regularProjects,
+		});
+	}
+
+	supportProjects.forEach((project) => {
+		groups.push({
+			id: `support-${project.projectId}`,
+			title: project.title || "Финансовый техпод проект",
+			type: "support",
+			companyId,
+			companyTitle,
+			parentProject: project,
+			projects: [project],
+		});
+	});
+
+	return groups;
+};
+
+export const buildCompanyProjectGroups = (
+	projects: ProfitabilityProject[],
+): CompanyProjectGroup[] => {
 	const projectsByCompany = new Map<string, ProfitabilityProject[]>();
 
 	projects.forEach((project) => {
@@ -63,73 +132,21 @@ export const buildCompanyFinancialGroups = (
 		projectsByCompany.set(companyId, companyProjects);
 	});
 
-	return Array.from(projectsByCompany.entries()).flatMap(
+	return Array.from(projectsByCompany.entries()).map(
 		([companyId, companyProjects]) => {
 			const companyTitle =
 				companyProjects.map(getProjectCompanyTitle).find(Boolean) ||
 				`Компания #${companyId}`;
-			const waterfallProjects = companyProjects.filter((project) =>
-				hasFinancialType(project, FINANCIAL_PROJECT_TYPE.WATERFALL),
-			);
-			const supportProjects = companyProjects.filter((project) =>
-				hasFinancialType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
-			);
-			const regularProjects = companyProjects.filter(
-				(project) =>
-					!hasFinancialType(project, FINANCIAL_PROJECT_TYPE.WATERFALL) &&
-					!hasFinancialType(project, FINANCIAL_PROJECT_TYPE.SUPPORT),
-			);
-			const groups: CompanyFinancialGroup[] = [];
-			const [mainWaterfallProject, ...extraWaterfallProjects] = waterfallProjects;
 
-			if (mainWaterfallProject) {
-				groups.push({
-					id: `waterfall-${mainWaterfallProject.projectId}`,
-					title:
-						mainWaterfallProject.title || "Финансовый waterfall проект",
-					type: "waterfall",
+			return {
+				id: companyId,
+				title: companyTitle,
+				financialGroups: buildFinancialGroups(
 					companyId,
 					companyTitle,
-					parentProject: mainWaterfallProject,
-					projects: [mainWaterfallProject, ...regularProjects],
-				});
-
-				extraWaterfallProjects.forEach((project) => {
-					groups.push({
-						id: `waterfall-${project.projectId}`,
-						title: project.title || "Финансовый waterfall проект",
-						type: "waterfall",
-						companyId,
-						companyTitle,
-						parentProject: project,
-						projects: [project],
-					});
-				});
-			} else if (regularProjects.length) {
-				groups.push({
-					id: `regular-${companyId}`,
-					title: "Без финансового waterfall проекта",
-					type: "regular",
-					companyId,
-					companyTitle,
-					parentProject: null,
-					projects: regularProjects,
-				});
-			}
-
-			supportProjects.forEach((project) => {
-				groups.push({
-					id: `support-${project.projectId}`,
-					title: project.title || "Финансовый техпод проект",
-					type: "support",
-					companyId,
-					companyTitle,
-					parentProject: project,
-					projects: [project],
-				});
-			});
-
-			return groups;
+					companyProjects,
+				),
+			};
 		},
 	);
 };
