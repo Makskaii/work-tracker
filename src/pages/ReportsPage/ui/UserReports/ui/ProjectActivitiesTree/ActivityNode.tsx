@@ -9,7 +9,7 @@ type ActivityNodeProps = {
 };
 
 export const ActivityNode = ({ activity }: ActivityNodeProps) => {
-	const [isExpanded, setIsExpanded] = useState(false);
+	const [isExpanded, setIsExpanded] = useState(true);
 
 	return (
 		<TreeNode
