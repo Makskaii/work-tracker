@@ -4,7 +4,6 @@ import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
 import type { ActivityListItem } from "../../types/types";
-import { DealTab } from "./components/DealTab";
 import { MarginalityTab } from "./components/MarginalityTab";
 import { ProfitabilitySkeleton } from "./components/ProfitabilitySkeleton";
 import { ProjectsTab } from "./components/ProjectsTab";
@@ -27,7 +26,6 @@ type SalesProfitabilityReportProps = {
 };
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
-	{ id: "deal", title: "Вотерфол проект" },
 	{ id: "projects", title: "Проекты" },
 	{ id: "tasks", title: "Задачи" },
 	{ id: "reports", title: "Отчёты сотрудников" },
@@ -64,7 +62,7 @@ export const SalesProfitabilityReport = ({
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
-	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("deal");
+	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
 	const { companyTitleById, projects, isLoadingDetails } = useDealProjects();
@@ -116,6 +114,7 @@ export const SalesProfitabilityReport = ({
 	const selectFinancialGroup = (groupId: string, projectId: string) => {
 		setSelectedFinancialGroupId(groupId);
 		setSelectedProjectId(projectId);
+		setActiveTab("projects");
 	};
 
 	return (
@@ -252,19 +251,6 @@ export const SalesProfitabilityReport = ({
 									projects={activeProjects}
 									selectedDeal={null}
 									selectedProjectId={effectiveSelectedProjectId}
-								/>
-							)}
-
-							{activeTab === "deal" && (
-								<DealTab
-									onProjectSelect={(projectId) => {
-										setSelectedProjectId(projectId);
-										setActiveTab("projects");
-									}}
-									projects={activeProjects}
-									selectedProjectId={effectiveSelectedProjectId}
-									summary={summary}
-									users={users}
 								/>
 							)}
 
