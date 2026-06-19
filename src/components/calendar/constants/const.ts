@@ -48,9 +48,17 @@ export enum ProjectCodes {
 	paymentStageBinding = "ufCrm31_1780568517",
 	paymentPercent = "ufCrm31_1780568744067",
 	paymentAmount = "ufCrm31_1780568762673",
+	paymentDate = "ufCrm31_1781613488488",
 	paymentProject = "parentId1092",
 	projectPayment = "parentId1144",
+	financialProjectType = "ufCrm20_1781683772",
+	projectAmount = "ufCrm20_1781794144345",
 }
+
+export const FINANCIAL_PROJECT_TYPE = {
+	WATERFALL: "409",
+	SUPPORT: "410",
+} as const;
 
 export enum TaskCodes {
 	description = "ufCrm14_1770731622242",
@@ -67,7 +75,7 @@ export enum TaskCodes {
 	deadline = "ufCrm14_1775128557733",
 	company = "ufCrm14_1775127945",
 	parentproject = "parentId1092",
-	taskType = "ufCrm14_1775231676", // clients paid, company paid(ours), unpaid
+	taskType = "ufCrm14_1775231676",
 	taskAllowed = "ufCrm14_1779875406638",
 }
 

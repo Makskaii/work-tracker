@@ -4,7 +4,6 @@ import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
 import type { ActivityListItem } from "../../types/types";
-import { DealTab } from "./components/DealTab";
 import { MarginalityTab } from "./components/MarginalityTab";
 import { ProfitabilitySkeleton } from "./components/ProfitabilitySkeleton";
 import { ProjectsTab } from "./components/ProjectsTab";
@@ -12,12 +11,11 @@ import { ReportsTab } from "./components/ReportsTab";
 import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
 import {
-	formatMoney,
-	getDealSummary,
-	toNumber,
+	buildCompanyProjectGroups,
+	getFinancialProjectSummary,
 } from "./model/profitabilityUtils";
 import type { SalesProfitabilityTab } from "./model/types";
-import { useDealProjects } from "./model/useDealProjects";
+import { useCompanyProjects } from "./model/useCompanyProjects";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -28,7 +26,6 @@ type SalesProfitabilityReportProps = {
 };
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
-	{ id: "deal", title: "Сделка" },
 	{ id: "projects", title: "Проекты" },
 	{ id: "tasks", title: "Задачи" },
 	{ id: "reports", title: "Отчёты сотрудников" },
@@ -58,36 +55,35 @@ export const SalesProfitabilityReport = ({
 	users,
 	loading,
 }: SalesProfitabilityReportProps) => {
-	const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+	const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+	const [selectedFinancialGroupId, setSelectedFinancialGroupId] = useState<
+		string | null
+	>(null);
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
-	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("deal");
+	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
-
-	const selectedDeal = useMemo(() => {
-		if (!deals.length) return null;
-
-		if (selectedDealId) {
-			const selectedDeal =
-				deals.find((deal) => String(deal.id) === selectedDealId) ?? null;
-
-			if (selectedDeal) return selectedDeal;
-		}
-
-		return deals[0];
-	}, [deals, selectedDealId]);
-	const { projects, isLoadingDetails } = useDealProjects(selectedDeal);
-	const activeDealId = selectedDeal ? String(selectedDeal.id) : "";
-
-	const selectDeal = (dealId: string) => {
-		setSelectedDealId(dealId);
-		setSelectedProjectId(null);
-	};
+	const { companyTitleById, projects, isLoadingDetails } = useCompanyProjects();
+	const companyGroups = useMemo(
+		() => buildCompanyProjectGroups(projects, companyTitleById),
+		[companyTitleById, projects],
+	);
+	const activeCompanyGroup =
+		companyGroups.find((company) => company.id === selectedCompanyId) ??
+		companyGroups[0] ??
+		null;
+	const activeFinancialGroup =
+		activeCompanyGroup?.financialGroups.find(
+			(group) => group.id === selectedFinancialGroupId,
+		) ??
+		activeCompanyGroup?.financialGroups[0] ??
+		null;
+	const activeProjects = activeFinancialGroup?.projects ?? [];
 
 	const effectiveSelectedProjectId = useMemo(() => {
-		const projectIds = projects.map((project) => project.projectId);
+		const projectIds = activeProjects.map((project) => project.projectId);
 
 		if (!projectIds.length) {
 			return null;
@@ -98,16 +94,28 @@ export const SalesProfitabilityReport = ({
 		}
 
 		return projectIds[0];
-	}, [projects, selectedProjectId]);
+	}, [activeProjects, selectedProjectId]);
 
-	const summary = getDealSummary(projects, selectedDeal);
+	const summary = getFinancialProjectSummary(activeProjects);
 	const isBusy = loading || isLoadingDetails;
-	const allTasks = projects.flatMap((project) =>
+	const allTasks = activeProjects.flatMap((project) =>
 		project.tasks.map((task) => ({ task, project })),
 	);
-	const allReports = projects.flatMap((project) =>
+	const allReports = activeProjects.flatMap((project) =>
 		project.reports.map((report) => ({ report, project })),
 	);
+
+	const selectCompany = (companyId: string) => {
+		setSelectedCompanyId(companyId);
+		setSelectedFinancialGroupId(null);
+		setSelectedProjectId(null);
+	};
+
+	const selectFinancialGroup = (groupId: string, projectId: string) => {
+		setSelectedFinancialGroupId(groupId);
+		setSelectedProjectId(projectId);
+		setActiveTab("projects");
+	};
 
 	return (
 		<section className={styles.section}>
@@ -133,72 +141,69 @@ export const SalesProfitabilityReport = ({
 						<h3>Структура</h3>
 					</div>
 					<div className={styles.dealsList}>
-						{deals.map((deal) => {
-							const isActiveDeal = String(deal.id) === activeDealId;
+						{isLoadingDetails ? (
+							<ProjectListSkeleton />
+						) : (
+							companyGroups.map((company) => {
+								const isActiveCompany = company.id === activeCompanyGroup?.id;
 
-							return (
-								<div key={deal.id} className={styles.dealGroup}>
-									<button
-										type="button"
-										title={deal.title}
-										className={`${styles.dealButton} ${
-											isActiveDeal ? styles.activeDeal : ""
-										}`}
-										onClick={() => selectDeal(String(deal.id))}
-									>
-										<span className={styles.dealChevron}>
-											{deal.title.trim().charAt(0)}
-										</span>
-										<span>
-											<strong>{deal.title}</strong>
-											<small>CRM-сделка</small>
-										</span>
-										<em>
-											{toNumber(deal.opportunity)
-												? formatMoney(toNumber(deal.opportunity))
-												: `#${deal.id}`}
-										</em>
-									</button>
+								return (
+									<div key={company.id} className={styles.dealGroup}>
+										<button
+											type="button"
+											title={company.title}
+											className={`${styles.dealButton} ${
+												isActiveCompany ? styles.activeDeal : ""
+											}`}
+											onClick={() => selectCompany(company.id)}
+										>
+											<span className={styles.dealChevron}>
+												{company.title.trim().charAt(0)}
+											</span>
+											<span>
+												<strong>{company.title}</strong>
+												<small>Компания</small>
+											</span>
+											<em>{company.financialGroups.length} групп</em>
+										</button>
 
-									{isActiveDeal && (isLoadingDetails || projects.length) ? (
-										<div className={styles.dealProjectsList}>
-											{isLoadingDetails ? (
-												<ProjectListSkeleton />
-											) : (
-												projects.map((project) => {
-													const projectId = project.projectId;
-													const isActiveProject =
-														projectId === effectiveSelectedProjectId;
+										{isActiveCompany ? (
+											<div className={styles.dealProjectsList}>
+												{company.financialGroups.map((group) => {
+													const projectId =
+														group.parentProject.projectId ?? group.id;
+													const isActiveGroup =
+														group.id === activeFinancialGroup?.id;
 
 													return (
-														<button
-															key={projectId}
-															type="button"
-															title={project.title}
-															className={`${styles.dealProjectButton} ${
-																isActiveProject ? styles.activeProject : ""
-															}`}
-															onClick={() => setSelectedProjectId(projectId)}
-														>
-															<span className={styles.dealProjectIcon}>
-																{project.title.trim().charAt(0)}
-															</span>
-															<span>
-																<strong>{project.title}</strong>
-																<small>
-																	{project.tasks.length} задач ·{" "}
-																	{project.reports.length} отчётов
-																</small>
-															</span>
-														</button>
+														<div key={group.id} className={styles.dealGroup}>
+															<button
+																type="button"
+																title={group.title}
+																className={`${styles.dealProjectButton} ${
+																	isActiveGroup ? styles.activeProject : ""
+																}`}
+																onClick={() =>
+																	selectFinancialGroup(group.id, projectId)
+																}
+															>
+																<span className={styles.dealProjectIcon}>
+																	{group.title.trim().charAt(0)}
+																</span>
+																<span>
+																	<strong>{group.title}</strong>
+																	<small>Вотерфол проект</small>
+																</span>
+															</button>
+														</div>
 													);
-												})
-											)}
-										</div>
-									) : null}
-								</div>
-							);
-						})}
+												})}
+											</div>
+										) : null}
+									</div>
+								);
+							})
+						)}
 					</div>
 				</aside>
 
@@ -230,44 +235,27 @@ export const SalesProfitabilityReport = ({
 					) : (
 						<>
 							{activeTab !== "marginality" && (
-								<>
-									<div className={styles.contentHeader}>
-										<div>
-											<span>Сделка</span>
-											<h3>{selectedDeal?.title ?? "Сделка не выбрана"}</h3>
-										</div>
-									</div>
-
-									<SummaryCards summary={summary} />
-								</>
+								<SummaryCards
+									projectTitle={
+										activeFinancialGroup?.title ??
+										activeCompanyGroup?.title ??
+										"Компания не выбрана"
+									}
+									summary={summary}
+								/>
 							)}
 
 							{activeTab === "marginality" && (
 								<MarginalityTab
 									deals={deals}
-									projects={projects}
-									selectedDeal={selectedDeal}
+									projects={activeProjects}
 									selectedProjectId={effectiveSelectedProjectId}
-								/>
-							)}
-
-							{activeTab === "deal" && (
-								<DealTab
-									onProjectSelect={(projectId) => {
-										setSelectedProjectId(projectId);
-										setActiveTab("projects");
-									}}
-									projects={projects}
-									selectedProjectId={effectiveSelectedProjectId}
-									summary={summary}
-									users={users}
 								/>
 							)}
 
 							{activeTab === "projects" && (
 								<ProjectsTab
-									projects={projects}
-									selectedDeal={selectedDeal}
+									projects={activeProjects}
 									selectedProjectId={effectiveSelectedProjectId}
 									users={users}
 								/>

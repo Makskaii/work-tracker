@@ -8,90 +8,73 @@ import {
 import type { ReportProps } from "@/components/calendar/types/types";
 import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
-import type { Deal } from "../../../types/deals.types";
 import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
 import { PROJECT_SELECT_FIELDS, REPORT_SELECT_FIELDS } from "./constants";
-import { getDealProjectIds } from "./profitabilityUtils";
 import type { ProfitabilityProject } from "./types";
 
-type DealProjectsState = {
-	dealId: string | null;
+type ProjectsState = {
+	companyTitleById: Map<string, string>;
 	isLoading: boolean;
 	projects: ProfitabilityProject[];
 };
 
-const mergeProjectsById = (projectGroups: ClientProjectProps[][]) => {
-	const result = new Map<string, ClientProjectProps>();
-
-	projectGroups.flat().forEach((project) => {
-		result.set(String(project.id), project);
-	});
-
-	return Array.from(result.values());
+type CompanyFromCrm = {
+	id: string | number;
+	title?: string | null;
 };
 
-export const useDealProjects = (selectedDeal: Deal | null) => {
-	const [projectsState, setProjectsState] = useState<DealProjectsState>({
-		dealId: null,
+const getUniqueValues = (values: Array<string | number | null | undefined>) =>
+	Array.from(
+		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
+	);
+
+export const useCompanyProjects = () => {
+	const [projectsState, setProjectsState] = useState<ProjectsState>({
+		companyTitleById: new Map(),
 		isLoading: false,
 		projects: [],
 	});
-	const selectedDealId = selectedDeal ? String(selectedDeal.id) : null;
 
 	useEffect(() => {
-		if (!selectedDeal) {
-			return;
-		}
-
 		const controller = new AbortController();
-		const projectIds = getDealProjectIds(selectedDeal);
 
-		const fetchDealProjects = async () => {
+		const fetchProjects = async () => {
 			setProjectsState({
-				dealId: String(selectedDeal.id),
+				companyTitleById: new Map(),
 				isLoading: true,
 				projects: [],
 			});
 
 			try {
-				const [linkedProjects, projectsByDealReverseParentField] =
-					await Promise.all([
-						fetchAllCrmItems<ClientProjectProps>({
-							entityTypeId: EntityTypeIds.projects,
-							select: PROJECT_SELECT_FIELDS,
-							filter: {
-								[ProjectCodes.parentDeal]: selectedDeal.id,
-							},
+				const projects = await fetchAllCrmItems<ClientProjectProps>({
+					entityTypeId: EntityTypeIds.projects,
+					select: PROJECT_SELECT_FIELDS,
+					filter: {},
+					signal: controller.signal,
+				});
+				const companyIds = getUniqueValues(
+					projects.map((project) => project[ProjectCodes.company]),
+				);
+				const companies = companyIds.length
+					? await fetchAllCrmItems<CompanyFromCrm>({
+							entityTypeId: EntityTypeIds.companies,
+							select: ["id", "title"],
+							filter: { "@id": companyIds },
 							signal: controller.signal,
-						}),
-						projectIds.length
-							? fetchAllCrmItems<ClientProjectProps>({
-									entityTypeId: EntityTypeIds.projects,
-									select: PROJECT_SELECT_FIELDS,
-									filter:
-										projectIds.length === 1
-											? { id: projectIds[0] }
-											: { "@id": projectIds },
-									signal: controller.signal,
-								})
-							: Promise.resolve([]),
-					]);
-				const dealProjects = mergeProjectsById([
-					linkedProjects,
-					projectsByDealReverseParentField,
-				]);
-
-				if (!dealProjects.length) {
-					setProjectsState({
-						dealId: String(selectedDeal.id),
-						isLoading: false,
-						projects: [],
-					});
-					return;
-				}
+						})
+					: [];
+				const companyTitleEntries: Array<[string, string]> = companies
+					.map(
+						(company): [string, string] => [
+							String(company.id ?? "").trim(),
+							String(company.title ?? "").trim(),
+						],
+					)
+					.filter(([id, title]) => id && title);
+				const companyTitleById = new Map(companyTitleEntries);
 
 				const preparedProjects = await Promise.all(
-					dealProjects.map(async (project) => {
+					projects.map(async (project) => {
 						const projectId = String(project.projectId ?? project.id);
 						const companyId = String(
 							project[ProjectCodes.company] ?? "",
@@ -173,16 +156,16 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 
 				if (!controller.signal.aborted) {
 					setProjectsState({
-						dealId: String(selectedDeal.id),
+						companyTitleById,
 						isLoading: false,
 						projects: preparedProjects,
 					});
 				}
 			} catch (error) {
 				if (!controller.signal.aborted) {
-					console.error("Failed to fetch deal profitability data", error);
+					console.error("Failed to fetch company profitability data", error);
 					setProjectsState({
-						dealId: String(selectedDeal.id),
+						companyTitleById: new Map(),
 						isLoading: false,
 						projects: [],
 					});
@@ -190,24 +173,16 @@ export const useDealProjects = (selectedDeal: Deal | null) => {
 			}
 		};
 
-		fetchDealProjects();
+		fetchProjects();
 
 		return () => {
 			controller.abort();
 		};
-	}, [selectedDeal]);
-
-	if (!selectedDealId) {
-		return {
-			projects: [],
-			isLoadingDetails: false,
-		};
-	}
-
-	const isCurrentDealState = projectsState.dealId === selectedDealId;
+	}, []);
 
 	return {
-		projects: isCurrentDealState ? projectsState.projects : [],
-		isLoadingDetails: isCurrentDealState ? projectsState.isLoading : true,
+		companyTitleById: projectsState.companyTitleById,
+		projects: projectsState.projects,
+		isLoadingDetails: projectsState.isLoading,
 	};
 };

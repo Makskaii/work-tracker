@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { EntityTypeIds } from "@/shared/constants/const";
-import type { ClientProjectProps } from "@/shared/types/types";
 import type { Deal } from "../../../types/deals.types";
 import {
 	fetchAllCrmItems,
+	fetchProjectPaymentStageBindingLabels,
 	fetchProjectPaymentsByProjectIds,
-	fetchProjectsByDealId,
 } from "./api";
-import { PROJECT_SELECT_FIELDS } from "./constants";
-import { getDealProjectIds } from "./profitabilityUtils";
 import type { ProfitabilityProject, ProjectPayment } from "./types";
 
-export type MarginalityScope = "all" | "client" | "deal" | "projects";
+export type MarginalityScope = "all" | "client" | "project";
 
 export type PaymentProjectInfo = {
 	id: string;
@@ -24,10 +21,6 @@ export type MarginalityPaymentItem = {
 	project: PaymentProjectInfo;
 };
 
-type NormalizedClientProject = ClientProjectProps & {
-	projectId: string;
-};
-
 type CompanyFromCrm = {
 	id: string;
 	title?: string | null;
@@ -37,7 +30,6 @@ type UseMarginalityPaymentsParams = {
 	deals: Deal[];
 	projects: ProfitabilityProject[];
 	scope: MarginalityScope;
-	scopeDeals: Deal[];
 	selectedProjectId: string | null;
 };
 
@@ -46,23 +38,8 @@ const getUniqueValues = (values: Array<string | number | null | undefined>) =>
 		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
 	);
 
-const normalizeProject = (project: ClientProjectProps): NormalizedClientProject => ({
-	...project,
-	projectId: String(project.projectId ?? project.id),
-});
-
 const getProjectId = (project: { projectId?: string | null }) =>
 	String(project.projectId ?? "");
-
-const mergeProjects = (projectGroups: NormalizedClientProject[][]) => {
-	const result = new Map<string, NormalizedClientProject>();
-
-	projectGroups.flat().forEach((project) => {
-		result.set(String(project.id), project);
-	});
-
-	return Array.from(result.values());
-};
 
 const getProjectPaymentId = (payment: ProjectPayment) =>
 	String(payment[ProjectCodes.paymentProject] ?? "").trim();
@@ -74,13 +51,14 @@ export const useMarginalityPayments = ({
 	deals,
 	projects,
 	scope,
-	scopeDeals,
 	selectedProjectId,
 }: UseMarginalityPaymentsParams) => {
 	const [payments, setPayments] = useState<MarginalityPaymentItem[]>([]);
 	const [companyTitleById, setCompanyTitleById] = useState<Map<string, string>>(
 		() => new Map(),
 	);
+	const [paymentStageBindingLabelById, setPaymentStageBindingLabelById] =
+		useState<Map<string, string>>(() => new Map());
 	const [isCompaniesLoading, setIsCompaniesLoading] = useState(false);
 	const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
@@ -88,7 +66,7 @@ export const useMarginalityPayments = ({
 		() => getUniqueValues(deals.map((deal) => deal.companyId)),
 		[deals],
 	);
-	const currentDealProjectIds = useMemo(
+	const currentProjectIds = useMemo(
 		() => getUniqueValues(projects.map((project) => getProjectId(project))),
 		[projects],
 	);
@@ -99,23 +77,23 @@ export const useMarginalityPayments = ({
 		const loadCompanyTitles = async () => {
 			setIsCompaniesLoading(true);
 			setError(null);
-			const dealTitleByCompanyId = new Map<string, string>();
+			const companyTitleFromDealsById = new Map<string, string>();
 
 			deals.forEach((deal) => {
 				const companyId = String(deal.companyId ?? "").trim();
 				const title = String(deal.companyTitle ?? "").trim();
 
 				if (companyId && title) {
-					dealTitleByCompanyId.set(companyId, title);
+					companyTitleFromDealsById.set(companyId, title);
 				}
 			});
 
 			const missingCompanyIds = companyIds.filter(
-				(companyId) => !dealTitleByCompanyId.has(companyId),
+				(companyId) => !companyTitleFromDealsById.has(companyId),
 			);
 
 			if (!missingCompanyIds.length) {
-				setCompanyTitleById(dealTitleByCompanyId);
+				setCompanyTitleById(companyTitleFromDealsById);
 				return;
 			}
 
@@ -130,7 +108,7 @@ export const useMarginalityPayments = ({
 				return;
 			}
 
-			const nextCompanyTitleById = new Map(dealTitleByCompanyId);
+			const nextCompanyTitleById = new Map(companyTitleFromDealsById);
 
 			companies.forEach((company) => {
 				const companyId = String(company.id ?? "").trim();
@@ -178,58 +156,30 @@ export const useMarginalityPayments = ({
 		const loadScopePayments = async () => {
 			setIsPaymentsLoading(true);
 			setError(null);
-			const dealProjectIds = getUniqueValues(
-				scopeDeals.flatMap((deal) => getDealProjectIds(deal)),
-			);
 			const projectIds =
-				scope === "projects" && selectedProjectId
+				scope === "project" && selectedProjectId
 					? [selectedProjectId]
-					: getUniqueValues([...dealProjectIds, ...currentDealProjectIds]);
-			const scopeDealIds =
-				scope === "projects" && selectedProjectId
-					? []
-					: getUniqueValues(scopeDeals.map((deal) => deal.id));
-			const projectsByIdsRequest = projectIds.length
-				? fetchAllCrmItems<ClientProjectProps>({
-						entityTypeId: EntityTypeIds.projects,
-						select: PROJECT_SELECT_FIELDS,
-						filter: { "@id": projectIds },
-						signal: controller.signal,
-					}).then((items) => items.map(normalizeProject))
-				: Promise.resolve([]);
-			const projectsByDealsRequests = scopeDealIds.map((dealId) =>
-				fetchProjectsByDealId(dealId, controller.signal).then((items) =>
-					items.map(normalizeProject),
-				),
-			);
-
-			const scopeProjects = mergeProjects(
-				await Promise.all([
-					projectsByIdsRequest,
-					...projectsByDealsRequests,
-				]),
-			);
-			const scopeProjectIds = getUniqueValues([
-				...projectIds,
-				...scopeProjects.map((project) => getProjectId(project)),
-			]);
-			const projectTitleById = new Map(currentProjectTitleById);
-
-			scopeProjects.forEach((project) => {
-				const projectId = getProjectId(project);
-
-				projectTitleById.set(projectId, project.title || `Проект #${projectId}`);
-			});
-
+					: currentProjectIds;
 			const scopePayments = await fetchProjectPaymentsByProjectIds({
-				projectIds: scopeProjectIds,
+				projectIds,
 				signal: controller.signal,
 			});
+			let stageBindingLabels = new Map<string, string>();
+
+			try {
+				stageBindingLabels =
+					await fetchProjectPaymentStageBindingLabels(controller.signal);
+			} catch (labelsError) {
+				if (controller.signal.aborted) {
+					throw labelsError;
+				}
+			}
 
 			if (controller.signal.aborted) {
 				return;
 			}
 
+			setPaymentStageBindingLabelById(stageBindingLabels);
 			setPayments(
 				scopePayments.map((payment) => {
 					const projectId = getProjectPaymentId(payment);
@@ -238,7 +188,7 @@ export const useMarginalityPayments = ({
 						payment,
 						project: {
 							id: projectId,
-							title: projectTitleById.get(projectId) ?? `Проект #${projectId}`,
+							title: currentProjectTitleById.get(projectId) ?? `Проект #${projectId}`,
 						},
 					};
 				}),
@@ -265,11 +215,12 @@ export const useMarginalityPayments = ({
 		return () => {
 			controller.abort();
 		};
-	}, [currentDealProjectIds, projects, scope, scopeDeals, selectedProjectId]);
+	}, [currentProjectIds, projects, scope, selectedProjectId]);
 
 	return {
 		payments,
 		companyTitleById,
+		paymentStageBindingLabelById,
 		isLoading: isCompaniesLoading || isPaymentsLoading,
 		error,
 	};

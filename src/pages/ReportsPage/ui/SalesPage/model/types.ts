@@ -14,6 +14,24 @@ export type ProfitabilityProject = ClientProjectProps & ProjectGanttFields & {
 	tasks: TaskProps[];
 	reports: ReportProps[];
 	payments: ProjectPayment[];
+	[ProjectCodes.financialProjectType]?: string | string[] | null;
+	[ProjectCodes.projectAmount]?: string | number | null;
+};
+
+export type CompanyFinancialGroup = {
+	id: string;
+	title: string;
+	type: "waterfall";
+	companyId: string;
+	companyTitle: string;
+	parentProject: ProfitabilityProject;
+	projects: ProfitabilityProject[];
+};
+
+export type CompanyProjectGroup = {
+	id: string;
+	title: string;
+	financialGroups: CompanyFinancialGroup[];
 };
 
 export type ProjectPayment = {
@@ -21,13 +39,14 @@ export type ProjectPayment = {
 	title?: string;
 	createdTime?: string;
 	stageId?: string | null;
-	[ProjectCodes.paymentStageBinding]?: string | null;
+	[ProjectCodes.paymentStageBinding]?: string | string[] | null;
 	[ProjectCodes.paymentPercent]?: string | null;
 	[ProjectCodes.paymentAmount]?: string | null;
+	[ProjectCodes.paymentDate]?: string | null;
 	[ProjectCodes.paymentProject]?: string | null;
 };
 
-export type DealSummary = {
+export type FinancialProjectSummary = {
 	purchasedHours: number;
 	revenue: number;
 	planHours: number;
@@ -41,7 +60,6 @@ export type DealSummary = {
 
 export type SalesProfitabilityTab =
 	| "marginality"
-	| "deal"
 	| "projects"
 	| "tasks"
 	| "reports";

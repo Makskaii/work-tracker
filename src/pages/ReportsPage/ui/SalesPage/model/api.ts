@@ -12,6 +12,17 @@ type CrmItemListResponse<T> = {
 	next?: number | null;
 };
 
+type BitrixCrmFieldEnumItem = {
+	ID: string | number;
+	VALUE: string | null;
+};
+
+type CrmItemFieldsResponse = {
+	result?: {
+		fields?: Record<string, { items?: BitrixCrmFieldEnumItem[] }>;
+	};
+};
+
 export const fetchAllCrmItems = async <T,>({
 	entityTypeId,
 	select,
@@ -54,7 +65,7 @@ export const fetchAllCrmItems = async <T,>({
 const PROJECT_PAYMENT_SELECT_FIELDS = [
 	"id",
 	"title",
-	"createdTime",
+	ProjectCodes.paymentDate,
 	ProjectCodes.paymentStage,
 	ProjectCodes.paymentStageBinding,
 	ProjectCodes.paymentPercent,
@@ -68,6 +79,31 @@ const normalizeProjectPayment = (
 	...payment,
 	id: String(payment.id),
 });
+
+export const fetchProjectPaymentStageBindingLabels = async (
+	signal?: AbortSignal,
+) => {
+	const response = await $api.get<CrmItemFieldsResponse>(Endpoints.crmFeilds, {
+		params: {
+			entityTypeId: EntityTypeIds.projectPayments,
+		},
+		signal,
+	});
+	const field =
+		response.data.result?.fields?.[ProjectCodes.paymentStageBinding];
+	const labels = new Map<string, string>();
+
+	field?.items?.forEach((item) => {
+		const id = String(item.ID).trim();
+		const label = String(item.VALUE ?? "").trim();
+
+		if (id && label) {
+			labels.set(id, label);
+		}
+	});
+
+	return labels;
+};
 
 export const fetchPaymentsByProjectId = (
 	projectId: string,

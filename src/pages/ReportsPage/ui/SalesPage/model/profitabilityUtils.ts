@@ -1,21 +1,124 @@
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
+import {
+	FINANCIAL_PROJECT_TYPE,
+	ProjectCodes,
+	ReportCodes,
+	TaskCodes,
+} from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { TaskProps, User } from "@/shared/types/types";
-import { type Deal, DealCodes } from "../../../types/deals.types";
 import type { ActivityListItem } from "../../../types/types";
 import { MOCK_MARGIN_PERCENT } from "./constants";
-import type { DealSummary, ProfitabilityProject } from "./types";
+import type {
+	CompanyFinancialGroup,
+	CompanyProjectGroup,
+	FinancialProjectSummary,
+	ProfitabilityProject,
+} from "./types";
 
 export const toNumber = (value: unknown) => {
-	const parsed = Number(String(value ?? "0").replace(",", "."));
+	const normalized = String(value ?? "0")
+		.split("|")[0]
+		.replace(/\s/g, "")
+		.replace(",", ".")
+		.replace(/[^\d.-]/g, "");
+	const parsed = Number(normalized);
+
 	return Number.isFinite(parsed) ? parsed : 0;
 };
 
-export const getDealProjectIds = (deal: Deal | null) => {
-	const value = deal?.[DealCodes.parentProject];
-	const values = Array.isArray(value) ? value : [value];
+export const getProjectAmount = (project?: ProfitabilityProject | null) =>
+	toNumber(project?.[ProjectCodes.projectAmount]);
 
-	return values.map((item) => String(item ?? "").trim()).filter(Boolean);
+export const hasFinancialProjectType = (
+	project: ProfitabilityProject,
+	type: string,
+) => {
+	const value = project[ProjectCodes.financialProjectType];
+
+	if (Array.isArray(value)) {
+		return value.map(String).includes(type);
+	}
+
+	return String(value ?? "") === type;
+};
+
+const getProjectCompanyId = (project: ProfitabilityProject) =>
+	String(project[ProjectCodes.company] ?? "").trim();
+
+const buildFinancialGroups = (
+	companyId: string,
+	companyTitle: string,
+	projects: ProfitabilityProject[],
+): CompanyFinancialGroup[] => {
+	const waterfallProjects = projects.filter((project) =>
+		hasFinancialProjectType(project, FINANCIAL_PROJECT_TYPE.WATERFALL),
+	);
+	const groups: CompanyFinancialGroup[] = [];
+	const [mainWaterfallProject, ...extraWaterfallProjects] = waterfallProjects;
+
+	if (mainWaterfallProject) {
+		groups.push({
+			id: `waterfall-${mainWaterfallProject.projectId}`,
+			title: mainWaterfallProject.title || "Финансовый вотерфол проект",
+			type: "waterfall",
+			companyId,
+			companyTitle,
+			parentProject: mainWaterfallProject,
+			projects: [mainWaterfallProject],
+		});
+
+		extraWaterfallProjects.forEach((project) => {
+			groups.push({
+				id: `waterfall-${project.projectId}`,
+				title: project.title || "Финансовый вотерфол проект",
+				type: "waterfall",
+				companyId,
+				companyTitle,
+				parentProject: project,
+				projects: [project],
+			});
+		});
+	}
+
+	return groups;
+};
+
+export const buildCompanyProjectGroups = (
+	projects: ProfitabilityProject[],
+	companyTitleById: Map<string, string> = new Map(),
+): CompanyProjectGroup[] => {
+	const projectsByCompany = new Map<string, ProfitabilityProject[]>();
+
+	projects.forEach((project) => {
+		const companyId = getProjectCompanyId(project) || "unknown";
+		const companyProjects = projectsByCompany.get(companyId) ?? [];
+
+		companyProjects.push(project);
+		projectsByCompany.set(companyId, companyProjects);
+	});
+
+	return Array.from(projectsByCompany.entries()).flatMap(
+		([companyId, companyProjects]) => {
+			const companyTitle =
+				companyTitleById.get(companyId) ||
+				`Компания #${companyId}`;
+			const financialGroups = buildFinancialGroups(
+				companyId,
+				companyTitle,
+				companyProjects,
+			);
+
+			if (!financialGroups.length) {
+				return [];
+			}
+
+			return [{
+				id: companyId,
+				title: companyTitle,
+				financialGroups,
+			}];
+		},
+	);
 };
 
 export const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
@@ -113,10 +216,9 @@ export const getLossHours = (project: ProfitabilityProject) => {
 	);
 };
 
-export const getDealSummary = (
+export const getFinancialProjectSummary = (
 	projects: ProfitabilityProject[],
-	deal: Deal | null,
-): DealSummary => {
+): FinancialProjectSummary => {
 	const planHours = projects.reduce(
 		(acc, project) => acc + getProjectPlanHours(project.tasks),
 		0,
@@ -137,10 +239,13 @@ export const getDealSummary = (
 			unpaid: 0,
 		},
 	);
-	const revenue = toNumber(deal?.opportunity);
+	const revenue = projects.reduce(
+		(acc, project) => acc + getProjectAmount(project),
+		0,
+	);
 
 	return {
-		purchasedHours: toNumber(deal?.[DealCodes.purchasedHours]),
+		purchasedHours: 0,
 		revenue,
 		planHours,
 		factHours,

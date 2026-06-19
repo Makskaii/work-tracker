@@ -2,7 +2,6 @@ import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import { DEPARTMENT_IDS } from "@/shared/constants/const";
 import type { TaskProps, User } from "@/shared/types/types";
-import type { Deal } from "../../../types/deals.types";
 import { toNumber } from "../model/profitabilityUtils";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "./DealProjectTeamCostTable.module.scss";
@@ -122,7 +121,6 @@ const getUniqueTasksPlanHours = (projects: ProfitabilityProject[]) => {
 
 const buildTeamMembers = (
 	projects: ProfitabilityProject[],
-	selectedDeal: Deal | null,
 	users: User[],
 ): TeamMember[] => {
 	const members = new Map<string, TeamMember>();
@@ -169,10 +167,6 @@ const buildTeamMembers = (
 			responsibleUserIds.add(userId);
 		}
 	});
-
-	if (selectedDeal?.assignedById) {
-		responsibleUserIds.add(String(selectedDeal.assignedById));
-	}
 
 	responsibleUserIds.forEach((userId) => {
 		if (members.has(userId)) {
@@ -256,15 +250,13 @@ const getFactBadgeClassName = (factHours: number, planHours: number) =>
 
 export const DealProjectTeamCostTable = ({
 	projects,
-	selectedDeal,
 	users,
 }: {
 	projects: ProfitabilityProject[];
-	selectedDeal: Deal | null;
 	users: User[];
 }) => {
 	const tasksById = buildTaskMap(projects);
-	const members = buildTeamMembers(projects, selectedDeal, users);
+	const members = buildTeamMembers(projects, users);
 	const groups = getGroups(members);
 	const baseTotals = getMembersTotals(members);
 	const totals = {

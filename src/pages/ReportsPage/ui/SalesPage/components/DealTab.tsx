@@ -1,5 +1,5 @@
 import type { User } from "@/shared/types/types";
-import type { DealSummary, ProfitabilityProject } from "../model/types";
+import type { FinancialProjectSummary, ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { ProjectsTable } from "./ProjectsTable";
 
@@ -7,7 +7,7 @@ type DealTabProps = {
 	onProjectSelect: (projectId: string) => void;
 	projects: ProfitabilityProject[];
 	selectedProjectId: string | null;
-	summary: DealSummary;
+	summary: FinancialProjectSummary;
 	users: User[];
 };
 

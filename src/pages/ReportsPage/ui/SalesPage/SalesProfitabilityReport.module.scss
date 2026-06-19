@@ -398,7 +398,7 @@
 }
 
 .contentHeader {
-	display: flex;
+	display: none;
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
@@ -474,25 +474,26 @@
 .tabContent {
 	display: flex;
 	flex-direction: column;
-	gap: 18px;
-	padding: 0 20px 20px;
+	gap: 12px;
+	padding: 0 16px 16px;
 }
 
 .projectsTabContent {
-	gap: 22px;
+	gap: 14px;
 }
 
 .marginalityHeader {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
-	padding: 18px 20px 0;
+	gap: 10px;
+	padding: 14px 16px 0;
 	text-align: left;
 
 	h3 {
 		margin: 0;
 		color: var(--color-text);
-		font-size: 22px;
+		font-size: 18px;
+		line-height: 1.25;
 		font-weight: 950;
 	}
 }
@@ -500,16 +501,16 @@
 .marginalityFilters {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px;
+	gap: 8px;
 
 	button {
-		min-height: 38px;
-		padding: 0 14px;
+		min-height: 32px;
+		padding: 0 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 999px;
 		background: rgba(22, 36, 55, 0.38);
 		color: var(--color-text);
-		font-size: 13px;
+		font-size: 12px;
 		font-weight: 900;
 		cursor: pointer;
 	}
@@ -530,14 +531,21 @@
 
 .marginalityMetrics {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(130px, 1fr));
-	gap: 10px;
+	grid-template-columns: repeat(3, minmax(170px, 1fr));
+	gap: 0 18px;
+	padding: 10px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(22, 36, 55, 0.28);
 
 	div {
-		padding: 14px;
-		border: 1px solid var(--color-border);
-		border-radius: 14px;
-		background: var(--color-surface-soft);
+		display: grid;
+		grid-template-columns: minmax(80px, 1fr) auto;
+		align-items: baseline;
+		gap: 10px;
+		min-width: 0;
+		padding: 5px 0;
+		border-bottom: 1px solid rgba(93, 141, 206, 0.14);
 		text-align: left;
 	}
 
@@ -549,15 +557,18 @@
 	span {
 		color: rgba(238, 245, 255, 0.62);
 		font-size: 11px;
-		font-weight: 900;
-		text-transform: uppercase;
+		font-weight: 850;
+		line-height: 1.25;
 	}
 
 	strong {
-		margin-top: 8px;
+		margin-top: 0;
 		color: var(--color-text);
-		font-size: 20px;
+		font-size: 13px;
 		font-weight: 950;
+		line-height: 1.25;
+		text-align: right;
+		white-space: nowrap;
 	}
 }
 
@@ -578,16 +589,15 @@
 }
 
 .requestCard {
-	display: flex;
-	grid-column: 1 / -1;
-	align-items: center;
-	justify-content: flex-start;
-	gap: 24px;
-	width: 100%;
-	padding: 14px;
+	display: grid;
+	grid-template-columns: minmax(80px, 1fr) auto;
+	align-items: baseline;
+	gap: 10px;
+	padding: 5px 0;
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: var(--color-surface-soft);
+	border-width: 0 0 1px;
+	border-radius: 0;
+	background: transparent;
 	text-align: left;
 
 	span,
@@ -598,39 +608,42 @@
 	span {
 		color: rgba(238, 245, 255, 0.62);
 		font-size: 11px;
-		font-weight: 900;
-		text-transform: uppercase;
+		font-weight: 850;
+		line-height: 1.25;
 	}
 
 	strong {
 		color: var(--color-accent-blue);
-		font-size: 20px;
+		font-size: 13px;
 		font-weight: 950;
+		line-height: 1.25;
+		text-align: right;
 		white-space: nowrap;
 	}
 }
 
 .marginalityCard {
-	padding: 18px;
+	padding: 14px;
 	border: 1px solid var(--color-border);
-	border-radius: 18px;
+	border-radius: 14px;
 	background: rgba(15, 28, 44, 0.72);
 	text-align: left;
 	overflow: hidden;
 
 	h4 {
-		margin: 0 0 14px;
+		margin: 0 0 10px;
 		color: var(--color-text);
-		font-size: 17px;
+		font-size: 15px;
 		font-weight: 950;
+		line-height: 1.25;
 	}
 }
 
 .paymentLegend {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin-bottom: 16px;
+	gap: 6px;
+	margin-bottom: 10px;
 }
 
 .paymentLegend .paymentPaid {
@@ -812,17 +825,17 @@
 .paymentsList {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 8px;
 }
 
 .paymentItem {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto auto;
 	align-items: center;
-	gap: 12px;
-	padding: 14px;
+	gap: 10px;
+	padding: 10px 12px;
 	border: 1px solid var(--color-border);
-	border-radius: 16px;
+	border-radius: 12px;
 	background: var(--color-surface-soft);
 
 	strong,
@@ -832,28 +845,35 @@
 
 	strong {
 		color: var(--color-text);
-		font-size: 15px;
+		font-size: 13px;
 		font-weight: 950;
+		line-height: 1.25;
 	}
 
 	span {
-		margin-top: 5px;
+		margin-top: 3px;
 		color: rgba(238, 245, 255, 0.62);
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 700;
+		line-height: 1.25;
 	}
 
 	small {
 		display: block;
-		margin-top: 4px;
+		margin-top: 2px;
 		color: rgba(238, 245, 255, 0.52);
 		font-size: 11px;
 		font-weight: 700;
+		line-height: 1.25;
+	}
+
+	.paymentStageBinding {
+		color: rgba(238, 245, 255, 0.74);
 	}
 
 	b {
 		color: var(--color-text);
-		font-size: 15px;
+		font-size: 13px;
 		font-weight: 950;
 		white-space: nowrap;
 	}
@@ -915,15 +935,16 @@
 .detailCard {
 	min-width: 0;
 	border: 1px solid var(--color-border);
-	border-radius: 18px;
+	border-radius: 14px;
 	background: rgba(15, 28, 44, 0.72);
 	overflow: hidden;
 }
 
 .tableTitle,
 .detailTitle {
-	padding: 16px;
-	font-size: 18px;
+	padding: 11px 14px;
+	font-size: 15px;
+	line-height: 1.25;
 	font-weight: 900;
 	text-align: left;
 }
@@ -946,8 +967,8 @@
 .reportRow {
 	display: grid;
 	align-items: center;
-	gap: 10px;
-	padding: 12px 16px;
+	gap: 8px;
+	padding: 9px 14px;
 	border-top: 1px solid var(--color-border);
 	text-align: left;
 }
@@ -956,7 +977,7 @@
 .tasksHead,
 .reportsHead {
 	color: rgba(238, 245, 255, 0.62);
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 900;
 	background: rgba(22, 36, 55, 0.72);
 }
@@ -997,9 +1018,11 @@
 
 	small {
 		display: block;
-		margin-top: 4px;
+		margin-top: 2px;
 		color: rgba(238, 245, 255, 0.62);
+		font-size: 11px;
 		font-weight: 600;
+		line-height: 1.25;
 	}
 }
 
@@ -1101,17 +1124,26 @@
 
 .ganttMetrics {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(150px, 1fr));
-	gap: 10px;
-	padding: 16px;
+	grid-template-columns: repeat(4, minmax(170px, 1fr));
+	gap: 0 22px;
+	margin: 10px 14px 8px;
+	padding: 10px 14px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(22, 36, 55, 0.28);
 }
 
 .ganttMetric {
 	min-width: 0;
-	padding: 12px;
-	border: 1px solid var(--color-border);
-	border-radius: 10px;
-	background: var(--color-surface-soft);
+	display: grid;
+	grid-template-columns: minmax(110px, 1fr) auto;
+	align-items: baseline;
+	gap: 10px;
+	padding: 5px 0;
+	border: 0;
+	border-bottom: 1px solid rgba(93, 141, 206, 0.14);
+	border-radius: 0;
+	background: transparent;
 	text-align: left;
 
 	span,
@@ -1124,15 +1156,16 @@
 
 	span {
 		color: rgba(238, 245, 255, 0.64);
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 800;
 	}
 
 	strong {
-		margin-top: 6px;
+		margin-top: 0;
 		color: var(--color-text);
-		font-size: 18px;
+		font-size: 13px;
 		font-weight: 950;
+		text-align: right;
 	}
 }
 
@@ -1155,24 +1188,24 @@
 .ganttLegend {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px 14px;
-	padding: 0 16px 14px;
+	gap: 7px 10px;
+	padding: 0 14px 10px;
 	color: rgba(238, 245, 255, 0.66);
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 800;
 	text-align: left;
 
 	span {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: 5px;
 		white-space: nowrap;
 	}
 
 	i {
-		width: 12px;
-		height: 12px;
-		border-radius: 4px;
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
 	}
 }
 
@@ -1211,6 +1244,7 @@
 }
 
 .ganttBoard {
+	position: relative;
 	display: grid;
 	grid-template-columns: minmax(150px, 190px) minmax(720px, 1fr);
 	margin: 0 16px 16px;
@@ -1219,6 +1253,29 @@
 	background: var(--color-surface);
 	overflow-x: auto;
 	text-align: left;
+}
+
+.ganttPaymentLinksLayer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 4;
+	pointer-events: none;
+}
+
+.ganttPaymentLinkLine {
+	fill: none;
+	stroke: rgba(111, 168, 255, 0.78);
+	stroke-dasharray: 5 5;
+	stroke-linecap: round;
+	stroke-width: 2;
+}
+
+.ganttPaymentOverdueLinkLine {
+	fill: none;
+	stroke: rgba(255, 107, 107, 0.9);
+	stroke-linecap: round;
+	stroke-width: 2;
 }
 
 .ganttScaleLabel,
@@ -1446,14 +1503,14 @@
 
 .ganttPaymentMarker {
 	position: absolute;
-	top: 14px;
+	top: 16px;
 	transform: translateX(-50%);
-	z-index: 6;
+	z-index: 5;
 
 	b {
 		display: flex;
-		width: 20px;
-		height: 20px;
+		width: 18px;
+		height: 18px;
 		align-items: center;
 		justify-content: center;
 		border: 3px solid var(--color-surface);
@@ -1471,9 +1528,9 @@
 
 	small {
 		position: absolute;
-		top: 26px;
+		top: 24px;
 		left: 50%;
-		width: 116px;
+		width: 108px;
 		transform: translateX(-50%);
 		color: rgba(238, 245, 255, 0.78);
 		font-size: 10px;
@@ -1497,6 +1554,133 @@
 
 .ganttPaymentCanceled b {
 	background: var(--color-payment-unpaid);
+}
+
+.ganttPaymentMarkerNearStart {
+	transform: translateX(0);
+
+	small {
+		left: 50%;
+		transform: translateX(-50%);
+		text-align: center;
+	}
+}
+
+.dealSummary {
+	display: grid;
+	grid-template-columns: minmax(320px, 1fr) minmax(420px, 0.8fr);
+	gap: clamp(36px, 4.5vw, 56px);
+	align-items: center;
+	margin: 16px 16px 8px;
+	padding: 26px 30px;
+	border: 1px solid var(--color-border);
+	border-radius: 24px;
+	background: rgba(15, 28, 44, 0.78);
+	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
+	text-align: left;
+}
+
+.dealSummaryMain {
+	min-width: 0;
+}
+
+.dealSummaryEyebrow,
+.dealSummaryLabel {
+	display: block;
+	color: rgba(220, 230, 245, 0.68);
+	font-weight: 900;
+	line-height: 1.25;
+}
+
+.dealSummaryEyebrow {
+	margin-bottom: 10px;
+	font-size: 15px;
+}
+
+.dealSummaryMain h3 {
+	margin: 0 0 24px;
+	color: var(--color-text);
+	font-size: clamp(24px, 2.4vw, 30px);
+	font-weight: 950;
+	line-height: 1.08;
+	overflow-wrap: anywhere;
+}
+
+.dealSummaryPrimaryStats {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(120px, max-content));
+	gap: 36px;
+	align-items: start;
+}
+
+.dealSummaryAmount,
+.dealSummaryMargin {
+	display: block;
+	margin-top: 10px;
+	font-size: clamp(25px, 2.35vw, 32px);
+	font-weight: 950;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.dealSummaryAmount {
+	color: var(--color-accent-blue);
+}
+
+.dealSummaryMargin {
+	color: #9b6cff;
+}
+
+.dealSummaryPrimaryStats small {
+	display: block;
+	margin-top: 7px;
+	color: rgba(220, 230, 245, 0.44);
+	font-size: 11px;
+	font-weight: 900;
+	line-height: 1.2;
+}
+
+.dealSummarySide {
+	min-width: 0;
+	max-width: 560px;
+	justify-self: end;
+	width: 100%;
+}
+
+.dealSummaryStats {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(150px, 1fr));
+	gap: 12px 28px;
+	min-width: 0;
+}
+
+.dealSummaryStat {
+	display: flex;
+	align-items: baseline;
+	justify-content: flex-start;
+	gap: 7px;
+	min-width: 0;
+	min-height: 30px;
+	white-space: nowrap;
+}
+
+.dealSummaryLabel {
+	min-width: 0;
+	font-size: clamp(15px, 1.35vw, 17px);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dealSummaryValue {
+	color: rgba(245, 248, 255, 0.95);
+	font-size: clamp(16px, 1.45vw, 19px);
+	font-weight: 950;
+	line-height: 1.2;
+	white-space: nowrap;
+}
+
+.dealSummaryDanger {
+	color: var(--color-payment-unpaid) !important;
 }
 
 .ganttNoDate {
@@ -1646,6 +1830,17 @@
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 
+	.dealSummary {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
+		padding: 26px;
+	}
+
+	.dealSummarySide {
+		max-width: none;
+		justify-self: stretch;
+	}
+
 	.tableCard {
 		overflow-x: auto;
 	}
@@ -1659,6 +1854,10 @@
 	.ganttMetrics {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
+
+	.marginalityMetrics {
+		grid-template-columns: repeat(2, minmax(170px, 1fr));
+	}
 }
 
 @media (max-width: 1100px) {
@@ -1670,6 +1869,25 @@
 	.detailStats,
 	.skeletonCards {
 		grid-template-columns: 1fr;
+	}
+
+	.marginalityMetrics {
+		grid-template-columns: 1fr;
+	}
+
+	.dealSummary {
+		margin: 14px 12px 10px;
+		padding: 22px;
+	}
+
+	.dealSummaryPrimaryStats,
+	.dealSummaryStats {
+		grid-template-columns: 1fr;
+		gap: 14px;
+	}
+
+	.dealSummaryMain h3 {
+		margin-bottom: 20px;
 	}
 
 	.ganttMetrics {

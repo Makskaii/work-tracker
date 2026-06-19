@@ -209,7 +209,7 @@ const getWeekHours = (week: WeekBucket, activeFilter: DepartmentKey) =>
 
 export const DealWorkDensityChart = ({
 	projects,
-	title = "Плотность работ по сделке",
+	title = "Плотность работ по финансовой группе",
 	users,
 }: {
 	projects: ProfitabilityProject[];

@@ -1,6 +1,5 @@
 import type { User } from "@/shared/types/types";
-import type { Deal } from "../../../types/deals.types";
-import { toNumber } from "../model/profitabilityUtils";
+import { getProjectAmount } from "../model/profitabilityUtils";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { DealProjectTeamCostTable } from "./DealProjectTeamCostTable";
@@ -9,14 +8,12 @@ import { ProjectGantt } from "./ProjectGantt";
 
 type ProjectsTabProps = {
 	projects: ProfitabilityProject[];
-	selectedDeal: Deal | null;
 	selectedProjectId: string | null;
 	users: User[];
 };
 
 export const ProjectsTab = ({
 	projects,
-	selectedDeal,
 	selectedProjectId,
 	users,
 }: ProjectsTabProps) => {
@@ -24,13 +21,13 @@ export const ProjectsTab = ({
 		projects.find((project) => project.projectId === selectedProjectId) ??
 		null;
 	const selectedProjects = selectedProject ? [selectedProject] : [];
-	const dealAmount = toNumber(selectedDeal?.opportunity);
+	const projectAmount = getProjectAmount(selectedProject);
 
 	return (
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
 			{selectedProject ? (
 				<>
-					<ProjectGantt dealAmount={dealAmount} project={selectedProject} />
+					<ProjectGantt dealAmount={projectAmount} project={selectedProject} />
 					<DealWorkDensityChart
 						projects={selectedProjects}
 						title="Плотность работ по проекту"
@@ -38,7 +35,6 @@ export const ProjectsTab = ({
 					/>
 					<DealProjectTeamCostTable
 						projects={selectedProjects}
-						selectedDeal={selectedDeal}
 						users={users}
 					/>
 				</>
