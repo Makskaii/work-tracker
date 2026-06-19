@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { Deal } from "../../../types/deals.types";
 import {
 	getPaymentAmount,
-	getPaymentPercent,
+	getPaymentDisplayPercent,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
 import { formatMoney, getProjectAmount } from "../model/profitabilityUtils";
@@ -50,7 +50,18 @@ const paymentStageMeta = (stageId?: string | null) => {
 	};
 };
 
-const formatPercent = (value: number) => `${Number.isFinite(value) ? value : 0}%`;
+const formatPercent = (value: number | null | undefined) =>
+	value === null || value === undefined
+		? "—"
+		: `${Number.isFinite(value) ? value : 0}%`;
+
+const formatPaymentSegmentLabel = (
+	percent: number | null | undefined,
+	amount: number,
+) =>
+	percent === null || percent === undefined
+		? formatMoney(amount)
+		: formatPercent(percent);
 
 const formatDate = (value?: string) => {
 	if (!value) {
@@ -130,6 +141,39 @@ const getProjectCompanyTitle = (
 	return companyTitleById.get(companyId) || `Клиент #${companyId}`;
 };
 
+const getProjectCompanyId = (project?: ProfitabilityProject | null) =>
+	String(project?.[ProjectCodes.company] ?? "").trim();
+
+const getProjectId = (project?: ProfitabilityProject | null) =>
+	String(project?.projectId ?? "").trim();
+
+const getScopeProjects = (
+	projects: ProfitabilityProject[],
+	scope: MarginalityScope,
+	selectedProjectId: string | null,
+) => {
+	if (scope === "project" && selectedProjectId) {
+		return projects.filter((project) => project.projectId === selectedProjectId);
+	}
+
+	if (scope === "client") {
+		const selectedProject = projects.find(
+			(project) => project.projectId === selectedProjectId,
+		);
+		const selectedCompanyId = getProjectCompanyId(selectedProject);
+
+		if (!selectedCompanyId) {
+			return projects;
+		}
+
+		return projects.filter(
+			(project) => getProjectCompanyId(project) === selectedCompanyId,
+		);
+	}
+
+	return projects;
+};
+
 export const MarginalityTab = ({
 	deals,
 	projects,
@@ -139,7 +183,18 @@ export const MarginalityTab = ({
 	const selectedProject = projects.find(
 		(project) => project.projectId === selectedProjectId,
 	);
-	const projectAmount = getProjectAmount(selectedProject ?? projects[0]);
+	const scopedProjects = useMemo(
+		() => getScopeProjects(projects, scope, selectedProjectId),
+		[projects, scope, selectedProjectId],
+	);
+	const projectById = useMemo(
+		() => new Map(projects.map((project) => [getProjectId(project), project])),
+		[projects],
+	);
+	const projectAmount = scopedProjects.reduce(
+		(sum, project) => sum + getProjectAmount(project),
+		0,
+	);
 
 	const {
 		payments,
@@ -154,18 +209,29 @@ export const MarginalityTab = ({
 		scope,
 		selectedProjectId,
 	});
+	const getPaymentProjectAmount = useCallback(
+		(item: (typeof payments)[number]) => {
+			const projectId = String(item.project.id ?? "").trim();
+			const paymentProject = projectById.get(projectId);
+			const fallbackProject =
+				scopedProjects.length === 1 ? scopedProjects[0] : undefined;
+
+			return getProjectAmount(paymentProject ?? fallbackProject);
+		},
+		[projectById, scopedProjects],
+	);
 	const paidAmount = payments.reduce((sum, item) => {
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
 		return stageType === "paid"
-			? sum + getPaymentAmount(item.payment, projectAmount)
+			? sum + getPaymentAmount(item.payment, getPaymentProjectAmount(item))
 			: sum;
 	}, 0);
 	const debtAmount = payments.reduce((sum, item) => {
 		const stageType = getProjectPaymentStageType(item.payment.stageId);
 
 		return stageType === "debt"
-			? sum + getPaymentAmount(item.payment, projectAmount)
+			? sum + getPaymentAmount(item.payment, getPaymentProjectAmount(item))
 			: sum;
 	}, 0);
 	const requestAmount = Math.max(projectAmount - paidAmount, 0);
@@ -180,11 +246,7 @@ export const MarginalityTab = ({
 					item.payment[ProjectCodes.paymentDate] ?? undefined,
 				);
 
-				if (!date) {
-					return result;
-				}
-
-				const key = getMonthKey(date);
+				const key = date ? getMonthKey(date) : "no-date";
 				const group = result.get(key) ?? {
 					date,
 					items: [],
@@ -195,20 +257,24 @@ export const MarginalityTab = ({
 
 				return result;
 			},
-			new Map<string, { date: Date; items: typeof payments }>(),
+			new Map<string, { date: Date | null; items: typeof payments }>(),
 		);
 	}, [payments]);
 	const chartColumns = useMemo(() => {
 		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(
-				(sum, item) => sum + getPaymentAmount(item.payment, projectAmount),
+				(sum, item) =>
+					sum + getPaymentAmount(item.payment, getPaymentProjectAmount(item)),
 				0,
 			);
 			const segments = group.items
 				.map((item) => ({
 					...item,
-					amount: getPaymentAmount(item.payment, projectAmount),
-					percent: getPaymentPercent(item.payment, projectAmount),
+					amount: getPaymentAmount(item.payment, getPaymentProjectAmount(item)),
+					percent: getPaymentDisplayPercent(
+						item.payment,
+						getPaymentProjectAmount(item),
+					),
 				}))
 				.filter((item) => item.amount > 0);
 
@@ -227,7 +293,7 @@ export const MarginalityTab = ({
 			...column,
 			maxAmount,
 		}));
-	}, [paymentsByMonth, projectAmount]);
+	}, [getPaymentProjectAmount, paymentsByMonth]);
 	const hasChartColumns = chartColumns.length > 0;
 	const paymentListItems = useMemo(() => {
 		const stageCounters = new Map<string, number>();
@@ -254,7 +320,7 @@ export const MarginalityTab = ({
 					{scope === "project" && selectedProject
 						? ` по вотерфол проекту ${selectedProject.title}`
 						: scope === "client"
-								? ` по ${getProjectCompanyTitle(projects, companyTitleById)}`
+								? ` по ${getProjectCompanyTitle(scopedProjects, companyTitleById)}`
 							: " по всем клиентам"}
 				</h3>
 
@@ -278,7 +344,7 @@ export const MarginalityTab = ({
 						className={scope === "project" ? styles.activeFilter : ""}
 						onClick={() => setScope("project")}
 					>
-						Вотерфол проект
+						Проект
 					</button>
 				</div>
 			</div>
@@ -286,7 +352,7 @@ export const MarginalityTab = ({
 			<div className={styles.marginalityMetrics}>
 				<div>
 					<span>Проектов</span>
-					<strong>{projects.length}</strong>
+					<strong>{scopedProjects.length}</strong>
 				</div>
 				<div>
 					<span>Маржа</span>
@@ -337,7 +403,7 @@ export const MarginalityTab = ({
 									return (
 										<div key={key} className={styles.periodColumn}>
 											<div className={styles.periodHeader}>
-												<strong>{formatMonthLabel(date)}</strong>
+												<strong>{date ? formatMonthLabel(date) : "Без даты"}</strong>
 												<small>{formatMoney(periodAmount)}</small>
 											</div>
 											<div
@@ -362,7 +428,7 @@ export const MarginalityTab = ({
 																	percent,
 																)}`}
 															>
-																{formatPercent(percent)}
+																{formatPaymentSegmentLabel(percent, amount)}
 															</span>
 														);
 													})
@@ -392,8 +458,15 @@ export const MarginalityTab = ({
 						<div className={styles.emptyState}>Загрузка оплат...</div>
 					) : payments.length ? (
 						paymentListItems.map(({ payment, paymentNumber, project, stageMeta }) => {
-							const amount = getPaymentAmount(payment, projectAmount);
-							const percent = getPaymentPercent(payment, projectAmount);
+							const paymentProjectAmount = getPaymentProjectAmount({
+								payment,
+								project,
+							});
+							const amount = getPaymentAmount(payment, paymentProjectAmount);
+							const percent = getPaymentDisplayPercent(
+								payment,
+								paymentProjectAmount,
+							);
 
 							return (
 								<article key={String(payment.id)} className={styles.paymentItem}>

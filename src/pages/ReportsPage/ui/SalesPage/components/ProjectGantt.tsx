@@ -15,10 +15,12 @@ import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import {
 	createGanttCustomEvent,
 	createGanttIncident,
+	deleteGanttCustomEvent,
 	fetchGanttCustomEvents,
 	fetchGanttIncidents,
 	fetchProjectIncidents,
 	type ProjectIncident,
+	updateGanttCustomEvent,
 } from "../model/api";
 import type {
 	GanttCustomEventRow,
@@ -124,8 +126,16 @@ export const ProjectGantt = ({
 	const [customEventForm, setCustomEventForm] = useState<CustomEventFormState>(
 		DEFAULT_CUSTOM_EVENT_FORM,
 	);
+	const [editingCustomEventId, setEditingCustomEventId] = useState<number | null>(
+		null,
+	);
 	const [customEventError, setCustomEventError] = useState<string | null>(null);
 	const [isCustomEventSaving, setIsCustomEventSaving] = useState(false);
+	const [deletingCustomEventId, setDeletingCustomEventId] = useState<
+		number | null
+	>(null);
+	const [isCustomEventDeleteConfirming, setIsCustomEventDeleteConfirming] =
+		useState(false);
 	const [paymentIncidentDraft, setPaymentIncidentDraft] = useState<{
 		incidentDate: string;
 		paymentId: string;
@@ -321,7 +331,7 @@ export const ProjectGantt = ({
 		setCustomEventError(null);
 
 		try {
-			await createGanttCustomEvent(project.projectId, {
+			const payload = {
 				title: customEventForm.title.trim(),
 				eventKind: customEventForm.eventKind,
 				planStartDate: customEventForm.planStartDate || null,
@@ -334,16 +344,89 @@ export const ProjectGantt = ({
 					customEventForm.eventKind === "duration"
 						? customEventForm.factEndDate || null
 						: null,
-				sortOrder: ganttCustomEvents.length,
-			});
+			};
+
+			if (editingCustomEventId !== null) {
+				await updateGanttCustomEvent(editingCustomEventId, payload);
+			} else {
+				await createGanttCustomEvent(project.projectId, {
+					...payload,
+					sortOrder: ganttCustomEvents.length,
+				});
+			}
+
 			setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+			setEditingCustomEventId(null);
+			setIsCustomEventDeleteConfirming(false);
 			setIsCustomEventModalOpen(false);
 			await refreshGanttBackendData();
 		} catch {
-			setCustomEventError("Не удалось создать событие");
+			setCustomEventError(
+				editingCustomEventId !== null
+					? "Не удалось обновить событие"
+					: "Не удалось создать событие",
+			);
 		} finally {
 			setIsCustomEventSaving(false);
 		}
+	};
+
+	const openCustomEventCreateModal = () => {
+		setEditingCustomEventId(null);
+		setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+		setCustomEventError(null);
+		setIsCustomEventDeleteConfirming(false);
+		setIsCustomEventModalOpen(true);
+	};
+
+	const openCustomEventEditModal = (event: CustomGanttEvent) => {
+		setEditingCustomEventId(event.id);
+		setCustomEventForm({
+			title: event.title,
+			eventKind: event.eventKind,
+			planStartDate: event.planStartDate ?? "",
+			planEndDate: event.planEndDate ?? "",
+			factStartDate: event.factStartDate ?? "",
+			factEndDate: event.factEndDate ?? "",
+		});
+		setCustomEventError(null);
+		setIsCustomEventDeleteConfirming(false);
+		setIsCustomEventModalOpen(true);
+	};
+
+	const deleteCustomEventById = async (
+		eventId: number,
+		shouldCloseModal = false,
+	) => {
+		setDeletingCustomEventId(eventId);
+
+		try {
+			await deleteGanttCustomEvent(eventId);
+
+			if (shouldCloseModal) {
+				setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+				setEditingCustomEventId(null);
+				setIsCustomEventDeleteConfirming(false);
+				setIsCustomEventModalOpen(false);
+			}
+
+			await refreshGanttBackendData();
+		} finally {
+			setDeletingCustomEventId(null);
+		}
+	};
+
+	const handleCustomEventDelete = async () => {
+		if (editingCustomEventId === null) {
+			return;
+		}
+
+		if (!isCustomEventDeleteConfirming) {
+			setIsCustomEventDeleteConfirming(true);
+			return;
+		}
+
+		await deleteCustomEventById(editingCustomEventId, true);
 	};
 
 	const handlePaymentIncidentSubmit = async () => {
@@ -548,13 +631,6 @@ export const ProjectGantt = ({
 	return (
 		<>
 			<div className={styles.ganttCard}>
-				<div className={styles.ganttHeader}>
-					<div>
-						<h3>Диаграмма Ганта: {gantt.summary.projectTitle}</h3>
-						<p>План пересчитывается по зависимостям между этапами</p>
-					</div>
-				</div>
-
 				<div className={styles.ganttMetrics}>
 					<GanttMetric title="Проект" value={gantt.summary.projectTitle} accent />
 					<GanttMetric
@@ -646,7 +722,16 @@ export const ProjectGantt = ({
 								<GanttCustomEventRowView
 									key={`custom-${row.customEvent.event.id}`}
 									customEvent={row.customEvent}
+									isDeleting={
+										deletingCustomEventId === row.customEvent.event.id
+									}
 									monthTicks={monthTicks}
+									onDelete={() =>
+										deleteCustomEventById(row.customEvent.event.id)
+									}
+									onEdit={() =>
+										openCustomEventEditModal(row.customEvent.event)
+									}
 									today={today}
 									timeline={timeline}
 									weekTicks={weekTicks}
@@ -676,10 +761,7 @@ export const ProjectGantt = ({
 						<button
 							type="button"
 							className={styles.ganttAddEventButton}
-							onClick={() => {
-								setCustomEventError(null);
-								setIsCustomEventModalOpen(true);
-							}}
+							onClick={openCustomEventCreateModal}
 						>
 							+
 						</button>
@@ -704,12 +786,19 @@ export const ProjectGantt = ({
 				isOpen={isCustomEventModalOpen}
 				onClose={() => {
 					setCustomEventError(null);
+					setEditingCustomEventId(null);
+					setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+					setIsCustomEventDeleteConfirming(false);
 					setIsCustomEventModalOpen(false);
 				}}
 				size="small"
 			>
 				<div className={styles.ganttFormModal}>
-					<h3>Новое событие Ганта</h3>
+					<h3>
+						{editingCustomEventId !== null
+							? "Редактирование события Ганта"
+							: "Новое событие Ганта"}
+					</h3>
 					<label>
 						<span>Название</span>
 						<input
@@ -798,13 +887,27 @@ export const ProjectGantt = ({
 					{customEventError ? (
 						<p className={styles.ganttFormError}>{customEventError}</p>
 					) : null}
-					<button
-						type="button"
-						disabled={isCustomEventSaving}
-						onClick={handleCustomEventSubmit}
-					>
-						Сохранить
-					</button>
+					<div className={styles.ganttFormActions}>
+						{editingCustomEventId !== null ? (
+							<button
+								type="button"
+								className={styles.ganttFormDeleteButton}
+								disabled={deletingCustomEventId === editingCustomEventId}
+								onClick={handleCustomEventDelete}
+							>
+								{isCustomEventDeleteConfirming
+									? "Подтвердить удаление"
+									: "Удалить"}
+							</button>
+						) : null}
+						<button
+							type="button"
+							disabled={isCustomEventSaving}
+							onClick={handleCustomEventSubmit}
+						>
+							Сохранить
+						</button>
+					</div>
 				</div>
 			</Modal>
 			<Modal
@@ -1271,17 +1374,25 @@ const GanttMilestoneRow = ({
 
 const GanttCustomEventRowView = ({
 	customEvent,
+	isDeleting,
 	monthTicks,
+	onDelete,
+	onEdit,
 	today,
 	timeline,
 	weekTicks,
 }: {
 	customEvent: GanttCustomEventRow;
+	isDeleting: boolean;
 	monthTicks: GanttMonthTick[];
+	onDelete: () => Promise<void>;
+	onEdit: () => void;
 	today: Date;
 	timeline: GanttTimeline;
 	weekTicks: GanttWeekTick[];
 }) => {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
 	const deviation = getCustomEventDeviation(customEvent, today);
 	const status = getCustomEventStatus(customEvent, today);
 	const tooltip = [
@@ -1300,11 +1411,57 @@ const GanttCustomEventRowView = ({
 					end: customEvent.displayEnd,
 				}
 			: null;
+	const handleEditClick = () => {
+		setIsMenuOpen(false);
+		setIsDeleteConfirming(false);
+		onEdit();
+	};
+	const handleDeleteClick = async () => {
+		if (!isDeleteConfirming) {
+			setIsDeleteConfirming(true);
+			return;
+		}
+
+		await onDelete();
+		setIsMenuOpen(false);
+		setIsDeleteConfirming(false);
+	};
 
 	return (
 		<>
-			<div className={styles.ganttRowInfo} title={tooltip}>
-				<strong>{customEvent.title}</strong>
+			<div
+				className={`${styles.ganttRowInfo} ${styles.ganttCustomEventInfo}`}
+				title={tooltip}
+			>
+				<div className={styles.ganttCustomEventHeader}>
+					<strong>{customEvent.title}</strong>
+					<button
+						type="button"
+						className={styles.ganttCustomEventMenuButton}
+						onClick={() => {
+							setIsMenuOpen((prev) => !prev);
+							setIsDeleteConfirming(false);
+						}}
+						aria-label="Действия с кастомным этапом"
+					>
+						...
+					</button>
+					{isMenuOpen ? (
+						<div className={styles.ganttCustomEventMenu}>
+							<button type="button" onClick={handleEditClick}>
+								Редактировать
+							</button>
+							<button
+								type="button"
+								className={isDeleteConfirming ? styles.dangerAction : ""}
+								disabled={isDeleting}
+								onClick={handleDeleteClick}
+							>
+								{isDeleteConfirming ? "Подтвердить удаление" : "Удалить"}
+							</button>
+						</div>
+					) : null}
+				</div>
 				<span>{customEvent.description}</span>
 				<small>
 					План: {formatDateFull(customEvent.planStart)} —{" "}
@@ -1320,15 +1477,19 @@ const GanttCustomEventRowView = ({
 			<div className={styles.ganttTrack} title={tooltip}>
 				<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
 				{customEvent.event.eventKind === "duration" && period ? (
-					<span
+					<button
+						type="button"
 						className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment}`}
+						onClick={onEdit}
 						style={getSegmentStyle(period.start, period.end, timeline)}
 					>
 						{customEvent.title}
-					</span>
+					</button>
 				) : customEvent.displayDate ? (
-					<span
+					<button
+						type="button"
 						className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker}`}
+						onClick={onEdit}
 						style={getMilestoneStyle(customEvent.displayDate, timeline)}
 					>
 						<b />
@@ -1337,7 +1498,7 @@ const GanttCustomEventRowView = ({
 							<br />
 							{formatDateShort(customEvent.displayDate)}
 						</small>
-					</span>
+					</button>
 				) : (
 					<span className={styles.ganttNoDate}>Дата не заполнена</span>
 				)}
