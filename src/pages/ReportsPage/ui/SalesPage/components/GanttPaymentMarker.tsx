@@ -5,7 +5,7 @@ import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { GanttTimeline } from "../model/ganttTypes";
 import {
 	getPaymentMarkerTop,
-	type GanttPaymentAnchorData,
+	type GanttPaymentStageTargetData,
 } from "../model/ganttPaymentMarkers";
 import { getMilestoneStyle } from "../model/ganttUtils";
 import {
@@ -42,7 +42,7 @@ const getPaymentMarkerClass = (stageId?: string | null) => {
 const getPaymentTooltip = (
 	payment: ProjectPayment,
 	dealAmount: number,
-	anchor?: GanttPaymentAnchorData,
+	stageTarget?: GanttPaymentStageTargetData,
 ) => {
 	const paymentDate = payment[ProjectCodes.paymentDate]
 		? dayjs(payment[ProjectCodes.paymentDate])
@@ -61,11 +61,11 @@ const getPaymentTooltip = (
 		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
 	];
 
-	if (anchor) {
-		lines.push(`Привязка к этапу: ${anchor.rowTitle}`);
+	if (stageTarget) {
+		lines.push(`Привязка к этапу: ${stageTarget.rowTitle}`);
 	}
 
-	if (anchor?.isFallbackDate) {
+	if (stageTarget?.isFallbackDate) {
 		lines.push("Дата этапа не заполнена, использована последняя плановая дата");
 	}
 
@@ -73,11 +73,11 @@ const getPaymentTooltip = (
 };
 
 type GanttPaymentMarkerProps = {
-	anchor?: GanttPaymentAnchorData;
 	date: Date;
 	dealAmount: number;
 	level: number;
 	payment: ProjectPayment;
+	stageTarget?: GanttPaymentStageTargetData;
 	timeline: GanttTimeline;
 };
 
@@ -85,11 +85,11 @@ export const GanttPaymentMarker = forwardRef<
 	HTMLSpanElement,
 	GanttPaymentMarkerProps
 >(({
-	anchor,
 	date,
 	dealAmount,
 	level,
 	payment,
+	stageTarget,
 	timeline,
 }, ref) => {
 	const amount = getPaymentAmount(payment, dealAmount);
@@ -113,7 +113,7 @@ export const GanttPaymentMarker = forwardRef<
 					payment.stageId,
 				)} ${isNearStart ? styles.ganttPaymentMarkerNearStart : ""}`}
 				style={style}
-				title={getPaymentTooltip(payment, dealAmount, anchor)}
+				title={getPaymentTooltip(payment, dealAmount, stageTarget)}
 			>
 				<b>
 					<FaMoneyBillWave aria-hidden="true" />

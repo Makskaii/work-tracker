@@ -15,7 +15,7 @@ import {
 	getFinancialProjectSummary,
 } from "./model/profitabilityUtils";
 import type { SalesProfitabilityTab } from "./model/types";
-import { useDealProjects } from "./model/useDealProjects";
+import { useCompanyProjects } from "./model/useCompanyProjects";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -65,7 +65,7 @@ export const SalesProfitabilityReport = ({
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const { openTask } = useBitrixSlider();
-	const { companyTitleById, projects, isLoadingDetails } = useDealProjects();
+	const { companyTitleById, projects, isLoadingDetails } = useCompanyProjects();
 	const companyGroups = useMemo(
 		() => buildCompanyProjectGroups(projects, companyTitleById),
 		[companyTitleById, projects],
@@ -249,7 +249,6 @@ export const SalesProfitabilityReport = ({
 								<MarginalityTab
 									deals={deals}
 									projects={activeProjects}
-									selectedDeal={null}
 									selectedProjectId={effectiveSelectedProjectId}
 								/>
 							)}
@@ -257,7 +256,6 @@ export const SalesProfitabilityReport = ({
 							{activeTab === "projects" && (
 								<ProjectsTab
 									projects={activeProjects}
-									selectedDeal={null}
 									selectedProjectId={effectiveSelectedProjectId}
 									users={users}
 								/>

@@ -45,13 +45,6 @@ export const hasFinancialProjectType = (
 const getProjectCompanyId = (project: ProfitabilityProject) =>
 	String(project[ProjectCodes.company] ?? "").trim();
 
-const getProjectCompanyTitle = (project: ProfitabilityProject) =>
-	String(
-		(project as { companyName?: unknown; companyTitle?: unknown }).companyName ??
-			(project as { companyName?: unknown; companyTitle?: unknown }).companyTitle ??
-			"",
-	).trim();
-
 const buildFinancialGroups = (
 	companyId: string,
 	companyTitle: string,
@@ -108,7 +101,6 @@ export const buildCompanyProjectGroups = (
 		([companyId, companyProjects]) => {
 			const companyTitle =
 				companyTitleById.get(companyId) ||
-				companyProjects.map(getProjectCompanyTitle).find(Boolean) ||
 				`Компания #${companyId}`;
 			const financialGroups = buildFinancialGroups(
 				companyId,

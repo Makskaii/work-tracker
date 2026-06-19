@@ -187,15 +187,15 @@ export const ProjectGantt = ({
 		const updatePaymentLinks = () => {
 			const boardRect = board.getBoundingClientRect();
 			const links = paymentMarkers.reduce<GanttPaymentLink[]>((items, marker) => {
-				if (!marker.anchor) {
+				if (!marker.stageTarget) {
 					return items;
 				}
 
-				const anchor = marker.anchor;
+				const stageTarget = marker.stageTarget;
 				const paymentNode = paymentMarkerRefs.current.get(
 					String(marker.payment.id),
 				);
-				const rowNode = ganttRowTrackRefs.current.get(anchor.rowId);
+				const rowNode = ganttRowTrackRefs.current.get(stageTarget.rowId);
 
 				if (!paymentNode || !rowNode) {
 					return items;
@@ -203,8 +203,8 @@ export const ProjectGantt = ({
 
 				const paymentRect = paymentNode.getBoundingClientRect();
 				const rowRect = rowNode.getBoundingClientRect();
-				const anchorNode = ganttAnchorRefs.current.get(anchor.rowId);
-				const overdueNode = ganttOverdueRefs.current.get(anchor.rowId);
+				const anchorNode = ganttAnchorRefs.current.get(stageTarget.rowId);
+				const overdueNode = ganttOverdueRefs.current.get(stageTarget.rowId);
 				const anchorRect = anchorNode?.getBoundingClientRect();
 				const overdueRect = overdueNode?.getBoundingClientRect();
 				const startX =
@@ -221,7 +221,7 @@ export const ProjectGantt = ({
 					: rowRect.top + rowRect.height / 2 - boardRect.top + board.scrollTop;
 				const getTargetX = () => {
 					if (anchorRect) {
-						return anchor.rowType === "milestone"
+						return stageTarget.rowType === "milestone"
 							? anchorRect.left +
 									anchorRect.width / 2 -
 									boardRect.left +
@@ -229,7 +229,7 @@ export const ProjectGantt = ({
 							: anchorRect.right - boardRect.left + board.scrollLeft;
 					}
 
-					const markerStyle = getMilestoneStyle(anchor.date, timeline);
+					const markerStyle = getMilestoneStyle(stageTarget.date, timeline);
 					const left = Number.parseFloat(String(markerStyle.left ?? 0));
 					const safeLeft = Number.isFinite(left)
 						? Math.min(Math.max(left, 0), 100)
@@ -394,15 +394,15 @@ export const ProjectGantt = ({
 						style={{ minHeight: paymentRowHeight }}
 					>
 						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
-						{paymentMarkers.map(({ anchor, date, level, payment }) => (
+						{paymentMarkers.map(({ date, level, payment, stageTarget }) => (
 							<GanttPaymentMarker
-								anchor={anchor ?? undefined}
 								key={String(payment.id)}
 								ref={setPaymentMarkerRef(String(payment.id))}
 								date={date}
 								dealAmount={dealAmount}
 								level={level}
 								payment={payment}
+								stageTarget={stageTarget ?? undefined}
 								timeline={timeline}
 							/>
 						))}

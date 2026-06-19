@@ -17,7 +17,6 @@ import styles from "../SalesProfitabilityReport.module.scss";
 type MarginalityTabProps = {
 	deals: Deal[];
 	projects: ProfitabilityProject[];
-	selectedDeal: Deal | null;
 	selectedProjectId: string | null;
 };
 
@@ -118,28 +117,22 @@ const getMonthKeyTime = (key: string) => {
 	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
 };
 
-const getDealCompanyTitle = (
-	deal: Deal | null,
+const getProjectCompanyTitle = (
+	projects: ProfitabilityProject[],
 	companyTitleById: Map<string, string>,
 ) => {
-	if (!deal) {
+	const companyId = String(projects[0]?.[ProjectCodes.company] ?? "").trim();
+
+	if (!companyId) {
 		return "клиенту";
 	}
 
-	const normalizedTitle = String(deal.companyTitle ?? "").trim();
-	const companyId = String(deal.companyId ?? "").trim();
-
-	return (
-		normalizedTitle ||
-		(companyId ? companyTitleById.get(companyId) : "") ||
-		`Клиент #${deal.companyId ?? "—"}`
-	);
+	return companyTitleById.get(companyId) || `Клиент #${companyId}`;
 };
 
 export const MarginalityTab = ({
 	deals,
 	projects,
-	selectedDeal,
 	selectedProjectId,
 }: MarginalityTabProps) => {
 	const [scope, setScope] = useState<MarginalityScope>("all");
@@ -261,7 +254,7 @@ export const MarginalityTab = ({
 					{scope === "project" && selectedProject
 						? ` по вотерфол проекту ${selectedProject.title}`
 						: scope === "client"
-								? ` по ${getDealCompanyTitle(selectedDeal, companyTitleById)}`
+								? ` по ${getProjectCompanyTitle(projects, companyTitleById)}`
 							: " по всем клиентам"}
 				</h3>
 

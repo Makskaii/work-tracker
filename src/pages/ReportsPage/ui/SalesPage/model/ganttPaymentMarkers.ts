@@ -18,7 +18,7 @@ const PAYMENT_STAGE_BINDING_ROW: Record<
 	"408": { id: "close", type: "milestone" },
 };
 
-export type GanttPaymentAnchorData = {
+export type GanttPaymentStageTargetData = {
 	date: Date;
 	isFallbackDate: boolean;
 	rowId: string;
@@ -28,7 +28,7 @@ export type GanttPaymentAnchorData = {
 };
 
 export type GanttPaymentMarkerData = {
-	anchor: GanttPaymentAnchorData | null;
+	stageTarget: GanttPaymentStageTargetData | null;
 	date: Date;
 	isPaymentDateFallback: boolean;
 	level: number;
@@ -65,10 +65,10 @@ const getStageAnchorDate = (stage: GanttStage) => {
 	return stage.planEnd;
 };
 
-const getPaymentAnchor = (
+const getPaymentStageTarget = (
 	payment: ProjectPayment,
 	rows: GanttRow[],
-): GanttPaymentAnchorData | null => {
+): GanttPaymentStageTargetData | null => {
 	const stageBinding = String(
 		payment[ProjectCodes.paymentStageBinding] ?? "",
 	).trim();
@@ -124,13 +124,13 @@ export const buildPaymentMarkers = (
 
 	return payments
 		.map((payment) => {
-			const anchor = getPaymentAnchor(payment, rows);
+			const stageTarget = getPaymentStageTarget(payment, rows);
 			const paymentDate = payment[ProjectCodes.paymentDate]
 				? dayjs(payment[ProjectCodes.paymentDate])
 				: null;
 			const isPaymentDateFallback = !paymentDate?.isValid();
 			const date =
-				anchor?.date ??
+				stageTarget?.date ??
 				(paymentDate?.isValid() ? paymentDate.toDate() : fallbackPaymentDate);
 
 			if (!date) {
@@ -138,7 +138,7 @@ export const buildPaymentMarkers = (
 			}
 
 			return {
-				anchor,
+				stageTarget,
 				date,
 				isPaymentDateFallback,
 				payment,
@@ -148,7 +148,7 @@ export const buildPaymentMarkers = (
 			(
 				marker,
 			): marker is {
-				anchor: GanttPaymentAnchorData | null;
+				stageTarget: GanttPaymentStageTargetData | null;
 				date: Date;
 				isPaymentDateFallback: boolean;
 				payment: ProjectPayment;

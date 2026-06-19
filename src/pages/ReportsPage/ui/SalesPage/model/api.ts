@@ -12,14 +12,14 @@ type CrmItemListResponse<T> = {
 	next?: number | null;
 };
 
-type CrmFieldEnumItem = {
+type BitrixCrmFieldEnumItem = {
 	ID: string | number;
 	VALUE: string | null;
 };
 
 type CrmItemFieldsResponse = {
 	result?: {
-		fields?: Record<string, { items?: CrmFieldEnumItem[] }>;
+		fields?: Record<string, { items?: BitrixCrmFieldEnumItem[] }>;
 	};
 };
 

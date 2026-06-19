@@ -28,8 +28,7 @@ const getUniqueValues = (values: Array<string | number | null | undefined>) =>
 		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
 	);
 
-// TODO: rename to useCompanyProjects after the sales report fully drops deal-based naming.
-export const useDealProjects = () => {
+export const useCompanyProjects = () => {
 	const [projectsState, setProjectsState] = useState<ProjectsState>({
 		companyTitleById: new Map(),
 		isLoading: false,

@@ -1,5 +1,4 @@
 import type { User } from "@/shared/types/types";
-import type { Deal } from "../../../types/deals.types";
 import { getProjectAmount } from "../model/profitabilityUtils";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
@@ -9,14 +8,12 @@ import { ProjectGantt } from "./ProjectGantt";
 
 type ProjectsTabProps = {
 	projects: ProfitabilityProject[];
-	selectedDeal: Deal | null;
 	selectedProjectId: string | null;
 	users: User[];
 };
 
 export const ProjectsTab = ({
 	projects,
-	selectedDeal,
 	selectedProjectId,
 	users,
 }: ProjectsTabProps) => {
@@ -38,7 +35,6 @@ export const ProjectsTab = ({
 					/>
 					<DealProjectTeamCostTable
 						projects={selectedProjects}
-						selectedDeal={selectedDeal}
 						users={users}
 					/>
 				</>
