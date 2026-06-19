@@ -6,7 +6,7 @@ import { useParams } from "react-router";
 import { TaskCodes } from "@/components/calendar/constants/const";
 import { Spinner } from "@/components/spinner/Spinner";
 import { SegmentedControl } from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
-import { periodLabelMap } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
+import { periodLabelMap } from "@/pages/ReportsPage/ui/SalesPage/model/periodLabelMap";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import {

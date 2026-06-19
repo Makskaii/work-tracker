@@ -99,13 +99,13 @@ const REPORT_SELECT_FIELDS = [
 	`parentId${EntityTypeIds.tasks}`,
 ] as const;
 
-export const getRiskColor = (risk: string): string => {
+const getRiskColor = (risk: string): string => {
 	return risk === "Перерасход" ? "#ef4444" : "#22c55e";
 };
 
 type ProjectStatus = "Активен" | "Беклог" | "Завершен" | "Отсутствуют задачи";
 
-export const getProjectStatus = (
+const getProjectStatus = (
 	tasks: Array<{ stageId?: string }>,
 ): ProjectStatus => {
 	if (tasks.length === 0) {
@@ -231,7 +231,7 @@ const isReportForProject = ({
 	return isProjectReport && isCompanyReport;
 };
 
-export const getProjectsWithStatuses = ({
+const getProjectsWithStatuses = ({
 	clients,
 	reports,
 	tasks,

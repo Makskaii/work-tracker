@@ -6,7 +6,6 @@ import {
 	TaskCodes,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
-import { TableCell } from "@/components/Table/universalTable/TableCellDecoration";
 import { ClientProjectsStats } from "@/pages/ClientProfilePage/ui/ProjectPage/ClientProjectStats";
 import { $api } from "@/shared/config";
 import {
@@ -16,8 +15,6 @@ import {
 } from "@/shared/constants/const";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import { useSprintBorders } from "@/shared/hooks/useSprintBorders";
-import type { Header } from "@/shared/types/table";
-import { getFixedNumber } from "@/shared/utils/getNumber";
 import { Modal } from "../../../../components/modal";
 import type {
 	ClientListItems,
@@ -25,8 +22,6 @@ import type {
 	ReportsContext,
 	TaskProps,
 } from "../../../../shared/types/types";
-import { getItems } from "../../api/getTasks";
-import type { ProjectTableRow } from "../../types/types";
 import styles from "./ProjectsReports.module.scss";
 
 type ClientWithProjects = ClientListItems & {
@@ -77,10 +72,6 @@ const TASK_STAGE_IDS = {
 	DOCS: "DT1072_18:UC_K596F0",
 } as const;
 
-export const getRiskColor = (risk: string): string => {
-	return risk === "Перерасход" ? "#ef4444" : "#22c55e";
-};
-
 const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 	if (!tasks.length) {
 		return "нет задач";
@@ -108,12 +99,6 @@ const getProjectStatus = (tasks: Array<{ stageId?: string }>): string => {
 	}
 
 	return "нет задач";
-};
-
-const getProjectPlanHours = (tasks: TaskProps[]) => {
-	return tasks.reduce((acc, task) => {
-		return acc + parseFloat(task[TaskCodes.estimateTime] ?? 0);
-	}, 0);
 };
 
 const getProjectCompanyId = (project: ClientProjectProps) => {
@@ -173,143 +158,7 @@ const getFlattenedProjects = (clients: ClientWithProjects[]) => {
 	);
 };
 
-const getReportsByProject = async ({
-	projectId,
-	companyId,
-}: {
-	projectId: string;
-	companyId?: string;
-}) => {
-	const response = await $api.get(Endpoints.crmItems, {
-		params: {
-			entityTypeId: EntityTypeIds.reports,
-			select: [
-				"id",
-				"title",
-				"begindate",
-				ReportCodes.title,
-				ReportCodes.timeSpent,
-				ReportCodes.company,
-				ReportCodes.parentproject,
-				ReportCodes.taskId,
-				ReportCodes.activityType,
-				"assignedById",
-				"createdTime",
-				"lastActivityTime",
-				`parentId${EntityTypeIds.tasks}`,
-			],
-			filter: {
-				[ReportCodes.parentproject]: projectId,
-				...(companyId ? { [ReportCodes.company]: companyId } : {}),
-				stageId: "DT1060_15:PREPARATION",
-			},
-		},
-	});
-
-	return response?.data?.result?.items ?? [];
-};
-
-const getSpentHoursByReports = (reports: Array<Record<string, unknown>>) => {
-	return reports.reduce((acc, report) => {
-		return acc + Number(report[ReportCodes.timeSpent] ?? 0);
-	}, 0);
-};
-
-const getProjectRisk = (planHours: number, spentHours: number) => {
-	return spentHours > planHours ? "Перерасход" : "Нет риска";
-};
-
-export const getProjectsTableData = async ({
-	clients,
-}: {
-	clients: ClientWithProjects[];
-}): Promise<ProjectTableRow[]> => {
-	const projects = getFlattenedProjects(clients);
-
-	const result = await Promise.all(
-		projects.map(async (project) => {
-			const projectId = String(project.projectId ?? project.id);
-			const companyId = getProjectCompanyId(project);
-
-			const tasks = await getItems<TaskProps>({
-				typeId: EntityTypeIds.tasks,
-				filters: {
-					[TaskCodes.parentproject]: projectId,
-					...(companyId ? { [TaskCodes.company]: companyId } : {}),
-				},
-			});
-
-			const reports = await getReportsByProject({
-				projectId,
-				companyId,
-			});
-
-			const planHours = getProjectPlanHours(tasks ?? []);
-			const spentHours = getSpentHoursByReports(reports);
-			const deviation = spentHours - planHours;
-			const risk = getProjectRisk(planHours, spentHours);
-			const purchasedHours = "-";
-
-			return {
-				id: projectId,
-				title: project.title,
-				status: getProjectStatus(tasks ?? []),
-				planHours,
-				spentHours,
-				deviation,
-				risk,
-				purchasedHours,
-			};
-		}),
-	);
-
-	return result;
-};
-
-export const headersForProjects: Header<ProjectTableRow>[] = [
-	{
-		title: "Проект",
-		key: "title",
-	},
-	{
-		title: "Статус",
-		key: "status",
-	},
-	{
-		title: "План часов",
-		key: "planHours",
-		convertFn: (value) => getFixedNumber(value),
-	},
-	{
-		title: "Потрачено",
-		key: "spentHours",
-		convertFn: (value) => getFixedNumber(value),
-	},
-	{
-		title: "Отклонение",
-		key: "deviation",
-		convertFn: (value) =>
-			value > 0 ? `+${getFixedNumber(value)}` : getFixedNumber(value),
-	},
-	{
-		title: "Риск",
-		key: "risk",
-		render: (value) => (
-			<TableCell
-				value={value}
-				styles={{
-					color: getRiskColor(value),
-				}}
-			/>
-		),
-	},
-	{
-		title: "Купленные часы на разработку",
-		key: "purchasedHours",
-	},
-];
-
-export const getProjectsWithStatuses = ({
+const getProjectsWithStatuses = ({
 	projects,
 	reports,
 	tasks,

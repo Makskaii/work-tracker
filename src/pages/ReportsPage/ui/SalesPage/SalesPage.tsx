@@ -16,6 +16,7 @@ import {
 	type SalesTableFields,
 } from "../../types/types";
 import { SegmentedControl } from "../AnalyticsReports/AnalyticsReports";
+import { periodLabelMap } from "./model/periodLabelMap";
 import cls from "./SalesPage.module.scss";
 import { SalesCard } from "./ui/SalesCard/SalesCard";
 
@@ -37,7 +38,7 @@ const getPlanByPeriod = (
 
 	return row.plan;
 };
-export const headersForSales: Header<SalesTableFields>[] = [
+const headersForSales: Header<SalesTableFields>[] = [
 	{
 		title: "Данные",
 		key: "title",
@@ -189,13 +190,6 @@ const getPeriodStep = (period: "week" | "month" | "quarter" | "year") => {
 			return { value: 7, unit: "day" as const };
 	}
 };
-
-export const periodLabelMap = {
-	week: "неделя",
-	month: "месяц",
-	quarter: "квартал",
-	year: "год",
-} as const;
 
 export const SalesPage = () => {
 	const [data, setData] = useState<SalesTableFields[]>([]);
