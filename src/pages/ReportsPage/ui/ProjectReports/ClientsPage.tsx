@@ -99,10 +99,6 @@ const REPORT_SELECT_FIELDS = [
 	`parentId${EntityTypeIds.tasks}`,
 ] as const;
 
-const getRiskColor = (risk: string): string => {
-	return risk === "Перерасход" ? "#ef4444" : "#22c55e";
-};
-
 type ProjectStatus = "Активен" | "Беклог" | "Завершен" | "Отсутствуют задачи";
 
 const getProjectStatus = (
