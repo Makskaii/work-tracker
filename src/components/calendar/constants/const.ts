@@ -49,6 +49,7 @@ export enum ProjectCodes {
 	paymentPercent = "ufCrm31_1780568744067",
 	paymentAmount = "ufCrm31_1780568762673",
 	paymentDate = "ufCrm31_1781613488488",
+	paymentWaitingDays = "ufCrm31_1781684601100",
 	paymentProject = "parentId1092",
 	projectPayment = "parentId1144",
 	financialProjectType = "ufCrm20_1781683772",

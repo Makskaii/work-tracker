@@ -43,7 +43,70 @@ export type ProjectPayment = {
 	[ProjectCodes.paymentPercent]?: string | null;
 	[ProjectCodes.paymentAmount]?: string | null;
 	[ProjectCodes.paymentDate]?: string | null;
+	[ProjectCodes.paymentWaitingDays]?: string | null;
 	[ProjectCodes.paymentProject]?: string | null;
+};
+
+export type CustomGanttEventKind = "one_time" | "duration";
+
+export type CustomGanttEvent = {
+	id: number;
+	bitrixProjectId: string;
+	title: string;
+	eventKind: CustomGanttEventKind;
+	planStartDate: string | null;
+	planEndDate: string | null;
+	factStartDate: string | null;
+	factEndDate: string | null;
+	sortOrder: number;
+	createdAt?: string;
+	updatedAt?: string;
+};
+
+export type CustomGanttEventPayload = {
+	title: string;
+	eventKind: CustomGanttEventKind;
+	planStartDate?: string | null;
+	planEndDate?: string | null;
+	factStartDate?: string | null;
+	factEndDate?: string | null;
+	sortOrder?: number | null;
+};
+
+export type GanttIncidentEntityType =
+	| "bitrix_stage"
+	| "custom_event"
+	| "payment_waiting_overdue";
+
+export type GanttIncidentFile = {
+	id: number;
+	incidentId?: number;
+	originalName: string;
+	mimeType: string;
+	sizeBytes: number;
+	storagePath?: string;
+	createdAt: string;
+};
+
+export type GanttIncident = {
+	id: number;
+	bitrixProjectId: string;
+	entityType: GanttIncidentEntityType;
+	entityId: string;
+	title: string;
+	description: string | null;
+	incidentDate: string;
+	files: GanttIncidentFile[];
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type GanttIncidentPayload = {
+	entityType: GanttIncidentEntityType;
+	entityId: string;
+	title?: string | null;
+	description?: string | null;
+	incidentDate: string;
 };
 
 export type FinancialProjectSummary = {

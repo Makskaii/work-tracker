@@ -1,9 +1,18 @@
 import { $api } from "@/shared/config";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { ClientProjectProps } from "@/shared/types/types";
 import { PROJECT_SELECT_FIELDS } from "./constants";
-import type { ProfitabilityProject, ProjectPayment } from "./types";
+import type {
+	CustomGanttEvent,
+	CustomGanttEventPayload,
+	GanttIncident,
+	GanttIncidentFile,
+	GanttIncidentPayload,
+	ProfitabilityProject,
+	ProjectPayment,
+} from "./types";
 
 type CrmItemListResponse<T> = {
 	result?: {
@@ -71,6 +80,7 @@ const PROJECT_PAYMENT_SELECT_FIELDS = [
 	ProjectCodes.paymentPercent,
 	ProjectCodes.paymentAmount,
 	ProjectCodes.paymentProject,
+	ProjectCodes.paymentWaitingDays,
 ] as const;
 
 const normalizeProjectPayment = (
@@ -270,3 +280,112 @@ export const fetchProjectIncidents = async ({
 
 	return safeRequest(false, true);
 };
+
+export const fetchGanttCustomEvents = async (
+	projectId: string,
+	signal?: AbortSignal,
+) => {
+	const response = await $backendApi.get<CustomGanttEvent[]>(
+		`gantt/projects/${projectId}/events`,
+		{ signal },
+	);
+
+	return response.data;
+};
+
+export const createGanttCustomEvent = async (
+	projectId: string,
+	payload: CustomGanttEventPayload,
+) => {
+	const response = await $backendApi.post<CustomGanttEvent>(
+		`gantt/projects/${projectId}/events`,
+		payload,
+	);
+
+	return response.data;
+};
+
+export const updateGanttCustomEvent = async (
+	eventId: number,
+	payload: Partial<CustomGanttEventPayload>,
+) => {
+	const response = await $backendApi.patch<CustomGanttEvent>(
+		`gantt/events/${eventId}`,
+		payload,
+	);
+
+	return response.data;
+};
+
+export const deleteGanttCustomEvent = (eventId: number) =>
+	$backendApi.delete(`gantt/events/${eventId}`);
+
+export const fetchGanttIncidents = async (
+	projectId: string,
+	signal?: AbortSignal,
+) => {
+	const response = await $backendApi.get<GanttIncident[]>(
+		`gantt/projects/${projectId}/incidents`,
+		{ signal },
+	);
+
+	return response.data;
+};
+
+export const createGanttIncident = async (
+	projectId: string,
+	payload: GanttIncidentPayload,
+) => {
+	const response = await $backendApi.post<GanttIncident>(
+		`gantt/projects/${projectId}/incidents`,
+		payload,
+	);
+
+	return response.data;
+};
+
+export const updateGanttIncident = async (
+	incidentId: number,
+	payload: Partial<GanttIncidentPayload>,
+) => {
+	const response = await $backendApi.patch<GanttIncident>(
+		`gantt/incidents/${incidentId}`,
+		payload,
+	);
+
+	return response.data;
+};
+
+export const deleteGanttIncident = (incidentId: number) =>
+	$backendApi.delete(`gantt/incidents/${incidentId}`);
+
+export const uploadGanttIncidentFiles = async (
+	incidentId: number,
+	files: File[],
+) => {
+	const formData = new FormData();
+
+	files.forEach((file) => {
+		formData.append("files", file);
+	});
+
+	const response = await $backendApi.post<GanttIncidentFile[]>(
+		`gantt/incidents/${incidentId}/files`,
+		formData,
+		{
+			headers: {
+				"Content-Type": "multipart/form-data",
+			},
+		},
+	);
+
+	return response.data;
+};
+
+export const downloadGanttIncidentFile = (incidentId: number, fileId: number) =>
+	$backendApi.get<Blob>(`gantt/incidents/${incidentId}/files/${fileId}`, {
+		responseType: "blob",
+	});
+
+export const deleteGanttIncidentFile = (incidentId: number, fileId: number) =>
+	$backendApi.delete(`gantt/incidents/${incidentId}/files/${fileId}`);
