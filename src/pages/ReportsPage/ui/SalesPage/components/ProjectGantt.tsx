@@ -124,6 +124,7 @@ export const ProjectGantt = ({
 	const [customEventForm, setCustomEventForm] = useState<CustomEventFormState>(
 		DEFAULT_CUSTOM_EVENT_FORM,
 	);
+	const [customEventError, setCustomEventError] = useState<string | null>(null);
 	const [isCustomEventSaving, setIsCustomEventSaving] = useState(false);
 	const [paymentIncidentDraft, setPaymentIncidentDraft] = useState<{
 		incidentDate: string;
@@ -195,6 +196,7 @@ export const ProjectGantt = ({
 
 		return items;
 	}, [ganttIncidents]);
+	const paymentLinksVersion = `${gantt.rows.length}:${ganttCustomEvents.length}`;
 	const paymentRowHeight = getPaymentRowHeight(paymentMarkers);
 	const setPaymentMarkerRef = useCallback(
 		(paymentId: string) => (node: HTMLSpanElement | null) => {
@@ -283,11 +285,40 @@ export const ProjectGantt = ({
 	}, [project?.projectId]);
 
 	const handleCustomEventSubmit = async () => {
-		if (!project?.projectId || !customEventForm.title.trim()) {
+		if (!project?.projectId) {
+			setCustomEventError("Проект не выбран");
+			return;
+		}
+
+		if (!customEventForm.title.trim()) {
+			setCustomEventError("Заполните название события");
+			return;
+		}
+
+		if (
+			customEventForm.eventKind === "one_time" &&
+			!customEventForm.planStartDate &&
+			!customEventForm.factStartDate
+		) {
+			setCustomEventError("Для разового события укажите плановую или фактическую дату");
+			return;
+		}
+
+		if (
+			customEventForm.eventKind === "duration" &&
+			(!customEventForm.planStartDate || !customEventForm.planEndDate)
+		) {
+			setCustomEventError("Для события с продолжительностью укажите плановый период");
+			return;
+		}
+
+		if (customEventForm.factEndDate && !customEventForm.factStartDate) {
+			setCustomEventError("Факт конец нельзя указать без факт старта");
 			return;
 		}
 
 		setIsCustomEventSaving(true);
+		setCustomEventError(null);
 
 		try {
 			await createGanttCustomEvent(project.projectId, {
@@ -308,6 +339,8 @@ export const ProjectGantt = ({
 			setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
 			setIsCustomEventModalOpen(false);
 			await refreshGanttBackendData();
+		} catch {
+			setCustomEventError("Не удалось создать событие");
 		} finally {
 			setIsCustomEventSaving(false);
 		}
@@ -491,7 +524,7 @@ export const ProjectGantt = ({
 			window.removeEventListener("resize", schedulePaymentLinksUpdate);
 			board.removeEventListener("scroll", schedulePaymentLinksUpdate);
 		};
-	}, [paymentIncidentById, paymentMarkers, timeline]);
+	}, [paymentIncidentById, paymentLinksVersion, paymentMarkers, timeline]);
 	const handleOverdueClick = async () => {
 		if (!project) {
 			setIncidents([]);
@@ -614,6 +647,7 @@ export const ProjectGantt = ({
 									key={`custom-${row.customEvent.event.id}`}
 									customEvent={row.customEvent}
 									monthTicks={monthTicks}
+									today={today}
 									timeline={timeline}
 									weekTicks={weekTicks}
 								/>
@@ -638,19 +672,20 @@ export const ProjectGantt = ({
 							Гант.
 						</div>
 					)}
-					<div className={styles.ganttRowInfo}>
-						<strong>Пользовательские события</strong>
-						<span>Добавьте кастомный этап проекта</span>
-					</div>
-					<div className={styles.ganttTrack}>
-						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+					<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
 						<button
 							type="button"
 							className={styles.ganttAddEventButton}
-							onClick={() => setIsCustomEventModalOpen(true)}
+							onClick={() => {
+								setCustomEventError(null);
+								setIsCustomEventModalOpen(true);
+							}}
 						>
 							+
 						</button>
+					</div>
+					<div className={styles.ganttTrack}>
+						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
 					</div>
 				</div>
 
@@ -667,7 +702,10 @@ export const ProjectGantt = ({
 			/>
 			<Modal
 				isOpen={isCustomEventModalOpen}
-				onClose={() => setIsCustomEventModalOpen(false)}
+				onClose={() => {
+					setCustomEventError(null);
+					setIsCustomEventModalOpen(false);
+				}}
 				size="small"
 			>
 				<div className={styles.ganttFormModal}>
@@ -757,6 +795,9 @@ export const ProjectGantt = ({
 							</label>
 						) : null}
 					</div>
+					{customEventError ? (
+						<p className={styles.ganttFormError}>{customEventError}</p>
+					) : null}
 					<button
 						type="button"
 						disabled={isCustomEventSaving}
@@ -963,6 +1004,48 @@ const getStageTooltip = (stage: GanttStage, today: Date) => {
 		`Отклонение: ${formatDeviation(deviation)}`,
 		`Статус: ${getStageStatus(stage, today)}`,
 	].join("\n");
+};
+
+const getCustomEventPlanDate = (customEvent: GanttCustomEventRow) =>
+	customEvent.event.eventKind === "duration"
+		? customEvent.planEnd
+		: customEvent.planStart;
+
+const getCustomEventFactDate = (customEvent: GanttCustomEventRow) =>
+	customEvent.event.eventKind === "duration"
+		? customEvent.factEnd
+		: customEvent.factStart;
+
+const getCustomEventDeviation = (
+	customEvent: GanttCustomEventRow,
+	today: Date,
+) => {
+	const planDate = getCustomEventPlanDate(customEvent);
+	const factDate = getCustomEventFactDate(customEvent);
+
+	if (!planDate) return null;
+	if (factDate) return daysBetween(planDate, factDate);
+	if (today > planDate) return daysBetween(planDate, today);
+
+	return null;
+};
+
+const getCustomEventStatus = (customEvent: GanttCustomEventRow, today: Date) => {
+	const planDate = getCustomEventPlanDate(customEvent);
+	const factDate = getCustomEventFactDate(customEvent);
+
+	if (!planDate) return "Нет данных";
+
+	if (!factDate) {
+		return today > planDate ? "Просрочен, факт не закрыт" : "Ожидает завершения";
+	}
+
+	const deviation = daysBetween(planDate, factDate);
+
+	if (deviation > 0) return "Просрочен";
+	if (deviation < 0) return "Завершён раньше плана";
+
+	return "В срок";
 };
 
 const GanttStageRow = ({
@@ -1189,18 +1272,24 @@ const GanttMilestoneRow = ({
 const GanttCustomEventRowView = ({
 	customEvent,
 	monthTicks,
+	today,
 	timeline,
 	weekTicks,
 }: {
 	customEvent: GanttCustomEventRow;
 	monthTicks: GanttMonthTick[];
+	today: Date;
 	timeline: GanttTimeline;
 	weekTicks: GanttWeekTick[];
 }) => {
+	const deviation = getCustomEventDeviation(customEvent, today);
+	const status = getCustomEventStatus(customEvent, today);
 	const tooltip = [
 		customEvent.title,
 		`План: ${formatDateFull(customEvent.planStart)} — ${formatDateFull(customEvent.planEnd)}`,
 		`Факт: ${formatDateFull(customEvent.factStart)} — ${formatDateFull(customEvent.factEnd)}`,
+		`Отклонение: ${formatDeviation(deviation)}`,
+		`Статус: ${status}`,
 	].join("\n");
 	const period =
 		customEvent.displayStart &&
@@ -1225,6 +1314,8 @@ const GanttCustomEventRowView = ({
 					Факт: {formatDateFull(customEvent.factStart)} —{" "}
 					{formatDateFull(customEvent.factEnd)}
 				</small>
+				<small>Отклонение: {formatDeviation(deviation)}</small>
+				<small>Статус: {status}</small>
 			</div>
 			<div className={styles.ganttTrack} title={tooltip}>
 				<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
