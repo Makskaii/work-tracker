@@ -883,6 +883,119 @@
 	}
 }
 
+.ganttCustomEventSegment {
+	border-color: rgba(142, 111, 255, 0.7);
+	background: linear-gradient(90deg, rgba(142, 111, 255, 0.86), rgba(94, 151, 255, 0.82));
+	color: #f7f9ff;
+}
+
+.ganttCustomEventMarker b {
+	background: #8e6fff;
+	box-shadow: 0 0 0 4px rgba(142, 111, 255, 0.16);
+}
+
+.ganttAddEventButton {
+	position: relative;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin: 18px 0 18px 18px;
+	border: 1px solid var(--color-border-active);
+	border-radius: 999px;
+	background: rgba(46, 197, 173, 0.14);
+	color: var(--color-accent);
+	font-size: 24px;
+	font-weight: 900;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.ganttAddEventButton:hover {
+	background: rgba(46, 197, 173, 0.22);
+}
+
+.ganttPaymentFactOverdueLinkLine {
+	fill: none;
+	stroke: #ff4d5f;
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	cursor: pointer;
+	pointer-events: stroke;
+}
+
+.ganttPaymentIncidentText {
+	fill: #ffd7dc;
+	font-size: 11px;
+	font-weight: 900;
+	pointer-events: none;
+}
+
+.ganttFormModal {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	color: var(--color-text);
+
+	h3 {
+		margin: 0;
+		font-size: 18px;
+	}
+
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.68);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	input,
+	select,
+	textarea {
+		width: 100%;
+		min-height: 36px;
+		padding: 8px 10px;
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.72);
+		color: var(--color-text);
+		box-sizing: border-box;
+	}
+
+	textarea {
+		min-height: 96px;
+		resize: vertical;
+	}
+
+	button {
+		min-height: 38px;
+		border: 1px solid var(--color-border-active);
+		border-radius: 10px;
+		background: rgba(46, 197, 173, 0.16);
+		color: var(--color-accent);
+		font-weight: 900;
+		cursor: pointer;
+	}
+
+	button:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+}
+
+.ganttFormGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
 .paymentPaid,
 .paymentPlanned,
 .paymentDebt,

@@ -108,9 +108,15 @@ const getPaymentStageTarget = (
 			return false;
 		}
 
-		return row.type === "stage"
-			? row.stage.id === targetRow.id
-			: row.milestone.id === targetRow.id;
+		if (row.type === "stage") {
+			return row.stage.id === targetRow.id;
+		}
+
+		if (row.type === "milestone") {
+			return row.milestone.id === targetRow.id;
+		}
+
+		return false;
 	});
 
 	if (rowIndex === -1) {
@@ -122,14 +128,23 @@ const getPaymentStageTarget = (
 	const ownDate =
 		row.type === "stage"
 			? getStageAnchorDate(row.stage)
-			: row.milestone.date;
+			: row.type === "milestone"
+				? row.milestone.date
+				: null;
 	const paymentBaseDate =
 		(row.type === "stage"
 			? getStagePaymentBaseDate(row.stage)
-			: row.milestone.date) ?? fallbackDate;
+			: row.type === "milestone"
+				? row.milestone.date
+				: null) ?? fallbackDate;
 	const date = ownDate ?? fallbackDate;
 
-	const rowTitle = row.type === "stage" ? row.stage.title : row.milestone.title;
+	const rowTitle =
+		row.type === "stage"
+			? row.stage.title
+			: row.type === "milestone"
+				? row.milestone.title
+				: "";
 
 	return date && paymentBaseDate
 		? {
