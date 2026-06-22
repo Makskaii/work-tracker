@@ -87,6 +87,17 @@ export const NAV_ITEMS: NavItem[] = [
 		icon: "₽",
 	},
 	{
+		key: "sales-report",
+		label: "Отчет продаж",
+		to: "/reports/sales",
+		type: "link",
+		icon: "S",
+	},
+	{
+		type: "section",
+		title: "доп. списки",
+	},
+	{
 		key: "analytics-report",
 		label: "Отчет аналитики",
 		to: "/reports/commertial-analytics",
@@ -99,17 +110,6 @@ export const NAV_ITEMS: NavItem[] = [
 		to: "/reports/development",
 		type: "link",
 		icon: "D",
-	},
-	{
-		key: "sales-report",
-		label: "Отчет продаж",
-		to: "/reports/sales",
-		type: "link",
-		icon: "S",
-	},
-	{
-		type: "section",
-		title: "доп. списки",
 	},
 	{
 		key: "workload",
