@@ -55,7 +55,6 @@ export const SalesProfitabilityReport = ({
 	users,
 	loading,
 }: SalesProfitabilityReportProps) => {
-	const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 	const [selectedFinancialGroupId, setSelectedFinancialGroupId] = useState<
 		string | null
 	>(null);
@@ -70,15 +69,15 @@ export const SalesProfitabilityReport = ({
 		() => buildCompanyProjectGroups(projects, companyTitleById),
 		[companyTitleById, projects],
 	);
-	const activeCompanyGroup =
-		companyGroups.find((company) => company.id === selectedCompanyId) ??
-		companyGroups[0] ??
-		null;
+	const financialGroups = useMemo(
+		() => companyGroups.flatMap((company) => company.financialGroups),
+		[companyGroups],
+	);
 	const activeFinancialGroup =
-		activeCompanyGroup?.financialGroups.find(
+		financialGroups.find(
 			(group) => group.id === selectedFinancialGroupId,
 		) ??
-		activeCompanyGroup?.financialGroups[0] ??
+		financialGroups[0] ??
 		null;
 	const activeProjects = activeFinancialGroup?.projects ?? [];
 
@@ -105,16 +104,9 @@ export const SalesProfitabilityReport = ({
 		project.reports.map((report) => ({ report, project })),
 	);
 
-	const selectCompany = (companyId: string) => {
-		setSelectedCompanyId(companyId);
-		setSelectedFinancialGroupId(null);
-		setSelectedProjectId(null);
-	};
-
 	const selectFinancialGroup = (groupId: string, projectId: string) => {
 		setSelectedFinancialGroupId(groupId);
 		setSelectedProjectId(projectId);
-		setActiveTab("projects");
 	};
 
 	return (
@@ -144,62 +136,29 @@ export const SalesProfitabilityReport = ({
 						{isLoadingDetails ? (
 							<ProjectListSkeleton />
 						) : (
-							companyGroups.map((company) => {
-								const isActiveCompany = company.id === activeCompanyGroup?.id;
+							financialGroups.map((group) => {
+								const projectId = group.parentProject.projectId ?? group.id;
+								const isActiveGroup = group.id === activeFinancialGroup?.id;
 
 								return (
-									<div key={company.id} className={styles.dealGroup}>
+									<div key={group.id} className={styles.dealGroup}>
 										<button
 											type="button"
-											title={company.title}
-											className={`${styles.dealButton} ${
-												isActiveCompany ? styles.activeDeal : ""
+											title={group.title}
+											className={`${styles.dealProjectButton} ${
+												isActiveGroup ? styles.activeProject : ""
 											}`}
-											onClick={() => selectCompany(company.id)}
+											onClick={() => selectFinancialGroup(group.id, projectId)}
 										>
-											<span className={styles.dealChevron}>
-												{company.title.trim().charAt(0)}
+											<span className={styles.dealProjectIcon}>
+												{group.title.trim().charAt(0)}
 											</span>
 											<span>
-												<strong>{company.title}</strong>
-												<small>Компания</small>
+												<strong>{group.title}</strong>
+												<small>Проект</small>
 											</span>
-											<em>{company.financialGroups.length} групп</em>
 										</button>
 
-										{isActiveCompany ? (
-											<div className={styles.dealProjectsList}>
-												{company.financialGroups.map((group) => {
-													const projectId =
-														group.parentProject.projectId ?? group.id;
-													const isActiveGroup =
-														group.id === activeFinancialGroup?.id;
-
-													return (
-														<div key={group.id} className={styles.dealGroup}>
-															<button
-																type="button"
-																title={group.title}
-																className={`${styles.dealProjectButton} ${
-																	isActiveGroup ? styles.activeProject : ""
-																}`}
-																onClick={() =>
-																	selectFinancialGroup(group.id, projectId)
-																}
-															>
-																<span className={styles.dealProjectIcon}>
-																	{group.title.trim().charAt(0)}
-																</span>
-																<span>
-																	<strong>{group.title}</strong>
-																	<small>Вотерфол проект</small>
-																</span>
-															</button>
-														</div>
-													);
-												})}
-											</div>
-										) : null}
 									</div>
 								);
 							})
@@ -238,8 +197,7 @@ export const SalesProfitabilityReport = ({
 								<SummaryCards
 									projectTitle={
 										activeFinancialGroup?.title ??
-										activeCompanyGroup?.title ??
-										"Компания не выбрана"
+										"Проект не выбран"
 									}
 									summary={summary}
 								/>
@@ -248,7 +206,7 @@ export const SalesProfitabilityReport = ({
 							{activeTab === "marginality" && (
 								<MarginalityTab
 									deals={deals}
-									projects={activeProjects}
+									projects={projects}
 									selectedProjectId={effectiveSelectedProjectId}
 								/>
 							)}

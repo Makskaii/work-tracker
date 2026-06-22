@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { ProjectGanttCodes } from "./constants";
 import type {
 	GanttDayTick,
+	GanttCustomEventRow,
 	GanttMonthTick,
 	GanttRow,
 	GanttStage,
@@ -9,7 +10,7 @@ import type {
 	GanttWeekTick,
 } from "./ganttTypes";
 import { toNumber } from "./profitabilityUtils";
-import type { ProfitabilityProject } from "./types";
+import type { CustomGanttEvent, ProfitabilityProject } from "./types";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -132,9 +133,39 @@ export const getStageDeviation = (stage: GanttStage, today: Date) => {
 	return null;
 };
 
+const buildCustomEventRow = (
+	event: CustomGanttEvent,
+): GanttCustomEventRow => {
+	const planStart = parseGanttDate(event.planStartDate);
+	const planEnd = parseGanttDate(event.planEndDate);
+	const factStart = parseGanttDate(event.factStartDate);
+	const factEnd = parseGanttDate(event.factEndDate);
+	const displayDate = factStart ?? planStart;
+	const displayStart = event.eventKind === "duration" ? (factStart ?? planStart) : null;
+	const displayEnd =
+		event.eventKind === "duration" ? (factEnd ?? planEnd ?? displayStart) : null;
+
+	return {
+		event,
+		title: event.title,
+		description:
+			event.eventKind === "duration"
+				? "Пользовательское событие с продолжительностью"
+				: "Пользовательское разовое событие",
+		planStart,
+		planEnd,
+		factStart,
+		factEnd,
+		displayDate,
+		displayStart,
+		displayEnd,
+	};
+};
+
 export const buildProjectGantt = (
 	project: ProfitabilityProject | null,
 	today: Date,
+	customEvents: CustomGanttEvent[] = [],
 ) => {
 	const tzStart = parseGanttDate(project?.[ProjectGanttCodes.ganttTzStart]);
 	const tzPlanEnd = getStagePlanEnd(
@@ -248,6 +279,12 @@ export const buildProjectGantt = (
 		{ type: "stage", stage: stages[1] },
 		{ type: "stage", stage: stages[2] },
 		{ type: "milestone", milestone: milestones[1] },
+		...customEvents
+			.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+			.map((event) => ({
+				type: "customEvent" as const,
+				customEvent: buildCustomEventRow(event),
+			})),
 	];
 
 	const finalPlanEnd = educationPlanEnd ?? developmentPlanEnd ?? tzPlanEnd;
@@ -292,6 +329,16 @@ export const getGanttTimeline = (
 	const dates = rows.flatMap((row) => {
 		if (row.type === "milestone") {
 			return [row.milestone.date];
+		}
+
+		if (row.type === "customEvent") {
+			return [
+				row.customEvent.planStart,
+				row.customEvent.planEnd,
+				row.customEvent.factStart,
+				row.customEvent.factEnd,
+				row.customEvent.displayDate,
+			];
 		}
 
 		return [

@@ -74,6 +74,22 @@ export const getRawPaymentAmount = (payment: ProjectPayment) =>
 export const getRawPaymentPercent = (payment: ProjectPayment) =>
 	toNumber(payment[ProjectCodes.paymentPercent]);
 
+export const hasPaymentPercent = (payment: ProjectPayment) =>
+	String(payment[ProjectCodes.paymentPercent] ?? "").trim() !== "";
+
+export const getPaymentDisplayPercent = (
+	payment: ProjectPayment,
+	projectAmount: number,
+) => {
+	if (hasPaymentPercent(payment)) {
+		return getRawPaymentPercent(payment);
+	}
+
+	const amount = getRawPaymentAmount(payment);
+
+	return projectAmount && amount ? getPaymentPercent(payment, projectAmount) : null;
+};
+
 export const getPaymentAmount = (
 	payment: ProjectPayment,
 	projectAmount: number,

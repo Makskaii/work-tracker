@@ -1,7 +1,8 @@
 import dayjs from "dayjs";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { GanttRow, GanttStage, GanttTimeline } from "./ganttTypes";
-import { getMilestoneStyle } from "./ganttUtils";
+import { addDays, getMilestoneStyle } from "./ganttUtils";
+import { toNumber } from "./profitabilityUtils";
 import type { ProjectPayment } from "./types";
 
 const PAYMENT_MARKER_BASE_HEIGHT = 92;
@@ -21,6 +22,7 @@ const PAYMENT_STAGE_BINDING_ROW: Record<
 export type GanttPaymentStageTargetData = {
 	date: Date;
 	isFallbackDate: boolean;
+	paymentBaseDate: Date;
 	rowId: string;
 	rowIndex: number;
 	rowTitle: string;
@@ -49,6 +51,14 @@ const getTzPlanStart = (rows: GanttRow[]) => {
 	return tzRow?.type === "stage" ? tzRow.stage.planStart : null;
 };
 
+const getNormalizedPaymentStageBinding = (payment: ProjectPayment) => {
+	const stageBinding = String(
+		payment[ProjectCodes.paymentStageBinding] ?? "",
+	).trim();
+
+	return stageBinding && stageBinding !== "403" ? stageBinding : "404";
+};
+
 const getStageAnchorDate = (stage: GanttStage) => {
 	if (stage.factStart && stage.factEnd && stage.factEnd > stage.factStart) {
 		if (stage.planStart && stage.factStart < stage.planStart) {
@@ -65,13 +75,28 @@ const getStageAnchorDate = (stage: GanttStage) => {
 	return stage.planEnd;
 };
 
+const getStagePaymentBaseDate = (stage: GanttStage) =>
+	stage.factEnd ?? stage.planEnd ?? stage.factStart ?? stage.planStart;
+
+const getPaymentWaitingDays = (payment: ProjectPayment) =>
+	Math.max(0, Math.round(toNumber(payment[ProjectCodes.paymentWaitingDays])));
+
+const getExpectedPaymentDate = (
+	stageTarget: GanttPaymentStageTargetData | null,
+	payment: ProjectPayment,
+) => {
+	if (!stageTarget) {
+		return null;
+	}
+
+	return addDays(stageTarget.paymentBaseDate, getPaymentWaitingDays(payment));
+};
+
 const getPaymentStageTarget = (
 	payment: ProjectPayment,
 	rows: GanttRow[],
 ): GanttPaymentStageTargetData | null => {
-	const stageBinding = String(
-		payment[ProjectCodes.paymentStageBinding] ?? "",
-	).trim();
+	const stageBinding = getNormalizedPaymentStageBinding(payment);
 	const targetRow = PAYMENT_STAGE_BINDING_ROW[stageBinding];
 
 	if (!targetRow) {
@@ -83,9 +108,15 @@ const getPaymentStageTarget = (
 			return false;
 		}
 
-		return row.type === "stage"
-			? row.stage.id === targetRow.id
-			: row.milestone.id === targetRow.id;
+		if (row.type === "stage") {
+			return row.stage.id === targetRow.id;
+		}
+
+		if (row.type === "milestone") {
+			return row.milestone.id === targetRow.id;
+		}
+
+		return false;
 	});
 
 	if (rowIndex === -1) {
@@ -97,15 +128,29 @@ const getPaymentStageTarget = (
 	const ownDate =
 		row.type === "stage"
 			? getStageAnchorDate(row.stage)
-			: row.milestone.date;
+			: row.type === "milestone"
+				? row.milestone.date
+				: null;
+	const paymentBaseDate =
+		(row.type === "stage"
+			? getStagePaymentBaseDate(row.stage)
+			: row.type === "milestone"
+				? row.milestone.date
+				: null) ?? fallbackDate;
 	const date = ownDate ?? fallbackDate;
 
-	const rowTitle = row.type === "stage" ? row.stage.title : row.milestone.title;
+	const rowTitle =
+		row.type === "stage"
+			? row.stage.title
+			: row.type === "milestone"
+				? row.milestone.title
+				: "";
 
-	return date
+	return date && paymentBaseDate
 		? {
 				date,
 				isFallbackDate: !ownDate,
+				paymentBaseDate,
 				rowId: targetRow.id,
 				rowIndex,
 				rowTitle,
@@ -125,12 +170,13 @@ export const buildPaymentMarkers = (
 	return payments
 		.map((payment) => {
 			const stageTarget = getPaymentStageTarget(payment, rows);
+			const expectedPaymentDate = getExpectedPaymentDate(stageTarget, payment);
 			const paymentDate = payment[ProjectCodes.paymentDate]
 				? dayjs(payment[ProjectCodes.paymentDate])
 				: null;
 			const isPaymentDateFallback = !paymentDate?.isValid();
 			const date =
-				stageTarget?.date ??
+				expectedPaymentDate ??
 				(paymentDate?.isValid() ? paymentDate.toDate() : fallbackPaymentDate);
 
 			if (!date) {

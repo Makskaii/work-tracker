@@ -13,7 +13,7 @@ import { SalesCodes } from "../../types/types";
 import styles from "./AnalyticsReports.module.scss";
 import { DealCard } from "./DealCard";
 
-export const getUsers = async (): Promise<
+const getAnalyticsUsers = async (): Promise<
 	{
 		ID: string;
 		NAME: string;
@@ -155,7 +155,7 @@ function AnalyticsCommertialReportPage() {
 		const fetchCallsAmount = async () => {
 			setLoading(true);
 			try {
-				const users = await getUsers();
+				const users = await getAnalyticsUsers();
 				const [ppoItems, kpItems, wonItems] = await Promise.all([
 					await getDeals({
 						categoryId: 0,

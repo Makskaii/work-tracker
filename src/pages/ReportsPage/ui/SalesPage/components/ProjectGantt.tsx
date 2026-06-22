@@ -1,19 +1,29 @@
 import {
 	type Ref,
 	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
 import { FaExclamationTriangle } from "react-icons/fa";
+import Modal from "@/components/modal/Modal";
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import {
+	createGanttCustomEvent,
+	createGanttIncident,
+	deleteGanttCustomEvent,
+	fetchGanttCustomEvents,
+	fetchGanttIncidents,
 	fetchProjectIncidents,
 	type ProjectIncident,
+	updateGanttCustomEvent,
 } from "../model/api";
 import type {
+	GanttCustomEventRow,
 	GanttMilestone,
 	GanttMonthTick,
 	GanttStage,
@@ -35,21 +45,31 @@ import {
 	getStageDeviation,
 	getStageStatus,
 	getWeekTicks,
+	parseGanttDate,
 } from "../model/ganttUtils";
 import {
 	buildPaymentMarkers,
 	getPaymentRowHeight,
 } from "../model/ganttPaymentMarkers";
-import type { ProfitabilityProject } from "../model/types";
+import type {
+	CustomGanttEvent,
+	CustomGanttEventKind,
+	GanttIncident,
+	ProfitabilityProject,
+} from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { GanttPaymentMarker } from "./GanttPaymentMarker";
 import { ProjectIncidentModal } from "./ProjectIncidentModal";
 
 type GanttPaymentLink = {
 	endY: number;
+	factPaymentEndX?: number;
+	factPaymentDate?: string;
+	incidentDescription?: string | null;
 	overdueEndX?: number;
 	overdueEndY?: number;
 	overdueTargetY?: number;
+	paymentId: string;
 	startX: number;
 	id: string;
 	startY: number;
@@ -63,6 +83,24 @@ type GanttPaymentLinksLayout = {
 };
 
 const PAYMENT_OVERDUE_LINK_Y_OFFSET = 132;
+
+type CustomEventFormState = {
+	title: string;
+	eventKind: CustomGanttEventKind;
+	planStartDate: string;
+	planEndDate: string;
+	factStartDate: string;
+	factEndDate: string;
+};
+
+const DEFAULT_CUSTOM_EVENT_FORM: CustomEventFormState = {
+	title: "",
+	eventKind: "one_time",
+	planStartDate: "",
+	planEndDate: "",
+	factStartDate: "",
+	factEndDate: "",
+};
 
 const getScaleWeekStep = (weekTicksCount: number) => {
 	if (weekTicksCount > 36) return 4;
@@ -80,6 +118,31 @@ export const ProjectGantt = ({
 	dealAmount?: number;
 }) => {
 	const [incidents, setIncidents] = useState<ProjectIncident[]>([]);
+	const [ganttCustomEvents, setGanttCustomEvents] = useState<CustomGanttEvent[]>(
+		[],
+	);
+	const [ganttIncidents, setGanttIncidents] = useState<GanttIncident[]>([]);
+	const [isCustomEventModalOpen, setIsCustomEventModalOpen] = useState(false);
+	const [customEventForm, setCustomEventForm] = useState<CustomEventFormState>(
+		DEFAULT_CUSTOM_EVENT_FORM,
+	);
+	const [editingCustomEventId, setEditingCustomEventId] = useState<number | null>(
+		null,
+	);
+	const [customEventError, setCustomEventError] = useState<string | null>(null);
+	const [isCustomEventSaving, setIsCustomEventSaving] = useState(false);
+	const [deletingCustomEventId, setDeletingCustomEventId] = useState<
+		number | null
+	>(null);
+	const [isCustomEventDeleteConfirming, setIsCustomEventDeleteConfirming] =
+		useState(false);
+	const [paymentIncidentDraft, setPaymentIncidentDraft] = useState<{
+		incidentDate: string;
+		paymentId: string;
+	} | null>(null);
+	const [paymentIncidentDescription, setPaymentIncidentDescription] =
+		useState("");
+	const [isPaymentIncidentSaving, setIsPaymentIncidentSaving] = useState(false);
 	const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
 	const [isIncidentsLoading, setIsIncidentsLoading] = useState(false);
 	const [paymentLinksLayout, setPaymentLinksLayout] =
@@ -104,8 +167,8 @@ export const ProjectGantt = ({
 		);
 	}, []);
 	const gantt = useMemo(
-		() => buildProjectGantt(project, today),
-		[project, today],
+		() => buildProjectGantt(project, today, ganttCustomEvents),
+		[ganttCustomEvents, project, today],
 	);
 	const timeline = useMemo(
 		() => getGanttTimeline(gantt.rows, today),
@@ -121,7 +184,9 @@ export const ProjectGantt = ({
 	const hasDates = gantt.rows.some((row) =>
 		row.type === "milestone"
 			? row.milestone.date
-			: row.stage.planStart || row.stage.planEnd || row.stage.factStart,
+			: row.type === "customEvent"
+				? row.customEvent.displayDate || row.customEvent.displayStart
+				: row.stage.planStart || row.stage.planEnd || row.stage.factStart,
 	);
 	const paymentMarkers = useMemo(() => {
 		if (!project) {
@@ -130,6 +195,18 @@ export const ProjectGantt = ({
 
 		return buildPaymentMarkers(project.payments, gantt.rows, timeline);
 	}, [gantt.rows, project, timeline]);
+	const paymentIncidentById = useMemo(() => {
+		const items = new Map<string, GanttIncident>();
+
+		ganttIncidents
+			.filter((incident) => incident.entityType === "payment_waiting_overdue")
+			.forEach((incident) => {
+				items.set(incident.entityId, incident);
+			});
+
+		return items;
+	}, [ganttIncidents]);
+	const paymentLinksVersion = `${gantt.rows.length}:${ganttCustomEvents.length}`;
 	const paymentRowHeight = getPaymentRowHeight(paymentMarkers);
 	const setPaymentMarkerRef = useCallback(
 		(paymentId: string) => (node: HTMLSpanElement | null) => {
@@ -175,6 +252,204 @@ export const ProjectGantt = ({
 		},
 		[],
 	);
+
+	useEffect(() => {
+		if (!project?.projectId) {
+			setGanttCustomEvents([]);
+			setGanttIncidents([]);
+			return;
+		}
+
+		const controller = new AbortController();
+
+		Promise.all([
+			fetchGanttCustomEvents(project.projectId, controller.signal),
+			fetchGanttIncidents(project.projectId, controller.signal),
+		])
+			.then(([customEvents, incidentItems]) => {
+				setGanttCustomEvents(customEvents);
+				setGanttIncidents(incidentItems);
+			})
+			.catch(() => {
+				if (!controller.signal.aborted) {
+					setGanttCustomEvents([]);
+					setGanttIncidents([]);
+				}
+			});
+
+		return () => controller.abort();
+	}, [project?.projectId]);
+
+	const refreshGanttBackendData = useCallback(async () => {
+		if (!project?.projectId) {
+			return;
+		}
+
+		const [customEvents, incidentItems] = await Promise.all([
+			fetchGanttCustomEvents(project.projectId),
+			fetchGanttIncidents(project.projectId),
+		]);
+
+		setGanttCustomEvents(customEvents);
+		setGanttIncidents(incidentItems);
+	}, [project?.projectId]);
+
+	const handleCustomEventSubmit = async () => {
+		if (!project?.projectId) {
+			setCustomEventError("Проект не выбран");
+			return;
+		}
+
+		if (!customEventForm.title.trim()) {
+			setCustomEventError("Заполните название события");
+			return;
+		}
+
+		if (
+			customEventForm.eventKind === "one_time" &&
+			!customEventForm.planStartDate &&
+			!customEventForm.factStartDate
+		) {
+			setCustomEventError("Для разового события укажите плановую или фактическую дату");
+			return;
+		}
+
+		if (
+			customEventForm.eventKind === "duration" &&
+			(!customEventForm.planStartDate || !customEventForm.planEndDate)
+		) {
+			setCustomEventError("Для события с продолжительностью укажите плановый период");
+			return;
+		}
+
+		if (customEventForm.factEndDate && !customEventForm.factStartDate) {
+			setCustomEventError("Факт конец нельзя указать без факт старта");
+			return;
+		}
+
+		setIsCustomEventSaving(true);
+		setCustomEventError(null);
+
+		try {
+			const payload = {
+				title: customEventForm.title.trim(),
+				eventKind: customEventForm.eventKind,
+				planStartDate: customEventForm.planStartDate || null,
+				planEndDate:
+					customEventForm.eventKind === "duration"
+						? customEventForm.planEndDate || null
+						: null,
+				factStartDate: customEventForm.factStartDate || null,
+				factEndDate:
+					customEventForm.eventKind === "duration"
+						? customEventForm.factEndDate || null
+						: null,
+			};
+
+			if (editingCustomEventId !== null) {
+				await updateGanttCustomEvent(editingCustomEventId, payload);
+			} else {
+				await createGanttCustomEvent(project.projectId, {
+					...payload,
+					sortOrder: ganttCustomEvents.length,
+				});
+			}
+
+			setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+			setEditingCustomEventId(null);
+			setIsCustomEventDeleteConfirming(false);
+			setIsCustomEventModalOpen(false);
+			await refreshGanttBackendData();
+		} catch {
+			setCustomEventError(
+				editingCustomEventId !== null
+					? "Не удалось обновить событие"
+					: "Не удалось создать событие",
+			);
+		} finally {
+			setIsCustomEventSaving(false);
+		}
+	};
+
+	const openCustomEventCreateModal = () => {
+		setEditingCustomEventId(null);
+		setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+		setCustomEventError(null);
+		setIsCustomEventDeleteConfirming(false);
+		setIsCustomEventModalOpen(true);
+	};
+
+	const openCustomEventEditModal = (event: CustomGanttEvent) => {
+		setEditingCustomEventId(event.id);
+		setCustomEventForm({
+			title: event.title,
+			eventKind: event.eventKind,
+			planStartDate: event.planStartDate ?? "",
+			planEndDate: event.planEndDate ?? "",
+			factStartDate: event.factStartDate ?? "",
+			factEndDate: event.factEndDate ?? "",
+		});
+		setCustomEventError(null);
+		setIsCustomEventDeleteConfirming(false);
+		setIsCustomEventModalOpen(true);
+	};
+
+	const deleteCustomEventById = async (
+		eventId: number,
+		shouldCloseModal = false,
+	) => {
+		setDeletingCustomEventId(eventId);
+
+		try {
+			await deleteGanttCustomEvent(eventId);
+
+			if (shouldCloseModal) {
+				setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+				setEditingCustomEventId(null);
+				setIsCustomEventDeleteConfirming(false);
+				setIsCustomEventModalOpen(false);
+			}
+
+			await refreshGanttBackendData();
+		} finally {
+			setDeletingCustomEventId(null);
+		}
+	};
+
+	const handleCustomEventDelete = async () => {
+		if (editingCustomEventId === null) {
+			return;
+		}
+
+		if (!isCustomEventDeleteConfirming) {
+			setIsCustomEventDeleteConfirming(true);
+			return;
+		}
+
+		await deleteCustomEventById(editingCustomEventId, true);
+	};
+
+	const handlePaymentIncidentSubmit = async () => {
+		if (!project?.projectId || !paymentIncidentDraft) {
+			return;
+		}
+
+		setIsPaymentIncidentSaving(true);
+
+		try {
+			await createGanttIncident(project.projectId, {
+				entityType: "payment_waiting_overdue",
+				entityId: paymentIncidentDraft.paymentId,
+				description: paymentIncidentDescription || null,
+				incidentDate: paymentIncidentDraft.incidentDate,
+			});
+			setPaymentIncidentDraft(null);
+			setPaymentIncidentDescription("");
+			await refreshGanttBackendData();
+		} finally {
+			setIsPaymentIncidentSaving(false);
+		}
+	};
 
 	useLayoutEffect(() => {
 		const board = ganttBoardRef.current;
@@ -243,6 +518,24 @@ export const ProjectGantt = ({
 					);
 				};
 				const targetX = getTargetX();
+				const factPaymentDate = parseGanttDate(
+					marker.payment[ProjectCodes.paymentDate],
+				);
+				const factPaymentStyle =
+					factPaymentDate && factPaymentDate > marker.date
+						? getMilestoneStyle(factPaymentDate, timeline)
+						: null;
+				const factPaymentLeft = factPaymentStyle
+					? Number.parseFloat(String(factPaymentStyle.left ?? 0))
+					: null;
+				const factPaymentEndX =
+					factPaymentLeft !== null && Number.isFinite(factPaymentLeft)
+						? rowRect.left -
+							boardRect.left +
+							board.scrollLeft +
+							(rowRect.width * Math.min(Math.max(factPaymentLeft, 0), 100)) /
+								100
+						: undefined;
 				const overdueEndX = overdueRect
 					? overdueRect.right - boardRect.left + board.scrollLeft
 					: undefined;
@@ -259,7 +552,12 @@ export const ProjectGantt = ({
 
 				items.push({
 					endY,
+					factPaymentEndX,
+					factPaymentDate: factPaymentDate?.toISOString().slice(0, 10),
 					id: String(marker.payment.id),
+					incidentDescription:
+						paymentIncidentById.get(String(marker.payment.id))?.description ??
+						null,
 					overdueEndX,
 					overdueTargetY,
 					overdueEndY:
@@ -269,6 +567,7 @@ export const ProjectGantt = ({
 					startX,
 					startY,
 					targetX,
+					paymentId: String(marker.payment.id),
 				});
 
 				return items;
@@ -308,7 +607,7 @@ export const ProjectGantt = ({
 			window.removeEventListener("resize", schedulePaymentLinksUpdate);
 			board.removeEventListener("scroll", schedulePaymentLinksUpdate);
 		};
-	}, [paymentMarkers, timeline]);
+	}, [paymentIncidentById, paymentLinksVersion, paymentMarkers, timeline]);
 	const handleOverdueClick = async () => {
 		if (!project) {
 			setIncidents([]);
@@ -332,13 +631,6 @@ export const ProjectGantt = ({
 	return (
 		<>
 			<div className={styles.ganttCard}>
-				<div className={styles.ganttHeader}>
-					<div>
-						<h3>Диаграмма Ганта: {gantt.summary.projectTitle}</h3>
-						<p>План пересчитывается по зависимостям между этапами</p>
-					</div>
-				</div>
-
 				<div className={styles.ganttMetrics}>
 					<GanttMetric title="Проект" value={gantt.summary.projectTitle} accent />
 					<GanttMetric
@@ -379,7 +671,13 @@ export const ProjectGantt = ({
 				<GanttLegend />
 
 				<div ref={ganttBoardRef} className={styles.ganttBoard}>
-					<GanttPaymentLinks layout={paymentLinksLayout} />
+					<GanttPaymentLinks
+						layout={paymentLinksLayout}
+						onPaymentOverdueClick={(paymentId, incidentDate) => {
+							setPaymentIncidentDraft({ incidentDate, paymentId });
+							setPaymentIncidentDescription("");
+						}}
+					/>
 					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
 					<GanttScale monthTicks={monthTicks} weekTicks={scaleWeekTicks} />
 					<div
@@ -420,6 +718,24 @@ export const ProjectGantt = ({
 									timeline={timeline}
 									weekTicks={weekTicks}
 								/>
+							) : row.type === "customEvent" ? (
+								<GanttCustomEventRowView
+									key={`custom-${row.customEvent.event.id}`}
+									customEvent={row.customEvent}
+									isDeleting={
+										deletingCustomEventId === row.customEvent.event.id
+									}
+									monthTicks={monthTicks}
+									onDelete={() =>
+										deleteCustomEventById(row.customEvent.event.id)
+									}
+									onEdit={() =>
+										openCustomEventEditModal(row.customEvent.event)
+									}
+									today={today}
+									timeline={timeline}
+									weekTicks={weekTicks}
+								/>
 							) : (
 								<GanttStageRow
 									anchorRef={setGanttAnchorRef(row.stage.id)}
@@ -441,6 +757,18 @@ export const ProjectGantt = ({
 							Гант.
 						</div>
 					)}
+					<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
+						<button
+							type="button"
+							className={styles.ganttAddEventButton}
+							onClick={openCustomEventCreateModal}
+						>
+							+
+						</button>
+					</div>
+					<div className={styles.ganttTrack}>
+						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+					</div>
 				</div>
 
 				<GanttStageTable stages={gantt.stages} today={today} />
@@ -454,6 +782,159 @@ export const ProjectGantt = ({
 					openTask(incidentId, EntityTypeIds.projectIncidents)
 				}
 			/>
+			<Modal
+				isOpen={isCustomEventModalOpen}
+				onClose={() => {
+					setCustomEventError(null);
+					setEditingCustomEventId(null);
+					setCustomEventForm(DEFAULT_CUSTOM_EVENT_FORM);
+					setIsCustomEventDeleteConfirming(false);
+					setIsCustomEventModalOpen(false);
+				}}
+				size="small"
+			>
+				<div className={styles.ganttFormModal}>
+					<h3>
+						{editingCustomEventId !== null
+							? "Редактирование события Ганта"
+							: "Новое событие Ганта"}
+					</h3>
+					<label>
+						<span>Название</span>
+						<input
+							value={customEventForm.title}
+							onChange={(event) =>
+								setCustomEventForm((prev) => ({
+									...prev,
+									title: event.target.value,
+								}))
+							}
+						/>
+					</label>
+					<label>
+						<span>Тип события</span>
+						<select
+							value={customEventForm.eventKind}
+							onChange={(event) =>
+								setCustomEventForm((prev) => ({
+									...prev,
+									eventKind: event.target.value as CustomGanttEventKind,
+								}))
+							}
+						>
+							<option value="one_time">Разовое событие</option>
+							<option value="duration">Событие с продолжительностью</option>
+						</select>
+					</label>
+					<div className={styles.ganttFormGrid}>
+						<label>
+							<span>План старт</span>
+							<input
+								type="date"
+								value={customEventForm.planStartDate}
+								onChange={(event) =>
+									setCustomEventForm((prev) => ({
+										...prev,
+										planStartDate: event.target.value,
+									}))
+								}
+							/>
+						</label>
+						{customEventForm.eventKind === "duration" ? (
+							<label>
+								<span>План конец</span>
+								<input
+									type="date"
+									value={customEventForm.planEndDate}
+									onChange={(event) =>
+										setCustomEventForm((prev) => ({
+											...prev,
+											planEndDate: event.target.value,
+										}))
+									}
+								/>
+							</label>
+						) : null}
+						<label>
+							<span>Факт старт</span>
+							<input
+								type="date"
+								value={customEventForm.factStartDate}
+								onChange={(event) =>
+									setCustomEventForm((prev) => ({
+										...prev,
+										factStartDate: event.target.value,
+									}))
+								}
+							/>
+						</label>
+						{customEventForm.eventKind === "duration" ? (
+							<label>
+								<span>Факт конец</span>
+								<input
+									type="date"
+									value={customEventForm.factEndDate}
+									onChange={(event) =>
+										setCustomEventForm((prev) => ({
+											...prev,
+											factEndDate: event.target.value,
+										}))
+									}
+								/>
+							</label>
+						) : null}
+					</div>
+					{customEventError ? (
+						<p className={styles.ganttFormError}>{customEventError}</p>
+					) : null}
+					<div className={styles.ganttFormActions}>
+						{editingCustomEventId !== null ? (
+							<button
+								type="button"
+								className={styles.ganttFormDeleteButton}
+								disabled={deletingCustomEventId === editingCustomEventId}
+								onClick={handleCustomEventDelete}
+							>
+								{isCustomEventDeleteConfirming
+									? "Подтвердить удаление"
+									: "Удалить"}
+							</button>
+						) : null}
+						<button
+							type="button"
+							disabled={isCustomEventSaving}
+							onClick={handleCustomEventSubmit}
+						>
+							Сохранить
+						</button>
+					</div>
+				</div>
+			</Modal>
+			<Modal
+				isOpen={Boolean(paymentIncidentDraft)}
+				onClose={() => setPaymentIncidentDraft(null)}
+				size="small"
+			>
+				<div className={styles.ganttFormModal}>
+					<h3>Инцидент по просрочке оплаты</h3>
+					<label>
+						<span>Описание</span>
+						<textarea
+							value={paymentIncidentDescription}
+							onChange={(event) =>
+								setPaymentIncidentDescription(event.target.value)
+							}
+						/>
+					</label>
+					<button
+						type="button"
+						disabled={isPaymentIncidentSaving}
+						onClick={handlePaymentIncidentSubmit}
+					>
+						Сохранить
+					</button>
+				</div>
+			</Modal>
 		</>
 	);
 };
@@ -566,8 +1047,10 @@ const GanttTrackGrid = ({
 
 const GanttPaymentLinks = ({
 	layout,
+	onPaymentOverdueClick,
 }: {
 	layout: GanttPaymentLinksLayout;
+	onPaymentOverdueClick: (paymentId: string, incidentDate: string) => void;
 }) =>
 	layout.links.length > 0 && layout.width > 0 && layout.height > 0 ? (
 		<svg
@@ -591,6 +1074,24 @@ const GanttPaymentLinks = ({
 							d={`M ${link.startX} ${link.overdueEndY} H ${link.overdueEndX} V ${link.overdueTargetY}`}
 						/>
 					) : null}
+					{link.factPaymentEndX !== undefined && link.factPaymentDate ? (
+						<path
+							className={styles.ganttPaymentFactOverdueLinkLine}
+							d={`M ${link.startX} ${link.startY} H ${link.factPaymentEndX}`}
+							onClick={() =>
+								onPaymentOverdueClick(link.paymentId, link.factPaymentDate ?? "")
+							}
+						/>
+					) : null}
+					{link.factPaymentEndX !== undefined && link.incidentDescription ? (
+						<text
+							className={styles.ganttPaymentIncidentText}
+							x={Math.max(link.startX, link.factPaymentEndX) + 8}
+							y={link.startY - 6}
+						>
+							{link.incidentDescription}
+						</text>
+					) : null}
 				</g>
 			))}
 		</svg>
@@ -606,6 +1107,48 @@ const getStageTooltip = (stage: GanttStage, today: Date) => {
 		`Отклонение: ${formatDeviation(deviation)}`,
 		`Статус: ${getStageStatus(stage, today)}`,
 	].join("\n");
+};
+
+const getCustomEventPlanDate = (customEvent: GanttCustomEventRow) =>
+	customEvent.event.eventKind === "duration"
+		? customEvent.planEnd
+		: customEvent.planStart;
+
+const getCustomEventFactDate = (customEvent: GanttCustomEventRow) =>
+	customEvent.event.eventKind === "duration"
+		? customEvent.factEnd
+		: customEvent.factStart;
+
+const getCustomEventDeviation = (
+	customEvent: GanttCustomEventRow,
+	today: Date,
+) => {
+	const planDate = getCustomEventPlanDate(customEvent);
+	const factDate = getCustomEventFactDate(customEvent);
+
+	if (!planDate) return null;
+	if (factDate) return daysBetween(planDate, factDate);
+	if (today > planDate) return daysBetween(planDate, today);
+
+	return null;
+};
+
+const getCustomEventStatus = (customEvent: GanttCustomEventRow, today: Date) => {
+	const planDate = getCustomEventPlanDate(customEvent);
+	const factDate = getCustomEventFactDate(customEvent);
+
+	if (!planDate) return "Нет данных";
+
+	if (!factDate) {
+		return today > planDate ? "Просрочен, факт не закрыт" : "Ожидает завершения";
+	}
+
+	const deviation = daysBetween(planDate, factDate);
+
+	if (deviation > 0) return "Просрочен";
+	if (deviation < 0) return "Завершён раньше плана";
+
+	return "В срок";
 };
 
 const GanttStageRow = ({
@@ -828,6 +1371,141 @@ const GanttMilestoneRow = ({
 		</div>
 	</>
 );
+
+const GanttCustomEventRowView = ({
+	customEvent,
+	isDeleting,
+	monthTicks,
+	onDelete,
+	onEdit,
+	today,
+	timeline,
+	weekTicks,
+}: {
+	customEvent: GanttCustomEventRow;
+	isDeleting: boolean;
+	monthTicks: GanttMonthTick[];
+	onDelete: () => Promise<void>;
+	onEdit: () => void;
+	today: Date;
+	timeline: GanttTimeline;
+	weekTicks: GanttWeekTick[];
+}) => {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
+	const deviation = getCustomEventDeviation(customEvent, today);
+	const status = getCustomEventStatus(customEvent, today);
+	const tooltip = [
+		customEvent.title,
+		`План: ${formatDateFull(customEvent.planStart)} — ${formatDateFull(customEvent.planEnd)}`,
+		`Факт: ${formatDateFull(customEvent.factStart)} — ${formatDateFull(customEvent.factEnd)}`,
+		`Отклонение: ${formatDeviation(deviation)}`,
+		`Статус: ${status}`,
+	].join("\n");
+	const period =
+		customEvent.displayStart &&
+		customEvent.displayEnd &&
+		customEvent.displayEnd > customEvent.displayStart
+			? {
+					start: customEvent.displayStart,
+					end: customEvent.displayEnd,
+				}
+			: null;
+	const handleEditClick = () => {
+		setIsMenuOpen(false);
+		setIsDeleteConfirming(false);
+		onEdit();
+	};
+	const handleDeleteClick = async () => {
+		if (!isDeleteConfirming) {
+			setIsDeleteConfirming(true);
+			return;
+		}
+
+		await onDelete();
+		setIsMenuOpen(false);
+		setIsDeleteConfirming(false);
+	};
+
+	return (
+		<>
+			<div
+				className={`${styles.ganttRowInfo} ${styles.ganttCustomEventInfo}`}
+				title={tooltip}
+			>
+				<div className={styles.ganttCustomEventHeader}>
+					<strong>{customEvent.title}</strong>
+					<button
+						type="button"
+						className={styles.ganttCustomEventMenuButton}
+						onClick={() => {
+							setIsMenuOpen((prev) => !prev);
+							setIsDeleteConfirming(false);
+						}}
+						aria-label="Действия с кастомным этапом"
+					>
+						...
+					</button>
+					{isMenuOpen ? (
+						<div className={styles.ganttCustomEventMenu}>
+							<button type="button" onClick={handleEditClick}>
+								Редактировать
+							</button>
+							<button
+								type="button"
+								className={isDeleteConfirming ? styles.dangerAction : ""}
+								disabled={isDeleting}
+								onClick={handleDeleteClick}
+							>
+								{isDeleteConfirming ? "Подтвердить удаление" : "Удалить"}
+							</button>
+						</div>
+					) : null}
+				</div>
+				<span>{customEvent.description}</span>
+				<small>
+					План: {formatDateFull(customEvent.planStart)} —{" "}
+					{formatDateFull(customEvent.planEnd)}
+				</small>
+				<small>
+					Факт: {formatDateFull(customEvent.factStart)} —{" "}
+					{formatDateFull(customEvent.factEnd)}
+				</small>
+				<small>Отклонение: {formatDeviation(deviation)}</small>
+				<small>Статус: {status}</small>
+			</div>
+			<div className={styles.ganttTrack} title={tooltip}>
+				<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+				{customEvent.event.eventKind === "duration" && period ? (
+					<button
+						type="button"
+						className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment}`}
+						onClick={onEdit}
+						style={getSegmentStyle(period.start, period.end, timeline)}
+					>
+						{customEvent.title}
+					</button>
+				) : customEvent.displayDate ? (
+					<button
+						type="button"
+						className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker}`}
+						onClick={onEdit}
+						style={getMilestoneStyle(customEvent.displayDate, timeline)}
+					>
+						<b />
+						<small>
+							{customEvent.title}
+							<br />
+							{formatDateShort(customEvent.displayDate)}
+						</small>
+					</button>
+				) : (
+					<span className={styles.ganttNoDate}>Дата не заполнена</span>
+				)}
+			</div>
+		</>
+	);
+};
 
 const GanttStageTable = ({
 	stages,

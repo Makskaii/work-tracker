@@ -44,6 +44,9 @@ const getProjectId = (project: { projectId?: string | null }) =>
 const getProjectPaymentId = (payment: ProjectPayment) =>
 	String(payment[ProjectCodes.paymentProject] ?? "").trim();
 
+const getProjectCompanyId = (project?: ProfitabilityProject | null) =>
+	String(project?.[ProjectCodes.company] ?? "").trim();
+
 const getCompanyTitle = (company: CompanyFromCrm) =>
 	String(company.title ?? "").trim();
 
@@ -63,13 +66,40 @@ export const useMarginalityPayments = ({
 	const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 	const companyIds = useMemo(
-		() => getUniqueValues(deals.map((deal) => deal.companyId)),
-		[deals],
+		() => getUniqueValues(projects.map((project) => project[ProjectCodes.company])),
+		[projects],
 	);
 	const currentProjectIds = useMemo(
 		() => getUniqueValues(projects.map((project) => getProjectId(project))),
 		[projects],
 	);
+	const selectedProject = useMemo(
+		() => projects.find((project) => getProjectId(project) === selectedProjectId),
+		[projects, selectedProjectId],
+	);
+	const scopeProjectIds = useMemo(() => {
+		if (scope === "project" && selectedProjectId) {
+			return [selectedProjectId];
+		}
+
+		if (scope === "client") {
+			const selectedCompanyId = getProjectCompanyId(selectedProject);
+
+			if (!selectedCompanyId) {
+				return currentProjectIds;
+			}
+
+			return getUniqueValues(
+				projects
+					.filter(
+						(project) => getProjectCompanyId(project) === selectedCompanyId,
+					)
+					.map((project) => getProjectId(project)),
+			);
+		}
+
+		return currentProjectIds;
+	}, [currentProjectIds, projects, scope, selectedProject, selectedProjectId]);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -156,12 +186,8 @@ export const useMarginalityPayments = ({
 		const loadScopePayments = async () => {
 			setIsPaymentsLoading(true);
 			setError(null);
-			const projectIds =
-				scope === "project" && selectedProjectId
-					? [selectedProjectId]
-					: currentProjectIds;
 			const scopePayments = await fetchProjectPaymentsByProjectIds({
-				projectIds,
+				projectIds: scopeProjectIds,
 				signal: controller.signal,
 			});
 			let stageBindingLabels = new Map<string, string>();
@@ -215,7 +241,7 @@ export const useMarginalityPayments = ({
 		return () => {
 			controller.abort();
 		};
-	}, [currentProjectIds, projects, scope, selectedProjectId]);
+	}, [projects, scopeProjectIds]);
 
 	return {
 		payments,

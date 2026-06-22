@@ -883,6 +883,266 @@
 	}
 }
 
+.ganttCustomEventSegment {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 12px;
+	border: 1px solid rgba(142, 111, 255, 0.7);
+	border-color: rgba(142, 111, 255, 0.7);
+	background: linear-gradient(90deg, rgba(142, 111, 255, 0.86), rgba(94, 151, 255, 0.82));
+	color: #f7f9ff;
+	font: inherit;
+	font-weight: 900;
+	text-align: center;
+	cursor: pointer;
+	appearance: none;
+}
+
+.ganttCustomEventSegment:hover {
+	filter: brightness(1.08);
+}
+
+.ganttCustomEventMarker {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	cursor: pointer;
+	appearance: none;
+}
+
+.ganttCustomEventMarker b {
+	background: #8e6fff;
+	box-shadow: 0 0 0 4px rgba(142, 111, 255, 0.16);
+}
+
+.ganttCustomEventMarker:hover b {
+	box-shadow:
+		0 0 0 4px rgba(142, 111, 255, 0.16),
+		0 0 0 8px rgba(142, 111, 255, 0.12);
+}
+
+.ganttCustomEventInfo {
+	position: sticky;
+}
+
+.ganttCustomEventHeader {
+	position: relative;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	gap: 8px;
+}
+
+.ganttCustomEventMenuButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: rgba(238, 245, 255, 0.82);
+	font-size: 12px;
+	font-weight: 900;
+	line-height: 1;
+	cursor: pointer;
+	transform: rotate(90deg);
+}
+
+.ganttCustomEventMenuButton:hover {
+	background: rgba(111, 168, 255, 0.18);
+}
+
+.ganttCustomEventMenu {
+	position: absolute;
+	top: 24px;
+	right: 0;
+	z-index: 12;
+	display: flex;
+	width: min(148px, calc(100% - 4px));
+	flex-direction: column;
+	gap: 4px;
+	padding: 6px;
+	border: 1px solid rgba(111, 168, 255, 0.28);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.98);
+	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
+	overflow: hidden;
+
+	button {
+		width: 100%;
+		padding: 7px 8px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: rgba(238, 245, 255, 0.84);
+		font-size: 11px;
+		font-weight: 900;
+		text-align: left;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	button:hover {
+		background: rgba(111, 168, 255, 0.12);
+	}
+
+	button:disabled {
+		cursor: wait;
+		opacity: 0.58;
+	}
+}
+
+.dangerAction {
+	color: #ff8a8a !important;
+}
+
+.ganttFormActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: flex-end;
+	margin-top: 4px;
+
+	button {
+		min-width: 132px;
+	}
+}
+
+.ganttFormDeleteButton {
+	margin-right: auto;
+	border-color: rgba(255, 107, 107, 0.5) !important;
+	background: rgba(255, 107, 107, 0.12) !important;
+	color: #ff8a8a !important;
+}
+
+.ganttAddEventButton {
+	position: relative;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin: 18px 0 18px 18px;
+	border: 1px solid var(--color-border-active);
+	border-radius: 999px;
+	background: rgba(46, 197, 173, 0.14);
+	color: var(--color-accent);
+	font-size: 24px;
+	font-weight: 900;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.ganttAddEventButton:hover {
+	background: rgba(46, 197, 173, 0.22);
+}
+
+.ganttAddEventCell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 54px;
+	padding: 10px 12px;
+
+	.ganttAddEventButton {
+		margin: 0;
+	}
+}
+
+.ganttPaymentFactOverdueLinkLine {
+	fill: none;
+	stroke: #ff4d5f;
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	cursor: pointer;
+	pointer-events: stroke;
+}
+
+.ganttPaymentIncidentText {
+	fill: #ffd7dc;
+	font-size: 11px;
+	font-weight: 900;
+	pointer-events: none;
+}
+
+.ganttFormModal {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	color: var(--color-text);
+
+	h3 {
+		margin: 0;
+		font-size: 18px;
+	}
+
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.68);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	input,
+	select,
+	textarea {
+		width: 100%;
+		min-height: 36px;
+		padding: 8px 10px;
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.72);
+		color: var(--color-text);
+		box-sizing: border-box;
+	}
+
+	textarea {
+		min-height: 96px;
+		resize: vertical;
+	}
+
+	button {
+		min-height: 38px;
+		border: 1px solid var(--color-border-active);
+		border-radius: 10px;
+		background: rgba(46, 197, 173, 0.16);
+		color: var(--color-accent);
+		font-weight: 900;
+		cursor: pointer;
+	}
+
+	button:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+}
+
+.ganttFormGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.ganttFormError {
+	margin: 0;
+	color: #ff7a86;
+	font-size: 12px;
+	font-weight: 900;
+	line-height: 1.35;
+}
+
 .paymentPaid,
 .paymentPlanned,
 .paymentDebt,

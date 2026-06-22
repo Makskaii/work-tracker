@@ -3,7 +3,10 @@ import { useOutletContext } from "react-router";
 import { UniversalTable } from "@/components/Table/universalTable/UniversalTable";
 import type { ProjectTableRow } from "@/pages/ReportsPage/types/types";
 import type { ReportsContext } from "@/shared/types/types";
-import { getProjectsTableData, headersForProjects } from "../ProjectsReports";
+import {
+	getProjectsTableData,
+	headersForProjects,
+} from "../projectsReports.model";
 
 export const ProjectStatuses = () => {
 	const { clientsList } = useOutletContext<ReportsContext>();

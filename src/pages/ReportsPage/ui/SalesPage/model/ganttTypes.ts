@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { CustomGanttEvent } from "./types";
 
 export type GanttStage = {
 	id: "tz" | "development" | "education";
@@ -18,6 +19,19 @@ export type GanttMilestone = {
 	color: "warning" | "accent";
 };
 
+export type GanttCustomEventRow = {
+	event: CustomGanttEvent;
+	title: string;
+	description: string;
+	planStart: Date | null;
+	planEnd: Date | null;
+	factStart: Date | null;
+	factEnd: Date | null;
+	displayDate: Date | null;
+	displayStart: Date | null;
+	displayEnd: Date | null;
+};
+
 export type GanttRow =
 	| {
 			type: "stage";
@@ -26,6 +40,10 @@ export type GanttRow =
 	| {
 			type: "milestone";
 			milestone: GanttMilestone;
+	  }
+	| {
+			type: "customEvent";
+			customEvent: GanttCustomEventRow;
 	  };
 
 export type GanttTimeline = {
