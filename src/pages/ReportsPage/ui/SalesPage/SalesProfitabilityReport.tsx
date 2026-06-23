@@ -29,6 +29,7 @@ import type {
 	ReportProjectType,
 	SalesProfitabilityTab,
 } from "./model/types";
+import projectReportsStyles from "../ProjectReports/ProjectsReports.module.scss";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -1017,28 +1018,43 @@ const ReportProjectFileInput = ({
 	project: ReportProject | null;
 	selectedFile?: File;
 }) => (
-	<label className={styles.reportProjectFileField}>
+	<div className={styles.reportProjectWideField}>
 		<span>{label}</span>
-		<input
-			type="file"
-			onChange={(event) =>
-				onFileChange(fileKind, event.target.files?.[0] ?? undefined)
-			}
-		/>
+		<label className={projectReportsStyles.projectFileField}>
+			<input
+				type="file"
+				className={projectReportsStyles.projectFileInput}
+				onChange={(event) =>
+					onFileChange(fileKind, event.target.files?.[0] ?? undefined)
+				}
+			/>
+			<strong className={projectReportsStyles.projectFileButton}>
+				Выбрать файл
+			</strong>
+			<em className={projectReportsStyles.projectFileName}>
+				{selectedFile?.name ?? file?.originalName ?? "Файл не выбран"}
+			</em>
+		</label>
 		{selectedFile ? (
-			<small>Будет загружен: {selectedFile.name}</small>
+			<div className={projectReportsStyles.projectFileEmpty}>
+				Будет загружен после сохранения
+			</div>
 		) : file ? (
-			<div className={styles.reportProjectFileMeta}>
-				<strong>{file.originalName}</strong>
-				<div className={styles.reportProjectFileActions}>
+			<div className={projectReportsStyles.projectFileCard}>
+				<div className={projectReportsStyles.projectFileCardName}>
+					{file.originalName}
+				</div>
+				<div className={projectReportsStyles.projectFileCardActions}>
 					<button
 						type="button"
+						className={projectReportsStyles.projectFileCardButton}
 						onClick={() => project && onDownload(project, file)}
 					>
 						Скачать
 					</button>
 					<button
 						type="button"
+						className={`${projectReportsStyles.projectFileCardButton} ${projectReportsStyles.projectFileCardButtonDanger}`}
 						onClick={() => project && onDelete(project, file)}
 					>
 						Удалить
@@ -1046,9 +1062,11 @@ const ReportProjectFileInput = ({
 				</div>
 			</div>
 		) : (
-			<small>Файл не загружен</small>
+			<div className={projectReportsStyles.projectFileEmpty}>
+				Файл не загружен
+			</div>
 		)}
-	</label>
+	</div>
 );
 
 const ReportProjectInput = ({
