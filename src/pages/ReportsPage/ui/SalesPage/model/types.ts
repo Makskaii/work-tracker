@@ -1,4 +1,4 @@
-import { ProjectCodes } from "@/components/calendar/constants/const";
+﻿import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { ProjectGanttCodes } from "./constants";
@@ -180,13 +180,13 @@ export type AutonomousProjectPaymentPayload = {
 	sortOrder?: number | null;
 };
 
-export type ProjectReportProjectType = "none" | "waterfall" | "support";
+export type ReportProjectType = "none" | "waterfall" | "support";
 
-export type ProjectReportProject = {
+export type ReportProject = {
 	id: number;
 	title: string;
 	projectAmount: number | null;
-	projectType: ProjectReportProjectType;
+	projectType: ReportProjectType;
 	projectGoal: string | null;
 	clientCompany: string | null;
 	deal: string | null;
@@ -218,10 +218,10 @@ export type ProjectReportProject = {
 	updatedAt: string;
 };
 
-export type ProjectReportProjectPayload = {
+export type ReportProjectPayload = {
 	title: string;
 	projectAmount?: number | null;
-	projectType?: ProjectReportProjectType;
+	projectType?: ReportProjectType;
 	projectGoal?: string | null;
 	clientCompany?: string | null;
 	deal?: string | null;

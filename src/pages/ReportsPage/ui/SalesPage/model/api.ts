@@ -1,4 +1,4 @@
-import { $api } from "@/shared/config";
+﻿import { $api } from "@/shared/config";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";
@@ -18,8 +18,8 @@ import type {
 	ProjectGanttStage,
 	ProjectGanttStagePayload,
 	ProjectPayment,
-	ProjectReportProject,
-	ProjectReportProjectPayload,
+	ReportProject,
+	ReportProjectPayload,
 } from "./types";
 
 type CrmItemListResponse<T> = {
@@ -515,8 +515,8 @@ export const updateAutonomousProjectPayment = async (
 export const deleteAutonomousProjectPayment = (paymentId: number) =>
 	$backendApi.delete(`project-reports/payments/${paymentId}`);
 
-export const fetchProjectReportProjects = async (signal?: AbortSignal) => {
-	const response = await $backendApi.get<ProjectReportProject[]>(
+export const fetchReportProjects = async (signal?: AbortSignal) => {
+	const response = await $backendApi.get<ReportProject[]>(
 		"project-reports/projects",
 		{ signal },
 	);
@@ -524,10 +524,10 @@ export const fetchProjectReportProjects = async (signal?: AbortSignal) => {
 	return response.data;
 };
 
-export const createProjectReportProject = async (
-	payload: ProjectReportProjectPayload,
+export const createReportProject = async (
+	payload: ReportProjectPayload,
 ) => {
-	const response = await $backendApi.post<ProjectReportProject>(
+	const response = await $backendApi.post<ReportProject>(
 		"project-reports/projects",
 		payload,
 	);
@@ -535,11 +535,11 @@ export const createProjectReportProject = async (
 	return response.data;
 };
 
-export const updateProjectReportProject = async (
+export const updateReportProject = async (
 	projectId: number,
-	payload: Partial<ProjectReportProjectPayload>,
+	payload: Partial<ReportProjectPayload>,
 ) => {
-	const response = await $backendApi.patch<ProjectReportProject>(
+	const response = await $backendApi.patch<ReportProject>(
 		`project-reports/projects/${projectId}`,
 		payload,
 	);
@@ -547,5 +547,5 @@ export const updateProjectReportProject = async (
 	return response.data;
 };
 
-export const deleteProjectReportProject = (projectId: number) =>
+export const deleteReportProject = (projectId: number) =>
 	$backendApi.delete(`project-reports/projects/${projectId}`);

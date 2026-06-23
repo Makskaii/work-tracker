@@ -1,4 +1,4 @@
-.section {
+﻿.section {
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -311,11 +311,11 @@
 	background: rgba(46, 197, 173, 0.08);
 }
 
-.projectCardButton {
+.reportProjectButton {
 	grid-template-columns: 26px minmax(0, 1fr) auto;
 }
 
-.projectCardMenuButton {
+.reportProjectMenuButton {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -328,7 +328,7 @@
 	line-height: 1;
 }
 
-.projectCardMenuButton:hover {
+.reportProjectMenuButton:hover {
 	background: rgba(46, 197, 173, 0.12);
 	color: var(--color-text);
 }
@@ -1279,13 +1279,13 @@
 	gap: 10px;
 }
 
-.projectCardModal {
+.reportProjectModal {
 	max-height: min(76vh, 760px);
 	overflow-y: auto;
 	padding-right: 4px;
 }
 
-.projectCardSection {
+.reportProjectSection {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
@@ -1302,13 +1302,13 @@
 	}
 }
 
-.projectCardGrid {
+.reportProjectGrid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: minmax(0, 1fr);
 	gap: 10px;
 }
 
-.projectCardWideField {
+.reportProjectWideField {
 	grid-column: 1 / -1;
 }
 

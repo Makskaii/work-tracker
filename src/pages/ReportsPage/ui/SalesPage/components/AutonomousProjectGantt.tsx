@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
 import {
@@ -34,9 +34,9 @@ import type {
 	AutonomousGanttEventKind,
 	AutonomousPaymentStatus,
 	AutonomousProjectPayment,
-	ProfitabilityProject,
 	ProjectGanttEvent,
 	ProjectGanttStage,
+	ReportProject,
 } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
@@ -122,7 +122,7 @@ const getStageCode = (title: string) =>
 export const AutonomousProjectGantt = ({
 	project,
 }: {
-	project: ProfitabilityProject | null;
+	project: ReportProject | null;
 }) => {
 	const [stages, setStages] = useState<ProjectGanttStage[]>([]);
 	const [events, setEvents] = useState<ProjectGanttEvent[]>([]);
@@ -173,24 +173,26 @@ export const AutonomousProjectGantt = ({
 
 	const refreshData = useCallback(
 		async (signal?: AbortSignal) => {
-			if (!project?.projectId) {
+			if (!project?.id) {
 				setStages([]);
 				setEvents([]);
 				setPayments([]);
 				return;
 			}
 
+			const projectId = String(project.id);
+
 			const [stageItems, eventItems, paymentItems] = await Promise.all([
-				fetchProjectGanttStages(project.projectId, signal),
-				fetchProjectGanttEvents(project.projectId, signal),
-				fetchAutonomousProjectPayments(project.projectId, signal),
+				fetchProjectGanttStages(projectId, signal),
+				fetchProjectGanttEvents(projectId, signal),
+				fetchAutonomousProjectPayments(projectId, signal),
 			]);
 
 			setStages(stageItems);
 			setEvents(eventItems);
 			setPayments(paymentItems);
 		},
-		[project?.projectId],
+		[project?.id],
 	);
 
 	useEffect(() => {
@@ -271,7 +273,7 @@ export const AutonomousProjectGantt = ({
 	};
 
 	const handleStageSubmit = async () => {
-		if (!project?.projectId || !stageForm.title.trim()) {
+		if (!project?.id || !stageForm.title.trim()) {
 			return;
 		}
 
@@ -280,7 +282,7 @@ export const AutonomousProjectGantt = ({
 				title: stageForm.title.trim(),
 			});
 		} else {
-			await createProjectGanttStage(project.projectId, {
+			await createProjectGanttStage(String(project.id), {
 				code: getStageCode(stageForm.title),
 				sortOrder: stages.length,
 				title: stageForm.title.trim(),
@@ -308,7 +310,7 @@ export const AutonomousProjectGantt = ({
 	};
 
 	const handleEventSubmit = async () => {
-		if (!project?.projectId || !eventForm.stageId || !eventForm.title.trim()) {
+		if (!project?.id || !eventForm.stageId || !eventForm.title.trim()) {
 			return;
 		}
 
@@ -327,7 +329,7 @@ export const AutonomousProjectGantt = ({
 		if (eventForm.id) {
 			await updateProjectGanttEvent(eventForm.id, payload);
 		} else {
-			await createProjectGanttEvent(project.projectId, {
+			await createProjectGanttEvent(String(project.id), {
 				...payload,
 				sortOrder: events.length,
 			});
@@ -354,7 +356,7 @@ export const AutonomousProjectGantt = ({
 	};
 
 	const handlePaymentSubmit = async () => {
-		if (!project?.projectId || !paymentForm.stageId) {
+		if (!project?.id || !paymentForm.stageId) {
 			return;
 		}
 
@@ -370,7 +372,7 @@ export const AutonomousProjectGantt = ({
 		if (paymentForm.id) {
 			await updateAutonomousProjectPayment(paymentForm.id, payload);
 		} else {
-			await createAutonomousProjectPayment(project.projectId, {
+			await createAutonomousProjectPayment(String(project.id), {
 				...payload,
 				sortOrder: payments.length,
 			});

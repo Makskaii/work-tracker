@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Modal from "@/components/modal/Modal";
-import { ProjectCodes } from "@/components/calendar/constants/const";
-import { ClientsCodes, EntityTypeIds } from "@/shared/constants/const";
+import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
@@ -13,23 +12,18 @@ import { ReportsTab } from "./components/ReportsTab";
 import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
 import {
-	createProjectReportProject,
-	deleteProjectReportProject,
-	fetchProjectReportProjects,
-	updateProjectReportProject,
+	createReportProject,
+	deleteReportProject,
+	fetchReportProjects,
+	updateReportProject,
 } from "./model/api";
-import {
-	buildCompanyProjectGroups,
-	getFinancialProjectSummary,
-} from "./model/profitabilityUtils";
 import type {
-	ProfitabilityProject,
-	ProjectReportProject,
-	ProjectReportProjectPayload,
-	ProjectReportProjectType,
+	FinancialProjectSummary,
+	ReportProject,
+	ReportProjectPayload,
+	ReportProjectType,
 	SalesProfitabilityTab,
 } from "./model/types";
-import { useCompanyProjects } from "./model/useCompanyProjects";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -63,11 +57,11 @@ const ProjectListSkeleton = () => (
 	</>
 );
 
-type ProjectCardFormState = {
-	[K in keyof ProjectReportProjectPayload]-?: string;
+type ReportProjectFormState = {
+	[K in keyof ReportProjectPayload]-?: string;
 };
 
-const DEFAULT_PROJECT_CARD_FORM: ProjectCardFormState = {
+const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	analyst: "",
 	clientCompany: "",
 	closeDate: "",
@@ -102,7 +96,7 @@ const DEFAULT_PROJECT_CARD_FORM: ProjectCardFormState = {
 
 const projectTypeOptions: Array<{
 	label: string;
-	value: ProjectReportProjectType;
+	value: ReportProjectType;
 }> = [
 	{ label: "Не выбрано", value: "none" },
 	{ label: "Финансовый вотерфол проект", value: "waterfall" },
@@ -129,11 +123,11 @@ const numberOrNull = (value: string) => {
 
 const dateOrNull = (value: string) => value || null;
 
-const getProjectCardForm = (
-	project?: ProjectReportProject | null,
-): ProjectCardFormState => {
+const getReportProjectForm = (
+	project?: ReportProject | null,
+): ReportProjectFormState => {
 	if (!project) {
-		return DEFAULT_PROJECT_CARD_FORM;
+		return DEFAULT_REPORT_PROJECT_FORM;
 	}
 
 	return {
@@ -173,9 +167,9 @@ const getProjectCardForm = (
 	};
 };
 
-const getProjectCardPayload = (
-	form: ProjectCardFormState,
-): ProjectReportProjectPayload => ({
+const getReportProjectPayload = (
+	form: ReportProjectFormState,
+): ReportProjectPayload => ({
 	analyst: textOrNull(form.analyst),
 	clientCompany: textOrNull(form.clientCompany),
 	closeDate: dateOrNull(form.closeDate),
@@ -195,7 +189,7 @@ const getProjectCardPayload = (
 	nextReportDate: dateOrNull(form.nextReportDate),
 	projectAmount: numberOrNull(form.projectAmount),
 	projectGoal: textOrNull(form.projectGoal),
-	projectType: form.projectType as ProjectReportProjectType,
+	projectType: form.projectType as ReportProjectType,
 	qa: textOrNull(form.qa),
 	redline: dateOrNull(form.redline),
 	reportInfo: textOrNull(form.reportInfo),
@@ -208,68 +202,21 @@ const getProjectCardPayload = (
 	tzWeeks: numberOrNull(form.tzWeeks),
 });
 
-const getDbProjectId = (project: ProjectReportProject) => `db-${project.id}`;
+const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
 
-const getProjectTypeFromLegacyProject = (
-	project: ProfitabilityProject,
-): ProjectReportProjectType => {
-	const financialProjectType = String(
-		project[ProjectCodes.financialProjectType] ?? "",
-	);
-
-	if (financialProjectType === "409") {
-		return "waterfall";
-	}
-
-	if (financialProjectType === "410") {
-		return "support";
-	}
-
-	return "none";
-};
-
-const getProjectCardPayloadFromLegacyProject = (
-	project: ProfitabilityProject,
-): ProjectReportProjectPayload => ({
-	projectAmount: numberOrNull(String(project[ProjectCodes.projectAmount] ?? "")),
-	projectType: getProjectTypeFromLegacyProject(project),
-	title: project.title,
+const getReportProjectSummary = (
+	project: ReportProject | null | undefined,
+): FinancialProjectSummary => ({
+	factHours: 0,
+	companyHours: 0,
+	lossHours: 0,
+	mockMarginPercent: 53,
+	mockProfit: 0,
+	planHours: 0,
+	purchasedHours: 0,
+	revenue: project?.projectAmount ?? 0,
+	unpaidHours: 0,
 });
-
-const adaptProjectCardToProfitabilityProject = (
-	project: ProjectReportProject,
-): ProfitabilityProject => {
-	const now = new Date().toISOString();
-	const projectId = getDbProjectId(project);
-
-	return {
-		[ClientsCodes.title]: project.title,
-		[ProjectCodes.company]: project.clientCompany,
-		[ProjectCodes.financialProjectType]:
-			project.projectType === "waterfall"
-				? "409"
-				: project.projectType === "support"
-					? "410"
-					: null,
-		[ProjectCodes.projectAmount]: project.projectAmount,
-		assignedById: 0,
-		categoryId: 0,
-		createdBy: 0,
-		createdTime: project.createdAt ?? now,
-		id: project.id,
-		lastActivityBy: 0,
-		lastActivityTime: project.updatedAt ?? now,
-		movedBy: 0,
-		movedTime: project.updatedAt ?? now,
-		payments: [],
-		projectId,
-		reports: [],
-		tasks: [],
-		title: project.title,
-		updatedBy: 0,
-		updatedTime: project.updatedAt ?? now,
-	};
-};
 
 export const SalesProfitabilityReport = ({
 	activities,
@@ -277,65 +224,36 @@ export const SalesProfitabilityReport = ({
 	users,
 	loading,
 }: SalesProfitabilityReportProps) => {
-	const [selectedFinancialGroupId, setSelectedFinancialGroupId] = useState<
-		string | null
-	>(null);
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
-	const [projectCards, setProjectCards] = useState<ProjectReportProject[]>([]);
-	const [editingProjectCard, setEditingProjectCard] =
-		useState<ProjectReportProject | null>(null);
-	const [projectCardForm, setProjectCardForm] = useState<ProjectCardFormState>(
-		DEFAULT_PROJECT_CARD_FORM,
+	const [reportProjects, setReportProjects] = useState<ReportProject[]>([]);
+	const [editingReportProject, setEditingReportProject] =
+		useState<ReportProject | null>(null);
+	const [projectForm, setProjectForm] = useState<ReportProjectFormState>(
+		DEFAULT_REPORT_PROJECT_FORM,
 	);
-	const [isProjectCardModalOpen, setIsProjectCardModalOpen] = useState(false);
-	const [isProjectCardsLoading, setIsProjectCardsLoading] = useState(false);
-	const [projectCardError, setProjectCardError] = useState<string | null>(null);
-	const [isProjectCardSaving, setIsProjectCardSaving] = useState(false);
+	const [isReportProjectModalOpen, setIsReportProjectModalOpen] = useState(false);
+	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
+	const [projectFormError, setProjectFormError] = useState<string | null>(null);
+	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
 	const [projectSearchQuery, setProjectSearchQuery] = useState("");
-	const [deletingProjectCardId, setDeletingProjectCardId] = useState<
+	const [deletingReportProjectId, setDeletingReportProjectId] = useState<
 		number | null
 	>(null);
 	const { openTask } = useBitrixSlider();
-	const { companyTitleById, projects, isLoadingDetails } = useCompanyProjects();
-	const companyGroups = useMemo(
-		() => buildCompanyProjectGroups(projects, companyTitleById),
-		[companyTitleById, projects],
-	);
-	const financialGroups = useMemo(
-		() => companyGroups.flatMap((company) => company.financialGroups),
-		[companyGroups],
-	);
-	const activeFinancialGroup = selectedProjectId?.startsWith("db-")
-		? null
-		: financialGroups.find(
-				(group) => group.id === selectedFinancialGroupId,
-			) ??
-			financialGroups[0] ??
-			null;
-	const activeProjects = activeFinancialGroup?.projects ?? [];
-	const adaptedProjectCards = useMemo(
-		() => projectCards.map(adaptProjectCardToProfitabilityProject),
-		[projectCards],
-	);
-	const selectedProjectCard = projectCards.find(
+	const selectedReportProject = reportProjects.find(
 		(project) => getDbProjectId(project) === selectedProjectId,
-	);
-	const activeReportProjects = selectedProjectCard
-		? adaptedProjectCards.filter(
-				(project) => project.projectId === selectedProjectId,
-			)
-		: activeProjects;
+	) ?? reportProjects[0] ?? null;
 
 	const effectiveSelectedProjectId = useMemo(() => {
-		if (selectedProjectCard) {
-			return getDbProjectId(selectedProjectCard);
+		if (selectedReportProject) {
+			return getDbProjectId(selectedReportProject);
 		}
 
-		const projectIds = activeProjects.map((project) => project.projectId);
+		const projectIds = reportProjects.map(getDbProjectId);
 
 		if (!projectIds.length) {
 			return null;
@@ -346,44 +264,29 @@ export const SalesProfitabilityReport = ({
 		}
 
 		return projectIds[0];
-	}, [activeProjects, selectedProjectCard, selectedProjectId]);
+	}, [reportProjects, selectedReportProject, selectedProjectId]);
 
-	const summary = getFinancialProjectSummary(activeReportProjects);
-	const isBusy = loading || isLoadingDetails;
-	const allTasks = activeReportProjects.flatMap((project) =>
-		project.tasks.map((task) => ({ task, project })),
-	);
-	const allReports = activeReportProjects.flatMap((project) =>
-		project.reports.map((report) => ({ report, project })),
-	);
+	const summary = getReportProjectSummary(selectedReportProject);
+	const isBusy = loading || isReportProjectsLoading;
+	const allTasks: never[] = [];
+	const allReports: never[] = [];
 	const normalizedProjectSearchQuery = projectSearchQuery.trim().toLowerCase();
-	const visibleFinancialGroups = normalizedProjectSearchQuery
-		? financialGroups.filter((group) =>
-				group.title.toLowerCase().includes(normalizedProjectSearchQuery),
-			)
-		: financialGroups;
-	const visibleProjectCards = normalizedProjectSearchQuery
-		? projectCards.filter((project) =>
+	const visibleReportProjects = normalizedProjectSearchQuery
+		? reportProjects.filter((project) =>
 				project.title.toLowerCase().includes(normalizedProjectSearchQuery),
 			)
-		: projectCards;
+		: reportProjects;
 
-	const selectFinancialGroup = (groupId: string, projectId: string) => {
-		setSelectedFinancialGroupId(groupId);
-		setSelectedProjectId(projectId);
-	};
-
-	const selectProjectCard = (project: ProjectReportProject) => {
-		setSelectedFinancialGroupId(null);
+	const selectReportProject = (project: ReportProject) => {
 		setSelectedProjectId(getDbProjectId(project));
 	};
 
 	useEffect(() => {
 		const controller = new AbortController();
 
-		setIsProjectCardsLoading(true);
-		fetchProjectReportProjects(controller.signal)
-			.then(setProjectCards)
+		setIsReportProjectsLoading(true);
+		fetchReportProjects(controller.signal)
+			.then(setReportProjects)
 			.catch(() => {
 				if (controller.signal.aborted) {
 					return;
@@ -391,118 +294,88 @@ export const SalesProfitabilityReport = ({
 			})
 			.finally(() => {
 				if (!controller.signal.aborted) {
-					setIsProjectCardsLoading(false);
+					setIsReportProjectsLoading(false);
 				}
 			});
 
 		return () => controller.abort();
 	}, []);
 
-	const openProjectCardCreateModal = () => {
-		setEditingProjectCard(null);
-		setProjectCardForm(DEFAULT_PROJECT_CARD_FORM);
-		setProjectCardError(null);
-		setDeletingProjectCardId(null);
-		setIsProjectCardModalOpen(true);
+	const openReportProjectCreateModal = () => {
+		setEditingReportProject(null);
+		setProjectForm(DEFAULT_REPORT_PROJECT_FORM);
+		setProjectFormError(null);
+		setDeletingReportProjectId(null);
+		setIsReportProjectModalOpen(true);
 	};
 
-	const openProjectCardEditModal = (project: ProjectReportProject) => {
-		setEditingProjectCard(project);
-		setProjectCardForm(getProjectCardForm(project));
-		setProjectCardError(null);
-		setDeletingProjectCardId(null);
-		setIsProjectCardModalOpen(true);
+	const openReportProjectEditModal = (project: ReportProject) => {
+		setEditingReportProject(project);
+		setProjectForm(getReportProjectForm(project));
+		setProjectFormError(null);
+		setDeletingReportProjectId(null);
+		setIsReportProjectModalOpen(true);
 	};
 
-	const openLegacyProjectCardModal = async (project: ProfitabilityProject) => {
-		const existingProjectCard = projectCards.find(
-			(projectCard) => projectCard.title === project.title,
-		);
-
-		if (existingProjectCard) {
-			openProjectCardEditModal(existingProjectCard);
+	const handleReportProjectSubmit = async () => {
+		if (!projectForm.title.trim()) {
+			setProjectFormError("Заполните название проекта");
 			return;
 		}
 
-		setProjectCardError(null);
-		try {
-			const createdProject = await createProjectReportProject(
-				getProjectCardPayloadFromLegacyProject(project),
-			);
-			setProjectCards((prev) => [...prev, createdProject]);
-			openProjectCardEditModal(createdProject);
-		} catch {
-			setEditingProjectCard(null);
-			setProjectCardForm({
-				...DEFAULT_PROJECT_CARD_FORM,
-				projectAmount: String(project[ProjectCodes.projectAmount] ?? ""),
-				projectType: getProjectTypeFromLegacyProject(project),
-				title: project.title,
-			});
-			setProjectCardError("Не удалось перенести проект, попробуйте сохранить");
-			setIsProjectCardModalOpen(true);
-		}
-	};
+		const payload = getReportProjectPayload(projectForm);
 
-	const handleProjectCardSubmit = async () => {
-		if (!projectCardForm.title.trim()) {
-			setProjectCardError("Заполните название проекта");
-			return;
-		}
-
-		const payload = getProjectCardPayload(projectCardForm);
-
-		setIsProjectCardSaving(true);
-		setProjectCardError(null);
+		setIsReportProjectSaving(true);
+		setProjectFormError(null);
 
 		try {
-			if (editingProjectCard) {
-				const updatedProject = await updateProjectReportProject(
-					editingProjectCard.id,
+			if (editingReportProject) {
+				const updatedProject = await updateReportProject(
+					editingReportProject.id,
 					payload,
 				);
-				setProjectCards((prev) =>
+				setReportProjects((prev) =>
 					prev.map((project) =>
 						project.id === updatedProject.id ? updatedProject : project,
 					),
 				);
 			} else {
-				const createdProject = await createProjectReportProject(payload);
-				setProjectCards((prev) => [...prev, createdProject]);
+				const createdProject = await createReportProject(payload);
+				setReportProjects((prev) => [...prev, createdProject]);
 			}
 
-			setIsProjectCardModalOpen(false);
+			setIsReportProjectModalOpen(false);
 		} catch {
-			setProjectCardError("Не удалось сохранить проект");
+			setProjectFormError("Не удалось сохранить проект");
 		} finally {
-			setIsProjectCardSaving(false);
+			setIsReportProjectSaving(false);
 		}
 	};
 
-	const handleProjectCardDelete = async () => {
-		if (!editingProjectCard) {
+	const handleReportProjectDelete = async () => {
+		if (!editingReportProject) {
 			return;
 		}
 
-		if (deletingProjectCardId !== editingProjectCard.id) {
-			setDeletingProjectCardId(editingProjectCard.id);
+		if (deletingReportProjectId !== editingReportProject.id) {
+			setDeletingReportProjectId(editingReportProject.id);
 			return;
 		}
 
-		setIsProjectCardSaving(true);
-		setProjectCardError(null);
+		setIsReportProjectSaving(true);
+		setProjectFormError(null);
 
 		try {
-			await deleteProjectReportProject(editingProjectCard.id);
-			setProjectCards((prev) =>
-				prev.filter((project) => project.id !== editingProjectCard.id),
+			await deleteReportProject(editingReportProject.id);
+			setReportProjects((prev) =>
+				prev.filter((project) => project.id !== editingReportProject.id),
 			);
-			setDeletingProjectCardId(null);
-			setIsProjectCardModalOpen(false);
+			setDeletingReportProjectId(null);
+			setIsReportProjectModalOpen(false);
 		} catch {
-			setProjectCardError("Не удалось удалить проект");
+			setProjectFormError("Не удалось удалить проект");
 		} finally {
-			setIsProjectCardSaving(false);
+			setIsReportProjectSaving(false);
 		}
 	};
 
@@ -538,70 +411,34 @@ export const SalesProfitabilityReport = ({
 							value={projectSearchQuery}
 							onChange={(event) => setProjectSearchQuery(event.target.value)}
 						/>
-						{isLoadingDetails ? (
+						{isReportProjectsLoading ? (
 							<ProjectListSkeleton />
-						) : (
-							visibleFinancialGroups.map((group) => {
-								const projectId = group.parentProject.projectId ?? group.id;
-								const isActiveGroup = group.id === activeFinancialGroup?.id;
-
-								return (
-									<div key={group.id} className={styles.dealGroup}>
-										<button
-											type="button"
-											title={group.title}
-											className={`${styles.dealProjectButton} ${styles.projectCardButton} ${
-												isActiveGroup ? styles.activeProject : ""
-											}`}
-											onClick={() => selectFinancialGroup(group.id, projectId)}
-										>
-											<span className={styles.dealProjectIcon}>
-												{group.title.trim().charAt(0)}
-											</span>
-											<span>
-												<strong>{group.title}</strong>
-												<small>Проект</small>
-											</span>
-											<span
-												className={styles.projectCardMenuButton}
-												onClick={(event) => {
-													event.stopPropagation();
-													void openLegacyProjectCardModal(group.parentProject);
-												}}
-											>
-												...
-											</span>
-										</button>
-
-									</div>
-								);
-							})
-						)}
-						{!isProjectCardsLoading &&
-							visibleProjectCards.map((project) => (
+						) : null}
+						{!isReportProjectsLoading &&
+							visibleReportProjects.map((project) => (
 								<button
 									key={project.id}
 									type="button"
 									title={project.title}
-									className={`${styles.dealProjectButton} ${styles.projectCardButton} ${
+									className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
 										getDbProjectId(project) === selectedProjectId
 											? styles.activeProject
 											: ""
 									}`}
-									onClick={() => selectProjectCard(project)}
+									onClick={() => selectReportProject(project)}
 								>
 									<span className={styles.dealProjectIcon}>
 										{project.title.trim().charAt(0) || "P"}
 									</span>
 									<span>
 										<strong>{project.title}</strong>
-										<small>Автономный проект</small>
+										<small>Проект</small>
 									</span>
 									<span
-										className={styles.projectCardMenuButton}
+										className={styles.reportProjectMenuButton}
 										onClick={(event) => {
 											event.stopPropagation();
-											openProjectCardEditModal(project);
+											openReportProjectEditModal(project);
 										}}
 									>
 										...
@@ -611,7 +448,7 @@ export const SalesProfitabilityReport = ({
 						<button
 							type="button"
 							className={styles.dealProjectAddButton}
-							onClick={openProjectCardCreateModal}
+							onClick={openReportProjectCreateModal}
 							title="Добавить проект"
 						>
 							+
@@ -649,8 +486,7 @@ export const SalesProfitabilityReport = ({
 							{activeTab !== "marginality" && (
 								<SummaryCards
 									projectTitle={
-										selectedProjectCard?.title ??
-										activeFinancialGroup?.title ??
+										selectedReportProject?.title ??
 										"Проект не выбран"
 									}
 									summary={summary}
@@ -660,14 +496,14 @@ export const SalesProfitabilityReport = ({
 							{activeTab === "marginality" && (
 								<MarginalityTab
 									deals={deals}
-									projects={selectedProjectCard ? activeReportProjects : projects}
+									projects={[]}
 									selectedProjectId={effectiveSelectedProjectId}
 								/>
 							)}
 
 							{activeTab === "projects" && (
 								<ProjectsTab
-									projects={activeReportProjects}
+									projects={reportProjects}
 									selectedProjectId={effectiveSelectedProjectId}
 									users={users}
 								/>
@@ -694,27 +530,27 @@ export const SalesProfitabilityReport = ({
 				</div>
 			</div>
 		</section>
-		<ProjectCardModal
-			deletingProjectCardId={deletingProjectCardId}
-			form={projectCardForm}
-			isOpen={isProjectCardModalOpen}
+		<ReportProjectModal
+			deletingReportProjectId={deletingReportProjectId}
+			form={projectForm}
+			isOpen={isReportProjectModalOpen}
 			onClose={() => {
-				setDeletingProjectCardId(null);
-				setIsProjectCardModalOpen(false);
+				setDeletingReportProjectId(null);
+				setIsReportProjectModalOpen(false);
 			}}
-			onDelete={handleProjectCardDelete}
-			onFormChange={setProjectCardForm}
-			onSubmit={handleProjectCardSubmit}
-			project={editingProjectCard}
-			projectCardError={projectCardError}
-			saving={isProjectCardSaving}
+			onDelete={handleReportProjectDelete}
+			onFormChange={setProjectForm}
+			onSubmit={handleReportProjectSubmit}
+			project={editingReportProject}
+			projectFormError={projectFormError}
+			saving={isReportProjectSaving}
 		/>
 		</>
 	);
 };
 
-const ProjectCardModal = ({
-	deletingProjectCardId,
+const ReportProjectModal = ({
+	deletingReportProjectId,
 	form,
 	isOpen,
 	onClose,
@@ -722,31 +558,31 @@ const ProjectCardModal = ({
 	onFormChange,
 	onSubmit,
 	project,
-	projectCardError,
+	projectFormError,
 	saving,
 }: {
-	deletingProjectCardId: number | null;
-	form: ProjectCardFormState;
+	deletingReportProjectId: number | null;
+	form: ReportProjectFormState;
 	isOpen: boolean;
 	onClose: () => void;
 	onDelete: () => void;
-	onFormChange: (value: ProjectCardFormState) => void;
+	onFormChange: (value: ReportProjectFormState) => void;
 	onSubmit: () => void;
-	project: ProjectReportProject | null;
-	projectCardError: string | null;
+	project: ReportProject | null;
+	projectFormError: string | null;
 	saving: boolean;
 }) => (
 	<Modal isOpen={isOpen} onClose={onClose} size="small">
-		<div className={`${styles.ganttFormModal} ${styles.projectCardModal}`}>
+		<div className={`${styles.ganttFormModal} ${styles.reportProjectModal}`}>
 			<h3>{project ? "Карточка проекта" : "Новый проект"}</h3>
-			<ProjectCardSection title="Информация">
-				<ProjectCardInput
+			<ReportProjectSection title="Информация">
+				<ReportProjectInput
 					form={form}
 					label="Название"
 					name="title"
 					onFormChange={onFormChange}
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Сумма проекта"
 					name="projectAmount"
@@ -771,204 +607,204 @@ const ProjectCardModal = ({
 						))}
 					</select>
 				</label>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Компания клиента"
 					name="clientCompany"
 					onFormChange={onFormChange}
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Сделка"
 					name="deal"
 					onFormChange={onFormChange}
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Цель проекта"
 					name="projectGoal"
 					onFormChange={onFormChange}
 					textarea
 				/>
-			</ProjectCardSection>
-			<ProjectCardSection title="Отчёт аналитика">
-				<ProjectCardInput
+			</ReportProjectSection>
+			<ReportProjectSection title="Отчёт аналитика">
+				<ReportProjectInput
 					form={form}
 					label="Следующая дата отчёта"
 					name="nextReportDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-			</ProjectCardSection>
-			<ProjectCardSection title="Информация для отчёта">
-				<ProjectCardInput
+			</ReportProjectSection>
+			<ReportProjectSection title="Информация для отчёта">
+				<ReportProjectInput
 					form={form}
 					label="Дедлайн"
 					name="deadline"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Редлайн"
 					name="redline"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Информация для отчёта"
 					name="reportInfo"
 					onFormChange={onFormChange}
 					textarea
 				/>
-			</ProjectCardSection>
-			<ProjectCardSection title="Проектная команда">
-				<ProjectCardInput
+			</ReportProjectSection>
+			<ReportProjectSection title="Проектная команда">
+				<ReportProjectInput
 					form={form}
 					label="Ответственный"
 					name="responsible"
 					onFormChange={onFormChange}
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Аналитик"
 					name="analyst"
 					onFormChange={onFormChange}
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Команда разработки"
 					name="developmentTeam"
 					onFormChange={onFormChange}
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="QA"
 					name="qa"
 					onFormChange={onFormChange}
 				/>
-			</ProjectCardSection>
-			<ProjectCardSection title="ТЗ">
-				<ProjectCardInput
+			</ReportProjectSection>
+			<ReportProjectSection title="ТЗ">
+				<ReportProjectInput
 					form={form}
 					label="Дата начала написания ТЗ"
 					name="tzStartDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Срок написания ТЗ, недель"
 					name="tzWeeks"
 					onFormChange={onFormChange}
 					type="number"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Плановая дата завершения ТЗ"
 					name="tzPlanEndDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Фактическая дата завершения ТЗ"
 					name="tzFactEndDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Дата подписания ТЗ"
 					name="tzSignDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-			</ProjectCardSection>
-			<ProjectCardSection title="Разработка">
-				<ProjectCardInput
+			</ReportProjectSection>
+			<ReportProjectSection title="Разработка">
+				<ReportProjectInput
 					form={form}
 					label="Срок разработки, недель"
 					name="developmentWeeks"
 					onFormChange={onFormChange}
 					type="number"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Плановая дата начала разработки"
 					name="developmentPlanStartDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Плановая дата завершения разработки"
 					name="developmentPlanEndDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Фактическая дата начала разработки"
 					name="developmentFactStartDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Фактическая дата завершения разработки"
 					name="developmentFactEndDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-			</ProjectCardSection>
-			<ProjectCardSection title="Обучение / сдача">
-				<ProjectCardInput
+			</ReportProjectSection>
+			<ReportProjectSection title="Обучение / сдача">
+				<ReportProjectInput
 					form={form}
 					label="Срок обучения / сдачи, недель"
 					name="educationWeeks"
 					onFormChange={onFormChange}
 					type="number"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Плановая дата начала обучения / сдачи"
 					name="educationPlanStartDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Плановая дата завершения обучения / сдачи"
 					name="educationPlanEndDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Фактическая дата начала обучения / сдачи"
 					name="educationFactStartDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Фактическая дата завершения обучения / сдачи"
 					name="educationFactEndDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-				<ProjectCardInput
+				<ReportProjectInput
 					form={form}
 					label="Дата закрытия проекта / подписания акта"
 					name="closeDate"
 					onFormChange={onFormChange}
 					type="date"
 				/>
-			</ProjectCardSection>
-			{projectCardError ? (
-				<p className={styles.ganttFormError}>{projectCardError}</p>
+			</ReportProjectSection>
+			{projectFormError ? (
+				<p className={styles.ganttFormError}>{projectFormError}</p>
 			) : null}
 			<div className={styles.ganttFormActions}>
 				{project ? (
@@ -978,7 +814,7 @@ const ProjectCardModal = ({
 						disabled={saving}
 						onClick={onDelete}
 					>
-						{deletingProjectCardId === project.id
+						{deletingReportProjectId === project.id
 							? "Подтвердить удаление"
 							: "Удалить"}
 					</button>
@@ -994,20 +830,20 @@ const ProjectCardModal = ({
 	</Modal>
 );
 
-const ProjectCardSection = ({
+const ReportProjectSection = ({
 	children,
 	title,
 }: {
 	children: ReactNode;
 	title: string;
 }) => (
-	<section className={styles.projectCardSection}>
+	<section className={styles.reportProjectSection}>
 		<h4>{title}</h4>
-		<div className={styles.projectCardGrid}>{children}</div>
+		<div className={styles.reportProjectGrid}>{children}</div>
 	</section>
 );
 
-const ProjectCardInput = ({
+const ReportProjectInput = ({
 	form,
 	label,
 	name,
@@ -1015,14 +851,14 @@ const ProjectCardInput = ({
 	textarea,
 	type = "text",
 }: {
-	form: ProjectCardFormState;
+	form: ReportProjectFormState;
 	label: string;
-	name: keyof ProjectCardFormState;
-	onFormChange: (value: ProjectCardFormState) => void;
+	name: keyof ReportProjectFormState;
+	onFormChange: (value: ReportProjectFormState) => void;
 	textarea?: boolean;
 	type?: "date" | "number" | "text";
 }) => (
-	<label className={textarea ? styles.projectCardWideField : undefined}>
+	<label className={textarea ? styles.reportProjectWideField : undefined}>
 		<span>{label}</span>
 		{textarea ? (
 			<textarea
