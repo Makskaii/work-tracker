@@ -182,6 +182,19 @@ export type AutonomousProjectPaymentPayload = {
 
 export type ReportProjectType = "none" | "waterfall" | "support";
 
+export type ReportProjectFileKind = "estimate" | "technical_specification";
+
+export type ReportProjectFile = {
+	id: number;
+	projectId: number;
+	fileKind: ReportProjectFileKind;
+	originalName: string;
+	mimeType: string;
+	sizeBytes: number;
+	storagePath: string;
+	createdAt: string;
+};
+
 export type ReportProject = {
 	id: number;
 	title: string;
@@ -214,6 +227,7 @@ export type ReportProject = {
 	educationFactStartDate: string | null;
 	educationFactEndDate: string | null;
 	closeDate: string | null;
+	files: ReportProjectFile[];
 	createdAt: string;
 	updatedAt: string;
 };

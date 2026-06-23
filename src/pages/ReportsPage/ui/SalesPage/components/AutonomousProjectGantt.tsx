@@ -767,7 +767,7 @@ const EventModal = ({
 			</label>
 			<div className={styles.ganttFormGrid}>
 				<label>
-					<span>План старт</span>
+					<span>Плановая дата начала</span>
 					<input
 						type="date"
 						value={form.planStartDate}
@@ -781,7 +781,7 @@ const EventModal = ({
 				</label>
 				{form.eventKind === "duration" ? (
 					<label>
-						<span>План конец</span>
+						<span>Плановая дата завершения</span>
 						<input
 							type="date"
 							value={form.planEndDate}
@@ -795,7 +795,7 @@ const EventModal = ({
 					</label>
 				) : null}
 				<label>
-					<span>Факт старт</span>
+					<span>Фактическая дата начала</span>
 					<input
 						type="date"
 						value={form.factStartDate}
@@ -809,7 +809,7 @@ const EventModal = ({
 				</label>
 				{form.eventKind === "duration" ? (
 					<label>
-						<span>Факт конец</span>
+						<span>Фактическая дата завершения</span>
 						<input
 							type="date"
 							value={form.factEndDate}

@@ -14,12 +14,17 @@ import { TasksTab } from "./components/TasksTab";
 import {
 	createReportProject,
 	deleteReportProject,
+	deleteReportProjectFile,
+	downloadReportProjectFile,
 	fetchReportProjects,
 	updateReportProject,
+	uploadReportProjectFile,
 } from "./model/api";
 import type {
 	FinancialProjectSummary,
 	ReportProject,
+	ReportProjectFile,
+	ReportProjectFileKind,
 	ReportProjectPayload,
 	ReportProjectType,
 	SalesProfitabilityTab,
@@ -60,6 +65,8 @@ const ProjectListSkeleton = () => (
 type ReportProjectFormState = {
 	[K in keyof ReportProjectPayload]-?: string;
 };
+
+type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File>>;
 
 const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	analyst: "",
@@ -102,6 +109,11 @@ const projectTypeOptions: Array<{
 	{ label: "Финансовый вотерфол проект", value: "waterfall" },
 	{ label: "Финансовый техпод проект", value: "support" },
 ];
+
+const reportProjectFileLabels: Record<ReportProjectFileKind, string> = {
+	estimate: "Смета / КП",
+	technical_specification: "Файл ТЗ",
+};
 
 const textOrNull = (value: string) => {
 	const trimmedValue = value.trim();
@@ -204,6 +216,18 @@ const getReportProjectPayload = (
 
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
 
+const mergeReportProjectFiles = (
+	files: ReportProjectFile[] = [],
+	updatedFiles: ReportProjectFile[],
+) => {
+	const result = new Map<ReportProjectFileKind, ReportProjectFile>();
+
+	files.forEach((file) => result.set(file.fileKind, file));
+	updatedFiles.forEach((file) => result.set(file.fileKind, file));
+
+	return Array.from(result.values());
+};
+
 const getReportProjectSummary = (
 	project: ReportProject | null | undefined,
 ): FinancialProjectSummary => ({
@@ -235,6 +259,8 @@ export const SalesProfitabilityReport = ({
 	const [projectForm, setProjectForm] = useState<ReportProjectFormState>(
 		DEFAULT_REPORT_PROJECT_FORM,
 	);
+	const [projectFileDrafts, setProjectFileDrafts] =
+		useState<ReportProjectFileDrafts>({});
 	const [isReportProjectModalOpen, setIsReportProjectModalOpen] = useState(false);
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
@@ -304,6 +330,7 @@ export const SalesProfitabilityReport = ({
 	const openReportProjectCreateModal = () => {
 		setEditingReportProject(null);
 		setProjectForm(DEFAULT_REPORT_PROJECT_FORM);
+		setProjectFileDrafts({});
 		setProjectFormError(null);
 		setDeletingReportProjectId(null);
 		setIsReportProjectModalOpen(true);
@@ -312,9 +339,74 @@ export const SalesProfitabilityReport = ({
 	const openReportProjectEditModal = (project: ReportProject) => {
 		setEditingReportProject(project);
 		setProjectForm(getReportProjectForm(project));
+		setProjectFileDrafts({});
 		setProjectFormError(null);
 		setDeletingReportProjectId(null);
 		setIsReportProjectModalOpen(true);
+	};
+
+	const uploadSelectedReportProjectFiles = async (projectId: number) => {
+		const entries = Object.entries(projectFileDrafts) as Array<
+			[ReportProjectFileKind, File | undefined]
+		>;
+		const selectedEntries = entries.filter((entry): entry is [
+			ReportProjectFileKind,
+			File,
+		] => Boolean(entry[1]));
+
+		if (!selectedEntries.length) {
+			return [];
+		}
+
+		return Promise.all(
+			selectedEntries.map(([fileKind, file]) =>
+				uploadReportProjectFile(projectId, fileKind, file),
+			),
+		);
+	};
+
+	const downloadProjectFile = async (
+		project: ReportProject,
+		file: ReportProjectFile,
+	) => {
+		const response = await downloadReportProjectFile(project.id, file.id);
+		const url = URL.createObjectURL(response.data);
+		const link = document.createElement("a");
+
+		link.href = url;
+		link.download = file.originalName;
+		link.click();
+		URL.revokeObjectURL(url);
+	};
+
+	const deleteProjectFile = async (
+		project: ReportProject,
+		file: ReportProjectFile,
+	) => {
+		await deleteReportProjectFile(project.id, file.id);
+
+		setReportProjects((prev) =>
+			prev.map((item) =>
+				item.id === project.id
+					? {
+							...item,
+							files: item.files.filter(
+								(projectFile) => projectFile.id !== file.id,
+							),
+						}
+					: item,
+			),
+		);
+		setEditingReportProject((prev) =>
+			prev && prev.id === project.id
+				? {
+						...prev,
+						files: prev.files.filter(
+							(projectFile) => projectFile.id !== file.id,
+						),
+					}
+				: prev,
+		);
 	};
 
 	const handleReportProjectSubmit = async () => {
@@ -329,21 +421,41 @@ export const SalesProfitabilityReport = ({
 		setProjectFormError(null);
 
 		try {
+			let savedProject: ReportProject;
+
 			if (editingReportProject) {
-				const updatedProject = await updateReportProject(
+				savedProject = await updateReportProject(
 					editingReportProject.id,
 					payload,
 				);
-				setReportProjects((prev) =>
-					prev.map((project) =>
-						project.id === updatedProject.id ? updatedProject : project,
-					),
-				);
 			} else {
-				const createdProject = await createReportProject(payload);
-				setReportProjects((prev) => [...prev, createdProject]);
+				savedProject = await createReportProject(payload);
 			}
 
+			const uploadedFiles = await uploadSelectedReportProjectFiles(savedProject.id);
+
+			if (uploadedFiles.length) {
+				savedProject = {
+					...savedProject,
+					files: mergeReportProjectFiles(savedProject.files, uploadedFiles),
+				};
+			}
+
+			setReportProjects((prev) => {
+				const existingProject = prev.some(
+					(project) => project.id === savedProject.id,
+				);
+
+				if (existingProject) {
+					return prev.map((project) =>
+						project.id === savedProject.id ? savedProject : project,
+					);
+				}
+
+				return [...prev, savedProject];
+			});
+			setEditingReportProject(savedProject);
+			setProjectFileDrafts({});
 			setIsReportProjectModalOpen(false);
 		} catch {
 			setProjectFormError("Не удалось сохранить проект");
@@ -532,13 +644,23 @@ export const SalesProfitabilityReport = ({
 		</section>
 		<ReportProjectModal
 			deletingReportProjectId={deletingReportProjectId}
+			fileDrafts={projectFileDrafts}
 			form={projectForm}
 			isOpen={isReportProjectModalOpen}
 			onClose={() => {
 				setDeletingReportProjectId(null);
+				setProjectFileDrafts({});
 				setIsReportProjectModalOpen(false);
 			}}
 			onDelete={handleReportProjectDelete}
+			onFileDelete={deleteProjectFile}
+			onFileDownload={downloadProjectFile}
+			onFileDraftChange={(fileKind, file) =>
+				setProjectFileDrafts((prev) => ({
+					...prev,
+					[fileKind]: file,
+				}))
+			}
 			onFormChange={setProjectForm}
 			onSubmit={handleReportProjectSubmit}
 			project={editingReportProject}
@@ -551,10 +673,14 @@ export const SalesProfitabilityReport = ({
 
 const ReportProjectModal = ({
 	deletingReportProjectId,
+	fileDrafts,
 	form,
 	isOpen,
 	onClose,
 	onDelete,
+	onFileDelete,
+	onFileDownload,
+	onFileDraftChange,
 	onFormChange,
 	onSubmit,
 	project,
@@ -562,10 +688,14 @@ const ReportProjectModal = ({
 	saving,
 }: {
 	deletingReportProjectId: number | null;
+	fileDrafts: ReportProjectFileDrafts;
 	form: ReportProjectFormState;
 	isOpen: boolean;
 	onClose: () => void;
 	onDelete: () => void;
+	onFileDelete: (project: ReportProject, file: ReportProjectFile) => void;
+	onFileDownload: (project: ReportProject, file: ReportProjectFile) => void;
+	onFileDraftChange: (fileKind: ReportProjectFileKind, file?: File) => void;
 	onFormChange: (value: ReportProjectFormState) => void;
 	onSubmit: () => void;
 	project: ReportProject | null;
@@ -625,6 +755,31 @@ const ReportProjectModal = ({
 					name="projectGoal"
 					onFormChange={onFormChange}
 					textarea
+				/>
+				<ReportProjectFileInput
+					file={project?.files.find(
+						(projectFile) => projectFile.fileKind === "estimate",
+					)}
+					fileKind="estimate"
+					label={reportProjectFileLabels.estimate}
+					project={project}
+					selectedFile={fileDrafts.estimate}
+					onDelete={onFileDelete}
+					onDownload={onFileDownload}
+					onFileChange={onFileDraftChange}
+				/>
+				<ReportProjectFileInput
+					file={project?.files.find(
+						(projectFile) =>
+							projectFile.fileKind === "technical_specification",
+					)}
+					fileKind="technical_specification"
+					label={reportProjectFileLabels.technical_specification}
+					project={project}
+					selectedFile={fileDrafts.technical_specification}
+					onDelete={onFileDelete}
+					onDownload={onFileDownload}
+					onFileChange={onFileDraftChange}
 				/>
 			</ReportProjectSection>
 			<ReportProjectSection title="Отчёт аналитика">
@@ -843,6 +998,59 @@ const ReportProjectSection = ({
 	</section>
 );
 
+const ReportProjectFileInput = ({
+	file,
+	fileKind,
+	label,
+	onDelete,
+	onDownload,
+	onFileChange,
+	project,
+	selectedFile,
+}: {
+	file?: ReportProjectFile;
+	fileKind: ReportProjectFileKind;
+	label: string;
+	onDelete: (project: ReportProject, file: ReportProjectFile) => void;
+	onDownload: (project: ReportProject, file: ReportProjectFile) => void;
+	onFileChange: (fileKind: ReportProjectFileKind, file?: File) => void;
+	project: ReportProject | null;
+	selectedFile?: File;
+}) => (
+	<label className={styles.reportProjectFileField}>
+		<span>{label}</span>
+		<input
+			type="file"
+			onChange={(event) =>
+				onFileChange(fileKind, event.target.files?.[0] ?? undefined)
+			}
+		/>
+		{selectedFile ? (
+			<small>Будет загружен: {selectedFile.name}</small>
+		) : file ? (
+			<div className={styles.reportProjectFileMeta}>
+				<strong>{file.originalName}</strong>
+				<div className={styles.reportProjectFileActions}>
+					<button
+						type="button"
+						onClick={() => project && onDownload(project, file)}
+					>
+						Скачать
+					</button>
+					<button
+						type="button"
+						onClick={() => project && onDelete(project, file)}
+					>
+						Удалить
+					</button>
+				</div>
+			</div>
+		) : (
+			<small>Файл не загружен</small>
+		)}
+	</label>
+);
+
 const ReportProjectInput = ({
 	form,
 	label,
@@ -874,6 +1082,11 @@ const ReportProjectInput = ({
 			<input
 				type={type}
 				value={form[name]}
+				onClick={(event) => {
+					if (type === "date") {
+						event.currentTarget.showPicker?.();
+					}
+				}}
 				onChange={(event) =>
 					onFormChange({
 						...form,

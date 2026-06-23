@@ -19,6 +19,8 @@ import type {
 	ProjectGanttStagePayload,
 	ProjectPayment,
 	ReportProject,
+	ReportProjectFile,
+	ReportProjectFileKind,
 	ReportProjectPayload,
 } from "./types";
 
@@ -521,8 +523,13 @@ export const fetchReportProjects = async (signal?: AbortSignal) => {
 		{ signal },
 	);
 
-	return response.data;
+	return response.data.map(normalizeReportProject);
 };
+
+const normalizeReportProject = (project: ReportProject): ReportProject => ({
+	...project,
+	files: project.files ?? [],
+});
 
 export const createReportProject = async (
 	payload: ReportProjectPayload,
@@ -532,7 +539,7 @@ export const createReportProject = async (
 		payload,
 	);
 
-	return response.data;
+	return normalizeReportProject(response.data);
 };
 
 export const updateReportProject = async (
@@ -544,8 +551,38 @@ export const updateReportProject = async (
 		payload,
 	);
 
-	return response.data;
+	return normalizeReportProject(response.data);
 };
 
 export const deleteReportProject = (projectId: number) =>
 	$backendApi.delete(`project-reports/projects/${projectId}`);
+
+export const uploadReportProjectFile = async (
+	projectId: number,
+	fileKind: ReportProjectFileKind,
+	file: File,
+) => {
+	const formData = new FormData();
+
+	formData.append("file", file);
+
+	const response = await $backendApi.post<ReportProjectFile>(
+		`project-reports/projects/${projectId}/files/${fileKind}`,
+		formData,
+		{
+			headers: {
+				"Content-Type": "multipart/form-data",
+			},
+		},
+	);
+
+	return response.data;
+};
+
+export const downloadReportProjectFile = (projectId: number, fileId: number) =>
+	$backendApi.get<Blob>(`project-reports/projects/${projectId}/files/${fileId}`, {
+		responseType: "blob",
+	});
+
+export const deleteReportProjectFile = (projectId: number, fileId: number) =>
+	$backendApi.delete(`project-reports/projects/${projectId}/files/${fileId}`);
