@@ -12,7 +12,10 @@ import type {
 	GanttIncidentPayload,
 	AutonomousProjectPayment,
 	AutonomousProjectPaymentPayload,
+	CreateProjectReportEntryPayload,
 	ProfitabilityProject,
+	ProjectReportEntry,
+	ProjectReportEntryFile,
 	ProjectGanttEvent,
 	ProjectGanttEventPayload,
 	ProjectGanttStage,
@@ -586,3 +589,80 @@ export const downloadReportProjectFile = (projectId: number, fileId: number) =>
 
 export const deleteReportProjectFile = (projectId: number, fileId: number) =>
 	$backendApi.delete(`project-reports/projects/${projectId}/files/${fileId}`);
+
+export const fetchProjectReportEntries = async (
+	projectId: number,
+	signal?: AbortSignal,
+) => {
+	const response = await $backendApi.get<ProjectReportEntry[]>(
+		`project-reports/projects/${projectId}/reports`,
+		{ signal },
+	);
+
+	return response.data.map(normalizeProjectReportEntry);
+};
+
+const normalizeProjectReportEntry = (
+	reportEntry: ProjectReportEntry,
+): ProjectReportEntry => ({
+	...reportEntry,
+	files: reportEntry.files ?? [],
+});
+
+export const createProjectReportEntry = async (
+	projectId: number,
+	payload: CreateProjectReportEntryPayload,
+) => {
+	const response = await $backendApi.post<ProjectReportEntry>(
+		`project-reports/projects/${projectId}/reports`,
+		payload,
+	);
+
+	return normalizeProjectReportEntry(response.data);
+};
+
+export const deleteProjectReportEntry = (projectId: number, reportId: number) =>
+	$backendApi.delete(`project-reports/projects/${projectId}/reports/${reportId}`);
+
+export const uploadProjectReportEntryFile = async (
+	projectId: number,
+	reportId: number,
+	file: File,
+) => {
+	const formData = new FormData();
+
+	formData.append("file", file);
+
+	const response = await $backendApi.post<ProjectReportEntryFile>(
+		`project-reports/projects/${projectId}/reports/${reportId}/files`,
+		formData,
+		{
+			headers: {
+				"Content-Type": "multipart/form-data",
+			},
+		},
+	);
+
+	return response.data;
+};
+
+export const downloadProjectReportEntryFile = (
+	projectId: number,
+	reportId: number,
+	fileId: number,
+) =>
+	$backendApi.get<Blob>(
+		`project-reports/projects/${projectId}/reports/${reportId}/files/${fileId}`,
+		{
+			responseType: "blob",
+		},
+	);
+
+export const deleteProjectReportEntryFile = (
+	projectId: number,
+	reportId: number,
+	fileId: number,
+) =>
+	$backendApi.delete(
+		`project-reports/projects/${projectId}/reports/${reportId}/files/${fileId}`,
+	);

@@ -13,15 +13,23 @@ import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
 import {
 	createReportProject,
+	createProjectReportEntry,
 	deleteReportProject,
 	deleteReportProjectFile,
+	deleteProjectReportEntryFile,
+	downloadProjectReportEntryFile,
 	downloadReportProjectFile,
 	fetchReportProjects,
+	fetchProjectReportEntries,
 	updateReportProject,
+	uploadProjectReportEntryFile,
 	uploadReportProjectFile,
 } from "./model/api";
 import type {
+	CreateProjectReportEntryPayload,
 	FinancialProjectSummary,
+	ProjectReportEntry,
+	ProjectReportEntryFile,
 	ReportProject,
 	ReportProjectFile,
 	ReportProjectFileKind,
@@ -29,6 +37,7 @@ import type {
 	ReportProjectType,
 	SalesProfitabilityTab,
 } from "./model/types";
+import projectReportsStyles from "../ProjectReports/ProjectsReports.module.scss";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -43,6 +52,7 @@ const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
 	{ id: "projectDetails", title: "Детали проекта" },
 	{ id: "tasks", title: "Задачи" },
 	{ id: "reports", title: "Отчёты сотрудников" },
+	{ id: "projectReports", title: "Отчёты по проекту" },
 ];
 
 const ProjectListSkeleton = () => (
@@ -229,6 +239,22 @@ const mergeReportProjectFiles = (
 	return Array.from(result.values());
 };
 
+const formatProjectReportDate = (date?: string | null) => {
+	if (!date) {
+		return "—";
+	}
+
+	return new Date(date).toLocaleDateString("ru-RU");
+};
+
+const formatFileSize = (size: number) => {
+	if (size < 1024 * 1024) {
+		return `${Math.max(1, Math.round(size / 1024))} КБ`;
+	}
+
+	return `${(size / 1024 / 1024).toFixed(1)} МБ`;
+};
+
 const getReportProjectSummary = (
 	project: ReportProject | null | undefined,
 ): FinancialProjectSummary => ({
@@ -273,6 +299,22 @@ export const SalesProfitabilityReport = ({
 	const [detailsProjectError, setDetailsProjectError] = useState<string | null>(
 		null,
 	);
+	const [projectReportEntries, setProjectReportEntries] = useState<
+		ProjectReportEntry[]
+	>([]);
+	const [isProjectReportsLoading, setIsProjectReportsLoading] = useState(false);
+	const [projectReportsError, setProjectReportsError] = useState<string | null>(
+		null,
+	);
+	const [projectReportAuthorName, setProjectReportAuthorName] = useState("");
+	const [projectReportText, setProjectReportText] = useState("");
+	const [projectReportNextDate, setProjectReportNextDate] = useState("");
+	const [projectReportFileDrafts, setProjectReportFileDrafts] = useState<File[]>(
+		[],
+	);
+	const [isProjectReportModalOpen, setIsProjectReportModalOpen] =
+		useState(false);
+	const [isProjectReportSaving, setIsProjectReportSaving] = useState(false);
 	const [isReportProjectModalOpen, setIsReportProjectModalOpen] = useState(false);
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
@@ -290,6 +332,37 @@ export const SalesProfitabilityReport = ({
 		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
 		setDetailsFileDrafts({});
 		setDetailsProjectError(null);
+	}, [selectedReportProject]);
+
+	useEffect(() => {
+		setProjectReportAuthorName("");
+		setProjectReportText("");
+		setProjectReportNextDate("");
+		setProjectReportFileDrafts([]);
+		setProjectReportsError(null);
+
+		if (!selectedReportProject) {
+			setProjectReportEntries([]);
+			return;
+		}
+
+		const controller = new AbortController();
+
+		setIsProjectReportsLoading(true);
+		fetchProjectReportEntries(selectedReportProject.id, controller.signal)
+			.then(setProjectReportEntries)
+			.catch(() => {
+				if (!controller.signal.aborted) {
+					setProjectReportsError("Не удалось загрузить отчёты проекта");
+				}
+			})
+			.finally(() => {
+				if (!controller.signal.aborted) {
+					setIsProjectReportsLoading(false);
+				}
+			});
+
+		return () => controller.abort();
 	}, [selectedReportProject]);
 
 	const effectiveSelectedProjectId = useMemo(() => {
@@ -438,6 +511,105 @@ export const SalesProfitabilityReport = ({
 						),
 					}
 				: prev,
+		);
+	};
+
+	const handleProjectReportCreate = async () => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		const authorName = projectReportAuthorName.trim();
+		const text = projectReportText.trim();
+
+		if (!authorName || !text) {
+			setProjectReportsError("Заполните автора и текст отчёта");
+			return;
+		}
+
+		const payload: CreateProjectReportEntryPayload = {
+			authorName,
+			text,
+			nextReportDate: projectReportNextDate || null,
+		};
+
+		setIsProjectReportSaving(true);
+		setProjectReportsError(null);
+
+		try {
+			const createdReport = await createProjectReportEntry(
+				selectedReportProject.id,
+				payload,
+			);
+
+			await Promise.all(
+				projectReportFileDrafts.map((file) =>
+					uploadProjectReportEntryFile(
+						selectedReportProject.id,
+						createdReport.id,
+						file,
+					),
+				),
+			);
+
+			const reports = await fetchProjectReportEntries(selectedReportProject.id);
+
+			setProjectReportEntries(reports);
+			setProjectReportText("");
+			setProjectReportNextDate("");
+			setProjectReportFileDrafts([]);
+			setIsProjectReportModalOpen(false);
+		} catch {
+			setProjectReportsError("Не удалось создать отчёт проекта");
+		} finally {
+			setIsProjectReportSaving(false);
+		}
+	};
+
+	const downloadProjectReportFile = async (
+		reportEntry: ProjectReportEntry,
+		file: ProjectReportEntryFile,
+	) => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		const response = await downloadProjectReportEntryFile(
+			selectedReportProject.id,
+			reportEntry.id,
+			file.id,
+		);
+		const url = URL.createObjectURL(response.data);
+		const link = document.createElement("a");
+
+		link.href = url;
+		link.download = file.originalName;
+		link.click();
+		URL.revokeObjectURL(url);
+	};
+
+	const deleteProjectReportFile = async (
+		reportEntry: ProjectReportEntry,
+		file: ProjectReportEntryFile,
+	) => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		await deleteProjectReportEntryFile(
+			selectedReportProject.id,
+			reportEntry.id,
+			file.id,
+		);
+		setProjectReportEntries((prev) =>
+			prev.map((entry) =>
+				entry.id === reportEntry.id
+					? {
+							...entry,
+							files: entry.files.filter((item) => item.id !== file.id),
+						}
+					: entry,
+			),
 		);
 	};
 
@@ -751,12 +923,30 @@ export const SalesProfitabilityReport = ({
 								/>
 							)}
 
-							{activeTab === "reports" && (
-								<ReportsTab
-									activities={activities}
-									items={allReports}
-									users={users}
-									openReport={(id) => openTask(id, EntityTypeIds.reports)}
+							{activeTab === "projectReports" && (
+								<ProjectReportsTab
+									authorName={projectReportAuthorName}
+									error={projectReportsError}
+									fileDrafts={projectReportFileDrafts}
+									isLoading={isProjectReportsLoading}
+									isModalOpen={isProjectReportModalOpen}
+									isSaving={isProjectReportSaving}
+									nextReportDate={projectReportNextDate}
+									onAuthorNameChange={setProjectReportAuthorName}
+									onCloseModal={() => setIsProjectReportModalOpen(false)}
+									onCreate={handleProjectReportCreate}
+									onFileDelete={deleteProjectReportFile}
+									onFileDownload={downloadProjectReportFile}
+									onFilesChange={setProjectReportFileDrafts}
+									onNextReportDateChange={setProjectReportNextDate}
+									onOpenModal={() => {
+										setProjectReportsError(null);
+										setIsProjectReportModalOpen(true);
+									}}
+									onTextChange={setProjectReportText}
+									project={selectedReportProject}
+									reports={projectReportEntries}
+									text={projectReportText}
 								/>
 							)}
 						</>
@@ -792,6 +982,333 @@ export const SalesProfitabilityReport = ({
 		</>
 	);
 };
+
+const ProjectReportsTab = ({
+	authorName,
+	error,
+	fileDrafts,
+	isLoading,
+	isModalOpen,
+	isSaving,
+	nextReportDate,
+	onAuthorNameChange,
+	onCloseModal,
+	onCreate,
+	onFileDelete,
+	onFileDownload,
+	onFilesChange,
+	onNextReportDateChange,
+	onOpenModal,
+	onTextChange,
+	project,
+	reports,
+	text,
+}: {
+	authorName: string;
+	error: string | null;
+	fileDrafts: File[];
+	isLoading: boolean;
+	isModalOpen: boolean;
+	isSaving: boolean;
+	nextReportDate: string;
+	onAuthorNameChange: (value: string) => void;
+	onCloseModal: () => void;
+	onCreate: () => void;
+	onFileDelete: (
+		reportEntry: ProjectReportEntry,
+		file: ProjectReportEntryFile,
+	) => void;
+	onFileDownload: (
+		reportEntry: ProjectReportEntry,
+		file: ProjectReportEntryFile,
+	) => void;
+	onFilesChange: (files: File[]) => void;
+	onNextReportDateChange: (value: string) => void;
+	onOpenModal: () => void;
+	onTextChange: (value: string) => void;
+	project: ReportProject | null;
+	reports: ProjectReportEntry[];
+	text: string;
+}) => {
+	const [selectedReportEntryId, setSelectedReportEntryId] = useState<
+		number | null
+	>(null);
+	const selectedReportEntry =
+		reports.find((reportEntry) => reportEntry.id === selectedReportEntryId) ??
+		null;
+
+	if (!project) {
+		return (
+			<div className={styles.projectReportEmptyState}>
+				Выберите проект, чтобы посмотреть и добавить отчёты.
+			</div>
+		);
+	}
+
+	return (
+		<section className={styles.projectReportsPanel}>
+			<div className={styles.projectReportsHeader}>
+				<div>
+					<h3>Отчёты по проекту</h3>
+					<span>{project.title}</span>
+				</div>
+				<button
+					type="button"
+					className={styles.projectReportCreateButton}
+					onClick={onOpenModal}
+				>
+					Создать отчёт
+				</button>
+			</div>
+
+			<ProjectReportCreateModal
+				authorName={authorName}
+				error={error}
+				fileDrafts={fileDrafts}
+				isOpen={isModalOpen}
+				isSaving={isSaving}
+				nextReportDate={nextReportDate}
+				onAuthorNameChange={onAuthorNameChange}
+				onClose={onCloseModal}
+				onCreate={onCreate}
+				onFilesChange={onFilesChange}
+				onNextReportDateChange={onNextReportDateChange}
+				onTextChange={onTextChange}
+				text={text}
+			/>
+
+			<div className={styles.projectReportList}>
+				{isLoading ? (
+					<div className={styles.projectReportEmptyState}>
+						Загружаем отчёты...
+					</div>
+				) : null}
+				{!isLoading && !reports.length ? (
+					<div className={styles.projectReportEmptyState}>
+						Отчётов по проекту пока нет.
+					</div>
+				) : null}
+				{reports.length ? (
+					<div className={styles.projectReportTableWrap}>
+						<div className={styles.projectReportTable}>
+							<div className={styles.projectReportTableHead}>
+								<span>Автор</span>
+								<span>Дата отчёта</span>
+								<span>Следующий отчёт</span>
+								<span>Текст</span>
+								<span>Файлы</span>
+							</div>
+							{reports.map((reportEntry) => (
+								<button
+									key={reportEntry.id}
+									type="button"
+									className={styles.projectReportTableRow}
+									onClick={() => setSelectedReportEntryId(reportEntry.id)}
+								>
+									<span className={styles.projectReportAuthor}>
+										{reportEntry.authorName}
+									</span>
+									<span className={styles.projectReportDate}>
+										{formatProjectReportDate(reportEntry.reportDate)}
+									</span>
+									<span className={styles.projectReportDate}>
+										{formatProjectReportDate(reportEntry.nextReportDate)}
+									</span>
+									<span className={styles.projectReportTextPreview}>
+										{reportEntry.text}
+									</span>
+									<span className={styles.projectReportFilesCount}>
+										{reportEntry.files.length
+											? `${reportEntry.files.length} файл.`
+											: "Нет файлов"}
+									</span>
+								</button>
+							))}
+						</div>
+					</div>
+				) : null}
+			</div>
+			<ProjectReportViewModal
+				reportEntry={selectedReportEntry}
+				onClose={() => setSelectedReportEntryId(null)}
+				onFileDelete={onFileDelete}
+				onFileDownload={onFileDownload}
+			/>
+		</section>
+	);
+};
+
+const ProjectReportViewModal = ({
+	onClose,
+	onFileDelete,
+	onFileDownload,
+	reportEntry,
+}: {
+	onClose: () => void;
+	onFileDelete: (
+		reportEntry: ProjectReportEntry,
+		file: ProjectReportEntryFile,
+	) => void;
+	onFileDownload: (
+		reportEntry: ProjectReportEntry,
+		file: ProjectReportEntryFile,
+	) => void;
+	reportEntry: ProjectReportEntry | null;
+}) => (
+	<Modal isOpen={Boolean(reportEntry)} onClose={onClose} size="covered">
+		{reportEntry ? (
+			<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
+				<h3>Отчёт по проекту</h3>
+				<div className={styles.projectReportDetails}>
+					<div>
+						<span>Автор</span>
+						<strong>{reportEntry.authorName}</strong>
+					</div>
+					<div>
+						<span>Дата отчёта</span>
+						<strong>{formatProjectReportDate(reportEntry.reportDate)}</strong>
+					</div>
+					<div>
+						<span>Следующий отчёт</span>
+						<strong>
+							{formatProjectReportDate(reportEntry.nextReportDate)}
+						</strong>
+					</div>
+				</div>
+				<div className={styles.projectReportFullText}>
+					<span>Текст отчёта</span>
+					<p>{reportEntry.text}</p>
+				</div>
+				<div className={styles.projectReportFiles}>
+					<strong>Файлы</strong>
+					{reportEntry.files.length ? (
+						reportEntry.files.map((file) => (
+							<div key={file.id} className={styles.projectReportFileItem}>
+								<span>
+									{file.originalName}
+									<small>{formatFileSize(file.size)}</small>
+								</span>
+								<div className={styles.projectReportFileActions}>
+									<button
+										type="button"
+										onClick={() => onFileDownload(reportEntry, file)}
+									>
+										Скачать
+									</button>
+									<button
+										type="button"
+										onClick={() => onFileDelete(reportEntry, file)}
+									>
+										Удалить
+									</button>
+								</div>
+							</div>
+						))
+					) : (
+						<small>Файлы не прикреплены</small>
+					)}
+				</div>
+			</div>
+		) : null}
+	</Modal>
+);
+
+const ProjectReportCreateModal = ({
+	authorName,
+	error,
+	fileDrafts,
+	isOpen,
+	isSaving,
+	nextReportDate,
+	onAuthorNameChange,
+	onClose,
+	onCreate,
+	onFilesChange,
+	onNextReportDateChange,
+	onTextChange,
+	text,
+}: {
+	authorName: string;
+	error: string | null;
+	fileDrafts: File[];
+	isOpen: boolean;
+	isSaving: boolean;
+	nextReportDate: string;
+	onAuthorNameChange: (value: string) => void;
+	onClose: () => void;
+	onCreate: () => void;
+	onFilesChange: (files: File[]) => void;
+	onNextReportDateChange: (value: string) => void;
+	onTextChange: (value: string) => void;
+	text: string;
+}) => (
+	<Modal isOpen={isOpen} onClose={onClose} size="small">
+		<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
+			<h3>Создать отчёт по проекту</h3>
+			<div className={styles.projectReportComposer}>
+				<label>
+					<span>Автор отчёта</span>
+					<input
+						type="text"
+						value={authorName}
+						onChange={(event) => onAuthorNameChange(event.target.value)}
+					/>
+				</label>
+				<label>
+					<span>Текст отчёта</span>
+					<textarea
+						className={styles.projectReportTextarea}
+						value={text}
+						onChange={(event) => onTextChange(event.target.value)}
+					/>
+				</label>
+				<div className={styles.projectReportMetaRow}>
+					<label>
+						<span>Дата следующего отчёта</span>
+						<input
+							type="date"
+							value={nextReportDate}
+							onClick={(event) => event.currentTarget.showPicker?.()}
+							onChange={(event) =>
+								onNextReportDateChange(event.target.value)
+							}
+						/>
+					</label>
+					<div className={styles.projectReportFilePicker}>
+						<span>Файлы</span>
+						<label className={projectReportsStyles.projectFileField}>
+							<input
+								type="file"
+								multiple
+								className={projectReportsStyles.projectFileInput}
+								onChange={(event) =>
+									onFilesChange(Array.from(event.target.files ?? []))
+								}
+							/>
+							<strong className={projectReportsStyles.projectFileButton}>
+								Выбрать файлы
+							</strong>
+							<em className={projectReportsStyles.projectFileName}>
+								{fileDrafts.length
+									? `Выбрано файлов: ${fileDrafts.length}`
+									: "Файлы не выбраны"}
+							</em>
+						</label>
+					</div>
+				</div>
+				{error ? <p className={styles.ganttFormError}>{error}</p> : null}
+				<div className={styles.ganttFormActions}>
+					<button type="button" disabled={isSaving} onClick={onClose}>
+						Отмена
+					</button>
+					<button type="button" disabled={isSaving} onClick={onCreate}>
+						{isSaving ? "Создание..." : "Создать отчёт"}
+					</button>
+				</div>
+			</div>
+		</div>
+	</Modal>
+);
 
 const ReportProjectModal = ({
 	deletingReportProjectId,

@@ -1786,6 +1786,355 @@
 	line-height: 1.35;
 }
 
+.projectReportsPanel {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 18px;
+}
+
+.projectReportsHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+
+	h3 {
+		margin: 0;
+		color: var(--color-text);
+		font-size: 18px;
+		font-weight: 950;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 13px;
+		font-weight: 800;
+	}
+}
+
+.projectReportModal {
+	max-height: min(76vh, 720px);
+	overflow-y: auto;
+}
+
+.projectReportComposer,
+.projectReportCard,
+.projectReportEmptyState {
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	background: rgba(15, 28, 44, 0.72);
+}
+
+.projectReportComposer {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 14px;
+
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.68);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	input,
+	textarea {
+		width: 100%;
+		min-height: 38px;
+		padding: 9px 11px;
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.72);
+		color: var(--color-text);
+		box-sizing: border-box;
+	}
+}
+
+.projectReportTextarea {
+	min-height: 112px;
+	resize: vertical;
+}
+
+.projectReportMetaRow {
+	display: grid;
+	grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+	gap: 12px;
+}
+
+.projectReportFilePicker small {
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.projectReportCreateButton {
+	align-self: flex-end;
+	min-height: 38px;
+	padding: 0 16px;
+	border: 1px solid var(--color-border-active);
+	border-radius: 10px;
+	background: rgba(46, 197, 173, 0.16);
+	color: var(--color-accent);
+	font-weight: 900;
+	cursor: pointer;
+
+	&:disabled {
+		cursor: wait;
+		opacity: 0.62;
+	}
+}
+
+.projectReportModal .projectReportComposer {
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.projectReportList {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.projectReportTableWrap {
+	overflow-x: auto;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(15, 28, 44, 0.72);
+}
+
+.projectReportTable {
+	min-width: 820px;
+}
+
+.projectReportTableHead,
+.projectReportTableRow {
+	display: grid;
+	grid-template-columns: minmax(120px, 0.8fr) 112px 126px minmax(320px, 3fr) 86px;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 16px;
+}
+
+.projectReportTableHead {
+	border-bottom: 1px solid rgba(80, 139, 207, 0.28);
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 12px;
+	font-weight: 950;
+	text-transform: uppercase;
+}
+
+.projectReportTableRow {
+	width: 100%;
+	border: 0;
+	border-bottom: 1px solid rgba(80, 139, 207, 0.18);
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		background: rgba(38, 240, 233, 0.06);
+	}
+
+	&:last-child {
+		border-bottom: 0;
+	}
+}
+
+.projectReportCard {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 14px;
+}
+
+.projectReportCardHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+
+.projectReportAuthor {
+	color: var(--color-text);
+	font-size: 15px;
+	font-weight: 950;
+}
+
+.projectReportDate {
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.projectReportText {
+	margin: 0;
+	color: rgba(238, 245, 255, 0.84);
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
+.projectReportTextPreview {
+	overflow: hidden;
+	color: rgba(238, 245, 255, 0.84);
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.projectReportFilesCount {
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.projectReportDetails {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+
+	div {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		padding: 10px 12px;
+		border: 1px solid rgba(80, 139, 207, 0.22);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.48);
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	strong {
+		color: var(--color-text);
+		font-size: 14px;
+		font-weight: 950;
+	}
+}
+
+.projectReportFullText {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	span {
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 950;
+		text-transform: uppercase;
+	}
+
+	p {
+		margin: 0;
+		padding: 12px;
+		border: 1px solid rgba(80, 139, 207, 0.22);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.48);
+		color: rgba(238, 245, 255, 0.86);
+		font-size: 14px;
+		font-weight: 750;
+		line-height: 1.45;
+		white-space: pre-wrap;
+	}
+}
+
+.projectReportFiles {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	> strong {
+		color: rgba(238, 245, 255, 0.72);
+		font-size: 12px;
+		font-weight: 950;
+		text-transform: uppercase;
+	}
+
+	> small {
+		color: rgba(238, 245, 255, 0.54);
+		font-size: 12px;
+		font-weight: 800;
+	}
+}
+
+.projectReportFileItem {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 10px;
+	border: 1px solid rgba(80, 139, 207, 0.24);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.48);
+
+	span {
+		min-width: 0;
+		overflow: hidden;
+		color: var(--color-text);
+		font-size: 13px;
+		font-weight: 900;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	small {
+		display: block;
+		margin-top: 2px;
+		color: rgba(238, 245, 255, 0.54);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.projectReportFileActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+
+	button {
+		min-height: 30px;
+		padding: 5px 9px;
+		border: 1px solid rgba(38, 240, 233, 0.55);
+		border-radius: 8px;
+		background: rgba(38, 240, 233, 0.08);
+		color: var(--color-accent);
+		font-size: 11px;
+		font-weight: 900;
+		cursor: pointer;
+	}
+}
+
+.projectReportEmptyState {
+	padding: 20px;
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 14px;
+	font-weight: 800;
+	text-align: center;
+}
+
+@media (max-width: 720px) {
+	.projectReportDetails {
+		grid-template-columns: 1fr;
+	}
+}
+
 .paymentPaid,
 .paymentPlanned,
 .paymentDebt,

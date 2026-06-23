@@ -195,6 +195,37 @@ export type ReportProjectFile = {
 	createdAt: string;
 };
 
+export type ProjectReportEntryFile = {
+	id: number;
+	reportEntryId: number;
+	originalName: string;
+	storedName: string;
+	mimeType: string;
+	size: number;
+	path: string;
+	createdAt: string;
+};
+
+export type ProjectReportEntry = {
+	id: number;
+	projectId: number;
+	authorId: string | null;
+	authorName: string;
+	text: string;
+	reportDate: string;
+	nextReportDate: string | null;
+	files: ProjectReportEntryFile[];
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type CreateProjectReportEntryPayload = {
+	authorName: string;
+	authorId?: string | null;
+	text: string;
+	nextReportDate?: string | null;
+};
+
 export type ReportProject = {
 	id: number;
 	title: string;
@@ -282,7 +313,8 @@ export type SalesProfitabilityTab =
 	| "projects"
 	| "projectDetails"
 	| "tasks"
-	| "reports";
+	| "reports"
+	| "projectReports";
 
 export type ProfitabilityTaskItem = {
 	task: TaskProps;
