@@ -109,6 +109,77 @@ export type GanttIncidentPayload = {
 	incidentDate: string;
 };
 
+export type AutonomousGanttEventKind = "one_time" | "duration";
+
+export type AutonomousPaymentStatus = "todo" | "debt" | "paid" | "canceled";
+
+export type ProjectGanttStage = {
+	id: number;
+	projectId: string;
+	title: string;
+	code: string;
+	sortOrder: number;
+	isDefault: boolean;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type ProjectGanttStagePayload = {
+	title: string;
+	code?: string;
+	sortOrder?: number | null;
+};
+
+export type ProjectGanttEvent = {
+	id: number;
+	projectId: string;
+	stageId: number;
+	title: string;
+	eventKind: AutonomousGanttEventKind;
+	planStartDate: string | null;
+	planEndDate: string | null;
+	factStartDate: string | null;
+	factEndDate: string | null;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type ProjectGanttEventPayload = {
+	stageId: number;
+	title: string;
+	eventKind: AutonomousGanttEventKind;
+	planStartDate?: string | null;
+	planEndDate?: string | null;
+	factStartDate?: string | null;
+	factEndDate?: string | null;
+	sortOrder?: number | null;
+};
+
+export type AutonomousProjectPayment = {
+	id: number;
+	projectId: string;
+	stageId: number;
+	status: AutonomousPaymentStatus;
+	paymentDate: string | null;
+	percent: number | null;
+	amount: number | null;
+	waitingDays: number | null;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type AutonomousProjectPaymentPayload = {
+	stageId: number;
+	status: AutonomousPaymentStatus;
+	paymentDate?: string | null;
+	percent?: number | null;
+	amount?: number | null;
+	waitingDays?: number | null;
+	sortOrder?: number | null;
+};
+
 export type FinancialProjectSummary = {
 	purchasedHours: number;
 	revenue: number;
