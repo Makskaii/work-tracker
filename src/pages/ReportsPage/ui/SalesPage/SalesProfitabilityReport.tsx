@@ -29,7 +29,6 @@ import type {
 	ReportProjectType,
 	SalesProfitabilityTab,
 } from "./model/types";
-import projectReportsStyles from "../ProjectReports/ProjectsReports.module.scss";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -1017,57 +1016,69 @@ const ReportProjectFileInput = ({
 	onFileChange: (fileKind: ReportProjectFileKind, file?: File) => void;
 	project: ReportProject | null;
 	selectedFile?: File;
-}) => (
-	<div className={styles.reportProjectWideField}>
-		<span>{label}</span>
-		<label className={projectReportsStyles.projectFileField}>
-			<input
-				type="file"
-				className={projectReportsStyles.projectFileInput}
-				onChange={(event) =>
-					onFileChange(fileKind, event.target.files?.[0] ?? undefined)
-				}
-			/>
-			<strong className={projectReportsStyles.projectFileButton}>
-				Выбрать файл
-			</strong>
-			<em className={projectReportsStyles.projectFileName}>
-				{selectedFile?.name ?? file?.originalName ?? "Файл не выбран"}
-			</em>
-		</label>
-		{selectedFile ? (
-			<div className={projectReportsStyles.projectFileEmpty}>
-				Будет загружен после сохранения
+}) => {
+	const inputId = `report-project-file-${fileKind}`;
+
+	return (
+		<div className={styles.reportProjectWideField}>
+			<span>{label}</span>
+
+			<div className={styles.reportProjectFileField}>
+				<input
+					id={inputId}
+					type="file"
+					className={styles.reportProjectFileInput}
+					onChange={(event) => {
+						onFileChange(fileKind, event.target.files?.[0] ?? undefined);
+						event.currentTarget.value = "";
+					}}
+				/>
+
+				<label
+					className={styles.reportProjectFileButton}
+					htmlFor={inputId}
+				>
+					Выбрать файл
+				</label>
+
+				<span className={styles.reportProjectFileName}>
+					{selectedFile?.name ?? "Файл не выбран"}
+				</span>
 			</div>
-		) : file ? (
-			<div className={projectReportsStyles.projectFileCard}>
-				<div className={projectReportsStyles.projectFileCardName}>
-					{file.originalName}
+
+			{selectedFile ? (
+				<small className={styles.reportProjectFileHint}>
+					Будет загружен после сохранения
+				</small>
+			) : file ? (
+				<div className={styles.reportProjectFileMeta}>
+					<strong>{file.originalName}</strong>
+
+					<div className={styles.reportProjectFileActions}>
+						<button
+							type="button"
+							onClick={() => project && onDownload(project, file)}
+						>
+							Скачать
+						</button>
+
+						<button
+							type="button"
+							className={styles.reportProjectFileDeleteButton}
+							onClick={() => project && onDelete(project, file)}
+						>
+							Удалить
+						</button>
+					</div>
 				</div>
-				<div className={projectReportsStyles.projectFileCardActions}>
-					<button
-						type="button"
-						className={projectReportsStyles.projectFileCardButton}
-						onClick={() => project && onDownload(project, file)}
-					>
-						Скачать
-					</button>
-					<button
-						type="button"
-						className={`${projectReportsStyles.projectFileCardButton} ${projectReportsStyles.projectFileCardButtonDanger}`}
-						onClick={() => project && onDelete(project, file)}
-					>
-						Удалить
-					</button>
-				</div>
-			</div>
-		) : (
-			<div className={projectReportsStyles.projectFileEmpty}>
-				Файл не загружен
-			</div>
-		)}
-	</div>
-);
+			) : (
+				<small className={styles.reportProjectFileHint}>
+					Файл не загружен
+				</small>
+			)}
+		</div>
+	);
+};
 
 const ReportProjectInput = ({
 	form,
