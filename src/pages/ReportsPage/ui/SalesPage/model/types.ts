@@ -280,6 +280,7 @@ export type FinancialProjectSummary = {
 export type SalesProfitabilityTab =
 	| "marginality"
 	| "projects"
+	| "projectDetails"
 	| "tasks"
 	| "reports";
 

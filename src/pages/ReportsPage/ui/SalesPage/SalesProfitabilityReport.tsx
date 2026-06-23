@@ -40,6 +40,7 @@ type SalesProfitabilityReportProps = {
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
 	{ id: "projects", title: "Проекты" },
+	{ id: "projectDetails", title: "Детали проекта" },
 	{ id: "tasks", title: "Задачи" },
 	{ id: "reports", title: "Отчёты сотрудников" },
 ];
@@ -261,6 +262,17 @@ export const SalesProfitabilityReport = ({
 	);
 	const [projectFileDrafts, setProjectFileDrafts] =
 		useState<ReportProjectFileDrafts>({});
+
+	const [detailsProjectForm, setDetailsProjectForm] =
+	useState<ReportProjectFormState>(DEFAULT_REPORT_PROJECT_FORM);
+
+	const [detailsFileDrafts, setDetailsFileDrafts] =
+		useState<ReportProjectFileDrafts>({});
+
+	const [isDetailsProjectSaving, setIsDetailsProjectSaving] = useState(false);
+	const [detailsProjectError, setDetailsProjectError] = useState<string | null>(
+		null,
+	);
 	const [isReportProjectModalOpen, setIsReportProjectModalOpen] = useState(false);
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
@@ -273,6 +285,12 @@ export const SalesProfitabilityReport = ({
 	const selectedReportProject = reportProjects.find(
 		(project) => getDbProjectId(project) === selectedProjectId,
 	) ?? reportProjects[0] ?? null;
+
+	useEffect(() => {
+		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
+		setDetailsFileDrafts({});
+		setDetailsProjectError(null);
+	}, [selectedReportProject]);
 
 	const effectiveSelectedProjectId = useMemo(() => {
 		if (selectedReportProject) {
@@ -303,6 +321,20 @@ export const SalesProfitabilityReport = ({
 			)
 		: reportProjects;
 
+	const initialDetailsProjectForm = useMemo(
+		() => getReportProjectForm(selectedReportProject),
+		[selectedReportProject],
+	);
+
+	const isDetailsProjectDirty =
+		JSON.stringify(detailsProjectForm) !==
+		JSON.stringify(initialDetailsProjectForm);
+
+	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some(Boolean);
+
+	const shouldShowDetailsSave =
+		Boolean(selectedReportProject) &&
+		(isDetailsProjectDirty || hasDetailsFileDrafts);
 	const selectReportProject = (project: ReportProject) => {
 		setSelectedProjectId(getDbProjectId(project));
 	};
@@ -464,6 +496,66 @@ export const SalesProfitabilityReport = ({
 		}
 	};
 
+	const handleDetailsProjectSave = async () => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		if (!detailsProjectForm.title.trim()) {
+			setDetailsProjectError("Заполните название проекта");
+			return;
+		}
+
+		setIsDetailsProjectSaving(true);
+		setDetailsProjectError(null);
+
+		try {
+			let savedProject = await updateReportProject(
+				selectedReportProject.id,
+				getReportProjectPayload(detailsProjectForm),
+			);
+
+			const entries = Object.entries(detailsFileDrafts) as Array<
+				[ReportProjectFileKind, File | undefined]
+			>;
+
+			const selectedEntries = entries.filter((entry): entry is [
+				ReportProjectFileKind,
+				File,
+			] => Boolean(entry[1]));
+
+			if (selectedEntries.length) {
+				const uploadedFiles = await Promise.all(
+					selectedEntries.map(([fileKind, file]) =>
+						uploadReportProjectFile(selectedReportProject.id, fileKind, file),
+					),
+				);
+
+				savedProject = {
+					...savedProject,
+					files: mergeReportProjectFiles(savedProject.files, uploadedFiles),
+				};
+			}
+
+			setReportProjects((prev) =>
+				prev.map((project) =>
+					project.id === savedProject.id ? savedProject : project,
+				),
+			);
+
+			setEditingReportProject((prev) =>
+				prev && prev.id === savedProject.id ? savedProject : prev,
+			);
+
+			setDetailsProjectForm(getReportProjectForm(savedProject));
+			setDetailsFileDrafts({});
+		} catch {
+			setDetailsProjectError("Не удалось сохранить проект");
+		} finally {
+			setIsDetailsProjectSaving(false);
+		}
+	};
+
 	const handleReportProjectDelete = async () => {
 		if (!editingReportProject) {
 			return;
@@ -621,11 +713,41 @@ export const SalesProfitabilityReport = ({
 								/>
 							)}
 
+							{activeTab === "projectDetails" && (
+								<ReportProjectDetailsTab
+									detailsFileDrafts={detailsFileDrafts}
+									detailsProjectError={detailsProjectError}
+									form={detailsProjectForm}
+									isSaving={isDetailsProjectSaving}
+									onFileDelete={deleteProjectFile}
+									onFileDownload={downloadProjectFile}
+									onFileDraftChange={(fileKind, file) =>
+										setDetailsFileDrafts((prev) => ({
+											...prev,
+											[fileKind]: file,
+										}))
+									}
+									onFormChange={setDetailsProjectForm}
+									onSave={handleDetailsProjectSave}
+									project={selectedReportProject}
+									shouldShowSave={shouldShowDetailsSave}
+								/>
+							)}
+
 							{activeTab === "tasks" && (
 								<TasksTab
 									items={allTasks}
 									users={users}
 									openTask={(id) => openTask(id, EntityTypeIds.tasks)}
+								/>
+							)}
+
+							{activeTab === "reports" && (
+								<ReportsTab
+									activities={activities}
+									items={allReports}
+									users={users}
+									openReport={(id) => openTask(id, EntityTypeIds.reports)}
 								/>
 							)}
 
@@ -719,7 +841,7 @@ const ReportProjectModal = ({
 					onFormChange={onFormChange}
 					type="number"
 				/>
-				<label>
+				<label className={styles.reportProjectField}>
 					<span>Какой тип проекта?</span>
 					<select
 						value={form.projectType}
@@ -985,16 +1107,381 @@ const ReportProjectModal = ({
 	</Modal>
 );
 
+const ReportProjectDetailsTab = ({
+	detailsFileDrafts,
+	detailsProjectError,
+	form,
+	isSaving,
+	onFileDelete,
+	onFileDownload,
+	onFileDraftChange,
+	onFormChange,
+	onSave,
+	project,
+	shouldShowSave,
+}: {
+	detailsFileDrafts: ReportProjectFileDrafts;
+	detailsProjectError: string | null;
+	form: ReportProjectFormState;
+	isSaving: boolean;
+	onFileDelete: (project: ReportProject, file: ReportProjectFile) => void;
+	onFileDownload: (project: ReportProject, file: ReportProjectFile) => void;
+	onFileDraftChange: (fileKind: ReportProjectFileKind, file?: File) => void;
+	onFormChange: (value: ReportProjectFormState) => void;
+	onSave: () => void;
+	project: ReportProject | null;
+	shouldShowSave: boolean;
+}) => {
+	if (!project) {
+		return (
+			<div className={styles.reportProjectDetailsEmpty}>
+				Выберите проект, чтобы посмотреть детальную информацию.
+			</div>
+		);
+	}
+
+	return (
+		<div className={styles.reportProjectDetails}>
+			<div className={styles.reportProjectDetailsHeader}>
+				<div>
+					<h3>{project.title}</h3>
+					<p>Детальная информация по выбранному проекту</p>
+				</div>
+			</div>
+
+			<ReportProjectSection title="Информация" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Название"
+					name="title"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Сумма проекта"
+					name="projectAmount"
+					onFormChange={onFormChange}
+					type="number"
+					variant="details"
+				/>
+				<label className={styles.reportProjectDetailsField}>
+					<span>Какой тип проекта?</span>
+					<select
+						value={form.projectType}
+						onChange={(event) =>
+							onFormChange({
+							...form,
+							projectType: event.target.value,
+						})
+						}
+					>
+						{projectTypeOptions.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</select>
+				</label>
+				<ReportProjectInput
+					form={form}
+					label="Компания клиента"
+					name="clientCompany"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Сделка"
+					name="deal"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Цель проекта"
+					name="projectGoal"
+					onFormChange={onFormChange}
+					textarea
+					variant="details"
+				/>
+				<ReportProjectFileInput
+					file={project.files.find(
+						(projectFile) => projectFile.fileKind === "estimate",
+					)}
+					fileKind="estimate"
+					label={reportProjectFileLabels.estimate}
+					project={project}
+					selectedFile={detailsFileDrafts.estimate}
+					onDelete={onFileDelete}
+					onDownload={onFileDownload}
+					onFileChange={onFileDraftChange}
+					variant="details"
+				/>
+				<ReportProjectFileInput
+					file={project.files.find(
+						(projectFile) =>
+							projectFile.fileKind === "technical_specification",
+						)}
+					fileKind="technical_specification"
+					label={reportProjectFileLabels.technical_specification}
+					project={project}
+					selectedFile={detailsFileDrafts.technical_specification}
+					onDelete={onFileDelete}
+					onDownload={onFileDownload}
+					onFileChange={onFileDraftChange}
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			<ReportProjectSection title="Отчёт аналитика" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Следующая дата отчёта"
+					name="nextReportDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			<ReportProjectSection title="Информация для отчёта" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Дедлайн"
+					name="deadline"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Редлайн"
+					name="redline"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Информация для отчёта"
+					name="reportInfo"
+					onFormChange={onFormChange}
+					textarea
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			<ReportProjectSection title="Проектная команда" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Ответственный"
+					name="responsible"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Аналитик"
+					name="analyst"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Команда разработки"
+					name="developmentTeam"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="QA"
+					name="qa"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			<ReportProjectSection title="ТЗ" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Дата начала написания ТЗ"
+					name="tzStartDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Срок написания ТЗ, недель"
+					name="tzWeeks"
+					onFormChange={onFormChange}
+					type="number"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Плановая дата завершения ТЗ"
+					name="tzPlanEndDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Фактическая дата завершения ТЗ"
+					name="tzFactEndDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Дата подписания ТЗ"
+					name="tzSignDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			<ReportProjectSection title="Разработка" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Срок разработки, недель"
+					name="developmentWeeks"
+					onFormChange={onFormChange}
+					type="number"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Плановая дата начала разработки"
+					name="developmentPlanStartDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Плановая дата завершения разработки"
+					name="developmentPlanEndDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Фактическая дата начала разработки"
+					name="developmentFactStartDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Фактическая дата завершения разработки"
+					name="developmentFactEndDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			<ReportProjectSection title="Обучение / сдача" variant="details">
+				<ReportProjectInput
+					form={form}
+					label="Срок обучения / сдачи, недель"
+					name="educationWeeks"
+					onFormChange={onFormChange}
+					type="number"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Плановая дата начала обучения / сдачи"
+					name="educationPlanStartDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Плановая дата завершения обучения / сдачи"
+					name="educationPlanEndDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Фактическая дата начала обучения / сдачи"
+					name="educationFactStartDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Фактическая дата завершения обучения / сдачи"
+					name="educationFactEndDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Дата закрытия проекта / подписания акта"
+					name="closeDate"
+					onFormChange={onFormChange}
+					type="date"
+					variant="details"
+				/>
+			</ReportProjectSection>
+
+			{detailsProjectError ? (
+				<p className={styles.ganttFormError}>{detailsProjectError}</p>
+			) : null}
+
+			{shouldShowSave ? (
+				<div className={styles.reportProjectDetailsSaveBar}>
+					<span>Есть несохранённые изменения</span>
+					<button type="button" disabled={isSaving} onClick={onSave}>
+						{isSaving ? "Сохранение..." : "Сохранить"}
+					</button>
+				</div>
+			) : null}
+		</div>
+	);
+};
+
 const ReportProjectSection = ({
 	children,
 	title,
+	variant = "modal",
 }: {
 	children: ReactNode;
 	title: string;
+	variant?: "modal" | "details";
 }) => (
-	<section className={styles.reportProjectSection}>
+	<section
+		className={
+			variant === "details"
+				? styles.reportProjectDetailsSection
+				: styles.reportProjectSection
+		}
+	>
 		<h4>{title}</h4>
-		<div className={styles.reportProjectGrid}>{children}</div>
+		<div
+			className={
+				variant === "details"
+					? styles.reportProjectDetailsGrid
+					: styles.reportProjectGrid
+			}
+		>
+			{children}
+		</div>
 	</section>
 );
 
@@ -1007,6 +1494,7 @@ const ReportProjectFileInput = ({
 	onFileChange,
 	project,
 	selectedFile,
+	variant = "modal",
 }: {
 	file?: ReportProjectFile;
 	fileKind: ReportProjectFileKind;
@@ -1016,14 +1504,50 @@ const ReportProjectFileInput = ({
 	onFileChange: (fileKind: ReportProjectFileKind, file?: File) => void;
 	project: ReportProject | null;
 	selectedFile?: File;
+	variant?: "modal" | "details";
 }) => {
 	const inputId = `report-project-file-${fileKind}`;
 
+	const rootClassName =
+		variant === "details"
+			? `${styles.reportProjectDetailsField} ${styles.reportProjectDetailsWideField}`
+			: `${styles.reportProjectField} ${styles.reportProjectWideField}`;
+
+	const fileFieldClassName =
+		variant === "details"
+			? styles.reportProjectDetailsFileField
+			: styles.reportProjectFileField;
+
+	const fileButtonClassName =
+		variant === "details"
+			? styles.reportProjectDetailsFileButton
+			: styles.reportProjectFileButton;
+
+	const fileNameClassName =
+		variant === "details"
+			? styles.reportProjectDetailsFileName
+			: styles.reportProjectFileName;
+
+	const fileMetaClassName =
+		variant === "details"
+			? styles.reportProjectDetailsFileMeta
+			: styles.reportProjectFileMeta;
+
+	const fileActionsClassName =
+		variant === "details"
+			? styles.reportProjectDetailsFileActions
+			: styles.reportProjectFileActions;
+
+	const deleteButtonClassName =
+		variant === "details"
+			? styles.reportProjectDetailsFileDeleteButton
+			: styles.reportProjectFileDeleteButton;
+
 	return (
-		<div className={styles.reportProjectWideField}>
+		<div className={rootClassName}>
 			<span>{label}</span>
 
-			<div className={styles.reportProjectFileField}>
+			<div className={fileFieldClassName}>
 				<input
 					id={inputId}
 					type="file"
@@ -1034,14 +1558,11 @@ const ReportProjectFileInput = ({
 					}}
 				/>
 
-				<label
-					className={styles.reportProjectFileButton}
-					htmlFor={inputId}
-				>
+				<label className={fileButtonClassName} htmlFor={inputId}>
 					Выбрать файл
 				</label>
 
-				<span className={styles.reportProjectFileName}>
+				<span className={fileNameClassName}>
 					{selectedFile?.name ?? "Файл не выбран"}
 				</span>
 			</div>
@@ -1051,10 +1572,10 @@ const ReportProjectFileInput = ({
 					Будет загружен после сохранения
 				</small>
 			) : file ? (
-				<div className={styles.reportProjectFileMeta}>
+				<div className={fileMetaClassName}>
 					<strong>{file.originalName}</strong>
 
-					<div className={styles.reportProjectFileActions}>
+					<div className={fileActionsClassName}>
 						<button
 							type="button"
 							onClick={() => project && onDownload(project, file)}
@@ -1064,7 +1585,7 @@ const ReportProjectFileInput = ({
 
 						<button
 							type="button"
-							className={styles.reportProjectFileDeleteButton}
+							className={deleteButtonClassName}
 							onClick={() => project && onDelete(project, file)}
 						>
 							Удалить
@@ -1087,6 +1608,7 @@ const ReportProjectInput = ({
 	onFormChange,
 	textarea,
 	type = "text",
+	variant = "modal",
 }: {
 	form: ReportProjectFormState;
 	label: string;
@@ -1094,35 +1616,47 @@ const ReportProjectInput = ({
 	onFormChange: (value: ReportProjectFormState) => void;
 	textarea?: boolean;
 	type?: "date" | "number" | "text";
-}) => (
-	<label className={textarea ? styles.reportProjectWideField : undefined}>
-		<span>{label}</span>
-		{textarea ? (
-			<textarea
-				value={form[name]}
-				onChange={(event) =>
-					onFormChange({
-						...form,
-						[name]: event.target.value,
-					})
-				}
-			/>
-		) : (
-			<input
-				type={type}
-				value={form[name]}
-				onClick={(event) => {
-					if (type === "date") {
-						event.currentTarget.showPicker?.();
+	variant?: "modal" | "details";
+}) => {
+	const fieldClassName =
+		variant === "details"
+			? textarea
+				? `${styles.reportProjectDetailsField} ${styles.reportProjectDetailsWideField}`
+				: styles.reportProjectDetailsField
+			: textarea
+				? `${styles.reportProjectField} ${styles.reportProjectWideField}`
+				: styles.reportProjectField;
+
+	return (
+		<label className={fieldClassName}>
+			<span>{label}</span>
+			{textarea ? (
+				<textarea
+					value={form[name]}
+					onChange={(event) =>
+						onFormChange({
+							...form,
+							[name]: event.target.value,
+						})
 					}
-				}}
-				onChange={(event) =>
-					onFormChange({
-						...form,
-						[name]: event.target.value,
-					})
-				}
-			/>
-		)}
-	</label>
-);
+				/>
+			) : (
+				<input
+					type={type}
+					value={form[name]}
+					onClick={(event) => {
+						if (type === "date") {
+							event.currentTarget.showPicker?.();
+						}
+					}}
+					onChange={(event) =>
+						onFormChange({
+							...form,
+							[name]: event.target.value,
+						})
+					}
+				/>
+			)}
+		</label>
+	);
+};

@@ -1391,6 +1391,156 @@
 	padding-right: 4px;
 }
 
+.reportProjectDetails {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 16px;
+	width: 100%;
+}
+
+.reportProjectDetailsHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(9, 20, 36, 0.55);
+	text-align: left;
+}
+
+.reportProjectDetailsHeader h3 {
+	margin: 0;
+	color: var(--color-text);
+	font-size: 18px;
+	font-weight: 900;
+	text-align: left;
+}
+
+.reportProjectDetailsHeader p {
+	margin: 4px 0 0;
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 13px;
+	font-weight: 700;
+	text-align: left;
+}
+
+.reportProjectDetailsEmpty {
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(9, 20, 36, 0.55);
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 14px;
+	font-weight: 800;
+	text-align: left;
+}
+
+
+.reportProjectDetailsSaveBar {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-top: 8px;
+	padding: 12px 14px;
+	border: 1px solid rgba(38, 240, 233, 0.45);
+	border-radius: 12px;
+	background: rgba(5, 15, 28, 0.96);
+	box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.reportProjectDetailsSaveBar span {
+	color: rgba(238, 245, 255, 0.7);
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.reportProjectDetailsSaveBar button {
+	min-height: 34px;
+	padding: 0 16px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 9px;
+	background: rgba(38, 240, 233, 0.12);
+	color: #26f0e9;
+	font-size: 13px;
+	font-weight: 900;
+	cursor: pointer;
+}
+
+.reportProjectDetailsSaveBar button:hover:not(:disabled) {
+	background: rgba(38, 240, 233, 0.2);
+	border-color: #26f0e9;
+}
+
+.reportProjectDetailsSaveBar button:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.reportProjectDetailsHeader button {
+	flex: 0 0 auto;
+	min-height: 34px;
+	padding: 0 14px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 9px;
+	background: rgba(38, 240, 233, 0.1);
+	color: #26f0e9;
+	font-size: 13px;
+	font-weight: 900;
+	cursor: pointer;
+}
+
+.reportProjectDetailsHeader button:hover {
+	background: rgba(38, 240, 233, 0.18);
+	border-color: #26f0e9;
+}
+
+.reportProjectDetailsEmpty {
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(9, 20, 36, 0.55);
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 14px;
+	font-weight: 800;
+}
+
+.reportProjectDetail {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.42);
+}
+
+.reportProjectDetail span {
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 12px;
+	font-weight: 800;
+	line-height: 1.25;
+}
+
+.reportProjectDetail strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 .reportProjectSection {
 	display: flex;
 	flex-direction: column;
@@ -1410,8 +1560,218 @@
 
 .reportProjectGrid {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr);
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	align-items: start;
+	gap: 14px;
+	width: 100%;
+	text-align: left;
+}
+
+.reportProjectDetailsSection {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	background: rgba(9, 20, 36, 0.5);
+	text-align: left;
+}
+
+.reportProjectDetailsSection h4 {
+	margin: 0;
+	color: var(--color-text);
+	font-size: 16px;
+	font-weight: 900;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.reportProjectDetailsGrid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 18px;
+	width: 100%;
+	align-items: stretch;
+	justify-items: stretch;
+}
+
+.reportProjectDetailsField {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 9px;
+	width: 100%;
+	min-width: 0;
+	text-align: left;
+}
+
+.reportProjectDetailsField>span {
+	display: block;
+	color: rgba(238, 245, 255, 0.76);
+	font-size: 15px;
+	font-weight: 900;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.reportProjectDetailsField input,
+.reportProjectDetailsField select,
+.reportProjectDetailsField textarea {
+	width: 100%;
+	min-height: 48px;
+	box-sizing: border-box;
+	padding: 12px 15px;
+	border: 1px solid rgba(80, 140, 190, 0.48);
+	border-radius: 14px;
+	background: rgba(12, 28, 48, 0.72);
+	color: var(--color-text);
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.35;
+	outline: none;
+}
+
+.reportProjectDetailsField textarea {
+	min-height: 100px;
+	resize: vertical;
+}
+
+.reportProjectDetailsField input:focus,
+.reportProjectDetailsField select:focus,
+.reportProjectDetailsField textarea:focus {
+	border-color: rgba(38, 240, 233, 0.85);
+	box-shadow: 0 0 0 2px rgba(38, 240, 233, 0.12);
+}
+
+.reportProjectDetailsWideField {
+	width: 100%;
+}
+
+.reportProjectField {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 7px;
+	min-width: 0;
+	width: 100%;
+	text-align: left;
+}
+
+.reportProjectField>span {
+	display: block;
+	color: rgba(238, 245, 255, 0.76);
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1.25;
+	text-align: left;
+}
+
+.reportProjectField input,
+.reportProjectField select,
+.reportProjectField textarea {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.reportProjectWideField {
+	grid-column: 1 / -1;
+}
+
+.reportProjectDetailsFileField {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	min-height: 54px;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border: 1px solid rgba(80, 140, 190, 0.48);
+	border-radius: 14px;
+	background: rgba(12, 28, 48, 0.72);
+}
+
+.reportProjectDetailsFileButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	min-height: 38px;
+	padding: 0 18px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 11px;
+	background: rgba(38, 240, 233, 0.1);
+	color: #26f0e9;
+	font-size: 14px;
+	font-weight: 900;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.reportProjectDetailsFileButton:hover {
+	background: rgba(38, 240, 233, 0.18);
+	border-color: #26f0e9;
+}
+
+.reportProjectDetailsFileName {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1.25;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectDetailsFileMeta {
+	display: flex;
+	flex-direction: column;
 	gap: 10px;
+	margin-top: 10px;
+	padding: 12px 14px;
+	border: 1px solid rgba(80, 140, 190, 0.48);
+	border-radius: 14px;
+	background: rgba(12, 28, 48, 0.72);
+}
+
+.reportProjectDetailsFileMeta strong {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 14px;
+	font-weight: 900;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectDetailsFileActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.reportProjectDetailsFileActions button {
+	min-height: 34px;
+	padding: 6px 12px;
+	border-radius: 10px;
+	font-size: 13px;
+}
+
+.reportProjectDetailsFileDeleteButton {
+	border-color: rgba(255, 99, 132, 0.65);
+	color: #ff6384;
+}
+
+.reportProjectDetailsFileDeleteButton:hover {
+	border-color: rgba(255, 99, 132, 0.9);
+	background: rgba(255, 99, 132, 0.1);
 }
 
 .reportProjectWideField {
