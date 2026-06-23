@@ -18,6 +18,8 @@ import type {
 	ProjectGanttStage,
 	ProjectGanttStagePayload,
 	ProjectPayment,
+	ProjectReportProject,
+	ProjectReportProjectPayload,
 } from "./types";
 
 type CrmItemListResponse<T> = {
@@ -512,3 +514,38 @@ export const updateAutonomousProjectPayment = async (
 
 export const deleteAutonomousProjectPayment = (paymentId: number) =>
 	$backendApi.delete(`project-reports/payments/${paymentId}`);
+
+export const fetchProjectReportProjects = async (signal?: AbortSignal) => {
+	const response = await $backendApi.get<ProjectReportProject[]>(
+		"project-reports/projects",
+		{ signal },
+	);
+
+	return response.data;
+};
+
+export const createProjectReportProject = async (
+	payload: ProjectReportProjectPayload,
+) => {
+	const response = await $backendApi.post<ProjectReportProject>(
+		"project-reports/projects",
+		payload,
+	);
+
+	return response.data;
+};
+
+export const updateProjectReportProject = async (
+	projectId: number,
+	payload: Partial<ProjectReportProjectPayload>,
+) => {
+	const response = await $backendApi.patch<ProjectReportProject>(
+		`project-reports/projects/${projectId}`,
+		payload,
+	);
+
+	return response.data;
+};
+
+export const deleteProjectReportProject = (projectId: number) =>
+	$backendApi.delete(`project-reports/projects/${projectId}`);

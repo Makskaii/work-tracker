@@ -180,6 +180,77 @@ export type AutonomousProjectPaymentPayload = {
 	sortOrder?: number | null;
 };
 
+export type ProjectReportProjectType = "none" | "waterfall" | "support";
+
+export type ProjectReportProject = {
+	id: number;
+	title: string;
+	projectAmount: number | null;
+	projectType: ProjectReportProjectType;
+	projectGoal: string | null;
+	clientCompany: string | null;
+	deal: string | null;
+	nextReportDate: string | null;
+	reportInfo: string | null;
+	deadline: string | null;
+	redline: string | null;
+	responsible: string | null;
+	analyst: string | null;
+	developmentTeam: string | null;
+	qa: string | null;
+	tzStartDate: string | null;
+	tzWeeks: number | null;
+	tzPlanEndDate: string | null;
+	tzFactEndDate: string | null;
+	tzSignDate: string | null;
+	developmentWeeks: number | null;
+	developmentPlanStartDate: string | null;
+	developmentPlanEndDate: string | null;
+	developmentFactStartDate: string | null;
+	developmentFactEndDate: string | null;
+	educationWeeks: number | null;
+	educationPlanStartDate: string | null;
+	educationPlanEndDate: string | null;
+	educationFactStartDate: string | null;
+	educationFactEndDate: string | null;
+	closeDate: string | null;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type ProjectReportProjectPayload = {
+	title: string;
+	projectAmount?: number | null;
+	projectType?: ProjectReportProjectType;
+	projectGoal?: string | null;
+	clientCompany?: string | null;
+	deal?: string | null;
+	nextReportDate?: string | null;
+	reportInfo?: string | null;
+	deadline?: string | null;
+	redline?: string | null;
+	responsible?: string | null;
+	analyst?: string | null;
+	developmentTeam?: string | null;
+	qa?: string | null;
+	tzStartDate?: string | null;
+	tzWeeks?: number | null;
+	tzPlanEndDate?: string | null;
+	tzFactEndDate?: string | null;
+	tzSignDate?: string | null;
+	developmentWeeks?: number | null;
+	developmentPlanStartDate?: string | null;
+	developmentPlanEndDate?: string | null;
+	developmentFactStartDate?: string | null;
+	developmentFactEndDate?: string | null;
+	educationWeeks?: number | null;
+	educationPlanStartDate?: string | null;
+	educationPlanEndDate?: string | null;
+	educationFactStartDate?: string | null;
+	educationFactEndDate?: string | null;
+	closeDate?: string | null;
+};
+
 export type FinancialProjectSummary = {
 	purchasedHours: number;
 	revenue: number;
