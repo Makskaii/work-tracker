@@ -7,7 +7,7 @@ import {
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { TaskProps, User } from "@/shared/types/types";
 import type { ActivityListItem } from "../../../types/types";
-import { MOCK_MARGIN_PERCENT } from "./constants";
+import { DEFAULT_MARGIN_PERCENT } from "./constants";
 import type {
 	CompanyFinancialGroup,
 	CompanyProjectGroup,
@@ -252,8 +252,8 @@ export const getFinancialProjectSummary = (
 		lossHours: losses.company + losses.unpaid,
 		companyHours: losses.company,
 		unpaidHours: losses.unpaid,
-		mockMarginPercent: MOCK_MARGIN_PERCENT,
-		mockProfit: Math.round((revenue * MOCK_MARGIN_PERCENT) / 100),
+		marginPercent: DEFAULT_MARGIN_PERCENT,
+		profit: Math.round((revenue * DEFAULT_MARGIN_PERCENT) / 100),
 	};
 };
 

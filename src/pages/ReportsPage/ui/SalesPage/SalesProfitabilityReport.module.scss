@@ -659,10 +659,6 @@
 	color: var(--color-payment-client);
 }
 
-.mockMetric {
-	opacity: 0.74;
-}
-
 .tabContent {
 	display: flex;
 	flex-direction: column;
@@ -2442,7 +2438,7 @@
 }
 
 .mutedValue,
-.mockPill,
+.marginPill,
 .successPill,
 .dangerPill,
 .warningPill,
@@ -2458,7 +2454,7 @@
 }
 
 .mutedValue,
-.mockPill {
+.marginPill {
 	background: rgba(158, 176, 199, 0.14);
 	color: rgba(238, 245, 255, 0.72);
 }

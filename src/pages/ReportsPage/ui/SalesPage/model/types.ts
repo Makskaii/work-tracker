@@ -326,8 +326,8 @@ export type FinancialProjectSummary = {
 	lossHours: number;
 	companyHours: number;
 	unpaidHours: number;
-	mockMarginPercent: number;
-	mockProfit: number;
+	marginPercent: number;
+	profit: number;
 };
 
 export type SalesProfitabilityTab =

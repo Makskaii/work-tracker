@@ -8,19 +8,21 @@ import {
 	getAutonomousEventStyle,
 } from "../model/autonomousProjectGantt";
 import {
-	createAutonomousProjectPayment,
 	createProjectGanttEvent,
 	createProjectGanttStage,
-	deleteAutonomousProjectPayment,
 	deleteProjectGanttEvent,
 	deleteProjectGanttStage,
-	fetchAutonomousProjectPayments,
 	fetchProjectGanttEvents,
 	fetchProjectGanttStages,
-	updateAutonomousProjectPayment,
 	updateProjectGanttEvent,
 	updateProjectGanttStage,
-} from "../model/api";
+} from "../model/projectGantt.api";
+import {
+	createAutonomousProjectPayment,
+	deleteAutonomousProjectPayment,
+	fetchAutonomousProjectPayments,
+	updateAutonomousProjectPayment,
+} from "../model/projectPayments.api";
 import type { GanttMonthTick, GanttWeekTick } from "../model/ganttTypes";
 import {
 	formatDateShort,

@@ -175,7 +175,7 @@ export const SummaryCards = ({
 						<strong
 							className={`${styles.dealSummaryValue} ${styles.dealSummaryMarginInline}`}
 						>
-							{summary.mockMarginPercent}%
+							{summary.marginPercent}%
 						</strong>
 					)}
 				</div>
