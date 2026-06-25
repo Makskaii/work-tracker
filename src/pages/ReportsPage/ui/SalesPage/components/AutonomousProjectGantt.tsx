@@ -56,7 +56,7 @@ type EventFormState = {
 	title: string;
 };
 
-type PaymentFormState = {
+export type PaymentFormState = {
 	amount: string;
 	id: number | null;
 	paymentDate: string;
@@ -82,7 +82,7 @@ const DEFAULT_EVENT_FORM: EventFormState = {
 	title: "",
 };
 
-const DEFAULT_PAYMENT_FORM: PaymentFormState = {
+export const DEFAULT_PAYMENT_FORM: PaymentFormState = {
 	amount: "",
 	id: null,
 	paymentDate: "",
@@ -120,9 +120,13 @@ const getStageCode = (title: string) =>
 		.replace(/^-+|-+$/g, "") || `stage-${Date.now()}`;
 
 export const AutonomousProjectGantt = ({
+	onPaymentsChanged,
 	project,
+	paymentsRefreshKey = 0,
 }: {
+	onPaymentsChanged?: () => void;
 	project: ReportProject | null;
+	paymentsRefreshKey?: number;
 }) => {
 	const [stages, setStages] = useState<ProjectGanttStage[]>([]);
 	const [events, setEvents] = useState<ProjectGanttEvent[]>([]);
@@ -213,7 +217,7 @@ export const AutonomousProjectGantt = ({
 			});
 
 		return () => controller.abort();
-	}, [refreshData]);
+	}, [refreshData, paymentsRefreshKey]);
 
 	const openStageCreateModal = () => {
 		setStageForm(DEFAULT_STAGE_FORM);
@@ -380,6 +384,7 @@ export const AutonomousProjectGantt = ({
 
 		setIsPaymentModalOpen(false);
 		await refreshData();
+		onPaymentsChanged?.();
 	};
 
 	const handlePaymentDelete = async () => {
@@ -396,6 +401,7 @@ export const AutonomousProjectGantt = ({
 		setDeletingPaymentId(null);
 		setIsPaymentModalOpen(false);
 		await refreshData();
+		onPaymentsChanged?.();
 	};
 
 	if (!project) {
@@ -841,7 +847,7 @@ const EventModal = ({
 	</Modal>
 );
 
-const PaymentModal = ({
+export const PaymentModal = ({
 	deletingPaymentId,
 	form,
 	isOpen,

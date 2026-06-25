@@ -4,12 +4,16 @@ import styles from "../SalesProfitabilityReport.module.scss";
 import { AutonomousProjectGantt } from "./AutonomousProjectGantt";
 
 type ProjectsTabProps = {
+	onPaymentsChanged?: () => void;
+	paymentsRefreshKey?: number;
 	projects: ReportProject[];
 	selectedProjectId: string | null;
 	users: User[];
 };
 
 export const ProjectsTab = ({
+	onPaymentsChanged,
+	paymentsRefreshKey,
 	projects,
 	selectedProjectId,
 	users,
@@ -22,7 +26,11 @@ export const ProjectsTab = ({
 	return (
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
 			{selectedProject ? (
-				<AutonomousProjectGantt project={selectedProject} />
+				<AutonomousProjectGantt
+					onPaymentsChanged={onPaymentsChanged}
+					paymentsRefreshKey={paymentsRefreshKey}
+					project={selectedProject}
+				/>
 			) : (
 				<div className={styles.emptyState}>Выберите проект</div>
 			)}

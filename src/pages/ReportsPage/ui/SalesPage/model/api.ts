@@ -533,6 +533,7 @@ export const fetchReportProjects = async (signal?: AbortSignal) => {
 const normalizeReportProject = (project: ReportProject): ReportProject => ({
 	...project,
 	files: project.files ?? [],
+	nextProjectReportDate: project.nextProjectReportDate ?? null,
 });
 
 export const createReportProject = async (

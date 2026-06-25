@@ -249,6 +249,7 @@ export type ReportProject = {
 	clientCompany: string | null;
 	deal: string | null;
 	nextReportDate: string | null;
+	nextProjectReportDate: string | null;
 	reportInfo: string | null;
 	deadline: string | null;
 	redline: string | null;
