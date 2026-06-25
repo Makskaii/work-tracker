@@ -226,10 +226,24 @@ export type CreateProjectReportEntryPayload = {
 	nextReportDate?: string | null;
 };
 
+export type UpdateProjectReportEntryPayload = {
+	authorName?: string;
+	authorId?: string | null;
+	text?: string;
+	nextReportDate?: string | null;
+};
+
 export type ReportProject = {
 	id: number;
 	title: string;
 	projectAmount: number | null;
+	summaryMarginPercent: number | null;
+	summaryPurchasedHours: number | null;
+	summaryPlanHours: number | null;
+	summaryFactHours: number | null;
+	summaryLossHours: number | null;
+	summaryPlanCompletionDate: string | null;
+	summaryFactCompletionDate: string | null;
 	projectType: ReportProjectType;
 	projectGoal: string | null;
 	clientCompany: string | null;
@@ -266,6 +280,13 @@ export type ReportProject = {
 export type ReportProjectPayload = {
 	title: string;
 	projectAmount?: number | null;
+	summaryMarginPercent?: number | null;
+	summaryPurchasedHours?: number | null;
+	summaryPlanHours?: number | null;
+	summaryFactHours?: number | null;
+	summaryLossHours?: number | null;
+	summaryPlanCompletionDate?: string | null;
+	summaryFactCompletionDate?: string | null;
 	projectType?: ReportProjectType;
 	projectGoal?: string | null;
 	clientCompany?: string | null;

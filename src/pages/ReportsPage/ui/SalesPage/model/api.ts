@@ -25,6 +25,7 @@ import type {
 	ReportProjectFile,
 	ReportProjectFileKind,
 	ReportProjectPayload,
+	UpdateProjectReportEntryPayload,
 } from "./types";
 
 type CrmItemListResponse<T> = {
@@ -615,6 +616,19 @@ export const createProjectReportEntry = async (
 ) => {
 	const response = await $backendApi.post<ProjectReportEntry>(
 		`project-reports/projects/${projectId}/reports`,
+		payload,
+	);
+
+	return normalizeProjectReportEntry(response.data);
+};
+
+export const updateProjectReportEntry = async (
+	projectId: number,
+	reportId: number,
+	payload: UpdateProjectReportEntryPayload,
+) => {
+	const response = await $backendApi.patch<ProjectReportEntry>(
+		`project-reports/projects/${projectId}/reports/${reportId}`,
 		payload,
 	);
 

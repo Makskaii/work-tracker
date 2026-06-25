@@ -22,6 +22,7 @@ import {
 	fetchReportProjects,
 	fetchProjectReportEntries,
 	updateReportProject,
+	updateProjectReportEntry,
 	uploadProjectReportEntryFile,
 	uploadReportProjectFile,
 } from "./model/api";
@@ -36,6 +37,7 @@ import type {
 	ReportProjectPayload,
 	ReportProjectType,
 	SalesProfitabilityTab,
+	UpdateProjectReportEntryPayload,
 } from "./model/types";
 import projectReportsStyles from "../ProjectReports/ProjectsReports.module.scss";
 import styles from "./SalesProfitabilityReport.module.scss";
@@ -77,6 +79,18 @@ type ReportProjectFormState = {
 	[K in keyof ReportProjectPayload]-?: string;
 };
 
+type ProjectSummaryFormState = Pick<
+	ReportProjectFormState,
+	| "projectAmount"
+	| "summaryFactCompletionDate"
+	| "summaryFactHours"
+	| "summaryLossHours"
+	| "summaryMarginPercent"
+	| "summaryPlanCompletionDate"
+	| "summaryPlanHours"
+	| "summaryPurchasedHours"
+>;
+
 type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File>>;
 
 const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
@@ -104,6 +118,13 @@ const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	redline: "",
 	reportInfo: "",
 	responsible: "",
+	summaryFactCompletionDate: "",
+	summaryFactHours: "",
+	summaryLossHours: "",
+	summaryMarginPercent: "",
+	summaryPlanCompletionDate: "",
+	summaryPlanHours: "",
+	summaryPurchasedHours: "",
 	title: "",
 	tzFactEndDate: "",
 	tzPlanEndDate: "",
@@ -181,6 +202,22 @@ const getReportProjectForm = (
 		redline: project.redline ?? "",
 		reportInfo: project.reportInfo ?? "",
 		responsible: project.responsible ?? "",
+		summaryFactCompletionDate: project.summaryFactCompletionDate ?? "",
+		summaryFactHours:
+			project.summaryFactHours === null ? "" : String(project.summaryFactHours),
+		summaryLossHours:
+			project.summaryLossHours === null ? "" : String(project.summaryLossHours),
+		summaryMarginPercent:
+			project.summaryMarginPercent === null
+				? ""
+				: String(project.summaryMarginPercent),
+		summaryPlanCompletionDate: project.summaryPlanCompletionDate ?? "",
+		summaryPlanHours:
+			project.summaryPlanHours === null ? "" : String(project.summaryPlanHours),
+		summaryPurchasedHours:
+			project.summaryPurchasedHours === null
+				? ""
+				: String(project.summaryPurchasedHours),
 		title: project.title,
 		tzFactEndDate: project.tzFactEndDate ?? "",
 		tzPlanEndDate: project.tzPlanEndDate ?? "",
@@ -217,12 +254,65 @@ const getReportProjectPayload = (
 	redline: dateOrNull(form.redline),
 	reportInfo: textOrNull(form.reportInfo),
 	responsible: textOrNull(form.responsible),
+	summaryFactCompletionDate: dateOrNull(form.summaryFactCompletionDate),
+	summaryFactHours: numberOrNull(form.summaryFactHours),
+	summaryLossHours: numberOrNull(form.summaryLossHours),
+	summaryMarginPercent: numberOrNull(form.summaryMarginPercent),
+	summaryPlanCompletionDate: dateOrNull(form.summaryPlanCompletionDate),
+	summaryPlanHours: numberOrNull(form.summaryPlanHours),
+	summaryPurchasedHours: numberOrNull(form.summaryPurchasedHours),
 	title: form.title.trim(),
 	tzFactEndDate: dateOrNull(form.tzFactEndDate),
 	tzPlanEndDate: dateOrNull(form.tzPlanEndDate),
 	tzSignDate: dateOrNull(form.tzSignDate),
 	tzStartDate: dateOrNull(form.tzStartDate),
 	tzWeeks: numberOrNull(form.tzWeeks),
+});
+
+const getProjectSummaryForm = (
+	project?: ReportProject | null,
+): ProjectSummaryFormState => ({
+	projectAmount:
+		project?.projectAmount === null || project?.projectAmount === undefined
+			? ""
+			: String(project.projectAmount),
+	summaryFactCompletionDate: project?.summaryFactCompletionDate ?? "",
+	summaryFactHours:
+		project?.summaryFactHours === null || project?.summaryFactHours === undefined
+			? ""
+			: String(project.summaryFactHours),
+	summaryLossHours:
+		project?.summaryLossHours === null || project?.summaryLossHours === undefined
+			? ""
+			: String(project.summaryLossHours),
+	summaryMarginPercent:
+		project?.summaryMarginPercent === null ||
+		project?.summaryMarginPercent === undefined
+			? ""
+			: String(project.summaryMarginPercent),
+	summaryPlanCompletionDate: project?.summaryPlanCompletionDate ?? "",
+	summaryPlanHours:
+		project?.summaryPlanHours === null || project?.summaryPlanHours === undefined
+			? ""
+			: String(project.summaryPlanHours),
+	summaryPurchasedHours:
+		project?.summaryPurchasedHours === null ||
+		project?.summaryPurchasedHours === undefined
+			? ""
+			: String(project.summaryPurchasedHours),
+});
+
+const getProjectSummaryPayload = (
+	form: ProjectSummaryFormState,
+): Partial<ReportProjectPayload> => ({
+	projectAmount: numberOrNull(form.projectAmount),
+	summaryFactCompletionDate: dateOrNull(form.summaryFactCompletionDate),
+	summaryFactHours: numberOrNull(form.summaryFactHours),
+	summaryLossHours: numberOrNull(form.summaryLossHours),
+	summaryMarginPercent: numberOrNull(form.summaryMarginPercent),
+	summaryPlanCompletionDate: dateOrNull(form.summaryPlanCompletionDate),
+	summaryPlanHours: numberOrNull(form.summaryPlanHours),
+	summaryPurchasedHours: numberOrNull(form.summaryPurchasedHours),
 });
 
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
@@ -258,13 +348,13 @@ const formatFileSize = (size: number) => {
 const getReportProjectSummary = (
 	project: ReportProject | null | undefined,
 ): FinancialProjectSummary => ({
-	factHours: 0,
+	factHours: project?.summaryFactHours ?? 0,
 	companyHours: 0,
-	lossHours: 0,
-	mockMarginPercent: 53,
+	lossHours: project?.summaryLossHours ?? 0,
+	mockMarginPercent: project?.summaryMarginPercent ?? 0,
 	mockProfit: 0,
-	planHours: 0,
-	purchasedHours: 0,
+	planHours: project?.summaryPlanHours ?? 0,
+	purchasedHours: project?.summaryPurchasedHours ?? 0,
 	revenue: project?.projectAmount ?? 0,
 	unpaidHours: 0,
 });
@@ -299,6 +389,12 @@ export const SalesProfitabilityReport = ({
 	const [detailsProjectError, setDetailsProjectError] = useState<string | null>(
 		null,
 	);
+	const [summaryForm, setSummaryForm] = useState<ProjectSummaryFormState>(
+		getProjectSummaryForm(null),
+	);
+	const [isSummaryEditing, setIsSummaryEditing] = useState(false);
+	const [isSummarySaving, setIsSummarySaving] = useState(false);
+	const [summaryError, setSummaryError] = useState<string | null>(null);
 	const [projectReportEntries, setProjectReportEntries] = useState<
 		ProjectReportEntry[]
 	>([]);
@@ -330,6 +426,9 @@ export const SalesProfitabilityReport = ({
 
 	useEffect(() => {
 		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
+		setSummaryForm(getProjectSummaryForm(selectedReportProject));
+		setIsSummaryEditing(false);
+		setSummaryError(null);
 		setDetailsFileDrafts({});
 		setDetailsProjectError(null);
 	}, [selectedReportProject]);
@@ -566,6 +665,27 @@ export const SalesProfitabilityReport = ({
 		}
 	};
 
+	const handleProjectReportUpdate = async (
+		reportEntry: ProjectReportEntry,
+		payload: UpdateProjectReportEntryPayload,
+	) => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		const updatedReport = await updateProjectReportEntry(
+			selectedReportProject.id,
+			reportEntry.id,
+			payload,
+		);
+
+		setProjectReportEntries((prev) =>
+			prev.map((entry) =>
+				entry.id === updatedReport.id ? updatedReport : entry,
+			),
+		);
+	};
+
 	const downloadProjectReportFile = async (
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
@@ -728,6 +848,37 @@ export const SalesProfitabilityReport = ({
 		}
 	};
 
+	const handleSummarySave = async () => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		setIsSummarySaving(true);
+		setSummaryError(null);
+
+		try {
+			const savedProject = await updateReportProject(
+				selectedReportProject.id,
+				getProjectSummaryPayload(summaryForm),
+			);
+
+			setReportProjects((prev) =>
+				prev.map((project) =>
+					project.id === savedProject.id ? savedProject : project,
+				),
+			);
+			setEditingReportProject((prev) =>
+				prev && prev.id === savedProject.id ? savedProject : prev,
+			);
+			setSummaryForm(getProjectSummaryForm(savedProject));
+			setIsSummaryEditing(false);
+		} catch {
+			setSummaryError("Не удалось сохранить метрики проекта");
+		} finally {
+			setIsSummarySaving(false);
+		}
+	};
+
 	const handleReportProjectDelete = async () => {
 		if (!editingReportProject) {
 			return;
@@ -859,12 +1010,24 @@ export const SalesProfitabilityReport = ({
 						<ProfitabilitySkeleton />
 					) : (
 						<>
-							{activeTab !== "marginality" && (
+							{activeTab === "projects" && (
 								<SummaryCards
+									form={summaryForm}
+									isEditing={isSummaryEditing}
+									isSaving={isSummarySaving}
+									onCancel={() => {
+										setSummaryForm(getProjectSummaryForm(selectedReportProject));
+										setIsSummaryEditing(false);
+										setSummaryError(null);
+									}}
+									onChange={setSummaryForm}
+									onEdit={() => setIsSummaryEditing(true)}
+									onSave={handleSummarySave}
 									projectTitle={
 										selectedReportProject?.title ??
 										"Проект не выбран"
 									}
+									saveError={summaryError}
 									summary={summary}
 								/>
 							)}
@@ -944,6 +1107,7 @@ export const SalesProfitabilityReport = ({
 										setIsProjectReportModalOpen(true);
 									}}
 									onTextChange={setProjectReportText}
+									onUpdate={handleProjectReportUpdate}
 									project={selectedReportProject}
 									reports={projectReportEntries}
 									text={projectReportText}
@@ -1000,6 +1164,7 @@ const ProjectReportsTab = ({
 	onNextReportDateChange,
 	onOpenModal,
 	onTextChange,
+	onUpdate,
 	project,
 	reports,
 	text,
@@ -1026,6 +1191,10 @@ const ProjectReportsTab = ({
 	onNextReportDateChange: (value: string) => void;
 	onOpenModal: () => void;
 	onTextChange: (value: string) => void;
+	onUpdate: (
+		reportEntry: ProjectReportEntry,
+		payload: UpdateProjectReportEntryPayload,
+	) => Promise<void>;
 	project: ReportProject | null;
 	reports: ProjectReportEntry[];
 	text: string;
@@ -1133,6 +1302,7 @@ const ProjectReportsTab = ({
 				onClose={() => setSelectedReportEntryId(null)}
 				onFileDelete={onFileDelete}
 				onFileDownload={onFileDownload}
+				onUpdate={onUpdate}
 			/>
 		</section>
 	);
@@ -1142,6 +1312,7 @@ const ProjectReportViewModal = ({
 	onClose,
 	onFileDelete,
 	onFileDownload,
+	onUpdate,
 	reportEntry,
 }: {
 	onClose: () => void;
@@ -1153,65 +1324,194 @@ const ProjectReportViewModal = ({
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
 	) => void;
+	onUpdate: (
+		reportEntry: ProjectReportEntry,
+		payload: UpdateProjectReportEntryPayload,
+	) => Promise<void>;
 	reportEntry: ProjectReportEntry | null;
-}) => (
-	<Modal isOpen={Boolean(reportEntry)} onClose={onClose} size="covered">
-		{reportEntry ? (
-			<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
-				<h3>Отчёт по проекту</h3>
-				<div className={styles.projectReportDetails}>
-					<div>
-						<span>Автор</span>
-						<strong>{reportEntry.authorName}</strong>
+}) => {
+	const [isEditing, setIsEditing] = useState(false);
+	const [isSaving, setIsSaving] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [draft, setDraft] = useState({
+		authorName: "",
+		nextReportDate: "",
+		text: "",
+	});
+
+	useEffect(() => {
+		if (!reportEntry) {
+			return;
+		}
+
+		setDraft({
+			authorName: reportEntry.authorName,
+			nextReportDate: reportEntry.nextReportDate ?? "",
+			text: reportEntry.text,
+		});
+		setError(null);
+		setIsEditing(false);
+	}, [reportEntry]);
+
+	const handleSubmit = async () => {
+		if (!reportEntry) {
+			return;
+		}
+
+		const authorName = draft.authorName.trim();
+		const text = draft.text.trim();
+
+		if (!authorName || !text) {
+			setError("Заполните автора и текст отчёта");
+			return;
+		}
+
+		setIsSaving(true);
+		setError(null);
+
+		try {
+			await onUpdate(reportEntry, {
+				authorName,
+				nextReportDate: draft.nextReportDate || null,
+				text,
+			});
+			setIsEditing(false);
+		} catch {
+			setError("Не удалось сохранить отчёт");
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	return (
+		<Modal isOpen={Boolean(reportEntry)} onClose={onClose} size="covered">
+			{reportEntry ? (
+				<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
+					<div className={styles.projectReportViewHeader}>
+						<h3>Отчёт по проекту</h3>
+						<button
+							type="button"
+							disabled={isSaving}
+							onClick={() => setIsEditing((prev) => !prev)}
+						>
+							{isEditing ? "Отменить" : "Редактировать"}
+						</button>
 					</div>
-					<div>
-						<span>Дата отчёта</span>
-						<strong>{formatProjectReportDate(reportEntry.reportDate)}</strong>
-					</div>
-					<div>
-						<span>Следующий отчёт</span>
-						<strong>
-							{formatProjectReportDate(reportEntry.nextReportDate)}
-						</strong>
-					</div>
-				</div>
-				<div className={styles.projectReportFullText}>
-					<span>Текст отчёта</span>
-					<p>{reportEntry.text}</p>
-				</div>
-				<div className={styles.projectReportFiles}>
-					<strong>Файлы</strong>
-					{reportEntry.files.length ? (
-						reportEntry.files.map((file) => (
-							<div key={file.id} className={styles.projectReportFileItem}>
-								<span>
-									{file.originalName}
-									<small>{formatFileSize(file.size)}</small>
-								</span>
-								<div className={styles.projectReportFileActions}>
-									<button
-										type="button"
-										onClick={() => onFileDownload(reportEntry, file)}
-									>
-										Скачать
-									</button>
-									<button
-										type="button"
-										onClick={() => onFileDelete(reportEntry, file)}
-									>
-										Удалить
-									</button>
+					{isEditing ? (
+						<div className={styles.projectReportEditForm}>
+							<label>
+								<span>Автор</span>
+								<input
+									type="text"
+									value={draft.authorName}
+									onChange={(event) =>
+										setDraft((prev) => ({
+											...prev,
+											authorName: event.target.value,
+										}))
+									}
+								/>
+							</label>
+							<label>
+								<span>Дата следующего отчёта</span>
+								<input
+									type="date"
+									value={draft.nextReportDate}
+									onClick={(event) => event.currentTarget.showPicker?.()}
+									onChange={(event) =>
+										setDraft((prev) => ({
+											...prev,
+											nextReportDate: event.target.value,
+										}))
+									}
+								/>
+							</label>
+							<label>
+								<span>Текст отчёта</span>
+								<textarea
+									value={draft.text}
+									onChange={(event) =>
+										setDraft((prev) => ({
+											...prev,
+											text: event.target.value,
+										}))
+									}
+								/>
+							</label>
+							{error ? <p className={styles.ganttFormError}>{error}</p> : null}
+							<div className={styles.ganttFormActions}>
+								<button
+									type="button"
+									disabled={isSaving}
+									onClick={() => setIsEditing(false)}
+								>
+									Отмена
+								</button>
+								<button type="button" disabled={isSaving} onClick={handleSubmit}>
+									{isSaving ? "Сохранение..." : "Сохранить"}
+								</button>
+							</div>
+						</div>
+					) : (
+						<>
+							<div className={styles.projectReportDetails}>
+								<div>
+									<span>Автор</span>
+									<strong>{reportEntry.authorName}</strong>
+								</div>
+								<div>
+									<span>Дата отчёта</span>
+									<strong>
+										{formatProjectReportDate(reportEntry.reportDate)}
+									</strong>
+								</div>
+								<div>
+									<span>Следующий отчёт</span>
+									<strong>
+										{formatProjectReportDate(reportEntry.nextReportDate)}
+									</strong>
 								</div>
 							</div>
-						))
-					) : (
-						<small>Файлы не прикреплены</small>
+							<div className={styles.projectReportFullText}>
+								<span>Текст отчёта</span>
+								<p>{reportEntry.text}</p>
+							</div>
+						</>
 					)}
+					<div className={styles.projectReportFiles}>
+						<strong>Файлы</strong>
+						{reportEntry.files.length ? (
+							reportEntry.files.map((file) => (
+								<div key={file.id} className={styles.projectReportFileItem}>
+									<span>
+										{file.originalName}
+										<small>{formatFileSize(file.size)}</small>
+									</span>
+									<div className={styles.projectReportFileActions}>
+										<button
+											type="button"
+											onClick={() => onFileDownload(reportEntry, file)}
+										>
+											Скачать
+										</button>
+										<button
+											type="button"
+											onClick={() => onFileDelete(reportEntry, file)}
+										>
+											Удалить
+										</button>
+									</div>
+								</div>
+							))
+						) : (
+							<small>Файлы не прикреплены</small>
+						)}
+					</div>
 				</div>
-			</div>
-		) : null}
-	</Modal>
-);
+			) : null}
+		</Modal>
+	);
+};
 
 const ProjectReportCreateModal = ({
 	authorName,
