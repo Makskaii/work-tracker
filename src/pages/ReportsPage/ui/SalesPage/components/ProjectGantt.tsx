@@ -323,7 +323,7 @@ export const ProjectGantt = ({
 		}
 
 		if (customEventForm.factEndDate && !customEventForm.factStartDate) {
-			setCustomEventError("Факт конец нельзя указать без факт старта");
+			setCustomEventError("Фактическая дата завершения нельзя указать без Фактическая дата началаа");
 			return;
 		}
 
@@ -828,7 +828,7 @@ export const ProjectGantt = ({
 					</label>
 					<div className={styles.ganttFormGrid}>
 						<label>
-							<span>План старт</span>
+							<span>Плановая дата начала</span>
 							<input
 								type="date"
 								value={customEventForm.planStartDate}
@@ -842,7 +842,7 @@ export const ProjectGantt = ({
 						</label>
 						{customEventForm.eventKind === "duration" ? (
 							<label>
-								<span>План конец</span>
+								<span>Плановая дата завершения</span>
 								<input
 									type="date"
 									value={customEventForm.planEndDate}
@@ -856,7 +856,7 @@ export const ProjectGantt = ({
 							</label>
 						) : null}
 						<label>
-							<span>Факт старт</span>
+							<span>Фактическая дата начала</span>
 							<input
 								type="date"
 								value={customEventForm.factStartDate}
@@ -870,7 +870,7 @@ export const ProjectGantt = ({
 						</label>
 						{customEventForm.eventKind === "duration" ? (
 							<label>
-								<span>Факт конец</span>
+								<span>Фактическая дата завершения</span>
 								<input
 									type="date"
 									value={customEventForm.factEndDate}

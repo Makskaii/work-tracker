@@ -1,5 +1,5 @@
 import type { User } from "@/shared/types/types";
-import { MOCK_MARGIN_PERCENT } from "../model/constants";
+import { DEFAULT_MARGIN_PERCENT } from "../model/constants";
 import {
 	formatHours,
 	getLossHours,
@@ -76,8 +76,8 @@ export const ProjectsTable = ({
 										{formatHours(losses.company + losses.unpaid)} unpaid/company
 									</em>
 								</span>
-								<span className={styles.mockPill}>
-									mock {MOCK_MARGIN_PERCENT}%
+								<span className={styles.marginPill}>
+									Маржа {DEFAULT_MARGIN_PERCENT}%
 								</span>
 								<span
 									className={isProjectOk ? styles.successPill : styles.dangerPill}

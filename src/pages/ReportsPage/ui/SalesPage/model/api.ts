@@ -1,4 +1,4 @@
-import { $api } from "@/shared/config";
+﻿import { $api } from "@/shared/config";
 import { $backendApi } from "@/shared/config/axios/axios.config";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { ProjectCodes } from "@/components/calendar/constants/const";

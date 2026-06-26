@@ -661,6 +661,124 @@
   }
 }
 
+.projectFileField {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid rgba(80, 140, 190, 0.45);
+  border-radius: 12px;
+  background: rgba(6, 18, 32, 0.55);
+}
+
+.projectFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.projectFileButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(38, 240, 233, 0.75);
+  border-radius: 9px;
+  background: rgba(38, 240, 233, 0.12);
+  color: #26f0e9;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.projectFileButton:hover {
+  border-color: #26f0e9;
+  background: rgba(38, 240, 233, 0.2);
+}
+
+.projectFileButton:active {
+  transform: translateY(1px);
+}
+
+.projectFileName {
+  min-width: 0;
+  overflow: hidden;
+  color: #dce8f5;
+  font-size: 14px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectFileEmpty {
+  margin-top: 8px;
+  color: rgba(220, 232, 245, 0.62);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.projectFileCard {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(80, 140, 190, 0.35);
+  border-radius: 12px;
+  background: rgba(10, 25, 42, 0.75);
+}
+
+.projectFileCardName {
+  margin-bottom: 10px;
+  color: #e7f0fb;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.projectFileCardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.projectFileCardButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(38, 240, 233, 0.75);
+  border-radius: 8px;
+  background: rgba(38, 240, 233, 0.08);
+  color: #26f0e9;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.projectFileCardButton:hover {
+  background: rgba(38, 240, 233, 0.18);
+}
+
+.projectFileCardButtonDanger {
+  border-color: rgba(255, 99, 132, 0.75);
+  background: rgba(255, 99, 132, 0.08);
+  color: #ff6384;
+}
+
+.projectFileCardButtonDanger:hover {
+  background: rgba(255, 99, 132, 0.16);
+}
+
 @media (max-width: 760px) {
   .contentContainer {
     padding: 10px;

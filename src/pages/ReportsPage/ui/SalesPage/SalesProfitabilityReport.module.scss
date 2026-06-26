@@ -1,4 +1,4 @@
-.section {
+﻿.section {
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -44,6 +44,7 @@
 	min-width: 0;
 	width: 100%;
 	max-width: 100%;
+	min-height: calc(100vh - 96px);
 	padding: 14px;
 	border: 1px solid var(--color-border);
 	border-radius: 22px;
@@ -101,7 +102,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	max-height: calc(100vh - 260px);
+	max-height: calc(100vh - 72px);
 	overflow-y: auto;
 	padding: 0 4px 0 0;
 	scrollbar-width: none;
@@ -116,6 +117,29 @@
 	flex-direction: column;
 	gap: 8px;
 	min-width: 0;
+}
+
+.projectSearchInput {
+	width: 100%;
+	min-height: 38px;
+	padding: 9px 11px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: rgba(9, 20, 36, 0.72);
+	color: var(--color-text);
+	font-size: 12px;
+	font-weight: 800;
+	box-sizing: border-box;
+	outline: none;
+}
+
+.projectSearchInput::placeholder {
+	color: rgba(238, 245, 255, 0.42);
+}
+
+.projectSearchInput:focus {
+	border-color: var(--color-border-active);
+	background: rgba(12, 28, 48, 0.9);
 }
 
 .dealButton {
@@ -287,6 +311,68 @@
 	background: rgba(46, 197, 173, 0.08);
 }
 
+.reportProjectButton {
+	grid-template-columns: 26px minmax(0, 1fr) auto;
+}
+
+.reportProjectMenuButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 999px;
+	color: rgba(238, 245, 255, 0.72);
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1;
+}
+
+.reportProjectMenuButton:hover {
+	background: rgba(46, 197, 173, 0.12);
+	color: var(--color-text);
+}
+
+.reportProjectMeta {
+	display: flex !important;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.reportProjectMeta span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectNextReportDate {
+	color: rgba(238, 245, 255, 0.48) !important;
+	font-size: 10px !important;
+	font-weight: 800 !important;
+}
+
+.dealProjectAddButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin: 2px auto 0;
+	border: 1px solid var(--color-border-active);
+	border-radius: 999px;
+	background: rgba(46, 197, 173, 0.14);
+	color: var(--color-accent);
+	font-size: 22px;
+	font-weight: 900;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.dealProjectAddButton:hover {
+	background: rgba(46, 197, 173, 0.22);
+}
+
 .dealProjectIcon {
 	display: inline-flex;
 	align-items: center;
@@ -315,6 +401,112 @@
 	background: rgba(46, 197, 173, 0.12);
 	box-shadow: none;
 	outline: none;
+}
+
+.reportProjectFileField {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 8px 10px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.5);
+}
+
+.reportProjectFileInput {
+	display: none;
+}
+
+.reportProjectFileButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	min-height: 32px;
+	padding: 0 14px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 8px;
+	background: rgba(38, 240, 233, 0.1);
+	color: #26f0e9;
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.reportProjectFileButton:hover {
+	background: rgba(38, 240, 233, 0.18);
+	border-color: #26f0e9;
+}
+
+.reportProjectFileName {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1.2;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectFileHint {
+	display: block;
+	margin-top: 6px;
+	color: rgba(238, 245, 255, 0.54);
+	font-size: 12px;
+	font-weight: 800;
+	line-height: 1.3;
+}
+
+.reportProjectFileMeta {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 8px;
+	padding: 10px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.5);
+}
+
+.reportProjectFileMeta strong {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectFileActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.reportProjectFileActions button {
+	min-height: 30px;
+	padding: 5px 10px;
+	border-radius: 8px;
+	font-size: 12px;
+}
+
+.reportProjectFileDeleteButton {
+	border-color: rgba(255, 99, 132, 0.65);
+	color: #ff6384;
+}
+
+.reportProjectFileDeleteButton:hover {
+	border-color: rgba(255, 99, 132, 0.9);
+	background: rgba(255, 99, 132, 0.1);
 }
 
 .layoutCollapsed .structure {
@@ -465,10 +657,6 @@
 
 .successMetric strong {
 	color: var(--color-payment-client);
-}
-
-.mockMetric {
-	opacity: 0.74;
 }
 
 .tabContent {
@@ -797,7 +985,7 @@
 	box-sizing: border-box;
 }
 
-.paymentSegment + .paymentSegment {
+.paymentSegment+.paymentSegment {
 	border-bottom: 1px solid rgba(238, 245, 255, 0.16);
 }
 
@@ -828,6 +1016,39 @@
 	gap: 8px;
 }
 
+.paymentListHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 10px;
+
+	h4 {
+		margin: 0;
+	}
+}
+
+.paymentCreateButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 30px;
+	padding: 6px 12px;
+	border: 1px solid rgba(38, 236, 236, 0.62);
+	border-radius: 999px;
+	background: rgba(38, 236, 236, 0.08);
+	color: var(--color-accent-cyan);
+	font-size: 12px;
+	font-weight: 950;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.paymentCreateButton:hover {
+	border-color: rgba(38, 236, 236, 0.9);
+	background: rgba(38, 236, 236, 0.14);
+}
+
 .paymentItem {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto auto;
@@ -837,6 +1058,11 @@
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
 	background: var(--color-surface-soft);
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	appearance: none;
 
 	strong,
 	span {
@@ -881,6 +1107,10 @@
 	em {
 		font-style: normal;
 	}
+}
+
+.paymentItem:hover {
+	border-color: rgba(38, 236, 236, 0.45);
 }
 
 .ganttCustomEventSegment {
@@ -1044,6 +1274,83 @@
 	background: rgba(46, 197, 173, 0.22);
 }
 
+.autonomousGanttToolbar {
+	display: flex;
+	align-items: center;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(22, 36, 55, 0.52);
+
+	strong {
+		color: var(--color-text);
+		font-size: 15px;
+		font-weight: 950;
+	}
+}
+
+.autonomousGanttTrack {
+	position: relative;
+	display: block;
+	min-width: 720px;
+	min-height: 74px;
+	padding: 0;
+	border: 0;
+	border-bottom: 1px solid var(--color-border);
+	border-radius: 0;
+	background: linear-gradient(180deg, rgba(22, 36, 55, 0.72), rgba(15, 28, 44, 0.72));
+	color: inherit;
+	text-align: left;
+	cursor: crosshair;
+	overflow: visible;
+}
+
+.autonomousGanttTrack:hover {
+	background: linear-gradient(180deg, rgba(27, 43, 64, 0.78), rgba(15, 28, 44, 0.74));
+}
+
+.autonomousPaymenttodo b {
+	background: var(--color-payment-company);
+}
+
+.autonomousPaymentdebt b {
+	background: var(--color-accent-blue);
+}
+
+.autonomousPaymentpaid b {
+	background: var(--color-payment-client);
+}
+
+.autonomousPaymentcanceled b {
+	background: var(--color-payment-unpaid);
+}
+
+.autonomousPaymentMarker {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	cursor: pointer;
+	appearance: none;
+
+	b {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #06111e;
+	}
+
+	svg {
+		width: 10px;
+		height: 10px;
+	}
+}
+
+.autonomousPaymentMarker:hover b {
+	box-shadow:
+		0 6px 12px rgba(1, 8, 14, 0.28),
+		0 0 0 8px rgba(111, 168, 255, 0.12);
+}
+
 .ganttAddEventCell {
 	display: flex;
 	align-items: center;
@@ -1135,6 +1442,399 @@
 	gap: 10px;
 }
 
+.reportProjectModal {
+	max-height: min(76vh, 760px);
+	overflow-y: auto;
+	padding-right: 4px;
+}
+
+.reportProjectDetails {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 16px;
+	width: 100%;
+}
+
+.reportProjectDetailsHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(9, 20, 36, 0.55);
+	text-align: left;
+}
+
+.reportProjectDetailsHeader h3 {
+	margin: 0;
+	color: var(--color-text);
+	font-size: 18px;
+	font-weight: 900;
+	text-align: left;
+}
+
+.reportProjectDetailsHeader p {
+	margin: 4px 0 0;
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 13px;
+	font-weight: 700;
+	text-align: left;
+}
+
+.reportProjectDetailsEmpty {
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(9, 20, 36, 0.55);
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 14px;
+	font-weight: 800;
+	text-align: left;
+}
+
+
+.reportProjectDetailsSaveBar {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-top: 8px;
+	padding: 12px 14px;
+	border: 1px solid rgba(38, 240, 233, 0.45);
+	border-radius: 12px;
+	background: rgba(5, 15, 28, 0.96);
+	box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.reportProjectDetailsSaveBar span {
+	color: rgba(238, 245, 255, 0.7);
+	font-size: 13px;
+	font-weight: 800;
+}
+
+.reportProjectDetailsSaveBar button {
+	min-height: 34px;
+	padding: 0 16px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 9px;
+	background: rgba(38, 240, 233, 0.12);
+	color: #26f0e9;
+	font-size: 13px;
+	font-weight: 900;
+	cursor: pointer;
+}
+
+.reportProjectDetailsSaveBar button:hover:not(:disabled) {
+	background: rgba(38, 240, 233, 0.2);
+	border-color: #26f0e9;
+}
+
+.reportProjectDetailsSaveBar button:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.reportProjectDetailsHeader button {
+	flex: 0 0 auto;
+	min-height: 34px;
+	padding: 0 14px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 9px;
+	background: rgba(38, 240, 233, 0.1);
+	color: #26f0e9;
+	font-size: 13px;
+	font-weight: 900;
+	cursor: pointer;
+}
+
+.reportProjectDetailsHeader button:hover {
+	background: rgba(38, 240, 233, 0.18);
+	border-color: #26f0e9;
+}
+
+.reportProjectDetailsEmpty {
+	padding: 18px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(9, 20, 36, 0.55);
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 14px;
+	font-weight: 800;
+}
+
+.reportProjectDetail {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.42);
+}
+
+.reportProjectDetail span {
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 12px;
+	font-weight: 800;
+	line-height: 1.25;
+}
+
+.reportProjectDetail strong {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.reportProjectSection {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px;
+	border: 1px solid rgba(80, 139, 207, 0.24);
+	border-radius: 12px;
+	background: rgba(12, 25, 43, 0.34);
+
+	h4 {
+		margin: 0;
+		color: rgba(238, 245, 255, 0.82);
+		font-size: 13px;
+		font-weight: 900;
+	}
+}
+
+.reportProjectGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	align-items: start;
+	gap: 14px;
+	width: 100%;
+	text-align: left;
+}
+
+.reportProjectDetailsSection {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	padding: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	background: rgba(9, 20, 36, 0.5);
+	text-align: left;
+}
+
+.reportProjectDetailsSection h4 {
+	margin: 0;
+	color: var(--color-text);
+	font-size: 16px;
+	font-weight: 900;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.reportProjectDetailsGrid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 18px;
+	width: 100%;
+	align-items: stretch;
+	justify-items: stretch;
+}
+
+.reportProjectDetailsField {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 9px;
+	width: 100%;
+	min-width: 0;
+	text-align: left;
+}
+
+.reportProjectDetailsField>span {
+	display: block;
+	color: rgba(238, 245, 255, 0.76);
+	font-size: 15px;
+	font-weight: 900;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.reportProjectDetailsField input,
+.reportProjectDetailsField select,
+.reportProjectDetailsField textarea {
+	width: 100%;
+	min-height: 48px;
+	box-sizing: border-box;
+	padding: 12px 15px;
+	border: 1px solid rgba(80, 140, 190, 0.48);
+	border-radius: 14px;
+	background: rgba(12, 28, 48, 0.72);
+	color: var(--color-text);
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.35;
+	outline: none;
+}
+
+.reportProjectDetailsField textarea {
+	min-height: 100px;
+	resize: vertical;
+}
+
+.reportProjectDetailsField input:focus,
+.reportProjectDetailsField select:focus,
+.reportProjectDetailsField textarea:focus {
+	border-color: rgba(38, 240, 233, 0.85);
+	box-shadow: 0 0 0 2px rgba(38, 240, 233, 0.12);
+}
+
+.reportProjectDetailsWideField {
+	width: 100%;
+}
+
+.reportProjectField {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 7px;
+	min-width: 0;
+	width: 100%;
+	text-align: left;
+}
+
+.reportProjectField>span {
+	display: block;
+	color: rgba(238, 245, 255, 0.76);
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1.25;
+	text-align: left;
+}
+
+.reportProjectField input,
+.reportProjectField select,
+.reportProjectField textarea {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.reportProjectWideField {
+	grid-column: 1 / -1;
+}
+
+.reportProjectDetailsFileField {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	min-height: 54px;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border: 1px solid rgba(80, 140, 190, 0.48);
+	border-radius: 14px;
+	background: rgba(12, 28, 48, 0.72);
+}
+
+.reportProjectDetailsFileButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	min-height: 38px;
+	padding: 0 18px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 11px;
+	background: rgba(38, 240, 233, 0.1);
+	color: #26f0e9;
+	font-size: 14px;
+	font-weight: 900;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.reportProjectDetailsFileButton:hover {
+	background: rgba(38, 240, 233, 0.18);
+	border-color: #26f0e9;
+}
+
+.reportProjectDetailsFileName {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1.25;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectDetailsFileMeta {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 10px;
+	padding: 12px 14px;
+	border: 1px solid rgba(80, 140, 190, 0.48);
+	border-radius: 14px;
+	background: rgba(12, 28, 48, 0.72);
+}
+
+.reportProjectDetailsFileMeta strong {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--color-text);
+	font-size: 14px;
+	font-weight: 900;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reportProjectDetailsFileActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.reportProjectDetailsFileActions button {
+	min-height: 34px;
+	padding: 6px 12px;
+	border-radius: 10px;
+	font-size: 13px;
+}
+
+.reportProjectDetailsFileDeleteButton {
+	border-color: rgba(255, 99, 132, 0.65);
+	color: #ff6384;
+}
+
+.reportProjectDetailsFileDeleteButton:hover {
+	border-color: rgba(255, 99, 132, 0.9);
+	background: rgba(255, 99, 132, 0.1);
+}
+
+.reportProjectWideField {
+	grid-column: 1 / -1;
+}
+
 .ganttFormError {
 	margin: 0;
 	color: #ff7a86;
@@ -1143,10 +1843,426 @@
 	line-height: 1.35;
 }
 
+.projectReportsPanel {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 18px;
+}
+
+.projectReportsHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+
+	h3 {
+		margin: 0;
+		color: var(--color-text);
+		font-size: 18px;
+		font-weight: 950;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.62);
+		font-size: 13px;
+		font-weight: 800;
+	}
+}
+
+.projectReportModal {
+	max-height: min(76vh, 720px);
+	overflow-y: auto;
+}
+
+.projectReportComposer,
+.projectReportCard,
+.projectReportEmptyState {
+	border: 1px solid var(--color-border);
+	border-radius: 16px;
+	background: rgba(15, 28, 44, 0.72);
+}
+
+.projectReportComposer {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 14px;
+
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.68);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	input,
+	textarea {
+		width: 100%;
+		min-height: 38px;
+		padding: 9px 11px;
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.72);
+		color: var(--color-text);
+		box-sizing: border-box;
+	}
+}
+
+.projectReportTextarea {
+	min-height: 112px;
+	resize: vertical;
+}
+
+.projectReportMetaRow {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.projectReportFilePicker small {
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.projectReportCreateButton {
+	align-self: flex-end;
+	min-height: 38px;
+	padding: 0 16px;
+	border: 1px solid var(--color-border-active);
+	border-radius: 10px;
+	background: rgba(46, 197, 173, 0.16);
+	color: var(--color-accent);
+	font-weight: 900;
+	cursor: pointer;
+
+	&:disabled {
+		cursor: wait;
+		opacity: 0.62;
+	}
+}
+
+.projectReportModal .projectReportComposer {
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.projectReportList {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.projectReportTableWrap {
+	overflow-x: auto;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: rgba(15, 28, 44, 0.72);
+}
+
+.projectReportTable {
+	min-width: 820px;
+}
+
+.projectReportTableHead,
+.projectReportTableRow {
+	display: grid;
+	grid-template-columns: minmax(120px, 0.8fr) 112px 126px minmax(320px, 3fr) 86px;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 16px;
+}
+
+.projectReportTableHead {
+	border-bottom: 1px solid rgba(80, 139, 207, 0.28);
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 12px;
+	font-weight: 950;
+	text-transform: uppercase;
+}
+
+.projectReportTableRow {
+	width: 100%;
+	border: 0;
+	border-bottom: 1px solid rgba(80, 139, 207, 0.18);
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover {
+		background: rgba(38, 240, 233, 0.06);
+	}
+
+	&:last-child {
+		border-bottom: 0;
+	}
+}
+
+.projectReportCard {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 14px;
+}
+
+.projectReportCardHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+
+.projectReportAuthor {
+	color: var(--color-text);
+	font-size: 15px;
+	font-weight: 950;
+}
+
+.projectReportDate {
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.projectReportText {
+	margin: 0;
+	color: rgba(238, 245, 255, 0.84);
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
+.projectReportTextPreview {
+	overflow: hidden;
+	color: rgba(238, 245, 255, 0.84);
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.projectReportFilesCount {
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.projectReportViewHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+
+	h3 {
+		margin: 0;
+	}
+
+	button {
+		min-height: 34px;
+		padding: 0 12px;
+		border: 1px solid rgba(38, 240, 233, 0.55);
+		border-radius: 9px;
+		background: rgba(38, 240, 233, 0.08);
+		color: var(--color-accent);
+		font-size: 12px;
+		font-weight: 900;
+		cursor: pointer;
+
+		&:disabled {
+			cursor: wait;
+			opacity: 0.62;
+		}
+	}
+}
+
+.projectReportEditForm {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+
+	label {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	input,
+	textarea {
+		width: 100%;
+		min-height: 38px;
+		padding: 9px 11px;
+		border: 1px solid var(--color-border);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.72);
+		color: var(--color-text);
+		box-sizing: border-box;
+	}
+
+	textarea {
+		min-height: 160px;
+		resize: vertical;
+	}
+}
+
+.projectReportDetails {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+
+	div {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		padding: 10px 12px;
+		border: 1px solid rgba(80, 139, 207, 0.22);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.48);
+	}
+
+	span {
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 900;
+	}
+
+	strong {
+		color: var(--color-text);
+		font-size: 14px;
+		font-weight: 950;
+	}
+}
+
+.projectReportFullText {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	span {
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 950;
+		text-transform: uppercase;
+	}
+
+	p {
+		margin: 0;
+		padding: 12px;
+		border: 1px solid rgba(80, 139, 207, 0.22);
+		border-radius: 10px;
+		background: rgba(9, 20, 36, 0.48);
+		color: rgba(238, 245, 255, 0.86);
+		font-size: 14px;
+		font-weight: 750;
+		line-height: 1.45;
+		white-space: pre-wrap;
+	}
+}
+
+.projectReportFiles {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	> strong {
+		color: rgba(238, 245, 255, 0.72);
+		font-size: 12px;
+		font-weight: 950;
+		text-transform: uppercase;
+	}
+
+	> small {
+		color: rgba(238, 245, 255, 0.54);
+		font-size: 12px;
+		font-weight: 800;
+	}
+}
+
+.projectReportFileItem {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 10px;
+	border: 1px solid rgba(80, 139, 207, 0.24);
+	border-radius: 10px;
+	background: rgba(9, 20, 36, 0.48);
+
+	span {
+		min-width: 0;
+		overflow: hidden;
+		color: var(--color-text);
+		font-size: 13px;
+		font-weight: 900;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	small {
+		display: block;
+		margin-top: 2px;
+		color: rgba(238, 245, 255, 0.54);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.projectReportFileActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+
+	button {
+		min-height: 30px;
+		padding: 5px 9px;
+		border: 1px solid rgba(38, 240, 233, 0.55);
+		border-radius: 8px;
+		background: rgba(38, 240, 233, 0.08);
+		color: var(--color-accent);
+		font-size: 11px;
+		font-weight: 900;
+		cursor: pointer;
+	}
+}
+
+.projectReportEmptyState {
+	padding: 20px;
+	color: rgba(238, 245, 255, 0.62);
+	font-size: 14px;
+	font-weight: 800;
+	text-align: center;
+}
+
+@media (max-width: 720px) {
+	.projectReportDetails {
+		grid-template-columns: 1fr;
+	}
+}
+
 .paymentPaid,
 .paymentPlanned,
 .paymentDebt,
-.paymentCanceled {
+.paymentCanceled,
+.paymenttodo,
+.paymentdebt,
+.paymentpaid,
+.paymentcanceled {
 	display: inline-flex;
 	align-items: center;
 	width: fit-content;
@@ -1178,6 +2294,26 @@
 }
 
 .paymentCanceled {
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
+}
+
+.paymenttodo {
+	background: var(--color-payment-company-surface);
+	color: var(--color-payment-company);
+}
+
+.paymentdebt {
+	background: rgba(111, 168, 255, 0.16);
+	color: var(--color-accent-blue);
+}
+
+.paymentpaid {
+	background: rgba(72, 217, 140, 0.16);
+	color: #48d98c;
+}
+
+.paymentcanceled {
 	background: var(--color-payment-unpaid-surface);
 	color: var(--color-payment-unpaid);
 }
@@ -1302,7 +2438,7 @@
 }
 
 .mutedValue,
-.mockPill,
+.marginPill,
 .successPill,
 .dangerPill,
 .warningPill,
@@ -1318,7 +2454,7 @@
 }
 
 .mutedValue,
-.mockPill {
+.marginPill {
 	background: rgba(158, 176, 199, 0.14);
 	color: rgba(238, 245, 255, 0.72);
 }
@@ -1693,8 +2829,8 @@
 	font-size: 10px;
 }
 
-.ganttBoard > .ganttScaleLabel:nth-last-child(2),
-.ganttBoard > .ganttScale:last-child {
+.ganttBoard>.ganttScaleLabel:nth-last-child(2),
+.ganttBoard>.ganttScale:last-child {
 	border-top: 1px solid var(--color-border);
 	border-bottom: 0;
 }
@@ -1827,6 +2963,7 @@
 }
 
 .dealSummary {
+	position: relative;
 	display: grid;
 	grid-template-columns: minmax(320px, 1fr) minmax(420px, 0.8fr);
 	gap: clamp(36px, 4.5vw, 56px);
@@ -1838,6 +2975,32 @@
 	background: rgba(15, 28, 44, 0.78);
 	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
 	text-align: left;
+}
+
+.dealSummaryEditing {
+	border-color: var(--color-border);
+	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
+}
+
+.dealSummaryEditButton {
+	position: absolute;
+	top: 14px;
+	right: 14px;
+	width: 30px;
+	height: 30px;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--color-accent);
+	font-size: 16px;
+	font-weight: 950;
+	line-height: 1;
+	cursor: pointer;
+
+	&:disabled {
+		cursor: wait;
+		opacity: 0.62;
+	}
 }
 
 .dealSummaryMain {
@@ -1900,6 +3063,62 @@
 	line-height: 1.2;
 }
 
+.dealSummary input {
+	width: 4.8ch;
+	min-height: 1.1em;
+	margin: 0;
+	padding: 0 2px 1px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	box-sizing: border-box;
+	box-shadow: 0 1px 0 rgba(38, 240, 233, 0.5);
+
+	&::placeholder {
+		color: currentColor;
+		opacity: 0.52;
+	}
+
+	&:focus {
+		outline: 0;
+		background: rgba(9, 20, 36, 0.28);
+		box-shadow: 0 2px 0 var(--color-accent);
+	}
+}
+
+.dealSummary input[type="number"] {
+	appearance: textfield;
+}
+
+.dealSummary input[type="number"]::-webkit-inner-spin-button,
+.dealSummary input[type="number"]::-webkit-outer-spin-button {
+	margin: 0;
+	appearance: none;
+}
+
+.dealSummaryPrimaryStats > div:first-child input {
+	color: var(--color-accent-blue);
+}
+
+.dealSummaryPrimaryInput {
+	width: 5.8ch !important;
+}
+
+.dealSummaryMarginInline {
+	color: #9b6cff;
+}
+
+.dealSummaryUnit {
+	margin-left: 4px;
+}
+
+input[type="date"].dealSummaryDateInput {
+	width: 10ch;
+	color-scheme: dark;
+}
+
 .dealSummarySide {
 	min-width: 0;
 	max-width: 560px;
@@ -1941,6 +3160,38 @@
 
 .dealSummaryDanger {
 	color: var(--color-payment-unpaid) !important;
+}
+
+.dealSummaryActions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 14px;
+
+	button {
+		min-height: 34px;
+		padding: 0 12px;
+		border: 1px solid rgba(38, 240, 233, 0.55);
+		border-radius: 9px;
+		background: rgba(38, 240, 233, 0.08);
+		color: var(--color-accent);
+		font-size: 12px;
+		font-weight: 900;
+		cursor: pointer;
+
+		&:disabled {
+			cursor: wait;
+			opacity: 0.62;
+		}
+	}
+}
+
+.dealSummaryError {
+	margin: 10px 0 0;
+	color: var(--color-payment-canceled);
+	font-size: 12px;
+	font-weight: 900;
 }
 
 .ganttNoDate {

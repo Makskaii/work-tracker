@@ -1,4 +1,4 @@
-import { ProjectCodes } from "@/components/calendar/constants/const";
+﻿import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import type { ProjectGanttCodes } from "./constants";
@@ -109,6 +109,231 @@ export type GanttIncidentPayload = {
 	incidentDate: string;
 };
 
+export type AutonomousGanttEventKind = "one_time" | "duration";
+
+export type AutonomousPaymentStatus = "todo" | "debt" | "paid" | "canceled";
+
+export type ProjectGanttStageType =
+	| "tz_writing"
+	| "tz_signing"
+	| "development"
+	| "education"
+	| "delivery"
+	| "closing";
+
+export type ProjectGanttStage = {
+	id: number;
+	projectId: string;
+	title: string;
+	code: string;
+	stageType: ProjectGanttStageType | "payments" | null;
+	sortOrder: number;
+	isDefault: boolean;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type ProjectGanttStagePayload = {
+	title?: string;
+	code?: string;
+	stageType?: ProjectGanttStageType | null;
+	sortOrder?: number | null;
+};
+
+export type ProjectGanttEvent = {
+	id: number;
+	projectId: string;
+	stageId: number;
+	title: string;
+	eventKind: AutonomousGanttEventKind;
+	planStartDate: string | null;
+	planEndDate: string | null;
+	factStartDate: string | null;
+	factEndDate: string | null;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type ProjectGanttEventPayload = {
+	stageId: number;
+	title: string;
+	eventKind: AutonomousGanttEventKind;
+	planStartDate?: string | null;
+	planEndDate?: string | null;
+	factStartDate?: string | null;
+	factEndDate?: string | null;
+	sortOrder?: number | null;
+};
+
+export type AutonomousProjectPayment = {
+	id: number;
+	projectId: string;
+	stageId: number;
+	status: AutonomousPaymentStatus;
+	paymentDate: string | null;
+	percent: number | null;
+	amount: number | null;
+	waitingDays: number | null;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type AutonomousProjectPaymentPayload = {
+	stageId: number;
+	status: AutonomousPaymentStatus;
+	paymentDate?: string | null;
+	percent?: number | null;
+	amount?: number | null;
+	waitingDays?: number | null;
+	sortOrder?: number | null;
+};
+
+export type ReportProjectType = "none" | "waterfall" | "support";
+
+export type ReportProjectFileKind = "estimate" | "technical_specification";
+
+export type ReportProjectFile = {
+	id: number;
+	projectId: number;
+	fileKind: ReportProjectFileKind;
+	originalName: string;
+	mimeType: string;
+	sizeBytes: number;
+	storagePath: string;
+	createdAt: string;
+};
+
+export type ProjectReportEntryFile = {
+	id: number;
+	reportEntryId: number;
+	originalName: string;
+	storedName: string;
+	mimeType: string;
+	size: number;
+	path: string;
+	createdAt: string;
+};
+
+export type ProjectReportEntry = {
+	id: number;
+	projectId: number;
+	authorId: string | null;
+	authorName: string;
+	text: string;
+	reportDate: string;
+	nextReportDate: string | null;
+	files: ProjectReportEntryFile[];
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type CreateProjectReportEntryPayload = {
+	authorName: string;
+	authorId?: string | null;
+	text: string;
+	nextReportDate?: string | null;
+};
+
+export type UpdateProjectReportEntryPayload = {
+	authorName?: string;
+	authorId?: string | null;
+	text?: string;
+	nextReportDate?: string | null;
+};
+
+export type ReportProject = {
+	id: number;
+	bitrixProjectId: string | null;
+	title: string;
+	projectAmount: number | null;
+	summaryMarginPercent: number | null;
+	summaryPurchasedHours: number | null;
+	summaryPlanHours: number | null;
+	summaryFactHours: number | null;
+	summaryLossHours: number | null;
+	summaryPlanCompletionDate: string | null;
+	summaryFactCompletionDate: string | null;
+	projectType: ReportProjectType;
+	projectGoal: string | null;
+	projectStartDate: string | null;
+	contractEndDate: string | null;
+	clientCompany: string | null;
+	deal: string | null;
+	nextReportDate: string | null;
+	nextProjectReportDate: string | null;
+	reportInfo: string | null;
+	deadline: string | null;
+	redline: string | null;
+	responsible: string | null;
+	analyst: string | null;
+	developmentTeam: string | null;
+	qa: string | null;
+	tzStartDate: string | null;
+	tzWeeks: number | null;
+	tzPlanEndDate: string | null;
+	tzFactEndDate: string | null;
+	tzSignDate: string | null;
+	developmentWeeks: number | null;
+	developmentPlanStartDate: string | null;
+	developmentPlanEndDate: string | null;
+	developmentFactStartDate: string | null;
+	developmentFactEndDate: string | null;
+	educationWeeks: number | null;
+	educationPlanStartDate: string | null;
+	educationPlanEndDate: string | null;
+	educationFactStartDate: string | null;
+	educationFactEndDate: string | null;
+	closeDate: string | null;
+	files: ReportProjectFile[];
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type ReportProjectPayload = {
+	title: string;
+	bitrixProjectId?: string | null;
+	projectAmount?: number | null;
+	summaryMarginPercent?: number | null;
+	summaryPurchasedHours?: number | null;
+	summaryPlanHours?: number | null;
+	summaryFactHours?: number | null;
+	summaryLossHours?: number | null;
+	summaryPlanCompletionDate?: string | null;
+	summaryFactCompletionDate?: string | null;
+	projectType?: ReportProjectType;
+	projectGoal?: string | null;
+	projectStartDate?: string | null;
+	contractEndDate?: string | null;
+	clientCompany?: string | null;
+	deal?: string | null;
+	nextReportDate?: string | null;
+	reportInfo?: string | null;
+	deadline?: string | null;
+	redline?: string | null;
+	responsible?: string | null;
+	analyst?: string | null;
+	developmentTeam?: string | null;
+	qa?: string | null;
+	tzStartDate?: string | null;
+	tzWeeks?: number | null;
+	tzPlanEndDate?: string | null;
+	tzFactEndDate?: string | null;
+	tzSignDate?: string | null;
+	developmentWeeks?: number | null;
+	developmentPlanStartDate?: string | null;
+	developmentPlanEndDate?: string | null;
+	developmentFactStartDate?: string | null;
+	developmentFactEndDate?: string | null;
+	educationWeeks?: number | null;
+	educationPlanStartDate?: string | null;
+	educationPlanEndDate?: string | null;
+	educationFactStartDate?: string | null;
+	educationFactEndDate?: string | null;
+	closeDate?: string | null;
+};
+
 export type FinancialProjectSummary = {
 	purchasedHours: number;
 	revenue: number;
@@ -117,15 +342,17 @@ export type FinancialProjectSummary = {
 	lossHours: number;
 	companyHours: number;
 	unpaidHours: number;
-	mockMarginPercent: number;
-	mockProfit: number;
+	marginPercent: number;
+	profit: number;
 };
 
 export type SalesProfitabilityTab =
 	| "marginality"
 	| "projects"
+	| "projectDetails"
 	| "tasks"
-	| "reports";
+	| "reports"
+	| "projectReports";
 
 export type ProfitabilityTaskItem = {
 	task: TaskProps;

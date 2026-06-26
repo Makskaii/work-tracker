@@ -52,4 +52,4 @@ export const REPORT_SELECT_FIELDS = [
 	"stageId",
 ] as const;
 
-export const MOCK_MARGIN_PERCENT = 53;
+export const DEFAULT_MARGIN_PERCENT = 53;
