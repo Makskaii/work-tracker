@@ -66,6 +66,7 @@ import {
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
 import { formatMoney } from "./model/profitabilityUtils";
+import { useCompanyProjects } from "./model/useCompanyProjects";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -109,6 +110,8 @@ const paymentStatusLabels = {
 } as const;
 
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
+
+const normalizeProjectTitle = (title: string) => title.trim().toLowerCase();
 
 const mergeReportProjectFiles = (
 	files: ReportProjectFile[] = [],
@@ -266,6 +269,8 @@ export const SalesProfitabilityReport = ({
 		number | null
 	>(null);
 	const { openTask } = useBitrixSlider();
+	const { projects: bitrixProjects, isLoadingDetails: isBitrixProjectsLoading } =
+		useCompanyProjects();
 	const selectedReportProject = reportProjects.find(
 		(project) => getDbProjectId(project) === selectedProjectId,
 	) ?? reportProjects[0] ?? null;
@@ -386,9 +391,20 @@ export const SalesProfitabilityReport = ({
 	}, [reportProjects, selectedReportProject, selectedProjectId]);
 
 	const summary = getReportProjectSummary(selectedReportProject);
-	const isBusy = loading || isReportProjectsLoading;
-	const allTasks: never[] = [];
-	const allReports: never[] = [];
+	const isBusy = loading || isReportProjectsLoading || isBitrixProjectsLoading;
+	const selectedBitrixProjects = selectedReportProject
+		? bitrixProjects.filter(
+				(project) =>
+					normalizeProjectTitle(project.title ?? "") ===
+					normalizeProjectTitle(selectedReportProject.title),
+			)
+		: [];
+	const allTasks = selectedBitrixProjects.flatMap((project) =>
+		project.tasks.map((task) => ({ project, task })),
+	);
+	const allReports = selectedBitrixProjects.flatMap((project) =>
+		project.reports.map((report) => ({ project, report })),
+	);
 	const normalizedProjectSearchQuery = projectSearchQuery.trim().toLowerCase();
 	const visibleReportProjects = normalizedProjectSearchQuery
 		? reportProjects.filter((project) =>
