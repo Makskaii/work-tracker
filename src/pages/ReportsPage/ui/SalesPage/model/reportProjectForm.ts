@@ -26,6 +26,7 @@ export type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File
 export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	analyst: "",
 	clientCompany: "",
+	contractEndDate: "",
 	closeDate: "",
 	deadline: "",
 	deal: "",
@@ -43,6 +44,7 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	nextReportDate: "",
 	projectAmount: "",
 	projectGoal: "",
+	projectStartDate: "",
 	projectType: "none",
 	qa: "",
 	redline: "",
@@ -107,6 +109,7 @@ export const getReportProjectForm = (
 	return {
 		analyst: project.analyst ?? "",
 		clientCompany: project.clientCompany ?? "",
+		contractEndDate: project.contractEndDate ?? "",
 		closeDate: project.closeDate ?? "",
 		deadline: project.deadline ?? "",
 		deal: project.deal ?? "",
@@ -127,6 +130,7 @@ export const getReportProjectForm = (
 		projectAmount:
 			project.projectAmount === null ? "" : String(project.projectAmount),
 		projectGoal: project.projectGoal ?? "",
+		projectStartDate: project.projectStartDate ?? "",
 		projectType: project.projectType,
 		qa: project.qa ?? "",
 		redline: project.redline ?? "",
@@ -162,6 +166,7 @@ export const getReportProjectPayload = (
 ): ReportProjectPayload => ({
 	analyst: textOrNull(form.analyst),
 	clientCompany: textOrNull(form.clientCompany),
+	contractEndDate: dateOrNull(form.contractEndDate),
 	closeDate: dateOrNull(form.closeDate),
 	deadline: dateOrNull(form.deadline),
 	deal: textOrNull(form.deal),
@@ -179,6 +184,7 @@ export const getReportProjectPayload = (
 	nextReportDate: dateOrNull(form.nextReportDate),
 	projectAmount: numberOrNull(form.projectAmount),
 	projectGoal: textOrNull(form.projectGoal),
+	projectStartDate: dateOrNull(form.projectStartDate),
 	projectType: form.projectType as ReportProjectType,
 	qa: textOrNull(form.qa),
 	redline: dateOrNull(form.redline),

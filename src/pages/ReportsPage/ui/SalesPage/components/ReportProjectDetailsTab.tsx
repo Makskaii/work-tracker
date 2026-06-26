@@ -4,7 +4,6 @@ import type {
 	ReportProjectFileKind,
 } from "../model/types";
 import {
-	projectTypeOptions,
 	reportProjectFileLabels,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
@@ -54,7 +53,7 @@ export const ReportProjectDetailsTab = ({
 			<div className={styles.reportProjectDetailsHeader}>
 				<div>
 					<h3>{project.title}</h3>
-					<p>Детальная информация по выбранному проекту</p>
+					<p>Карточка выбранного проекта</p>
 				</div>
 			</div>
 
@@ -68,50 +67,25 @@ export const ReportProjectDetailsTab = ({
 				/>
 				<ReportProjectInput
 					form={form}
+					label="Цель проекта"
+					name="projectGoal"
+					onFormChange={onFormChange}
+					textarea
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
 					label="Сумма проекта"
 					name="projectAmount"
 					onFormChange={onFormChange}
 					type="number"
 					variant="details"
 				/>
-				<label className={styles.reportProjectDetailsField}>
-					<span>Какой тип проекта?</span>
-					<select
-						value={form.projectType}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								projectType: event.target.value,
-							})
-						}
-					>
-						{projectTypeOptions.map((option) => (
-							<option key={option.value} value={option.value}>
-								{option.label}
-							</option>
-						))}
-					</select>
-				</label>
 				<ReportProjectInput
 					form={form}
 					label="Компания клиента"
 					name="clientCompany"
 					onFormChange={onFormChange}
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Сделка"
-					name="deal"
-					onFormChange={onFormChange}
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Цель проекта"
-					name="projectGoal"
-					onFormChange={onFormChange}
-					textarea
 					variant="details"
 				/>
 				<ReportProjectFileInput
@@ -141,42 +115,20 @@ export const ReportProjectDetailsTab = ({
 					onFileChange={onFileDraftChange}
 					variant="details"
 				/>
-			</ReportProjectSection>
-
-			<ReportProjectSection title="Отчёт аналитика" variant="details">
 				<ReportProjectInput
 					form={form}
-					label="Следующая дата отчёта"
-					name="nextReportDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-			</ReportProjectSection>
-
-			<ReportProjectSection title="Информация для отчёта" variant="details">
-				<ReportProjectInput
-					form={form}
-					label="Дедлайн"
-					name="deadline"
+					label="Дата начала проекта"
+					name="projectStartDate"
 					onFormChange={onFormChange}
 					type="date"
 					variant="details"
 				/>
 				<ReportProjectInput
 					form={form}
-					label="Редлайн"
-					name="redline"
+					label="Дата окончания проекта по договору"
+					name="contractEndDate"
 					onFormChange={onFormChange}
 					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Информация для отчёта"
-					name="reportInfo"
-					onFormChange={onFormChange}
-					textarea
 					variant="details"
 				/>
 			</ReportProjectSection>
@@ -212,152 +164,14 @@ export const ReportProjectDetailsTab = ({
 				/>
 			</ReportProjectSection>
 
-			<ReportProjectSection title="ТЗ" variant="details">
-				<ReportProjectInput
-					form={form}
-					label="Дата начала написания ТЗ"
-					name="tzStartDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Срок написания ТЗ, недель"
-					name="tzWeeks"
-					onFormChange={onFormChange}
-					type="number"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Плановая дата завершения ТЗ"
-					name="tzPlanEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Фактическая дата завершения ТЗ"
-					name="tzFactEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Дата подписания ТЗ"
-					name="tzSignDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-			</ReportProjectSection>
-
-			<ReportProjectSection title="Разработка" variant="details">
-				<ReportProjectInput
-					form={form}
-					label="Срок разработки, недель"
-					name="developmentWeeks"
-					onFormChange={onFormChange}
-					type="number"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Плановая дата начала разработки"
-					name="developmentPlanStartDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Плановая дата завершения разработки"
-					name="developmentPlanEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Фактическая дата начала разработки"
-					name="developmentFactStartDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Фактическая дата завершения разработки"
-					name="developmentFactEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-			</ReportProjectSection>
-
-			<ReportProjectSection title="Обучение / сдача" variant="details">
-				<ReportProjectInput
-					form={form}
-					label="Срок обучения / сдачи, недель"
-					name="educationWeeks"
-					onFormChange={onFormChange}
-					type="number"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Плановая дата начала обучения / сдачи"
-					name="educationPlanStartDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Плановая дата завершения обучения / сдачи"
-					name="educationPlanEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Фактическая дата начала обучения / сдачи"
-					name="educationFactStartDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Фактическая дата завершения обучения / сдачи"
-					name="educationFactEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Дата закрытия проекта / подписания акта"
-					name="closeDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-			</ReportProjectSection>
-
 			{detailsProjectError ? (
 				<p className={styles.ganttFormError}>{detailsProjectError}</p>
 			) : null}
 
 			{shouldShowSave ? (
-				<div className={styles.reportProjectDetailsSaveBar}>
-					<span>Есть несохранённые изменения</span>
+				<div className={styles.reportProjectDetailsActions}>
 					<button type="button" disabled={isSaving} onClick={onSave}>
-						{isSaving ? "Сохранение..." : "Сохранить"}
+						{isSaving ? "Сохранение..." : "Сохранить изменения"}
 					</button>
 				</div>
 			) : null}

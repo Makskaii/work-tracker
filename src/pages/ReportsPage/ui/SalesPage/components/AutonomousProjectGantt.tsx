@@ -169,6 +169,23 @@ const getStageTypeFromStage = (
 		? stage.stageType
 		: "tz_writing";
 
+const getPaymentDateFromEventDates = ({
+	factEndDate,
+	factStartDate,
+	planEndDate,
+	planStartDate,
+}: {
+	factEndDate?: string | null;
+	factStartDate?: string | null;
+	planEndDate?: string | null;
+	planStartDate?: string | null;
+}) =>
+	factEndDate ??
+	planEndDate ??
+	factStartDate ??
+	planStartDate ??
+	"";
+
 export const calculatePaymentFields = ({
 	amount,
 	percent,
@@ -264,6 +281,14 @@ export const AutonomousProjectGantt = ({
 		() => stages.filter((stage) => stage.code !== "payments"),
 		[stages],
 	);
+	const getPaymentDateForStage = useCallback(
+		(stageId: number | null) => {
+			const stageEvent = events.find((event) => event.stageId === stageId);
+
+			return getPaymentDateFromEventDates(stageEvent ?? {});
+		},
+		[events],
+	);
 
 	const refreshData = useCallback(
 		async (signal?: AbortSignal) => {
@@ -334,14 +359,6 @@ export const AutonomousProjectGantt = ({
 		setIsStageModalOpen(true);
 	};
 
-	const openEventCreateModal = (stage: ProjectGanttStage) => {
-		setEventForm({
-			...DEFAULT_EVENT_FORM,
-			stageId: stage.id,
-		});
-		setIsEventModalOpen(true);
-	};
-
 	const openEventEditModal = (event: ProjectGanttEvent) => {
 		setEventForm({
 			eventKind: event.eventKind,
@@ -357,9 +374,12 @@ export const AutonomousProjectGantt = ({
 	};
 
 	const openPaymentCreateModal = () => {
+		const stageId = editableStages[0]?.id ?? stages[0]?.id ?? null;
+
 		setPaymentForm({
 			...DEFAULT_PAYMENT_FORM,
-			stageId: editableStages[0]?.id ?? stages[0]?.id ?? null,
+			paymentDate: getPaymentDateForStage(stageId),
+			stageId,
 		});
 		setIsPaymentModalOpen(true);
 	};
@@ -395,6 +415,26 @@ export const AutonomousProjectGantt = ({
 			planStartDate: stageForm.planStartDate || null,
 			title,
 		};
+		const updateStagePaymentsDate = async (stageId: number) => {
+			const paymentDate = getPaymentDateFromEventDates(eventPayload);
+			const stagePayments = payments.filter(
+				(payment) =>
+					payment.stageId === stageId &&
+					(payment.paymentDate ?? "") !== paymentDate,
+			);
+
+			if (!stagePayments.length) {
+				return;
+			}
+
+			await Promise.all(
+				stagePayments.map((payment) =>
+					updateAutonomousProjectPayment(payment.id, {
+						paymentDate: paymentDate || null,
+					}),
+				),
+			);
+		};
 
 		if (stageForm.id) {
 			await updateProjectGanttStage(stageForm.id, {
@@ -419,6 +459,7 @@ export const AutonomousProjectGantt = ({
 					stageId: stageForm.id,
 				});
 			}
+			await updateStagePaymentsDate(stageForm.id);
 		} else {
 			const createdStage = await createProjectGanttStage(String(project.id), {
 				sortOrder: stages.length,
@@ -446,6 +487,7 @@ export const AutonomousProjectGantt = ({
 
 		setIsStageModalOpen(false);
 		await refreshData();
+		onPaymentsChanged?.();
 	};
 
 	const handleStageDelete = async () => {
@@ -592,11 +634,7 @@ export const AutonomousProjectGantt = ({
 							<AutonomousStageRow
 								key={row.stage.id}
 								monthTicks={monthTicks}
-								onEventCreate={() =>
-									row.stage.code === "payments"
-										? openPaymentCreateModal()
-										: openEventCreateModal(row.stage)
-								}
+								onPaymentCreate={openPaymentCreateModal}
 								onEventEdit={openEventEditModal}
 								onPaymentEdit={openPaymentEditModal}
 								onStageEdit={openStageEditModal}
@@ -657,6 +695,7 @@ export const AutonomousProjectGantt = ({
 				onDelete={handlePaymentDelete}
 				onFormChange={setPaymentForm}
 				onSubmit={handlePaymentSubmit}
+				getPaymentDateForStage={getPaymentDateForStage}
 				projectAmount={project.projectAmount}
 				stages={stages}
 			/>
@@ -666,8 +705,8 @@ export const AutonomousProjectGantt = ({
 
 const AutonomousStageRow = ({
 	monthTicks,
-	onEventCreate,
 	onEventEdit,
+	onPaymentCreate,
 	onPaymentEdit,
 	onStageEdit,
 	row,
@@ -676,8 +715,8 @@ const AutonomousStageRow = ({
 	weekTicks,
 }: {
 	monthTicks: GanttMonthTick[];
-	onEventCreate: () => void;
 	onEventEdit: (event: ProjectGanttEvent) => void;
+	onPaymentCreate: () => void;
 	onPaymentEdit: (payment: AutonomousProjectPayment) => void;
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
@@ -710,14 +749,18 @@ const AutonomousStageRow = ({
 			</div>
 			<div
 				className={styles.autonomousGanttTrack}
-				onClick={onEventCreate}
-				onKeyDown={(event) => {
-					if (event.key === "Enter" || event.key === " ") {
-						onEventCreate();
-					}
-				}}
-				role="button"
-				tabIndex={0}
+				onClick={isPaymentsStage ? onPaymentCreate : undefined}
+				onKeyDown={
+					isPaymentsStage
+						? (event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									onPaymentCreate();
+								}
+							}
+						: undefined
+				}
+				role={isPaymentsStage ? "button" : undefined}
+				tabIndex={isPaymentsStage ? 0 : undefined}
 			>
 				<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
 				{row.events.map((event) => (
@@ -1110,6 +1153,7 @@ const EventModal = ({
 export const PaymentModal = ({
 	deletingPaymentId,
 	form,
+	getPaymentDateForStage,
 	isOpen,
 	onClose,
 	onDelete,
@@ -1120,6 +1164,7 @@ export const PaymentModal = ({
 }: {
 	deletingPaymentId: number | null;
 	form: PaymentFormState;
+	getPaymentDateForStage: (stageId: number | null) => string;
 	isOpen: boolean;
 	onClose: () => void;
 	onDelete: () => void;
@@ -1152,12 +1197,15 @@ export const PaymentModal = ({
 				<span>Этап, к которому привязана оплата</span>
 				<select
 					value={form.stageId ?? ""}
-					onChange={(event) =>
+					onChange={(event) => {
+						const stageId = Number(event.target.value);
+
 						onFormChange({
 							...form,
-							stageId: Number(event.target.value),
-						})
-					}
+							paymentDate: getPaymentDateForStage(stageId),
+							stageId,
+						});
+					}}
 				>
 					{stages
 						.filter((stage) => stage.code !== "payments")

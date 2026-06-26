@@ -256,6 +256,8 @@ export type ReportProject = {
 	summaryFactCompletionDate: string | null;
 	projectType: ReportProjectType;
 	projectGoal: string | null;
+	projectStartDate: string | null;
+	contractEndDate: string | null;
 	clientCompany: string | null;
 	deal: string | null;
 	nextReportDate: string | null;
@@ -300,6 +302,8 @@ export type ReportProjectPayload = {
 	summaryFactCompletionDate?: string | null;
 	projectType?: ReportProjectType;
 	projectGoal?: string | null;
+	projectStartDate?: string | null;
+	contractEndDate?: string | null;
 	clientCompany?: string | null;
 	deal?: string | null;
 	nextReportDate?: string | null;
