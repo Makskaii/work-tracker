@@ -38,12 +38,19 @@ import type {
 	AutonomousProjectPayment,
 	ProjectGanttEvent,
 	ProjectGanttStage,
+	ProjectGanttStageType,
 	ReportProject,
 } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
 type StageFormState = {
+	eventId: number | null;
+	factEndDate: string;
+	factStartDate: string;
 	id: number | null;
+	planEndDate: string;
+	planStartDate: string;
+	stageType: ProjectGanttStageType;
 	title: string;
 };
 
@@ -69,7 +76,13 @@ export type PaymentFormState = {
 };
 
 const DEFAULT_STAGE_FORM: StageFormState = {
+	eventId: null,
+	factEndDate: "",
+	factStartDate: "",
 	id: null,
+	planEndDate: "",
+	planStartDate: "",
+	stageType: "tz_writing",
 	title: "",
 };
 
@@ -83,6 +96,24 @@ const DEFAULT_EVENT_FORM: EventFormState = {
 	stageId: null,
 	title: "",
 };
+
+const STAGE_TYPE_OPTIONS: Array<{
+	label: string;
+	value: ProjectGanttStageType;
+}> = [
+	{ label: "Написание ТЗ", value: "tz_writing" },
+	{ label: "Подписание ТЗ", value: "tz_signing" },
+	{ label: "Разработка", value: "development" },
+	{ label: "Обучение", value: "education" },
+	{ label: "Сдача", value: "delivery" },
+	{ label: "Закрытие проекта", value: "closing" },
+];
+
+const DURATION_STAGE_TYPES = new Set<ProjectGanttStageType>([
+	"tz_writing",
+	"development",
+	"education",
+]);
 
 export const DEFAULT_PAYMENT_FORM: PaymentFormState = {
 	amount: "",
@@ -114,12 +145,69 @@ const toNumberOrNull = (value: string) => {
 	return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
-const getStageCode = (title: string) =>
-	title
-		.trim()
-		.toLowerCase()
-		.replace(/[^a-zа-яё0-9]+/gi, "-")
-		.replace(/^-+|-+$/g, "") || `stage-${Date.now()}`;
+const formatPaymentNumber = (value: number) => {
+	const roundedValue = Math.round(value * 100) / 100;
+
+	return Number.isInteger(roundedValue)
+		? String(roundedValue)
+		: String(roundedValue).replace(".", ",");
+};
+
+const getStageTypeLabel = (stageType: ProjectGanttStageType) =>
+	STAGE_TYPE_OPTIONS.find((option) => option.value === stageType)?.label ??
+	stageType;
+
+const getStageEventKind = (
+	stageType: ProjectGanttStageType,
+): AutonomousGanttEventKind =>
+	DURATION_STAGE_TYPES.has(stageType) ? "duration" : "one_time";
+
+const getStageTypeFromStage = (
+	stage: ProjectGanttStage,
+): ProjectGanttStageType =>
+	stage.stageType && stage.stageType !== "payments"
+		? stage.stageType
+		: "tz_writing";
+
+export const calculatePaymentFields = ({
+	amount,
+	percent,
+	projectAmount,
+	source,
+}: {
+	amount: string;
+	percent: string;
+	projectAmount: number | null | undefined;
+	source: "amount" | "percent";
+}): Pick<PaymentFormState, "amount" | "percent"> => {
+	const normalizedProjectAmount = projectAmount ?? 0;
+
+	if (normalizedProjectAmount <= 0) {
+		return { amount, percent };
+	}
+
+	if (source === "percent") {
+		const percentValue = toNumberOrNull(percent);
+
+		return {
+			amount:
+				percentValue === null
+					? ""
+					: formatPaymentNumber((normalizedProjectAmount * percentValue) / 100),
+			percent,
+		};
+	}
+
+	const amountValue = toNumberOrNull(amount);
+
+	return {
+		amount,
+		percent:
+			amountValue === null
+				? ""
+				: formatPaymentNumber((amountValue / normalizedProjectAmount) * 100),
+	};
+};
 
 export const AutonomousProjectGantt = ({
 	onPaymentsChanged,
@@ -222,13 +310,25 @@ export const AutonomousProjectGantt = ({
 	}, [refreshData, paymentsRefreshKey]);
 
 	const openStageCreateModal = () => {
-		setStageForm(DEFAULT_STAGE_FORM);
+		setStageForm({
+			...DEFAULT_STAGE_FORM,
+			title: getStageTypeLabel(DEFAULT_STAGE_FORM.stageType),
+		});
 		setIsStageModalOpen(true);
 	};
 
 	const openStageEditModal = (stage: ProjectGanttStage) => {
+		const stageEvent = events.find((event) => event.stageId === stage.id);
+		const stageType = getStageTypeFromStage(stage);
+
 		setStageForm({
+			eventId: stageEvent?.id ?? null,
+			factEndDate: stageEvent?.factEndDate ?? "",
+			factStartDate: stageEvent?.factStartDate ?? "",
 			id: stage.id,
+			planEndDate: stageEvent?.planEndDate ?? "",
+			planStartDate: stageEvent?.planStartDate ?? "",
+			stageType,
 			title: stage.title,
 		});
 		setIsStageModalOpen(true);
@@ -279,20 +379,69 @@ export const AutonomousProjectGantt = ({
 	};
 
 	const handleStageSubmit = async () => {
-		if (!project?.id || !stageForm.title.trim()) {
+		if (!project?.id) {
 			return;
 		}
 
+		const title = stageForm.title.trim() || getStageTypeLabel(stageForm.stageType);
+		const eventKind = getStageEventKind(stageForm.stageType);
+		const eventPayload = {
+			eventKind,
+			factEndDate:
+				eventKind === "duration" ? stageForm.factEndDate || null : null,
+			factStartDate: stageForm.factStartDate || null,
+			planEndDate:
+				eventKind === "duration" ? stageForm.planEndDate || null : null,
+			planStartDate: stageForm.planStartDate || null,
+			title,
+		};
+
 		if (stageForm.id) {
 			await updateProjectGanttStage(stageForm.id, {
-				title: stageForm.title.trim(),
+				stageType: stageForm.stageType,
+				title,
 			});
+
+			const stageEvent =
+				stageForm.eventId ??
+				events.find((event) => event.stageId === stageForm.id)?.id ??
+				null;
+
+			if (stageEvent) {
+				await updateProjectGanttEvent(stageEvent, {
+					...eventPayload,
+					stageId: stageForm.id,
+				});
+			} else {
+				await createProjectGanttEvent(String(project.id), {
+					...eventPayload,
+					sortOrder: events.length,
+					stageId: stageForm.id,
+				});
+			}
 		} else {
-			await createProjectGanttStage(String(project.id), {
-				code: getStageCode(stageForm.title),
+			const createdStage = await createProjectGanttStage(String(project.id), {
 				sortOrder: stages.length,
-				title: stageForm.title.trim(),
+				stageType: stageForm.stageType,
+				title,
 			});
+			const createdEvents = await fetchProjectGanttEvents(String(project.id));
+			const createdStageEvent = createdEvents.find(
+				(event) => event.stageId === createdStage.id,
+			);
+
+			if (createdStageEvent) {
+				await updateProjectGanttEvent(createdStageEvent.id, {
+					...eventPayload,
+					stageId: createdStage.id,
+				});
+			} else {
+				await createProjectGanttEvent(String(project.id), {
+					...eventPayload,
+					sortOrder: events.length,
+					stageId: createdStage.id,
+				});
+			}
 		}
 
 		setIsStageModalOpen(false);
@@ -367,9 +516,23 @@ export const AutonomousProjectGantt = ({
 		}
 
 		const payload = {
-			amount: toNumberOrNull(paymentForm.amount),
+			amount: toNumberOrNull(
+				calculatePaymentFields({
+					amount: paymentForm.amount,
+					percent: paymentForm.percent,
+					projectAmount: project.projectAmount,
+					source: paymentForm.amount ? "amount" : "percent",
+				}).amount,
+			),
 			paymentDate: paymentForm.paymentDate || null,
-			percent: toNumberOrNull(paymentForm.percent),
+			percent: toNumberOrNull(
+				calculatePaymentFields({
+					amount: paymentForm.amount,
+					percent: paymentForm.percent,
+					projectAmount: project.projectAmount,
+					source: paymentForm.amount ? "amount" : "percent",
+				}).percent,
+			),
 			stageId: paymentForm.stageId,
 			status: paymentForm.status,
 			waitingDays: toNumberOrNull(paymentForm.waitingDays),
@@ -494,6 +657,7 @@ export const AutonomousProjectGantt = ({
 				onDelete={handlePaymentDelete}
 				onFormChange={setPaymentForm}
 				onSubmit={handlePaymentSubmit}
+				projectAmount={project.projectAmount}
 				stages={stages}
 			/>
 		</>
@@ -692,39 +856,133 @@ const StageModal = ({
 	onFormChange: (value: StageFormState) => void;
 	onSubmit: () => void;
 	stage: ProjectGanttStage | null | undefined;
-}) => (
-	<Modal isOpen={isOpen} onClose={onClose} size="small">
-		<div className={styles.ganttFormModal}>
-			<h3>{form.id ? "Редактирование этапа" : "Новый этап"}</h3>
-			<label>
-				<span>Название</span>
-				<input
-					value={form.title}
-					onChange={(event) =>
-						onFormChange({
-							...form,
-							title: event.target.value,
-						})
-					}
-				/>
-			</label>
-			<div className={styles.ganttFormActions}>
-				{form.id && stage?.code !== "payments" && !stage?.isDefault ? (
-					<button
-						type="button"
-						className={styles.ganttFormDeleteButton}
-						onClick={onDelete}
+}) => {
+	const isDurationStage = DURATION_STAGE_TYPES.has(form.stageType);
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} size="small">
+			<div className={styles.ganttFormModal}>
+				<h3>{form.id ? "Редактирование этапа" : "Новый этап"}</h3>
+				<label>
+					<span>Тип этапа</span>
+					<select
+						value={form.stageType}
+						onChange={(event) => {
+							const stageType = event.target.value as ProjectGanttStageType;
+							const previousDefaultTitle = getStageTypeLabel(form.stageType);
+							const shouldUseDefaultTitle =
+								!form.title.trim() || form.title === previousDefaultTitle;
+
+							onFormChange({
+								...form,
+								stageType,
+								title: shouldUseDefaultTitle
+									? getStageTypeLabel(stageType)
+									: form.title,
+							});
+						}}
 					>
-						{deletingStageId === form.id ? "Подтвердить удаление" : "Удалить"}
+						{STAGE_TYPE_OPTIONS.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</select>
+				</label>
+				<label>
+					<span>Название</span>
+					<input
+						value={form.title}
+						onChange={(event) =>
+							onFormChange({
+								...form,
+								title: event.target.value,
+							})
+						}
+					/>
+				</label>
+				<div className={styles.ganttFormGrid}>
+					<label>
+						<span>
+							{isDurationStage ? "Плановая дата начала" : "Плановая дата"}
+						</span>
+						<input
+							type="date"
+							value={form.planStartDate}
+							onChange={(event) =>
+								onFormChange({
+									...form,
+									planStartDate: event.target.value,
+								})
+							}
+						/>
+					</label>
+					{isDurationStage ? (
+						<label>
+							<span>Плановая дата завершения</span>
+							<input
+								type="date"
+								value={form.planEndDate}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										planEndDate: event.target.value,
+									})
+								}
+							/>
+						</label>
+					) : null}
+					<label>
+						<span>
+							{isDurationStage ? "Фактическая дата начала" : "Фактическая дата"}
+						</span>
+						<input
+							type="date"
+							value={form.factStartDate}
+							onChange={(event) =>
+								onFormChange({
+									...form,
+									factStartDate: event.target.value,
+								})
+							}
+						/>
+					</label>
+					{isDurationStage ? (
+						<label>
+							<span>Фактическая дата завершения</span>
+							<input
+								type="date"
+								value={form.factEndDate}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										factEndDate: event.target.value,
+									})
+								}
+							/>
+						</label>
+					) : null}
+				</div>
+				<div className={styles.ganttFormActions}>
+					{form.id && stage?.code !== "payments" && !stage?.isDefault ? (
+						<button
+							type="button"
+							className={styles.ganttFormDeleteButton}
+							onClick={onDelete}
+						>
+							{deletingStageId === form.id
+								? "Подтвердить удаление"
+								: "Удалить"}
+						</button>
+					) : null}
+					<button type="button" onClick={onSubmit}>
+						Сохранить
 					</button>
-				) : null}
-				<button type="button" onClick={onSubmit}>
-					Сохранить
-				</button>
+				</div>
 			</div>
-		</div>
-	</Modal>
-);
+		</Modal>
+	);
+};
 
 const EventModal = ({
 	deletingEventId,
@@ -857,6 +1115,7 @@ export const PaymentModal = ({
 	onDelete,
 	onFormChange,
 	onSubmit,
+	projectAmount,
 	stages,
 }: {
 	deletingPaymentId: number | null;
@@ -866,6 +1125,7 @@ export const PaymentModal = ({
 	onDelete: () => void;
 	onFormChange: (value: PaymentFormState) => void;
 	onSubmit: () => void;
+	projectAmount?: number | null;
 	stages: ProjectGanttStage[];
 }) => (
 	<Modal isOpen={isOpen} onClose={onClose} size="small">
@@ -929,7 +1189,12 @@ export const PaymentModal = ({
 						onChange={(event) =>
 							onFormChange({
 								...form,
-								percent: event.target.value,
+								...calculatePaymentFields({
+									amount: form.amount,
+									percent: event.target.value,
+									projectAmount,
+									source: "percent",
+								}),
 							})
 						}
 					/>
@@ -941,7 +1206,12 @@ export const PaymentModal = ({
 						onChange={(event) =>
 							onFormChange({
 								...form,
-								amount: event.target.value,
+								...calculatePaymentFields({
+									amount: event.target.value,
+									percent: form.percent,
+									projectAmount,
+									source: "amount",
+								}),
 							})
 						}
 					/>

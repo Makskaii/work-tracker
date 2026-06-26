@@ -5,6 +5,7 @@ import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
 import type { ActivityListItem } from "../../types/types";
 import {
+	calculatePaymentFields,
 	DEFAULT_PAYMENT_FORM,
 	PaymentModal,
 	type PaymentFormState,
@@ -627,10 +628,17 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
+		const calculatedPaymentFields = calculatePaymentFields({
+			amount: paymentForm.amount,
+			percent: paymentForm.percent,
+			projectAmount: selectedReportProject?.projectAmount,
+			source: paymentForm.amount ? "amount" : "percent",
+		});
+
 		const payload = {
-			amount: numberOrNull(paymentForm.amount),
+			amount: numberOrNull(calculatedPaymentFields.amount),
 			paymentDate: paymentForm.paymentDate || null,
-			percent: numberOrNull(paymentForm.percent),
+			percent: numberOrNull(calculatedPaymentFields.percent),
 			stageId: paymentForm.stageId,
 			status: paymentForm.status,
 			waitingDays: numberOrNull(paymentForm.waitingDays),
@@ -1144,6 +1152,7 @@ export const SalesProfitabilityReport = ({
 			onDelete={handlePaymentDelete}
 			onFormChange={setPaymentForm}
 			onSubmit={handlePaymentSubmit}
+			projectAmount={selectedReportProject?.projectAmount}
 			stages={autonomousPaymentStages}
 		/>
 		</>

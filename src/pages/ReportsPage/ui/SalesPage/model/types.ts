@@ -113,11 +113,20 @@ export type AutonomousGanttEventKind = "one_time" | "duration";
 
 export type AutonomousPaymentStatus = "todo" | "debt" | "paid" | "canceled";
 
+export type ProjectGanttStageType =
+	| "tz_writing"
+	| "tz_signing"
+	| "development"
+	| "education"
+	| "delivery"
+	| "closing";
+
 export type ProjectGanttStage = {
 	id: number;
 	projectId: string;
 	title: string;
 	code: string;
+	stageType: ProjectGanttStageType | "payments" | null;
 	sortOrder: number;
 	isDefault: boolean;
 	createdAt: string;
@@ -125,8 +134,9 @@ export type ProjectGanttStage = {
 };
 
 export type ProjectGanttStagePayload = {
-	title: string;
+	title?: string;
 	code?: string;
+	stageType?: ProjectGanttStageType | null;
 	sortOrder?: number | null;
 };
 
