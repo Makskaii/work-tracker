@@ -25,6 +25,7 @@ export type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File
 
 export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	analyst: "",
+	bitrixProjectId: "",
 	clientCompany: "",
 	contractEndDate: "",
 	closeDate: "",
@@ -108,6 +109,7 @@ export const getReportProjectForm = (
 
 	return {
 		analyst: project.analyst ?? "",
+		bitrixProjectId: project.bitrixProjectId ?? "",
 		clientCompany: project.clientCompany ?? "",
 		contractEndDate: project.contractEndDate ?? "",
 		closeDate: project.closeDate ?? "",
@@ -165,6 +167,7 @@ export const getReportProjectPayload = (
 	form: ReportProjectFormState,
 ): ReportProjectPayload => ({
 	analyst: textOrNull(form.analyst),
+	bitrixProjectId: textOrNull(form.bitrixProjectId),
 	clientCompany: textOrNull(form.clientCompany),
 	contractEndDate: dateOrNull(form.contractEndDate),
 	closeDate: dateOrNull(form.closeDate),

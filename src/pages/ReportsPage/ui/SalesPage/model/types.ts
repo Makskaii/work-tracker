@@ -245,6 +245,7 @@ export type UpdateProjectReportEntryPayload = {
 
 export type ReportProject = {
 	id: number;
+	bitrixProjectId: string | null;
 	title: string;
 	projectAmount: number | null;
 	summaryMarginPercent: number | null;
@@ -292,6 +293,7 @@ export type ReportProject = {
 
 export type ReportProjectPayload = {
 	title: string;
+	bitrixProjectId?: string | null;
 	projectAmount?: number | null;
 	summaryMarginPercent?: number | null;
 	summaryPurchasedHours?: number | null;

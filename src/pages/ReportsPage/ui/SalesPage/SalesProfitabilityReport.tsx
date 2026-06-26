@@ -116,6 +116,8 @@ const paymentStatusLabels = {
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
 
 const normalizeProjectTitle = (title: string) => title.trim().toLowerCase();
+const normalizeProjectId = (value: string | number | null | undefined) =>
+	String(value ?? "").trim();
 
 const mergeReportProjectFiles = (
 	files: ReportProjectFile[] = [],
@@ -403,11 +405,21 @@ export const SalesProfitabilityReport = ({
 	const summary = getReportProjectSummary(selectedReportProject);
 	const isBusy = loading || isReportProjectsLoading || isBitrixProjectsLoading;
 	const selectedBitrixProjects = selectedReportProject
-		? bitrixProjects.filter(
-				(project) =>
+		? bitrixProjects.filter((project) => {
+				const bitrixProjectId = normalizeProjectId(project.projectId ?? project.id);
+				const selectedBitrixProjectId = normalizeProjectId(
+					selectedReportProject.bitrixProjectId,
+				);
+
+				if (selectedBitrixProjectId) {
+					return bitrixProjectId === selectedBitrixProjectId;
+				}
+
+				return (
 					normalizeProjectTitle(project.title ?? "") ===
-					normalizeProjectTitle(selectedReportProject.title),
-			)
+					normalizeProjectTitle(selectedReportProject.title)
+				);
+			})
 		: [];
 	const allTasks = selectedBitrixProjects.flatMap((project) =>
 		project.tasks.map((task) => ({ project, task })),

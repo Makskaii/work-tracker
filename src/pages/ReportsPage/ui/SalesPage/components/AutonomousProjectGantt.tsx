@@ -778,7 +778,7 @@ const AutonomousStageRow = ({
 						payment={payment}
 						stageTitle={stageById.get(payment.stageId)?.title ?? "—"}
 						timeline={timeline}
-						top={16 + index * 34}
+						top={16 + index * 46}
 					/>
 				))}
 			</div>
