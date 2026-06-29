@@ -1,5 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
+import { useForm } from "react-hook-form";
 import Modal from "@/components/modal/Modal";
 import {
 	buildAutonomousProjectGantt,
@@ -35,6 +37,7 @@ import {
 import { formatMoney } from "../model/profitabilityUtils";
 import type {
 	AutonomousGanttEventKind,
+	AutonomousPaymentAnchor,
 	AutonomousPaymentStatus,
 	AutonomousProjectPayment,
 	ProjectGanttEvent,
@@ -71,7 +74,7 @@ type EventFormState = {
 export type PaymentFormState = {
 	amount: string;
 	id: number | null;
-	paymentAnchor: "stage_start" | "stage_end";
+	paymentAnchor: AutonomousPaymentAnchor;
 	paymentDate: string;
 	percent: string;
 	stageId: number | null;
@@ -180,14 +183,14 @@ const getDateMin = (left: Date | null, right: Date | null) => {
 	if (!left) return right;
 	if (!right) return left;
 
-	return left < right ? left : right;
+	return dayjs(left).isBefore(right) ? left : right;
 };
 
 const getDateMax = (left: Date | null, right: Date | null) => {
 	if (!left) return right;
 	if (!right) return left;
 
-	return left > right ? left : right;
+	return dayjs(left).isAfter(right) ? left : right;
 };
 
 const isPaymentPaid = (payment: AutonomousProjectPayment) =>
@@ -614,39 +617,41 @@ export const AutonomousProjectGantt = ({
 		await refreshData();
 	};
 
-	const handlePaymentSubmit = async () => {
-		if (!project?.id || !paymentForm.stageId) {
+	const handlePaymentSubmit = async (submittedPaymentForm: PaymentFormState) => {
+		setPaymentForm(submittedPaymentForm);
+
+		if (!project?.id || !submittedPaymentForm.stageId) {
 			return;
 		}
 
 		const normalizedPaymentStatus: AutonomousPaymentStatus =
-			paymentForm.status === "paid" ? "paid" : "todo";
+			submittedPaymentForm.status === "paid" ? "paid" : "todo";
 		const payload = {
 			amount: toNumberOrNull(
 				calculatePaymentFields({
-					amount: paymentForm.amount,
-					percent: paymentForm.percent,
+					amount: submittedPaymentForm.amount,
+					percent: submittedPaymentForm.percent,
 					projectAmount: project.projectAmount,
-					source: paymentForm.amount ? "amount" : "percent",
+					source: submittedPaymentForm.amount ? "amount" : "percent",
 				}).amount,
 			),
-			paymentAnchor: paymentForm.paymentAnchor,
+			paymentAnchor: submittedPaymentForm.paymentAnchor,
 			paymentDate: null,
 			percent: toNumberOrNull(
 				calculatePaymentFields({
-					amount: paymentForm.amount,
-					percent: paymentForm.percent,
+					amount: submittedPaymentForm.amount,
+					percent: submittedPaymentForm.percent,
 					projectAmount: project.projectAmount,
-					source: paymentForm.amount ? "amount" : "percent",
+					source: submittedPaymentForm.amount ? "amount" : "percent",
 				}).percent,
 			),
-			stageId: paymentForm.stageId,
+			stageId: submittedPaymentForm.stageId,
 			status: normalizedPaymentStatus,
-			waitingDays: toNumberOrNull(paymentForm.waitingDays),
+			waitingDays: toNumberOrNull(submittedPaymentForm.waitingDays),
 		};
 
-		if (paymentForm.id) {
-			await updateAutonomousProjectPayment(paymentForm.id, payload);
+		if (submittedPaymentForm.id) {
+			await updateAutonomousProjectPayment(submittedPaymentForm.id, payload);
 		} else {
 			await createAutonomousProjectPayment(String(project.id), {
 				...payload,
@@ -1433,115 +1438,125 @@ export const PaymentModal = ({
 	onClose: () => void;
 	onDelete: () => void;
 	onFormChange: (value: PaymentFormState) => void;
-	onSubmit: () => void;
+	onSubmit: (value: PaymentFormState) => void;
 	projectAmount?: number | null;
 	stages: ProjectGanttStage[];
-}) => (
-	<Modal isOpen={isOpen} onClose={onClose} size="small">
-		<div className={styles.ganttFormModal}>
-			<h3>{form.id ? "Редактирование оплаты" : "Новая оплата"}</h3>
-			<label>
-				<span>Стадия</span>
-				<select
-					value={form.status === "paid" ? "paid" : "todo"}
-					onChange={(event) =>
-						onFormChange({
-							...form,
-							status: event.target.value as AutonomousPaymentStatus,
-						})
-					}
-				>
-					<option value="paid">Оплачено</option>
-					<option value="todo">Неоплачено</option>
-				</select>
-			</label>
-			<label>
-				<span>Этап, к которому привязана оплата</span>
-				<select
-					value={form.stageId ?? ""}
-					onChange={(event) => {
-						const stageId = Number(event.target.value);
+}) => {
+	const { handleSubmit, register, reset, setValue, watch } =
+		useForm<PaymentFormState>({
+			values: form,
+		});
+	const currentForm = watch();
 
-						onFormChange({
-							...form,
-							stageId,
-						});
-					}}
-				>
-					{stages
-						.filter((stage) => stage.code !== "payments")
-						.map((stage) => (
-							<option key={stage.id} value={stage.id}>
-								{stage.title}
-							</option>
-					))}
-				</select>
-			</label>
-			<label>
-				<span>Дата оплаты от этапа</span>
-				<select
-					value={form.paymentAnchor}
-					onChange={(event) =>
-						onFormChange({
-							...form,
-							paymentAnchor: event.target.value as PaymentFormState["paymentAnchor"],
-						})
-					}
-				>
-					<option value="stage_start">К началу этапа</option>
-					<option value="stage_end">К концу этапа</option>
-				</select>
-			</label>
-			<div className={styles.ganttFormGrid}>
+	useEffect(() => {
+		reset(form);
+	}, [form, reset]);
+
+	const updateForm = (value: PaymentFormState) => {
+		reset(value);
+		onFormChange(value);
+	};
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} size="small">
+			<form
+				className={styles.ganttFormModal}
+				onSubmit={handleSubmit((value) => {
+					onFormChange(value);
+					onSubmit(value);
+				})}
+			>
+				<h3>{currentForm.id ? "Редактирование оплаты" : "Новая оплата"}</h3>
 				<label>
-					<span>Сумма от проекта</span>
-					<input
-						value={form.amount}
+					<span>Стадия</span>
+					<select
+						{...register("status")}
+						value={currentForm.status === "paid" ? "paid" : "todo"}
 						onChange={(event) =>
-							onFormChange({
-								...form,
-								...calculatePaymentFields({
+							updateForm({
+								...currentForm,
+								status: event.target.value as AutonomousPaymentStatus,
+							})
+						}
+					>
+						<option value="paid">Оплачено</option>
+						<option value="todo">Неоплачено</option>
+					</select>
+				</label>
+				<label>
+					<span>Этап, к которому привязана оплата</span>
+					<select
+						value={currentForm.stageId ?? ""}
+						onChange={(event) => {
+							const stageId = Number(event.target.value);
+
+							updateForm({
+								...currentForm,
+								stageId,
+							});
+						}}
+					>
+						{stages
+							.filter((stage) => stage.code !== "payments")
+							.map((stage) => (
+								<option key={stage.id} value={stage.id}>
+									{stage.title}
+								</option>
+							))}
+					</select>
+				</label>
+				<label>
+					<span>Дата оплаты от этапа</span>
+					<select {...register("paymentAnchor")}>
+						<option value="stage_start">К началу этапа</option>
+						<option value="stage_end">К концу этапа</option>
+					</select>
+				</label>
+				<div className={styles.ganttFormGrid}>
+					<label>
+						<span>Сумма от проекта</span>
+						<input
+							{...register("amount")}
+							onChange={(event) => {
+								const calculatedFields = calculatePaymentFields({
 									amount: event.target.value,
-									percent: form.percent,
+									percent: currentForm.percent,
 									projectAmount,
 									source: "amount",
-								}),
-							})
-						}
-					/>
-				</label>
-				<label>
-					<span>Дней ожидания</span>
-					<input
-						value={form.waitingDays}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								waitingDays: event.target.value,
-							})
-						}
-					/>
-				</label>
-			</div>
-			<div className={styles.ganttFormActions}>
-				{form.id ? (
-					<button
-						type="button"
-						className={styles.ganttFormDeleteButton}
-						onClick={onDelete}
-					>
-						{deletingPaymentId === form.id
-							? "Подтвердить удаление"
-							: "Удалить"}
-					</button>
-				) : null}
-				<button type="button" onClick={onSubmit}>
-					Сохранить
-				</button>
-			</div>
-		</div>
-	</Modal>
-);
+								});
+
+								setValue("amount", calculatedFields.amount);
+								setValue("percent", calculatedFields.percent);
+								onFormChange({
+									...currentForm,
+									...calculatedFields,
+								});
+							}}
+						/>
+					</label>
+					<label>
+						<span>Дней ожидания</span>
+						<input {...register("waitingDays")} />
+					</label>
+				</div>
+				<div className={styles.ganttFormActions}>
+					{currentForm.id ? (
+						<button
+							type="button"
+							className={styles.ganttFormDeleteButton}
+							onClick={onDelete}
+						>
+							{deletingPaymentId === currentForm.id
+								? "Подтвердить удаление"
+								: "Удалить"}
+						</button>
+					) : null}
+					<button type="submit">Сохранить</button>
+				</div>
+			</form>
+		</Modal>
+	);
+};
 
 const GanttScale = ({
 	monthTicks,

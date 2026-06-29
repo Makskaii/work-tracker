@@ -759,30 +759,32 @@ export const SalesProfitabilityReport = ({
 		setIsPaymentModalOpen(true);
 	};
 
-	const handlePaymentSubmit = async () => {
-		if (!selectedReportProjectId || !paymentForm.stageId) {
+	const handlePaymentSubmit = async (submittedPaymentForm: PaymentFormState) => {
+		setPaymentForm(submittedPaymentForm);
+
+		if (!selectedReportProjectId || !submittedPaymentForm.stageId) {
 			return;
 		}
 
 		const calculatedPaymentFields = calculatePaymentFields({
-			amount: paymentForm.amount,
-			percent: paymentForm.percent,
+			amount: submittedPaymentForm.amount,
+			percent: submittedPaymentForm.percent,
 			projectAmount: selectedReportProject?.projectAmount,
-			source: paymentForm.amount ? "amount" : "percent",
+			source: submittedPaymentForm.amount ? "amount" : "percent",
 		});
 
 		const payload = {
 			amount: numberOrNull(calculatedPaymentFields.amount),
-			paymentAnchor: paymentForm.paymentAnchor,
+			paymentAnchor: submittedPaymentForm.paymentAnchor,
 			paymentDate: null,
 			percent: numberOrNull(calculatedPaymentFields.percent),
-			stageId: paymentForm.stageId,
-			status: paymentForm.status,
-			waitingDays: numberOrNull(paymentForm.waitingDays),
+			stageId: submittedPaymentForm.stageId,
+			status: submittedPaymentForm.status,
+			waitingDays: numberOrNull(submittedPaymentForm.waitingDays),
 		};
 
-		if (paymentForm.id) {
-			await updateAutonomousProjectPayment(paymentForm.id, payload);
+		if (submittedPaymentForm.id) {
+			await updateAutonomousProjectPayment(submittedPaymentForm.id, payload);
 		} else {
 			const selectedProjectPaymentsCount = autonomousPayments.filter(
 				(payment) => String(payment.projectId) === String(selectedReportProjectId),

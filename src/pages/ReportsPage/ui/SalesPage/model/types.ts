@@ -112,6 +112,7 @@ export type GanttIncidentPayload = {
 export type AutonomousGanttEventKind = "one_time" | "duration";
 
 export type AutonomousPaymentStatus = "todo" | "debt" | "paid" | "canceled";
+export type AutonomousPaymentAnchor = "stage_start" | "stage_end";
 
 export type ProjectGanttStageType =
 	| "tz_writing"
@@ -175,7 +176,7 @@ export type AutonomousProjectPayment = {
 	projectId: string;
 	stageId: number;
 	status: AutonomousPaymentStatus;
-	paymentAnchor: "stage_start" | "stage_end";
+	paymentAnchor: AutonomousPaymentAnchor;
 	paymentDate: string | null;
 	percent: number | null;
 	amount: number | null;
@@ -188,7 +189,7 @@ export type AutonomousProjectPayment = {
 export type AutonomousProjectPaymentPayload = {
 	stageId: number;
 	status: AutonomousPaymentStatus;
-	paymentAnchor?: "stage_start" | "stage_end" | null;
+	paymentAnchor?: AutonomousPaymentAnchor | null;
 	paymentDate?: string | null;
 	percent?: number | null;
 	amount?: number | null;
