@@ -186,6 +186,28 @@ const getPaymentDateFromEventDates = ({
 	planStartDate ??
 	"";
 
+const isAutonomousEventOverdue = (event: ProjectGanttEvent) => {
+	const planEndDate = parseGanttDate(event.planEndDate);
+	const factEndDate = parseGanttDate(event.factEndDate);
+
+	return Boolean(planEndDate && factEndDate && factEndDate > planEndDate);
+};
+
+const getAutonomousEventClassName = (
+	event: ProjectGanttEvent,
+	stageType: ProjectGanttStage["stageType"],
+) => {
+	if (isAutonomousEventOverdue(event)) {
+		return styles.ganttAutonomousEventOverdue;
+	}
+
+	if (stageType === "tz_signing") {
+		return styles.ganttAutonomousEventSigning;
+	}
+
+	return "";
+};
+
 export const calculatePaymentFields = ({
 	amount,
 	percent,
@@ -773,6 +795,7 @@ const AutonomousStageRow = ({
 						event={event}
 						key={event.event.id}
 						onEdit={onEventEdit}
+						stageType={row.stage.stageType}
 						timeline={timeline}
 					/>
 				))}
@@ -794,13 +817,16 @@ const AutonomousStageRow = ({
 const AutonomousEventItem = ({
 	event,
 	onEdit,
+	stageType,
 	timeline,
 }: {
 	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number];
 	onEdit: (event: ProjectGanttEvent) => void;
+	stageType: ProjectGanttStage["stageType"];
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 }) => {
 	const style = getAutonomousEventStyle(event, timeline);
+	const eventClassName = getAutonomousEventClassName(event.event, stageType);
 
 	if (!style) {
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
@@ -809,7 +835,7 @@ const AutonomousEventItem = ({
 	return event.event.eventKind === "duration" ? (
 		<button
 			type="button"
-			className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment}`}
+			className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment} ${eventClassName}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
 				onEdit(event.event);
@@ -822,7 +848,7 @@ const AutonomousEventItem = ({
 	) : (
 		<button
 			type="button"
-			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker}`}
+			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker} ${eventClassName}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
 				onEdit(event.event);

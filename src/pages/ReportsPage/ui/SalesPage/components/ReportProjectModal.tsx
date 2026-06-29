@@ -59,6 +59,12 @@ export const ReportProjectModal = ({
 				/>
 				<ReportProjectInput
 					form={form}
+					label="ID проекта в Битрикс"
+					name="bitrixProjectId"
+					onFormChange={onFormChange}
+				/>
+				<ReportProjectInput
+					form={form}
 					label="Цель проекта"
 					name="projectGoal"
 					onFormChange={onFormChange}

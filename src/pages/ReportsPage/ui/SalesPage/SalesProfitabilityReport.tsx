@@ -608,6 +608,20 @@ export const SalesProfitabilityReport = ({
 		);
 	};
 
+	const hasExistingBitrixProject = (bitrixProjectId: string) => {
+		const normalizedBitrixProjectId = normalizeProjectId(bitrixProjectId);
+
+		if (!normalizedBitrixProjectId) {
+			return true;
+		}
+
+		return bitrixProjects.some((project) => {
+			const projectId = normalizeProjectId(project.projectId ?? project.id);
+
+			return projectId === normalizedBitrixProjectId;
+		});
+	};
+
 	const handleProjectReportCreate = async () => {
 		if (!selectedReportProject) {
 			return;
@@ -837,6 +851,11 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
+		if (!hasExistingBitrixProject(projectForm.bitrixProjectId)) {
+			setProjectFormError("Проект с таким ID не найден в Битрикс");
+			return;
+		}
+
 		const payload = getReportProjectPayload(projectForm);
 
 		setIsReportProjectSaving(true);
@@ -893,6 +912,11 @@ export const SalesProfitabilityReport = ({
 
 		if (!detailsProjectForm.title.trim()) {
 			setDetailsProjectError("Заполните название проекта");
+			return;
+		}
+
+		if (!hasExistingBitrixProject(detailsProjectForm.bitrixProjectId)) {
+			setDetailsProjectError("Проект с таким ID не найден в Битрикс");
 			return;
 		}
 

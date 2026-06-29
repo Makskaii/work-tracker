@@ -1153,6 +1153,27 @@
 		0 0 0 8px rgba(142, 111, 255, 0.12);
 }
 
+.ganttAutonomousEventSigning {
+	border-color: rgba(255, 200, 71, 0.78);
+	background: var(--color-warning);
+	color: #06111e;
+
+	b {
+		background: var(--color-warning);
+	}
+}
+
+.ganttAutonomousEventOverdue {
+	border-color: rgba(255, 173, 181, 0.8);
+	background: repeating-linear-gradient(45deg, #d92d3a 0 6px, #ffadb5 6px 12px);
+	color: #ffffff;
+
+	b {
+		background: #d92d3a;
+		box-shadow: 0 0 0 4px rgba(217, 45, 58, 0.18);
+	}
+}
+
 .ganttCustomEventInfo {
 	position: sticky;
 }

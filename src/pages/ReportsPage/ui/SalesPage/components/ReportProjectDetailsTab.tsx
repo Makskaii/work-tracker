@@ -67,6 +67,13 @@ export const ReportProjectDetailsTab = ({
 				/>
 				<ReportProjectInput
 					form={form}
+					label="ID проекта в Битрикс"
+					name="bitrixProjectId"
+					onFormChange={onFormChange}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
 					label="Цель проекта"
 					name="projectGoal"
 					onFormChange={onFormChange}
