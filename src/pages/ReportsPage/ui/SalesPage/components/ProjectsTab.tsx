@@ -1,9 +1,12 @@
-﻿import type { User } from "@/shared/types/types";
-import type { ReportProject } from "../model/types";
+import type { User } from "@/shared/types/types";
+import type { ProfitabilityProject, ReportProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { AutonomousProjectGantt } from "./AutonomousProjectGantt";
+import { DealProjectTeamCostTable } from "./DealProjectTeamCostTable";
+import { DealWorkDensityChart } from "./DealWorkDensityChart";
 
 type ProjectsTabProps = {
+	bitrixProjects: ProfitabilityProject[];
 	onPaymentsChanged?: () => void;
 	paymentsRefreshKey?: number;
 	projects: ReportProject[];
@@ -12,6 +15,7 @@ type ProjectsTabProps = {
 };
 
 export const ProjectsTab = ({
+	bitrixProjects,
 	onPaymentsChanged,
 	paymentsRefreshKey,
 	projects,
@@ -21,16 +25,23 @@ export const ProjectsTab = ({
 	const selectedProject =
 		projects.find((project) => `db-${project.id}` === selectedProjectId) ??
 		null;
-	void users;
 
 	return (
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
 			{selectedProject ? (
-				<AutonomousProjectGantt
-					onPaymentsChanged={onPaymentsChanged}
-					paymentsRefreshKey={paymentsRefreshKey}
-					project={selectedProject}
-				/>
+				<>
+					<AutonomousProjectGantt
+						onPaymentsChanged={onPaymentsChanged}
+						paymentsRefreshKey={paymentsRefreshKey}
+						project={selectedProject}
+					/>
+					<DealWorkDensityChart
+						projects={bitrixProjects}
+						title="Плотность работ по проекту"
+						users={users}
+					/>
+					<DealProjectTeamCostTable projects={bitrixProjects} users={users} />
+				</>
 			) : (
 				<div className={styles.emptyState}>Выберите проект</div>
 			)}

@@ -452,6 +452,8 @@ export const ProjectGantt = ({
 	};
 
 	useLayoutEffect(() => {
+		void paymentLinksVersion;
+
 		const board = ganttBoardRef.current;
 
 		if (!board) {

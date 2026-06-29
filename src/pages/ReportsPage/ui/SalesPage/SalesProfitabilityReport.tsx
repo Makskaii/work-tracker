@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
@@ -113,6 +113,14 @@ const paymentStatusLabels = {
 	todo: "нужно выполнить",
 } as const;
 
+type PaymentsScope = "all" | "client" | "project";
+
+const paymentsScopeLabels: Record<PaymentsScope, string> = {
+	all: "Все проекты",
+	project: "Проект",
+	client: "Компания клиента",
+};
+
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
 
 const normalizeProjectTitle = (title: string) => title.trim().toLowerCase();
@@ -179,6 +187,37 @@ const getAutonomousPaymentStatusClassName = (
 
 const getAutonomousPaymentAmount = (payment: AutonomousProjectPayment) =>
 	payment.amount ?? 0;
+
+const getPaymentsScopeProjects = (
+	projects: ReportProject[],
+	scope: PaymentsScope,
+	selectedProject: ReportProject | null,
+) => {
+	if (!selectedProject) {
+		return [];
+	}
+
+	if (scope === "project") {
+		return [selectedProject];
+	}
+
+	if (scope === "client") {
+		const selectedClientCompany = String(
+			selectedProject.clientCompany ?? "",
+		).trim();
+
+		if (!selectedClientCompany) {
+			return [selectedProject];
+		}
+
+		return projects.filter(
+			(project) =>
+				String(project.clientCompany ?? "").trim() === selectedClientCompany,
+		);
+	}
+
+	return projects;
+};
 
 const getReportProjectSummary = (
 	project: ReportProject | null | undefined,
@@ -262,6 +301,7 @@ export const SalesProfitabilityReport = ({
 	const [autonomousPaymentsError, setAutonomousPaymentsError] = useState<
 		string | null
 	>(null);
+	const [paymentsScope, setPaymentsScope] = useState<PaymentsScope>("all");
 	const [paymentForm, setPaymentForm] =
 		useState<PaymentFormState>(DEFAULT_PAYMENT_FORM);
 	const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -284,8 +324,13 @@ export const SalesProfitabilityReport = ({
 		(project) => getDbProjectId(project) === selectedProjectId,
 	) ?? reportProjects[0] ?? null;
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
+	const paymentsScopeProjects = useMemo(
+		() =>
+			getPaymentsScopeProjects(reportProjects, paymentsScope, selectedReportProject),
+		[paymentsScope, reportProjects, selectedReportProject],
+	);
 
-	const updateProjectNextReportDate = (
+	const updateProjectNextReportDate = useCallback((
 		projectId: number,
 		reports: ProjectReportEntry[],
 	) => {
@@ -301,7 +346,7 @@ export const SalesProfitabilityReport = ({
 					: project,
 			),
 		);
-	};
+	}, []);
 
 	useEffect(() => {
 		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
@@ -344,9 +389,11 @@ export const SalesProfitabilityReport = ({
 			});
 
 		return () => controller.abort();
-	}, [selectedReportProjectId]);
+	}, [selectedReportProjectId, updateProjectNextReportDate]);
 
 	useEffect(() => {
+		void paymentsRefreshKey;
+
 		if (!selectedReportProjectId) {
 			setAutonomousPayments([]);
 			setAutonomousPaymentStages([]);
@@ -356,17 +403,24 @@ export const SalesProfitabilityReport = ({
 
 		const controller = new AbortController();
 		const projectId = String(selectedReportProjectId);
+		const paymentProjectIds = paymentsScopeProjects.map((project) =>
+			String(project.id),
+		);
 
 		setIsAutonomousPaymentsLoading(true);
 		setAutonomousPaymentsError(null);
 
 		Promise.all([
-			fetchAutonomousProjectPayments(projectId, controller.signal),
+			Promise.all(
+				paymentProjectIds.map((paymentProjectId) =>
+					fetchAutonomousProjectPayments(paymentProjectId, controller.signal),
+				),
+			),
 			fetchProjectGanttStages(projectId, controller.signal),
 			fetchProjectGanttEvents(projectId, controller.signal),
 		])
 			.then(([payments, stages, events]) => {
-				setAutonomousPayments(payments);
+				setAutonomousPayments(payments.flat());
 				setAutonomousPaymentStages(stages);
 				setAutonomousPaymentEvents(events);
 			})
@@ -382,7 +436,7 @@ export const SalesProfitabilityReport = ({
 			});
 
 		return () => controller.abort();
-	}, [selectedReportProjectId, paymentsRefreshKey]);
+	}, [paymentsRefreshKey, paymentsScopeProjects, selectedReportProjectId]);
 
 	const effectiveSelectedProjectId = useMemo(() => {
 		if (selectedReportProject) {
@@ -700,9 +754,13 @@ export const SalesProfitabilityReport = ({
 		if (paymentForm.id) {
 			await updateAutonomousProjectPayment(paymentForm.id, payload);
 		} else {
+			const selectedProjectPaymentsCount = autonomousPayments.filter(
+				(payment) => String(payment.projectId) === String(selectedReportProjectId),
+			).length;
+
 			await createAutonomousProjectPayment(String(selectedReportProjectId), {
 				...payload,
-				sortOrder: autonomousPayments.length,
+				sortOrder: selectedProjectPaymentsCount,
 			});
 		}
 
@@ -1083,14 +1141,18 @@ export const SalesProfitabilityReport = ({
 									isLoading={isAutonomousPaymentsLoading}
 									onCreate={openPaymentCreateModal}
 									onEdit={openPaymentEditModal}
+									onScopeChange={setPaymentsScope}
 									payments={autonomousPayments}
 									project={selectedReportProject}
+									projects={paymentsScopeProjects}
+									scope={paymentsScope}
 									stages={autonomousPaymentStages}
 								/>
 							)}
 
 							{activeTab === "projects" && (
 								<ProjectsTab
+									bitrixProjects={selectedBitrixProjects}
 									onPaymentsChanged={refreshAutonomousPayments}
 									paymentsRefreshKey={paymentsRefreshKey}
 									projects={reportProjects}
@@ -1218,23 +1280,36 @@ const AutonomousPaymentsTab = ({
 	isLoading,
 	onCreate,
 	onEdit,
+	onScopeChange,
 	payments,
 	project,
+	projects,
+	scope,
 	stages,
 }: {
 	error: string | null;
 	isLoading: boolean;
 	onCreate: () => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
+	onScopeChange: (scope: PaymentsScope) => void;
 	payments: AutonomousProjectPayment[];
 	project: ReportProject | null;
+	projects: ReportProject[];
+	scope: PaymentsScope;
 	stages: ProjectGanttStage[];
 }) => {
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage.title])),
 		[stages],
 	);
-	const projectAmount = project?.projectAmount ?? 0;
+	const projectById = useMemo(
+		() => new Map(projects.map((item) => [String(item.id), item])),
+		[projects],
+	);
+	const projectAmount = projects.reduce(
+		(sum, item) => sum + (item.projectAmount ?? 0),
+		0,
+	);
 	const paidAmount = payments.reduce(
 		(sum, payment) =>
 			payment.status === "paid" ? sum + getAutonomousPaymentAmount(payment) : sum,
@@ -1246,7 +1321,15 @@ const AutonomousPaymentsTab = ({
 		0,
 	);
 	const requestAmount = Math.max(projectAmount - paidAmount, 0);
-	const marginPercent = project?.summaryMarginPercent ?? 0;
+	const marginPercent = projectAmount
+		? Math.round((paidAmount / projectAmount) * 100)
+		: 0;
+	const scopeSubtitle =
+		scope === "project"
+			? (project?.title ?? "Проект")
+			: scope === "client"
+				? (project?.clientCompany || project?.title || "Компания клиента")
+				: "Все проекты";
 	const paymentsByMonth = useMemo(() => {
 		return payments.reduce(
 			(result, payment) => {
@@ -1316,14 +1399,26 @@ const AutonomousPaymentsTab = ({
 			<div className={styles.projectReportsHeader}>
 				<div>
 					<h3>Список оплат</h3>
-					<span>{project.title}</span>
+					<span>{scopeSubtitle}</span>
 				</div>
+			</div>
+			<div className={styles.marginalityFilters}>
+				{Object.entries(paymentsScopeLabels).map(([scopeId, label]) => (
+					<button
+						key={scopeId}
+						type="button"
+						className={scope === scopeId ? styles.activeFilter : ""}
+						onClick={() => onScopeChange(scopeId as PaymentsScope)}
+					>
+						{label}
+					</button>
+				))}
 			</div>
 
 			<div className={styles.marginalityMetrics}>
 				<div>
 					<span>Проектов</span>
-					<strong>1</strong>
+					<strong>{projects.length}</strong>
 				</div>
 				<div>
 					<span>Маржа</span>
@@ -1446,11 +1541,14 @@ const AutonomousPaymentsTab = ({
 							key={payment.id}
 							type="button"
 							className={styles.paymentItem}
+							disabled={String(payment.projectId) !== String(project.id)}
 							onClick={() => onEdit(payment)}
 						>
 							<span>
 								<strong>
-									Платёж {formatPaymentPercent(payment.percent)}
+									{projectById.get(String(payment.projectId))?.title ??
+										"Проект"}{" "}
+									· Платёж {formatPaymentPercent(payment.percent)}
 								</strong>
 								<span>
 									Дата платежа:{" "}

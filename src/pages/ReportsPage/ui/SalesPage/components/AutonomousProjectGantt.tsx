@@ -315,6 +315,8 @@ export const AutonomousProjectGantt = ({
 	);
 
 	useEffect(() => {
+		void paymentsRefreshKey;
+
 		const controller = new AbortController();
 
 		setIsLoading(true);
@@ -619,7 +621,10 @@ export const AutonomousProjectGantt = ({
 		<>
 			<div className={styles.ganttCard}>
 				<div className={styles.autonomousGanttToolbar}>
-					<strong>Гант проекта</strong>
+					<div>
+						<h3>Диаграмма Ганта: {project.title}</h3>
+						<span>План пересчитывается по зависимостям между этапами</span>
+					</div>
 				</div>
 				{error ? <div className={styles.emptyState}>{error}</div> : null}
 				{isLoading ? (
