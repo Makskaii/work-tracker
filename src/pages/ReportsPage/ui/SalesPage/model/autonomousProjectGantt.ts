@@ -63,20 +63,37 @@ const buildEventRow = (
 			)
 		: null;
 	const dependencyDurationDays = stage?.durationDays ?? 0;
-	const dependencyPlanStart = dependencyRow?.planEnd ?? null;
-	const dependencyFactStart = dependencyRow?.factEnd ?? null;
-	const resolvedPlanStart = planStart ?? dependencyPlanStart;
-	const resolvedPlanEnd =
-		planEnd ??
-		(resolvedPlanStart && dependencyDurationDays > 0
-			? addDays(resolvedPlanStart, dependencyDurationDays)
-			: null);
-	const resolvedFactStart = factStart ?? dependencyFactStart;
-	const resolvedFactEnd =
-		factEnd ??
-		(resolvedFactStart && dependencyDurationDays > 0
-			? addDays(resolvedFactStart, dependencyDurationDays)
-			: null);
+	const dependencyStart =
+		dependencyRow?.factEnd ??
+		dependencyRow?.displayEnd ??
+		dependencyRow?.planEnd ??
+		null;
+	const hasDependencyDuration =
+		Boolean(stage?.dependsOnStageId) && dependencyDurationDays > 0;
+
+	if (hasDependencyDuration) {
+		const displayStart = planStart ?? factStart ?? dependencyStart;
+		const displayEnd =
+			planEnd ??
+			factEnd ??
+			(displayStart ? addDays(displayStart, dependencyDurationDays) : null);
+
+		return {
+			displayDate: displayStart,
+			displayEnd,
+			displayStart,
+			event,
+			factEnd,
+			factStart,
+			planEnd,
+			planStart,
+		};
+	}
+
+	const resolvedPlanStart = planStart;
+	const resolvedPlanEnd = planEnd;
+	const resolvedFactStart = factStart;
+	const resolvedFactEnd = factEnd;
 	const displayDate = resolvedFactStart ?? resolvedPlanStart;
 	const displayStart = event.eventKind === "duration" ? displayDate : null;
 	const displayEnd =
@@ -107,18 +124,29 @@ const getPaymentDisplayDate = (
 	}
 
 	return payment.paymentAnchor === "stage_start"
-		? (stageEvent.factStart ?? stageEvent.planStart)
-		: (stageEvent.factEnd ?? stageEvent.planEnd);
+		? (stageEvent.factStart ?? stageEvent.planStart ?? stageEvent.displayStart)
+		: (stageEvent.factEnd ?? stageEvent.planEnd ?? stageEvent.displayEnd);
 };
 
 const formatInputDate = (date: Date) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-const getTimeline = (
-	rows: AutonomousGanttStageRow[],
-	today: Date,
+const applyPaymentDisplayDates = (
+	payments: AutonomousProjectPayment[],
 	eventRowsByStageId: Map<number, AutonomousGanttEventRow>,
-): GanttTimeline => {
+) =>
+	payments.map((payment) => {
+		const displayDate = getPaymentDisplayDate(payment, eventRowsByStageId);
+
+		return displayDate
+			? {
+					...payment,
+					paymentDate: formatInputDate(displayDate),
+				}
+			: payment;
+	});
+
+const getTimeline = (rows: AutonomousGanttStageRow[], today: Date): GanttTimeline => {
 	const dates = rows.flatMap((row) => [
 		...row.events.flatMap((event) => [
 			event.planStart,
@@ -129,9 +157,7 @@ const getTimeline = (
 			event.displayStart,
 			event.displayEnd,
 		]),
-		...row.payments.map((payment) =>
-			getPaymentDisplayDate(payment, eventRowsByStageId),
-		),
+		...row.payments.map((payment) => parseGanttDate(payment.paymentDate)),
 	]);
 	const validDates = [...dates, today].filter((date): date is Date =>
 		Boolean(date),
@@ -150,6 +176,27 @@ const getTimeline = (
 		start,
 		totalDays: Math.max(daysBetween(start, end), 1),
 	};
+};
+
+export const resolveAutonomousPaymentDates = ({
+	events,
+	payments,
+	stages,
+}: {
+	events: ProjectGanttEvent[];
+	payments: AutonomousProjectPayment[];
+	stages: ProjectGanttStage[];
+}) => {
+	const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+	const eventByStageId = new Map(events.map((event) => [event.stageId, event]));
+	const eventRows = events.map((event) =>
+		buildEventRow(event, stageById, eventByStageId),
+	);
+	const eventRowsByStageId = new Map(
+		eventRows.map((event) => [event.event.stageId, event]),
+	);
+
+	return applyPaymentDisplayDates(payments, eventRowsByStageId);
 };
 
 export const buildAutonomousProjectGantt = ({
@@ -171,6 +218,10 @@ export const buildAutonomousProjectGantt = ({
 	const eventRowsByStageId = new Map(
 		eventRows.map((event) => [event.event.stageId, event]),
 	);
+	const paymentsWithDisplayDates = applyPaymentDisplayDates(
+		payments,
+		eventRowsByStageId,
+	);
 	const rows = stages
 		.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
 		.map((stage) => ({
@@ -182,28 +233,15 @@ export const buildAutonomousProjectGantt = ({
 				),
 			payments:
 				stage.code === "payments"
-					? payments
+					? paymentsWithDisplayDates
 							.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
-							.map((payment) => {
-								const displayDate = getPaymentDisplayDate(
-									payment,
-									eventRowsByStageId,
-								);
-
-								return displayDate
-									? {
-											...payment,
-											paymentDate: formatInputDate(displayDate),
-										}
-									: payment;
-							})
 					: [],
 			stage,
 		}));
 
 	return {
 		rows,
-		timeline: getTimeline(rows, today, eventRowsByStageId),
+		timeline: getTimeline(rows, today),
 	};
 };
 

@@ -19,6 +19,7 @@ import { ReportProjectModal } from "./components/ReportProjectModal";
 import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
 import {
+	fetchProjectGanttEvents,
 	fetchProjectGanttStages,
 } from "./model/projectGantt.api";
 import {
@@ -27,6 +28,7 @@ import {
 	fetchAutonomousProjectPayments,
 	updateAutonomousProjectPayment,
 } from "./model/projectPayments.api";
+import { resolveAutonomousPaymentDates } from "./model/autonomousProjectGantt";
 import {
 	createReportProject,
 	createProjectReportEntry,
@@ -46,6 +48,7 @@ import type {
 	AutonomousProjectPayment,
 	CreateProjectReportEntryPayload,
 	FinancialProjectSummary,
+	ProjectGanttEvent,
 	ProjectGanttStage,
 	ProjectReportEntry,
 	ProjectReportEntryFile,
@@ -286,6 +289,9 @@ export const SalesProfitabilityReport = ({
 	const [autonomousPaymentStages, setAutonomousPaymentStages] = useState<
 		ProjectGanttStage[]
 	>([]);
+	const [autonomousPaymentEvents, setAutonomousPaymentEvents] = useState<
+		ProjectGanttEvent[]
+	>([]);
 	const [isAutonomousPaymentsLoading, setIsAutonomousPaymentsLoading] =
 		useState(false);
 	const [autonomousPaymentsError, setAutonomousPaymentsError] = useState<
@@ -390,11 +396,11 @@ export const SalesProfitabilityReport = ({
 		if (!selectedReportProjectId) {
 			setAutonomousPayments([]);
 			setAutonomousPaymentStages([]);
+			setAutonomousPaymentEvents([]);
 			return;
 		}
 
 		const controller = new AbortController();
-		const projectId = String(selectedReportProjectId);
 		const paymentProjectIds = paymentsScopeProjects.map((project) =>
 			String(project.id),
 		);
@@ -408,11 +414,21 @@ export const SalesProfitabilityReport = ({
 					fetchAutonomousProjectPayments(paymentProjectId, controller.signal),
 				),
 			),
-			fetchProjectGanttStages(projectId, controller.signal),
+			Promise.all(
+				paymentProjectIds.map((paymentProjectId) =>
+					fetchProjectGanttStages(paymentProjectId, controller.signal),
+				),
+			),
+			Promise.all(
+				paymentProjectIds.map((paymentProjectId) =>
+					fetchProjectGanttEvents(paymentProjectId, controller.signal),
+				),
+			),
 		])
-			.then(([payments, stages]) => {
+			.then(([payments, stages, events]) => {
 				setAutonomousPayments(payments.flat());
-				setAutonomousPaymentStages(stages);
+				setAutonomousPaymentStages(stages.flat());
+				setAutonomousPaymentEvents(events.flat());
 			})
 			.catch(() => {
 				if (!controller.signal.aborted) {
@@ -1167,6 +1183,7 @@ export const SalesProfitabilityReport = ({
 									onEdit={openPaymentEditModal}
 									onScopeChange={setPaymentsScope}
 									payments={autonomousPayments}
+									paymentEvents={autonomousPaymentEvents}
 									project={selectedReportProject}
 									projects={paymentsScopeProjects}
 									scope={paymentsScope}
@@ -1311,6 +1328,7 @@ const AutonomousPaymentsTab = ({
 	onEdit,
 	onScopeChange,
 	payments,
+	paymentEvents,
 	project,
 	projects,
 	scope,
@@ -1322,6 +1340,7 @@ const AutonomousPaymentsTab = ({
 	onEdit: (payment: AutonomousProjectPayment) => void;
 	onScopeChange: (scope: PaymentsScope) => void;
 	payments: AutonomousProjectPayment[];
+	paymentEvents: ProjectGanttEvent[];
 	project: ReportProject | null;
 	projects: ReportProject[];
 	scope: PaymentsScope;
@@ -1358,9 +1377,18 @@ const AutonomousPaymentsTab = ({
 			? (project?.title ?? "Проект")
 			: scope === "client"
 				? (project?.clientCompany || project?.title || "Компания клиента")
-				: "Все проекты";
+			: "Все проекты";
+	const paymentsWithDisplayDates = useMemo(
+		() =>
+			resolveAutonomousPaymentDates({
+				events: paymentEvents,
+				payments,
+				stages,
+			}),
+		[paymentEvents, payments, stages],
+	);
 	const paymentsByMonth = useMemo(() => {
-		return payments.reduce(
+		return paymentsWithDisplayDates.reduce(
 			(result, payment) => {
 				const date = payment.paymentDate ? new Date(payment.paymentDate) : null;
 				const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
@@ -1380,7 +1408,7 @@ const AutonomousPaymentsTab = ({
 				{ date: Date | null; items: AutonomousProjectPayment[] }
 			>(),
 		);
-	}, [payments]);
+	}, [paymentsWithDisplayDates]);
 	const chartColumns = useMemo(() => {
 		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(

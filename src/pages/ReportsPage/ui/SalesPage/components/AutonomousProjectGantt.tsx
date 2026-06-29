@@ -893,53 +893,19 @@ const AutonomousEventItem = ({
 					}
 				: null;
 		const factEnd = event.factEnd ?? (event.factStart ? today : null);
-		const factStartInPlan =
-			planSegment && event.factStart
-				? getDateMax(event.factStart, planSegment.start)
-				: null;
-		const factEndInPlan =
-			planSegment && factEnd ? getDateMin(factEnd, planSegment.end) : null;
-		const factSegment =
-			factStartInPlan && factEndInPlan && factEndInPlan > factStartInPlan
-				? {
-						end: factEndInPlan,
-						start: factStartInPlan,
-					}
-				: null;
-		const lateStart =
-			planSegment &&
-			event.factStart &&
-			event.factStart > planSegment.start &&
-			planSegment.end > planSegment.start
-				? {
-						end: getDateMin(event.factStart, planSegment.end) ?? planSegment.end,
-						start: planSegment.start,
-					}
-				: null;
-		const earlyStart =
-			event.planStart && event.factStart && event.factStart < event.planStart
-				? {
-						end: event.planStart,
-						start: event.factStart,
-					}
-				: null;
-		const overdue =
-			event.planEnd &&
-			((event.factEnd && event.factEnd > event.planEnd) ||
-				(!event.factEnd && today > event.planEnd))
-				? {
-						end: event.factEnd ?? today,
-						start: event.planEnd,
-					}
-				: null;
-		const reserve =
-			event.planEnd && event.factEnd && event.factEnd < event.planEnd
-				? {
-						end: event.planEnd,
-						start: event.factEnd,
-					}
-				: null;
-		const fallbackSegment =
+		const boundaryDates = [
+			event.planStart,
+			event.planEnd,
+			event.factStart,
+			factEnd,
+		]
+			.filter((date): date is Date => Boolean(date))
+			.toSorted((left, right) => left.getTime() - right.getTime())
+			.filter(
+				(date, index, dates) =>
+					index === 0 || date.getTime() !== dates[index - 1].getTime(),
+			);
+		const fallbackSegments =
 			!planSegment && event.displayStart && event.displayEnd
 				? {
 						className: eventClassName || styles.ganttAutonomousEventFact,
@@ -947,58 +913,63 @@ const AutonomousEventItem = ({
 						start: event.displayStart,
 					}
 				: null;
-		const segments = [
-			planSegment
-				? {
-						className: styles.ganttAutonomousEventPlan,
-						end: planSegment.end,
-						start: planSegment.start,
-					}
-				: null,
-			earlyStart
-				? {
-						className: styles.ganttAutonomousEventEarly,
-						end: earlyStart.end,
-						start: earlyStart.start,
-					}
-				: null,
-			lateStart
-				? {
-						className: styles.ganttAutonomousEventLate,
-						end: lateStart.end,
-						start: lateStart.start,
-					}
-				: null,
-			reserve
-				? {
-						className: styles.ganttAutonomousEventReserve,
-						end: reserve.end,
-						start: reserve.start,
-					}
-				: null,
-			overdue
-				? {
-						className: styles.ganttAutonomousEventOverdue,
-						end: overdue.end,
-						start: overdue.start,
-					}
-				: null,
-			factSegment
-				? {
-						className: styles.ganttAutonomousEventFact,
-						end: factSegment.end,
-						start: factSegment.start,
-					}
-				: null,
-			fallbackSegment,
-		].filter((segment): segment is {
+		const segments = planSegment
+			? boundaryDates
+					.slice(0, -1)
+					.map((start, index) => {
+						const end = boundaryDates[index + 1];
+						const isInsidePlan = start >= planSegment.start && end <= planSegment.end;
+						const isInsideFact =
+							Boolean(event.factStart && factEnd) &&
+							start >= (event.factStart ?? start) &&
+							end <= (factEnd ?? end);
+						const isEarlyStart =
+							Boolean(event.factStart && event.planStart) &&
+							start < (event.planStart ?? start) &&
+							end <= (event.planStart ?? end);
+						const isLateStart =
+							Boolean(event.factStart) &&
+							isInsidePlan &&
+							start < (event.factStart ?? start);
+						const isOverdue =
+							Boolean(event.planEnd) &&
+							start >= (event.planEnd ?? start) &&
+							Boolean(factEnd);
+						const isReserve =
+							Boolean(event.factEnd && event.planEnd) &&
+							start >= (event.factEnd ?? start) &&
+							end <= (event.planEnd ?? end);
+
+						if (!isInsidePlan && !isInsideFact && !isEarlyStart && !isOverdue) {
+							return null;
+						}
+
+						return {
+							className: isOverdue
+								? styles.ganttAutonomousEventOverdue
+								: isEarlyStart
+									? styles.ganttAutonomousEventEarly
+									: isLateStart
+										? styles.ganttAutonomousEventLate
+										: isReserve
+											? styles.ganttAutonomousEventReserve
+											: isInsideFact
+												? styles.ganttAutonomousEventFact
+												: styles.ganttAutonomousEventPlan,
+							end,
+							start,
+						};
+					})
+					.filter(Boolean)
+			: [fallbackSegments].filter(Boolean);
+		const normalizedSegments = segments.filter((segment): segment is {
 			className: string;
 			end: Date;
 			start: Date;
 		} => Boolean(segment));
 
-		const segmentStarts = segments.map((segment) => segment.start);
-		const segmentEnds = segments.map((segment) => segment.end);
+		const segmentStarts = normalizedSegments.map((segment) => segment.start);
+		const segmentEnds = normalizedSegments.map((segment) => segment.end);
 		const shellStart = segmentStarts.reduce<Date | null>(
 			(minDate, date) => getDateMin(minDate, date),
 			null,
@@ -1023,7 +994,7 @@ const AutonomousEventItem = ({
 				style={getSegmentStyle(shellStart, shellEnd, timeline)}
 				title={formatAutonomousEventTooltip(event)}
 			>
-				{segments.map((segment) => (
+				{normalizedSegments.map((segment) => (
 					<span
 						key={`${segment.className}-${segment.start.toISOString()}-${segment.end.toISOString()}`}
 						className={`${styles.ganttCustomEventSegment} ${segment.className}`}
