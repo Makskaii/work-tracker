@@ -127,6 +127,8 @@ export type ProjectGanttStage = {
 	title: string;
 	code: string;
 	stageType: ProjectGanttStageType | "payments" | null;
+	dependsOnStageId: number | null;
+	durationDays: number | null;
 	sortOrder: number;
 	isDefault: boolean;
 	createdAt: string;
@@ -137,6 +139,8 @@ export type ProjectGanttStagePayload = {
 	title?: string;
 	code?: string;
 	stageType?: ProjectGanttStageType | null;
+	dependsOnStageId?: number | null;
+	durationDays?: number | null;
 	sortOrder?: number | null;
 };
 
@@ -171,6 +175,7 @@ export type AutonomousProjectPayment = {
 	projectId: string;
 	stageId: number;
 	status: AutonomousPaymentStatus;
+	paymentAnchor: "stage_start" | "stage_end";
 	paymentDate: string | null;
 	percent: number | null;
 	amount: number | null;
@@ -183,6 +188,7 @@ export type AutonomousProjectPayment = {
 export type AutonomousProjectPaymentPayload = {
 	stageId: number;
 	status: AutonomousPaymentStatus;
+	paymentAnchor?: "stage_start" | "stage_end" | null;
 	paymentDate?: string | null;
 	percent?: number | null;
 	amount?: number | null;

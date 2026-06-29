@@ -39,31 +39,85 @@ export type AutonomousProjectGantt = {
 
 const MIN_TIMELINE_DAYS = 56;
 
-const buildEventRow = (event: ProjectGanttEvent): AutonomousGanttEventRow => {
+const buildEventRow = (
+	event: ProjectGanttEvent,
+	stageById: Map<number, ProjectGanttStage>,
+	eventByStageId: Map<number, ProjectGanttEvent>,
+	visitedStageIds = new Set<number>(),
+): AutonomousGanttEventRow => {
+	const stage = stageById.get(event.stageId);
 	const planStart = parseGanttDate(event.planStartDate);
 	const planEnd = parseGanttDate(event.planEndDate);
 	const factStart = parseGanttDate(event.factStartDate);
 	const factEnd = parseGanttDate(event.factEndDate);
-	const displayDate = factStart ?? planStart;
+	const dependencyEvent =
+		stage?.dependsOnStageId && !visitedStageIds.has(stage.dependsOnStageId)
+			? eventByStageId.get(stage.dependsOnStageId)
+			: null;
+	const dependencyRow = dependencyEvent
+		? buildEventRow(
+				dependencyEvent,
+				stageById,
+				eventByStageId,
+				new Set([...visitedStageIds, event.stageId]),
+			)
+		: null;
+	const dependencyDurationDays = stage?.durationDays ?? 0;
+	const dependencyPlanStart = dependencyRow?.planEnd ?? null;
+	const dependencyFactStart = dependencyRow?.factEnd ?? null;
+	const resolvedPlanStart = planStart ?? dependencyPlanStart;
+	const resolvedPlanEnd =
+		planEnd ??
+		(resolvedPlanStart && dependencyDurationDays > 0
+			? addDays(resolvedPlanStart, dependencyDurationDays)
+			: null);
+	const resolvedFactStart = factStart ?? dependencyFactStart;
+	const resolvedFactEnd =
+		factEnd ??
+		(resolvedFactStart && dependencyDurationDays > 0
+			? addDays(resolvedFactStart, dependencyDurationDays)
+			: null);
+	const displayDate = resolvedFactStart ?? resolvedPlanStart;
 	const displayStart = event.eventKind === "duration" ? displayDate : null;
 	const displayEnd =
-		event.eventKind === "duration" ? (factEnd ?? planEnd ?? displayStart) : null;
+		event.eventKind === "duration"
+			? (resolvedFactEnd ?? resolvedPlanEnd ?? displayStart)
+			: null;
 
 	return {
 		displayDate,
 		displayEnd,
 		displayStart,
 		event,
-		factEnd,
-		factStart,
-		planEnd,
-		planStart,
+		factEnd: resolvedFactEnd,
+		factStart: resolvedFactStart,
+		planEnd: resolvedPlanEnd,
+		planStart: resolvedPlanStart,
 	};
 };
+
+const getPaymentDisplayDate = (
+	payment: AutonomousProjectPayment,
+	eventRowsByStageId: Map<number, AutonomousGanttEventRow>,
+) => {
+	const stageEvent = eventRowsByStageId.get(payment.stageId);
+
+	if (!stageEvent) {
+		return parseGanttDate(payment.paymentDate);
+	}
+
+	return payment.paymentAnchor === "stage_start"
+		? (stageEvent.factStart ?? stageEvent.planStart)
+		: (stageEvent.factEnd ?? stageEvent.planEnd);
+};
+
+const formatInputDate = (date: Date) =>
+	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 const getTimeline = (
 	rows: AutonomousGanttStageRow[],
 	today: Date,
+	eventRowsByStageId: Map<number, AutonomousGanttEventRow>,
 ): GanttTimeline => {
 	const dates = rows.flatMap((row) => [
 		...row.events.flatMap((event) => [
@@ -75,7 +129,9 @@ const getTimeline = (
 			event.displayStart,
 			event.displayEnd,
 		]),
-		...row.payments.map((payment) => parseGanttDate(payment.paymentDate)),
+		...row.payments.map((payment) =>
+			getPaymentDisplayDate(payment, eventRowsByStageId),
+		),
 	]);
 	const validDates = [...dates, today].filter((date): date is Date =>
 		Boolean(date),
@@ -107,7 +163,14 @@ export const buildAutonomousProjectGantt = ({
 	stages: ProjectGanttStage[];
 	today: Date;
 }): AutonomousProjectGantt => {
-	const eventRows = events.map(buildEventRow);
+	const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+	const eventByStageId = new Map(events.map((event) => [event.stageId, event]));
+	const eventRows = events.map((event) =>
+		buildEventRow(event, stageById, eventByStageId),
+	);
+	const eventRowsByStageId = new Map(
+		eventRows.map((event) => [event.event.stageId, event]),
+	);
 	const rows = stages
 		.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
 		.map((stage) => ({
@@ -119,14 +182,28 @@ export const buildAutonomousProjectGantt = ({
 				),
 			payments:
 				stage.code === "payments"
-					? payments.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+					? payments
+							.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+							.map((payment) => {
+								const displayDate = getPaymentDisplayDate(
+									payment,
+									eventRowsByStageId,
+								);
+
+								return displayDate
+									? {
+											...payment,
+											paymentDate: formatInputDate(displayDate),
+										}
+									: payment;
+							})
 					: [],
 			stage,
 		}));
 
 	return {
 		rows,
-		timeline: getTimeline(rows, today),
+		timeline: getTimeline(rows, today, eventRowsByStageId),
 	};
 };
 

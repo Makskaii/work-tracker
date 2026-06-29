@@ -19,7 +19,6 @@ import { ReportProjectModal } from "./components/ReportProjectModal";
 import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
 import {
-	fetchProjectGanttEvents,
 	fetchProjectGanttStages,
 } from "./model/projectGantt.api";
 import {
@@ -47,7 +46,6 @@ import type {
 	AutonomousProjectPayment,
 	CreateProjectReportEntryPayload,
 	FinancialProjectSummary,
-	ProjectGanttEvent,
 	ProjectGanttStage,
 	ProjectReportEntry,
 	ProjectReportEntryFile,
@@ -288,9 +286,6 @@ export const SalesProfitabilityReport = ({
 	const [autonomousPaymentStages, setAutonomousPaymentStages] = useState<
 		ProjectGanttStage[]
 	>([]);
-	const [autonomousPaymentEvents, setAutonomousPaymentEvents] = useState<
-		ProjectGanttEvent[]
-	>([]);
 	const [isAutonomousPaymentsLoading, setIsAutonomousPaymentsLoading] =
 		useState(false);
 	const [autonomousPaymentsError, setAutonomousPaymentsError] = useState<
@@ -395,7 +390,6 @@ export const SalesProfitabilityReport = ({
 		if (!selectedReportProjectId) {
 			setAutonomousPayments([]);
 			setAutonomousPaymentStages([]);
-			setAutonomousPaymentEvents([]);
 			return;
 		}
 
@@ -415,12 +409,10 @@ export const SalesProfitabilityReport = ({
 				),
 			),
 			fetchProjectGanttStages(projectId, controller.signal),
-			fetchProjectGanttEvents(projectId, controller.signal),
 		])
-			.then(([payments, stages, events]) => {
+			.then(([payments, stages]) => {
 				setAutonomousPayments(payments.flat());
 				setAutonomousPaymentStages(stages);
-				setAutonomousPaymentEvents(events);
 			})
 			.catch(() => {
 				if (!controller.signal.aborted) {
@@ -721,20 +713,6 @@ export const SalesProfitabilityReport = ({
 		setPaymentsRefreshKey((prev) => prev + 1);
 	};
 
-	const getAutonomousPaymentDateForStage = (stageId: number | null) => {
-		const stageEvent = autonomousPaymentEvents.find(
-			(event) => event.stageId === stageId,
-		);
-
-		return (
-			stageEvent?.factEndDate ??
-			stageEvent?.planEndDate ??
-			stageEvent?.factStartDate ??
-			stageEvent?.planStartDate ??
-			""
-		);
-	};
-
 	const openPaymentCreateModal = () => {
 		const defaultStage =
 			autonomousPaymentStages.find((stage) => stage.code !== "payments") ??
@@ -742,7 +720,7 @@ export const SalesProfitabilityReport = ({
 
 		setPaymentForm({
 			...DEFAULT_PAYMENT_FORM,
-			paymentDate: getAutonomousPaymentDateForStage(defaultStage?.id ?? null),
+			paymentDate: "",
 			stageId: defaultStage?.id ?? null,
 		});
 		setDeletingPaymentId(null);
@@ -753,6 +731,7 @@ export const SalesProfitabilityReport = ({
 		setPaymentForm({
 			amount: payment.amount === null ? "" : String(payment.amount),
 			id: payment.id,
+			paymentAnchor: payment.paymentAnchor ?? "stage_end",
 			paymentDate: payment.paymentDate ?? "",
 			percent: payment.percent === null ? "" : String(payment.percent),
 			stageId: payment.stageId,
@@ -778,7 +757,8 @@ export const SalesProfitabilityReport = ({
 
 		const payload = {
 			amount: numberOrNull(calculatedPaymentFields.amount),
-			paymentDate: paymentForm.paymentDate || null,
+			paymentAnchor: paymentForm.paymentAnchor,
+			paymentDate: null,
 			percent: numberOrNull(calculatedPaymentFields.percent),
 			stageId: paymentForm.stageId,
 			status: paymentForm.status,
@@ -1309,7 +1289,6 @@ export const SalesProfitabilityReport = ({
 		<PaymentModal
 			deletingPaymentId={deletingPaymentId}
 			form={paymentForm}
-			getPaymentDateForStage={getAutonomousPaymentDateForStage}
 			isOpen={isPaymentModalOpen}
 			onClose={() => {
 				setDeletingPaymentId(null);
