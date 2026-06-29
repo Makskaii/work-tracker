@@ -1163,6 +1163,61 @@
 	}
 }
 
+.ganttAutonomousEventClosing {
+	border-color: rgba(118, 98, 255, 0.78);
+	background: #7662ff;
+	color: #ffffff;
+
+	b {
+		background: #7662ff;
+	}
+}
+
+.ganttAutonomousEventPlan {
+	border-color: rgba(111, 168, 255, 0.52);
+	background: rgba(111, 168, 255, 0.2);
+}
+
+.ganttAutonomousEventFact {
+	border-color: rgba(19, 139, 109, 0.72);
+	background: #138b6d;
+	color: #ffffff;
+
+	b {
+		background: #138b6d;
+	}
+}
+
+.ganttAutonomousEventLate {
+	border-color: rgba(255, 200, 71, 0.78);
+	background: repeating-linear-gradient(45deg, #ffc847 0 6px, #5b4216 6px 12px);
+	color: #06111e;
+
+	b {
+		background: #ffc847;
+	}
+}
+
+.ganttAutonomousEventEarly {
+	border-color: rgba(142, 124, 255, 0.78);
+	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
+	color: #ffffff;
+
+	b {
+		background: #8e7cff;
+	}
+}
+
+.ganttAutonomousEventReserve {
+	border-color: rgba(108, 204, 165, 0.78);
+	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
+	color: #ffffff;
+
+	b {
+		background: #6ccca5;
+	}
+}
+
 .ganttAutonomousEventOverdue {
 	border-color: rgba(255, 173, 181, 0.8);
 	background: repeating-linear-gradient(45deg, #d92d3a 0 6px, #ffadb5 6px 12px);
@@ -1767,6 +1822,52 @@
 
 .reportProjectWideField {
 	grid-column: 1 / -1;
+}
+
+.reportProjectAutocomplete {
+	position: relative;
+}
+
+.reportProjectAutocompleteOptions {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	z-index: 30;
+	display: none;
+	width: 100%;
+	max-height: 210px;
+	flex-direction: column;
+	gap: 3px;
+	overflow-y: auto;
+	box-sizing: border-box;
+	padding: 6px;
+	border: 1px solid rgba(80, 140, 190, 0.52);
+	border-radius: 12px;
+	background: rgba(9, 20, 36, 0.98);
+	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
+
+	button {
+		min-height: 32px;
+		padding: 6px 8px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: var(--color-text);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 800;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	button:hover {
+		background: rgba(38, 240, 233, 0.12);
+		color: var(--color-accent);
+	}
+}
+
+.reportProjectAutocomplete:focus-within .reportProjectAutocompleteOptions {
+	display: flex;
 }
 
 .reportProjectDetailsFileField {

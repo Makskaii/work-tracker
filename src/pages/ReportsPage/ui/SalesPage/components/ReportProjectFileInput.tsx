@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { User } from "@/shared/types/types";
 import type {
 	ReportProject,
 	ReportProjectFile,
@@ -155,35 +156,47 @@ export const ReportProjectFileInput = ({
 export const ReportProjectInput = ({
 	form,
 	label,
+	multiple = false,
 	name,
 	onFormChange,
+	options,
 	textarea,
 	type = "text",
 	variant = "modal",
 }: {
 	form: ReportProjectFormState;
 	label: string;
+	multiple?: boolean;
 	name: keyof ReportProjectFormState;
 	onFormChange: (value: ReportProjectFormState) => void;
+	options?: ReportProjectAutocompleteOption[];
 	textarea?: boolean;
 	type?: "date" | "number" | "text";
 	variant?: "modal" | "details";
 }) => {
+	const isMultiple = multiple || name === "developmentTeam";
+	const value = form[name];
+	const query = isMultiple ? getMultiValueQuery(value) : value;
+	const matchingOptions = options ? getMatchingOptions(options, query) : [];
 	const fieldClassName =
 		variant === "details"
 			? textarea
 				? `${styles.reportProjectDetailsField} ${styles.reportProjectDetailsWideField}`
-				: styles.reportProjectDetailsField
+				: options
+					? `${styles.reportProjectDetailsField} ${styles.reportProjectAutocomplete}`
+					: styles.reportProjectDetailsField
 			: textarea
 				? `${styles.reportProjectField} ${styles.reportProjectWideField}`
-				: styles.reportProjectField;
+				: options
+					? `${styles.reportProjectField} ${styles.reportProjectAutocomplete}`
+					: styles.reportProjectField;
 
 	return (
 		<label className={fieldClassName}>
 			<span>{label}</span>
 			{textarea ? (
 				<textarea
-					value={form[name]}
+					value={value}
 					onChange={(event) =>
 						onFormChange({
 							...form,
@@ -192,22 +205,154 @@ export const ReportProjectInput = ({
 					}
 				/>
 			) : (
-				<input
-					type={type}
-					value={form[name]}
-					onClick={(event) => {
-						if (type === "date") {
-							event.currentTarget.showPicker?.();
+				<>
+					<input
+						type={type}
+						value={value}
+						onClick={(event) => {
+							if (type === "date") {
+								event.currentTarget.showPicker?.();
+							}
+						}}
+						onChange={(event) =>
+							onFormChange({
+								...form,
+								[name]: event.target.value,
+							})
 						}
-					}}
-					onChange={(event) =>
-						onFormChange({
-							...form,
-							[name]: event.target.value,
-						})
-					}
-				/>
+					/>
+					{matchingOptions.length ? (
+						<div className={styles.reportProjectAutocompleteOptions}>
+							{matchingOptions.map((option) => (
+								<button
+									key={option.id}
+									type="button"
+									onClick={() =>
+										onFormChange({
+											...form,
+											[name]: isMultiple
+												? appendMultiValue(value, option.title)
+												: option.title,
+										})
+									}
+								>
+									{option.title}
+								</button>
+							))}
+						</div>
+					) : null}
+				</>
 			)}
 		</label>
 	);
 };
+
+export type ReportProjectAutocompleteOption = {
+	id: string;
+	title: string;
+};
+
+const getMatchingOptions = (
+	options: ReportProjectAutocompleteOption[],
+	query: string,
+) => {
+	const normalizedQuery = query.trim().toLowerCase();
+
+	if (!normalizedQuery) {
+		return options.slice(0, 8);
+	}
+
+	return options
+		.filter((option) => option.title.toLowerCase().includes(normalizedQuery))
+		.slice(0, 8);
+};
+
+const getMultiValueQuery = (value: string) => {
+	const parts = value.split(",");
+
+	return parts.at(-1)?.trim() ?? "";
+};
+
+const appendMultiValue = (value: string, selectedValue: string) => {
+	const parts = value
+		.split(",")
+		.map((part) => part.trim())
+		.filter(Boolean);
+	const currentQuery = getMultiValueQuery(value);
+	const baseParts = currentQuery ? parts.slice(0, -1) : parts;
+	const nextParts = Array.from(new Set([...baseParts, selectedValue]));
+
+	return nextParts.join(", ");
+};
+
+export const ReportProjectAutocompleteInput = ({
+	form,
+	label,
+	multiple = false,
+	name,
+	onFormChange,
+	options,
+	variant = "modal",
+}: {
+	form: ReportProjectFormState;
+	label: string;
+	multiple?: boolean;
+	name: keyof ReportProjectFormState;
+	onFormChange: (value: ReportProjectFormState) => void;
+	options: ReportProjectAutocompleteOption[];
+	variant?: "modal" | "details";
+}) => {
+	const value = form[name];
+	const query = multiple ? getMultiValueQuery(value) : value;
+	const matchingOptions = getMatchingOptions(options, query);
+	const fieldClassName =
+		variant === "details"
+			? styles.reportProjectDetailsField
+			: styles.reportProjectField;
+
+	const selectOption = (option: ReportProjectAutocompleteOption) => {
+		onFormChange({
+			...form,
+			[name]: multiple ? appendMultiValue(value, option.title) : option.title,
+		});
+	};
+
+	return (
+		<label className={`${fieldClassName} ${styles.reportProjectAutocomplete}`}>
+			<span>{label}</span>
+			<input
+				type="text"
+				value={value}
+				onChange={(event) =>
+					onFormChange({
+						...form,
+						[name]: event.target.value,
+					})
+				}
+			/>
+			{matchingOptions.length ? (
+				<div className={styles.reportProjectAutocompleteOptions}>
+					{matchingOptions.map((option) => (
+						<button
+							key={option.id}
+							type="button"
+							onClick={() => selectOption(option)}
+						>
+							{option.title}
+						</button>
+					))}
+				</div>
+			) : null}
+		</label>
+	);
+};
+
+export const getUserAutocompleteOptions = (
+	users: User[],
+): ReportProjectAutocompleteOption[] =>
+	users
+		.map((user) => ({
+			id: String(user.id),
+			title: String(user.title ?? "").trim(),
+		}))
+		.filter((option) => option.id && option.title);

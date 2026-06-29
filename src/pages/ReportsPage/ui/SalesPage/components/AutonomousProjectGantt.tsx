@@ -186,23 +186,50 @@ const getPaymentDateFromEventDates = ({
 	planStartDate ??
 	"";
 
-const isAutonomousEventOverdue = (event: ProjectGanttEvent) => {
-	const planEndDate = parseGanttDate(event.planEndDate);
-	const factEndDate = parseGanttDate(event.factEndDate);
-
-	return Boolean(planEndDate && factEndDate && factEndDate > planEndDate);
-};
-
 const getAutonomousEventClassName = (
 	event: ProjectGanttEvent,
 	stageType: ProjectGanttStage["stageType"],
+	today: Date,
 ) => {
-	if (isAutonomousEventOverdue(event)) {
+	const planStartDate = parseGanttDate(event.planStartDate);
+	const planEndDate = parseGanttDate(event.planEndDate);
+	const factStartDate = parseGanttDate(event.factStartDate);
+	const factEndDate = parseGanttDate(event.factEndDate);
+
+	if (
+		planEndDate &&
+		((factEndDate && factEndDate > planEndDate) ||
+			(!factEndDate && today > planEndDate))
+	) {
 		return styles.ganttAutonomousEventOverdue;
+	}
+
+	if (planEndDate && factEndDate && factEndDate < planEndDate) {
+		return styles.ganttAutonomousEventReserve;
+	}
+
+	if (planStartDate && factStartDate && factStartDate > planStartDate) {
+		return styles.ganttAutonomousEventLate;
+	}
+
+	if (planStartDate && factStartDate && factStartDate < planStartDate) {
+		return styles.ganttAutonomousEventEarly;
 	}
 
 	if (stageType === "tz_signing") {
 		return styles.ganttAutonomousEventSigning;
+	}
+
+	if (stageType === "closing") {
+		return styles.ganttAutonomousEventClosing;
+	}
+
+	if (event.eventKind === "duration" && (factStartDate || factEndDate)) {
+		return styles.ganttAutonomousEventFact;
+	}
+
+	if (event.eventKind === "duration") {
+		return styles.ganttAutonomousEventPlan;
 	}
 
 	return "";
@@ -667,6 +694,7 @@ export const AutonomousProjectGantt = ({
 								onStageEdit={openStageEditModal}
 								row={row}
 								stageById={stageById}
+								today={today}
 								timeline={gantt.timeline}
 								weekTicks={weekTicks}
 							/>
@@ -738,6 +766,7 @@ const AutonomousStageRow = ({
 	onStageEdit,
 	row,
 	stageById,
+	today,
 	timeline,
 	weekTicks,
 }: {
@@ -748,6 +777,7 @@ const AutonomousStageRow = ({
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
 	stageById: Map<number, ProjectGanttStage>;
+	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 	weekTicks: GanttWeekTick[];
 }) => {
@@ -796,6 +826,7 @@ const AutonomousStageRow = ({
 						key={event.event.id}
 						onEdit={onEventEdit}
 						stageType={row.stage.stageType}
+						today={today}
 						timeline={timeline}
 					/>
 				))}
@@ -818,15 +849,21 @@ const AutonomousEventItem = ({
 	event,
 	onEdit,
 	stageType,
+	today,
 	timeline,
 }: {
 	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number];
 	onEdit: (event: ProjectGanttEvent) => void;
 	stageType: ProjectGanttStage["stageType"];
+	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 }) => {
 	const style = getAutonomousEventStyle(event, timeline);
-	const eventClassName = getAutonomousEventClassName(event.event, stageType);
+	const eventClassName = getAutonomousEventClassName(
+		event.event,
+		stageType,
+		today,
+	);
 
 	if (!style) {
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;

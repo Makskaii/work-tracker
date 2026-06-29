@@ -1,4 +1,5 @@
 import Modal from "@/components/modal/Modal";
+import type { User } from "@/shared/types/types";
 import type {
 	ReportProject,
 	ReportProjectFile,
@@ -10,6 +11,8 @@ import {
 	type ReportProjectFormState,
 } from "../model/reportProjectForm";
 import {
+	getUserAutocompleteOptions,
+	type ReportProjectAutocompleteOption,
 	ReportProjectFileInput,
 	ReportProjectInput,
 	ReportProjectSection,
@@ -17,6 +20,7 @@ import {
 import styles from "../SalesProfitabilityReport.module.scss";
 
 export const ReportProjectModal = ({
+	companyOptions,
 	deletingReportProjectId,
 	fileDrafts,
 	form,
@@ -31,7 +35,9 @@ export const ReportProjectModal = ({
 	project,
 	projectFormError,
 	saving,
+	users,
 }: {
+	companyOptions: ReportProjectAutocompleteOption[];
 	deletingReportProjectId: number | null;
 	fileDrafts: ReportProjectFileDrafts;
 	form: ReportProjectFormState;
@@ -46,6 +52,7 @@ export const ReportProjectModal = ({
 	project: ReportProject | null;
 	projectFormError: string | null;
 	saving: boolean;
+	users: User[];
 }) => (
 	<Modal isOpen={isOpen} onClose={onClose} size="small">
 		<div className={`${styles.ganttFormModal} ${styles.reportProjectModal}`}>
@@ -82,6 +89,7 @@ export const ReportProjectModal = ({
 					label="Компания клиента"
 					name="clientCompany"
 					onFormChange={onFormChange}
+					options={companyOptions}
 				/>
 				<ReportProjectFileInput
 					file={project?.files.find(
@@ -129,24 +137,28 @@ export const ReportProjectModal = ({
 					label="Ответственный"
 					name="responsible"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 				/>
 				<ReportProjectInput
 					form={form}
 					label="Аналитик"
 					name="analyst"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 				/>
 				<ReportProjectInput
 					form={form}
 					label="Команда разработки"
 					name="developmentTeam"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 				/>
 				<ReportProjectInput
 					form={form}
 					label="QA"
 					name="qa"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 				/>
 			</ReportProjectSection>
 			{projectFormError ? (

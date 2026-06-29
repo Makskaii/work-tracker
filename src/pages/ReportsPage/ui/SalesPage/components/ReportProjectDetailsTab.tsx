@@ -1,3 +1,4 @@
+import type { User } from "@/shared/types/types";
 import type {
 	ReportProject,
 	ReportProjectFile,
@@ -9,6 +10,8 @@ import {
 	type ReportProjectFormState,
 } from "../model/reportProjectForm";
 import {
+	getUserAutocompleteOptions,
+	type ReportProjectAutocompleteOption,
 	ReportProjectFileInput,
 	ReportProjectInput,
 	ReportProjectSection,
@@ -16,6 +19,7 @@ import {
 import styles from "../SalesProfitabilityReport.module.scss";
 
 export const ReportProjectDetailsTab = ({
+	companyOptions,
 	detailsFileDrafts,
 	detailsProjectError,
 	form,
@@ -27,7 +31,9 @@ export const ReportProjectDetailsTab = ({
 	onSave,
 	project,
 	shouldShowSave,
+	users,
 }: {
+	companyOptions: ReportProjectAutocompleteOption[];
 	detailsFileDrafts: ReportProjectFileDrafts;
 	detailsProjectError: string | null;
 	form: ReportProjectFormState;
@@ -39,6 +45,7 @@ export const ReportProjectDetailsTab = ({
 	onSave: () => void;
 	project: ReportProject | null;
 	shouldShowSave: boolean;
+	users: User[];
 }) => {
 	if (!project) {
 		return (
@@ -93,6 +100,7 @@ export const ReportProjectDetailsTab = ({
 					label="Компания клиента"
 					name="clientCompany"
 					onFormChange={onFormChange}
+					options={companyOptions}
 					variant="details"
 				/>
 				<ReportProjectFileInput
@@ -146,6 +154,7 @@ export const ReportProjectDetailsTab = ({
 					label="Ответственный"
 					name="responsible"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 					variant="details"
 				/>
 				<ReportProjectInput
@@ -153,6 +162,7 @@ export const ReportProjectDetailsTab = ({
 					label="Аналитик"
 					name="analyst"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 					variant="details"
 				/>
 				<ReportProjectInput
@@ -160,6 +170,7 @@ export const ReportProjectDetailsTab = ({
 					label="Команда разработки"
 					name="developmentTeam"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 					variant="details"
 				/>
 				<ReportProjectInput
@@ -167,6 +178,7 @@ export const ReportProjectDetailsTab = ({
 					label="QA"
 					name="qa"
 					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
 					variant="details"
 				/>
 			</ReportProjectSection>

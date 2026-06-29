@@ -318,8 +318,11 @@ export const SalesProfitabilityReport = ({
 		number | null
 	>(null);
 	const { openTask } = useBitrixSlider();
-	const { projects: bitrixProjects, isLoadingDetails: isBitrixProjectsLoading } =
-		useCompanyProjects();
+	const {
+		companyTitleById,
+		projects: bitrixProjects,
+		isLoadingDetails: isBitrixProjectsLoading,
+	} = useCompanyProjects();
 	const selectedReportProject = reportProjects.find(
 		(project) => getDbProjectId(project) === selectedProjectId,
 	) ?? reportProjects[0] ?? null;
@@ -487,6 +490,14 @@ export const SalesProfitabilityReport = ({
 				project.title.toLowerCase().includes(normalizedProjectSearchQuery),
 			)
 		: reportProjects;
+	const companyOptions = useMemo(
+		() =>
+			Array.from(companyTitleById.entries()).map(([id, title]) => ({
+				id,
+				title,
+			})),
+		[companyTitleById],
+	);
 
 	const initialDetailsProjectForm = useMemo(
 		() => getReportProjectForm(selectedReportProject),
@@ -1187,6 +1198,7 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "projectDetails" && (
 								<ReportProjectDetailsTab
+									companyOptions={companyOptions}
 									detailsFileDrafts={detailsFileDrafts}
 									detailsProjectError={detailsProjectError}
 									form={detailsProjectForm}
@@ -1203,6 +1215,7 @@ export const SalesProfitabilityReport = ({
 									onSave={handleDetailsProjectSave}
 									project={selectedReportProject}
 									shouldShowSave={shouldShowDetailsSave}
+									users={users}
 								/>
 							)}
 
@@ -1256,6 +1269,7 @@ export const SalesProfitabilityReport = ({
 			</div>
 		</section>
 		<ReportProjectModal
+			companyOptions={companyOptions}
 			deletingReportProjectId={deletingReportProjectId}
 			fileDrafts={projectFileDrafts}
 			form={projectForm}
@@ -1279,6 +1293,7 @@ export const SalesProfitabilityReport = ({
 			project={editingReportProject}
 			projectFormError={projectFormError}
 			saving={isReportProjectSaving}
+			users={users}
 		/>
 		<PaymentModal
 			deletingPaymentId={deletingPaymentId}
