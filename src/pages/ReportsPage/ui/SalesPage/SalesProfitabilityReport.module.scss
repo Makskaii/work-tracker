@@ -840,13 +840,13 @@
 }
 
 .paymentLegend .paymentPlanned {
-	background: rgba(255, 191, 77, 0.16);
-	color: #ffbf4d;
+	background: rgba(255, 107, 107, 0.16);
+	color: #ff6b6b;
 }
 
 .paymentLegend .paymentDebt {
-	background: rgba(111, 168, 255, 0.16);
-	color: #6fa8ff;
+	background: rgba(255, 107, 107, 0.16);
+	color: #ff6b6b;
 }
 
 .paymentLegend .paymentCanceled {
@@ -994,11 +994,11 @@
 }
 
 .stackedBar .paymentPlanned {
-	background: linear-gradient(180deg, #ffd35f, #ffc23d);
+	background: linear-gradient(180deg, #ff7676, #ff626a);
 }
 
 .stackedBar .paymentDebt {
-	background: linear-gradient(180deg, #6fb2ff, #58a0f5);
+	background: linear-gradient(180deg, #ff7676, #ff626a);
 }
 
 .stackedBar .paymentCanceled {
@@ -1117,8 +1117,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0 12px;
+	height: 20px;
+	padding: 0;
 	border: 1px solid rgba(142, 111, 255, 0.7);
+	border-radius: 999px;
 	border-color: rgba(142, 111, 255, 0.7);
 	background: linear-gradient(90deg, rgba(142, 111, 255, 0.86), rgba(94, 151, 255, 0.82));
 	color: #f7f9ff;
@@ -1127,6 +1129,7 @@
 	text-align: center;
 	cursor: pointer;
 	appearance: none;
+	box-shadow: 0 4px 10px rgba(1, 8, 14, 0.22);
 }
 
 .ganttCustomEventSegment:hover {
@@ -1174,11 +1177,13 @@
 }
 
 .ganttAutonomousEventPlan {
+	z-index: 1;
 	border-color: rgba(111, 168, 255, 0.52);
 	background: rgba(111, 168, 255, 0.2);
 }
 
 .ganttAutonomousEventFact {
+	z-index: 4;
 	border-color: rgba(19, 139, 109, 0.72);
 	background: #138b6d;
 	color: #ffffff;
@@ -1189,6 +1194,7 @@
 }
 
 .ganttAutonomousEventLate {
+	z-index: 3;
 	border-color: rgba(255, 200, 71, 0.78);
 	background: repeating-linear-gradient(45deg, #ffc847 0 6px, #5b4216 6px 12px);
 	color: #06111e;
@@ -1199,6 +1205,7 @@
 }
 
 .ganttAutonomousEventEarly {
+	z-index: 3;
 	border-color: rgba(142, 124, 255, 0.78);
 	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
 	color: #ffffff;
@@ -1209,6 +1216,7 @@
 }
 
 .ganttAutonomousEventReserve {
+	z-index: 2;
 	border-color: rgba(108, 204, 165, 0.78);
 	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
 	color: #ffffff;
@@ -1219,6 +1227,7 @@
 }
 
 .ganttAutonomousEventOverdue {
+	z-index: 5;
 	border-color: rgba(255, 173, 181, 0.8);
 	background: repeating-linear-gradient(45deg, #d92d3a 0 6px, #ffadb5 6px 12px);
 	color: #ffffff;
@@ -1395,19 +1404,11 @@
 	background: linear-gradient(180deg, rgba(27, 43, 64, 0.78), rgba(15, 28, 44, 0.74));
 }
 
-.autonomousPaymenttodo b {
-	background: var(--color-payment-company);
-}
-
-.autonomousPaymentdebt b {
-	background: var(--color-accent-blue);
-}
-
-.autonomousPaymentpaid b {
+.autonomousPaymentPaid b {
 	background: var(--color-payment-client);
 }
 
-.autonomousPaymentcanceled b {
+.autonomousPaymentUnpaid b {
 	background: var(--color-payment-unpaid);
 }
 
@@ -2417,13 +2418,13 @@
 }
 
 .paymentPlanned {
-	background: var(--color-payment-company-surface);
-	color: var(--color-payment-company);
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
 }
 
 .paymentDebt {
-	background: rgba(111, 168, 255, 0.16);
-	color: var(--color-accent-blue);
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
 }
 
 .paymentCanceled {
@@ -2432,13 +2433,13 @@
 }
 
 .paymenttodo {
-	background: var(--color-payment-company-surface);
-	color: var(--color-payment-company);
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
 }
 
 .paymentdebt {
-	background: rgba(111, 168, 255, 0.16);
-	color: var(--color-accent-blue);
+	background: var(--color-payment-unpaid-surface);
+	color: var(--color-payment-unpaid);
 }
 
 .paymentpaid {
@@ -2518,12 +2519,12 @@
 
 .tasksHead,
 .taskRow {
-	grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) minmax(160px, 1fr) 70px 70px 110px minmax(110px, 0.8fr);
+	grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 1fr) minmax(160px, 1fr) 70px 70px 110px minmax(110px, 0.8fr) 86px;
 }
 
 .reportsHead,
 .reportRow {
-	grid-template-columns: 80px minmax(120px, 1fr) minmax(160px, 1fr) minmax(160px, 1.2fr) 90px 70px 120px;
+	grid-template-columns: 80px minmax(120px, 1fr) minmax(160px, 1fr) minmax(160px, 1.2fr) 90px 70px 120px 86px;
 }
 
 .projectRow,
@@ -2562,6 +2563,25 @@
 .projectRow:hover,
 .projectRowOpen {
 	background: rgba(57, 214, 238, 0.08);
+}
+
+.openBitrixButton {
+	display: inline-flex;
+	min-height: 30px;
+	align-items: center;
+	justify-content: center;
+	padding: 0 10px;
+	border: 1px solid rgba(38, 240, 233, 0.56);
+	border-radius: 9px;
+	background: rgba(38, 240, 233, 0.1);
+	color: var(--color-accent);
+	font-size: 12px;
+	font-weight: 900;
+	cursor: pointer;
+}
+
+.openBitrixButton:hover {
+	background: rgba(38, 240, 233, 0.18);
 }
 
 .projectGanttWrap {
@@ -3074,11 +3094,11 @@
 }
 
 .ganttPaymentPlanned b {
-	background: var(--color-payment-company);
+	background: var(--color-payment-unpaid);
 }
 
 .ganttPaymentDebt b {
-	background: var(--color-accent-blue);
+	background: var(--color-payment-unpaid);
 }
 
 .ganttPaymentCanceled b {

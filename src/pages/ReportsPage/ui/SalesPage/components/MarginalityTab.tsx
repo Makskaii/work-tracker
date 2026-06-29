@@ -3,7 +3,6 @@ import { ProjectCodes } from "@/components/calendar/constants/const";
 import type { Deal } from "../../../types/deals.types";
 import {
 	getPaymentAmount,
-	getPaymentDisplayPercent,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
 import { formatMoney, getProjectAmount } from "../model/profitabilityUtils";
@@ -30,38 +29,11 @@ const paymentStageMeta = (stageId?: string | null) => {
 		};
 	}
 
-	if (stageType === "canceled") {
-		return {
-			label: "отменено",
-			className: styles.paymentCanceled,
-		};
-	}
-
-	if (stageType === "debt") {
-		return {
-			label: "дебиторка",
-			className: styles.paymentDebt,
-		};
-	}
-
 	return {
-		label: "нужно выполнить",
-		className: styles.paymentPlanned,
+		label: "неоплачено",
+		className: styles.paymentCanceled,
 	};
 };
-
-const formatPercent = (value: number | null | undefined) =>
-	value === null || value === undefined
-		? "—"
-		: `${Number.isFinite(value) ? value : 0}%`;
-
-const formatPaymentSegmentLabel = (
-	percent: number | null | undefined,
-	amount: number,
-) =>
-	percent === null || percent === undefined
-		? formatMoney(amount)
-		: formatPercent(percent);
 
 const formatDate = (value?: string) => {
 	if (!value) {
@@ -271,10 +243,6 @@ export const MarginalityTab = ({
 				.map((item) => ({
 					...item,
 					amount: getPaymentAmount(item.payment, getPaymentProjectAmount(item)),
-					percent: getPaymentDisplayPercent(
-						item.payment,
-						getPaymentProjectAmount(item),
-					),
 				}))
 				.filter((item) => item.amount > 0);
 
@@ -382,9 +350,7 @@ export const MarginalityTab = ({
 				<h4>График оплат по датам</h4>
 				<div className={styles.paymentLegend}>
 					<span className={styles.paymentPaid}>оплачено</span>
-					<span className={styles.paymentPlanned}>нужно выполнить</span>
-					<span className={styles.paymentDebt}>дебиторка</span>
-					<span className={styles.paymentCanceled}>отменено</span>
+					<span className={styles.paymentCanceled}>неоплачено</span>
 				</div>
 				<div className={styles.paymentChart}>
 					{hasChartColumns ? (
@@ -411,7 +377,7 @@ export const MarginalityTab = ({
 												style={{ height: `${columnHeight}px` }}
 											>
 												{segments.length ? (
-													segments.map(({ amount, payment, percent }) => {
+													segments.map(({ amount, payment }) => {
 														const stageMeta = paymentStageMeta(payment.stageId);
 
 														return (
@@ -424,11 +390,9 @@ export const MarginalityTab = ({
 																		16,
 																	)}px`,
 																}}
-																title={`${formatMoney(amount)} · ${formatPercent(
-																	percent,
-																)}`}
+																title={formatMoney(amount)}
 															>
-																{formatPaymentSegmentLabel(percent, amount)}
+																{formatMoney(amount)}
 															</span>
 														);
 													})
@@ -463,17 +427,12 @@ export const MarginalityTab = ({
 								project,
 							});
 							const amount = getPaymentAmount(payment, paymentProjectAmount);
-							const percent = getPaymentDisplayPercent(
-								payment,
-								paymentProjectAmount,
-							);
 
 							return (
 								<article key={String(payment.id)} className={styles.paymentItem}>
 									<div>
 										<strong>
-											{project.title} · {paymentNumber} платеж ·{" "}
-											{formatPercent(percent)}
+											{project.title} · {paymentNumber} платеж
 										</strong>
 										<span>
 											Дата платежа:{" "}

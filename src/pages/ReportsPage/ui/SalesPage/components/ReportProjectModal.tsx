@@ -20,6 +20,7 @@ import {
 import styles from "../SalesProfitabilityReport.module.scss";
 
 export const ReportProjectModal = ({
+	bitrixProjectOptions,
 	companyOptions,
 	deletingReportProjectId,
 	fileDrafts,
@@ -37,6 +38,7 @@ export const ReportProjectModal = ({
 	saving,
 	users,
 }: {
+	bitrixProjectOptions: ReportProjectAutocompleteOption[];
 	companyOptions: ReportProjectAutocompleteOption[];
 	deletingReportProjectId: number | null;
 	fileDrafts: ReportProjectFileDrafts;
@@ -69,6 +71,7 @@ export const ReportProjectModal = ({
 					label="ID проекта в Битрикс"
 					name="bitrixProjectId"
 					onFormChange={onFormChange}
+					options={bitrixProjectOptions}
 				/>
 				<ReportProjectInput
 					form={form}

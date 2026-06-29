@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { User } from "@/shared/types/types";
 import type {
 	ReportProject,
@@ -175,6 +175,7 @@ export const ReportProjectInput = ({
 	variant?: "modal" | "details";
 }) => {
 	const isMultiple = multiple || name === "developmentTeam";
+	const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 	const value = form[name];
 	const query = isMultiple ? getMultiValueQuery(value) : value;
 	const matchingOptions = options ? getMatchingOptions(options, query) : [];
@@ -209,32 +210,37 @@ export const ReportProjectInput = ({
 					<input
 						type={type}
 						value={value}
+						onFocus={() => setIsOptionsOpen(true)}
 						onClick={(event) => {
+							setIsOptionsOpen(true);
 							if (type === "date") {
 								event.currentTarget.showPicker?.();
 							}
 						}}
-						onChange={(event) =>
+						onChange={(event) => {
+							setIsOptionsOpen(true);
 							onFormChange({
 								...form,
 								[name]: event.target.value,
-							})
-						}
+							});
+						}}
 					/>
-					{matchingOptions.length ? (
+					{isOptionsOpen && matchingOptions.length ? (
 						<div className={styles.reportProjectAutocompleteOptions}>
 							{matchingOptions.map((option) => (
 								<button
 									key={option.id}
 									type="button"
-									onClick={() =>
+									onMouseDown={(event) => event.preventDefault()}
+									onClick={() => {
 										onFormChange({
 											...form,
 											[name]: isMultiple
-												? appendMultiValue(value, option.title)
-												: option.title,
-										})
-									}
+												? appendMultiValue(value, option.value ?? option.title)
+												: (option.value ?? option.title),
+										});
+										setIsOptionsOpen(false);
+									}}
 								>
 									{option.title}
 								</button>
@@ -250,6 +256,7 @@ export const ReportProjectInput = ({
 export type ReportProjectAutocompleteOption = {
 	id: string;
 	title: string;
+	value?: string;
 };
 
 const getMatchingOptions = (
@@ -263,7 +270,11 @@ const getMatchingOptions = (
 	}
 
 	return options
-		.filter((option) => option.title.toLowerCase().includes(normalizedQuery))
+		.filter(
+			(option) =>
+				option.title.toLowerCase().includes(normalizedQuery) ||
+				option.id.toLowerCase().includes(normalizedQuery),
+		)
 		.slice(0, 8);
 };
 

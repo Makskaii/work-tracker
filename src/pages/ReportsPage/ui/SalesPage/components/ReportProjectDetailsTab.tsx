@@ -19,6 +19,7 @@ import {
 import styles from "../SalesProfitabilityReport.module.scss";
 
 export const ReportProjectDetailsTab = ({
+	bitrixProjectOptions,
 	companyOptions,
 	detailsFileDrafts,
 	detailsProjectError,
@@ -33,6 +34,7 @@ export const ReportProjectDetailsTab = ({
 	shouldShowSave,
 	users,
 }: {
+	bitrixProjectOptions: ReportProjectAutocompleteOption[];
 	companyOptions: ReportProjectAutocompleteOption[];
 	detailsFileDrafts: ReportProjectFileDrafts;
 	detailsProjectError: string | null;
@@ -77,6 +79,7 @@ export const ReportProjectDetailsTab = ({
 					label="ID проекта в Битрикс"
 					name="bitrixProjectId"
 					onFormChange={onFormChange}
+					options={bitrixProjectOptions}
 					variant="details"
 				/>
 				<ReportProjectInput

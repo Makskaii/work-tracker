@@ -107,10 +107,10 @@ const ProjectListSkeleton = () => (
 );
 
 const paymentStatusLabels = {
-	canceled: "отменено",
-	debt: "дебиторка",
 	paid: "оплачено",
-	todo: "нужно выполнить",
+	todo: "неоплачено",
+	debt: "неоплачено",
+	canceled: "неоплачено",
 } as const;
 
 type PaymentsScope = "all" | "client" | "project";
@@ -154,9 +154,6 @@ const getNextProjectReportDate = (reports: ProjectReportEntry[]) => {
 	return futureDate ?? pastDate ?? null;
 };
 
-const formatPaymentPercent = (percent: number | null) =>
-	percent === null ? "—" : `${percent}%`;
-
 const getPaymentMonthKey = (date: Date) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
@@ -179,10 +176,8 @@ const getAutonomousPaymentStatusClassName = (
 	status: AutonomousProjectPayment["status"],
 ) => {
 	if (status === "paid") return styles.paymentPaid;
-	if (status === "debt") return styles.paymentDebt;
-	if (status === "canceled") return styles.paymentCanceled;
 
-	return styles.paymentPlanned;
+	return styles.paymentCanceled;
 };
 
 const getAutonomousPaymentAmount = (payment: AutonomousProjectPayment) =>
@@ -497,6 +492,20 @@ export const SalesProfitabilityReport = ({
 				title,
 			})),
 		[companyTitleById],
+	);
+	const bitrixProjectOptions = useMemo(
+		() =>
+			bitrixProjects.map((project) => {
+				const id = normalizeProjectId(project.projectId ?? project.id);
+				const title = String(project.title ?? `Проект #${id}`).trim();
+
+				return {
+					id,
+					title: `${title} · #${id}`,
+					value: id,
+				};
+			}),
+		[bitrixProjects],
 	);
 
 	const initialDetailsProjectForm = useMemo(
@@ -1198,6 +1207,7 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "projectDetails" && (
 								<ReportProjectDetailsTab
+									bitrixProjectOptions={bitrixProjectOptions}
 									companyOptions={companyOptions}
 									detailsFileDrafts={detailsFileDrafts}
 									detailsProjectError={detailsProjectError}
@@ -1269,6 +1279,7 @@ export const SalesProfitabilityReport = ({
 			</div>
 		</section>
 		<ReportProjectModal
+			bitrixProjectOptions={bitrixProjectOptions}
 			companyOptions={companyOptions}
 			deletingReportProjectId={deletingReportProjectId}
 			fileDrafts={projectFileDrafts}
@@ -1487,9 +1498,7 @@ const AutonomousPaymentsTab = ({
 				<h4>График оплат по датам</h4>
 				<div className={styles.paymentLegend}>
 					<span className={styles.paymentPaid}>оплачено</span>
-					<span className={styles.paymentPlanned}>нужно выполнить</span>
-					<span className={styles.paymentDebt}>дебиторка</span>
-					<span className={styles.paymentCanceled}>отменено</span>
+					<span className={styles.paymentCanceled}>неоплачено</span>
 				</div>
 				<div className={styles.paymentChart}>
 					{hasChartColumns ? (
@@ -1530,13 +1539,9 @@ const AutonomousPaymentsTab = ({
 																	16,
 																)}px`,
 															}}
-															title={`${formatMoney(amount)} · ${formatPaymentPercent(
-																payment.percent,
-															)}`}
+															title={formatMoney(amount)}
 														>
-															{payment.percent === null
-																? formatMoney(amount)
-																: formatPaymentPercent(payment.percent)}
+															{formatMoney(amount)}
 														</span>
 													))
 												) : (
@@ -1580,14 +1585,13 @@ const AutonomousPaymentsTab = ({
 							key={payment.id}
 							type="button"
 							className={styles.paymentItem}
-							disabled={String(payment.projectId) !== String(project.id)}
 							onClick={() => onEdit(payment)}
 						>
 							<span>
 								<strong>
 									{projectById.get(String(payment.projectId))?.title ??
 										"Проект"}{" "}
-									· Платёж {formatPaymentPercent(payment.percent)}
+									· Платёж
 								</strong>
 								<span>
 									Дата платежа:{" "}
@@ -1599,7 +1603,7 @@ const AutonomousPaymentsTab = ({
 								</small>
 							</span>
 							<b>{formatMoney(payment.amount ?? 0)}</b>
-							<em className={styles[`payment${payment.status}`]}>
+							<em className={getAutonomousPaymentStatusClassName(payment.status)}>
 								{paymentStatusLabels[payment.status]}
 							</em>
 						</button>

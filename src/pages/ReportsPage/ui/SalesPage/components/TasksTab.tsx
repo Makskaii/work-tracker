@@ -28,15 +28,11 @@ export const TasksTab = ({ items, users, openTask }: TasksTabProps) => (
 				<span>Факт</span>
 				<span>Тип оплаты</span>
 				<span>Статус</span>
+				<span>Bitrix</span>
 			</div>
 			{items.length ? (
 				items.map(({ task, project }) => (
-					<button
-						key={task.id}
-						type="button"
-						className={styles.taskRow}
-						onClick={() => openTask(task.id)}
-					>
+					<div key={task.id} className={styles.taskRow}>
 						<strong>{getTaskTitle(task)}</strong>
 						<span>{getUserName(users, task.assignedById)}</span>
 						<span>{project.title}</span>
@@ -45,8 +41,17 @@ export const TasksTab = ({ items, users, openTask }: TasksTabProps) => (
 						<span className={styles.paymentPill}>
 							{getPaymentKindFromTaskType(task[TaskCodes.taskType])}
 						</span>
-						<span className={styles.successPill}>{task.stageId}</span>
-					</button>
+						<span className={styles.successPill}>
+							{task[TaskCodes.stage] ?? task.stageId}
+						</span>
+						<button
+							type="button"
+							className={styles.openBitrixButton}
+							onClick={() => openTask(task.id)}
+						>
+							Открыть
+						</button>
+					</div>
 				))
 			) : (
 				<div className={styles.emptyState}>

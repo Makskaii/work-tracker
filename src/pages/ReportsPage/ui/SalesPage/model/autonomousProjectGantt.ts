@@ -146,16 +146,7 @@ export const getAutonomousEventStyle = (
 export const getPaymentStatusLabel = (
 	status: AutonomousProjectPayment["status"],
 ) => {
-	switch (status) {
-		case "paid":
-			return "Оплачено";
-		case "debt":
-			return "Дебиторка";
-		case "canceled":
-			return "Отменено";
-		default:
-			return "Нужно выполнить";
-	}
+	return status === "paid" ? "Оплачено" : "Неоплачено";
 };
 
 export const formatAutonomousEventTooltip = (
@@ -176,7 +167,6 @@ export const formatAutonomousPaymentTooltip = (
 		`Дата платежа: ${formatDateShort(parseGanttDate(payment.paymentDate))}`,
 		`Статус: ${getPaymentStatusLabel(payment.status)}`,
 		`Этап: ${stageTitle}`,
-		`Процент: ${payment.percent ?? "—"}`,
 		`Сумма: ${payment.amount ?? "—"}`,
 		`Дней ожидания: ${payment.waitingDays ?? "—"}`,
 	].join("\n");

@@ -28,6 +28,7 @@ import {
 	formatDateShort,
 	getMilestoneStyle,
 	getMonthTicks,
+	getSegmentStyle,
 	getWeekTicks,
 	parseGanttDate,
 } from "../model/ganttUtils";
@@ -185,6 +186,37 @@ const getPaymentDateFromEventDates = ({
 	factStartDate ??
 	planStartDate ??
 	"";
+
+const getDateMin = (left: Date | null, right: Date | null) => {
+	if (!left) return right;
+	if (!right) return left;
+
+	return left < right ? left : right;
+};
+
+const getDateMax = (left: Date | null, right: Date | null) => {
+	if (!left) return right;
+	if (!right) return left;
+
+	return left > right ? left : right;
+};
+
+const isPaymentPaid = (payment: AutonomousProjectPayment) =>
+	payment.status === "paid";
+
+const getConnectedSegmentStyle = (
+	start: Date,
+	end: Date,
+	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"],
+) => {
+	const style = getSegmentStyle(start, end, timeline);
+
+	return {
+		...style,
+		left: `calc(${String(style.left)} - 2px)`,
+		width: `calc(${String(style.width)} + 4px)`,
+	};
+};
 
 const getAutonomousEventClassName = (
 	event: ProjectGanttEvent,
@@ -608,6 +640,8 @@ export const AutonomousProjectGantt = ({
 			return;
 		}
 
+		const normalizedPaymentStatus: AutonomousPaymentStatus =
+			paymentForm.status === "paid" ? "paid" : "todo";
 		const payload = {
 			amount: toNumberOrNull(
 				calculatePaymentFields({
@@ -627,7 +661,7 @@ export const AutonomousProjectGantt = ({
 				}).percent,
 			),
 			stageId: paymentForm.stageId,
-			status: paymentForm.status,
+			status: normalizedPaymentStatus,
 			waitingDays: toNumberOrNull(paymentForm.waitingDays),
 		};
 
@@ -713,6 +747,7 @@ export const AutonomousProjectGantt = ({
 						</div>
 					</div>
 				)}
+				<AutonomousGanttLegend />
 			</div>
 			<StageModal
 				deletingStageId={deletingStageId}
@@ -869,20 +904,139 @@ const AutonomousEventItem = ({
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
 	}
 
-	return event.event.eventKind === "duration" ? (
-		<button
-			type="button"
-			className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment} ${eventClassName}`}
-			onClick={(clickEvent) => {
-				clickEvent.stopPropagation();
-				onEdit(event.event);
-			}}
-			style={style}
-			title={formatAutonomousEventTooltip(event)}
-		>
-			{event.event.title}
-		</button>
-	) : (
+	if (event.event.eventKind === "duration") {
+		const planSegment =
+			event.planStart && event.planEnd
+				? {
+						end: event.planEnd,
+						start: event.planStart,
+					}
+				: null;
+		const factEnd = event.factEnd ?? (event.factStart ? today : null);
+		const factStartInPlan =
+			planSegment && event.factStart
+				? getDateMax(event.factStart, planSegment.start)
+				: null;
+		const factEndInPlan =
+			planSegment && factEnd ? getDateMin(factEnd, planSegment.end) : null;
+		const factSegment =
+			factStartInPlan && factEndInPlan && factEndInPlan > factStartInPlan
+				? {
+						end: factEndInPlan,
+						start: factStartInPlan,
+					}
+				: null;
+		const lateStart =
+			planSegment &&
+			event.factStart &&
+			event.factStart > planSegment.start &&
+			planSegment.end > planSegment.start
+				? {
+						end: getDateMin(event.factStart, planSegment.end) ?? planSegment.end,
+						start: planSegment.start,
+					}
+				: null;
+		const earlyStart =
+			event.planStart && event.factStart && event.factStart < event.planStart
+				? {
+						end: event.planStart,
+						start: event.factStart,
+					}
+				: null;
+		const overdue =
+			event.planEnd &&
+			((event.factEnd && event.factEnd > event.planEnd) ||
+				(!event.factEnd && today > event.planEnd))
+				? {
+						end: event.factEnd ?? today,
+						start: event.planEnd,
+					}
+				: null;
+		const reserve =
+			event.planEnd && event.factEnd && event.factEnd < event.planEnd
+				? {
+						end: event.planEnd,
+						start: event.factEnd,
+					}
+				: null;
+		const fallbackSegment =
+			!planSegment && event.displayStart && event.displayEnd
+				? {
+						className: eventClassName || styles.ganttAutonomousEventFact,
+						end: event.displayEnd,
+						start: event.displayStart,
+					}
+				: null;
+		const segments = [
+			planSegment
+				? {
+						className: styles.ganttAutonomousEventPlan,
+						end: planSegment.end,
+						start: planSegment.start,
+					}
+				: null,
+			earlyStart
+				? {
+						className: styles.ganttAutonomousEventEarly,
+						end: earlyStart.end,
+						start: earlyStart.start,
+					}
+				: null,
+			lateStart
+				? {
+						className: styles.ganttAutonomousEventLate,
+						end: lateStart.end,
+						start: lateStart.start,
+					}
+				: null,
+			reserve
+				? {
+						className: styles.ganttAutonomousEventReserve,
+						end: reserve.end,
+						start: reserve.start,
+					}
+				: null,
+			overdue
+				? {
+						className: styles.ganttAutonomousEventOverdue,
+						end: overdue.end,
+						start: overdue.start,
+					}
+				: null,
+			factSegment
+				? {
+						className: styles.ganttAutonomousEventFact,
+						end: factSegment.end,
+						start: factSegment.start,
+					}
+				: null,
+			fallbackSegment,
+		].filter((segment): segment is {
+			className: string;
+			end: Date;
+			start: Date;
+		} => Boolean(segment));
+
+		return (
+			<>
+				{segments.map((segment) => (
+					<button
+						key={`${segment.className}-${segment.start.toISOString()}-${segment.end.toISOString()}`}
+						type="button"
+						className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment} ${segment.className}`}
+						onClick={(clickEvent) => {
+							clickEvent.stopPropagation();
+							onEdit(event.event);
+						}}
+						style={getConnectedSegmentStyle(segment.start, segment.end, timeline)}
+						title={formatAutonomousEventTooltip(event)}
+					/>
+				))}
+			</>
+		);
+	}
+
+	return (
 		<button
 			type="button"
 			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker} ${eventClassName}`}
@@ -902,6 +1056,35 @@ const AutonomousEventItem = ({
 		</button>
 	);
 };
+
+const AutonomousGanttLegend = () => (
+	<div className={styles.ganttLegend}>
+		<span>
+			<i className={styles.legendPlan} /> Плановый период
+		</span>
+		<span>
+			<i className={styles.legendFact} /> Фактическая работа
+		</span>
+		<span>
+			<i className={styles.legendLate} /> Поздний старт
+		</span>
+		<span>
+			<i className={styles.legendEarly} /> Ранний старт
+		</span>
+		<span>
+			<i className={styles.legendOverdue} /> Просрочка завершения
+		</span>
+		<span>
+			<i className={styles.legendReserve} /> Запас до планового срока
+		</span>
+		<span>
+			<i className={styles.legendSign} /> Подписание ТЗ
+		</span>
+		<span>
+			<i className={styles.legendClose} /> Акт / закрытие
+		</span>
+	</div>
+);
 
 const AutonomousPaymentItem = ({
 	onEdit,
@@ -928,7 +1111,9 @@ const AutonomousPaymentItem = ({
 		<button
 			type="button"
 			className={`${styles.ganttMilestone} ${styles.autonomousPaymentMarker} ${
-				styles[`autonomousPayment${payment.status}`] ?? ""
+				isPaymentPaid(payment)
+					? styles.autonomousPaymentPaid
+					: styles.autonomousPaymentUnpaid
 			}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
@@ -940,11 +1125,7 @@ const AutonomousPaymentItem = ({
 			<b>
 				<FaMoneyBillWave aria-hidden="true" />
 			</b>
-			<small>
-				{payment.percent ?? "—"}%
-				<br />
-				{formatMoney(payment.amount ?? 0)}
-			</small>
+			<small>{formatMoney(payment.amount ?? 0)}</small>
 		</button>
 	);
 };
@@ -1247,7 +1428,7 @@ export const PaymentModal = ({
 			<label>
 				<span>Стадия</span>
 				<select
-					value={form.status}
+					value={form.status === "paid" ? "paid" : "todo"}
 					onChange={(event) =>
 						onFormChange({
 							...form,
@@ -1255,10 +1436,8 @@ export const PaymentModal = ({
 						})
 					}
 				>
-					<option value="todo">Нужно выполнить</option>
-					<option value="debt">Дебиторка</option>
 					<option value="paid">Оплачено</option>
-					<option value="canceled">Отменено</option>
+					<option value="todo">Неоплачено</option>
 				</select>
 			</label>
 			<label>
@@ -1294,23 +1473,6 @@ export const PaymentModal = ({
 							onFormChange({
 								...form,
 								paymentDate: event.target.value,
-							})
-						}
-					/>
-				</label>
-				<label>
-					<span>Процент от проекта</span>
-					<input
-						value={form.percent}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								...calculatePaymentFields({
-									amount: form.amount,
-									percent: event.target.value,
-									projectAmount,
-									source: "percent",
-								}),
 							})
 						}
 					/>
