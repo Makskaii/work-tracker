@@ -22,6 +22,7 @@ export type AutonomousGanttEventRow = {
 	event: ProjectGanttEvent;
 	factEnd: Date | null;
 	factStart: Date | null;
+	isDependencyDuration: boolean;
 	planEnd: Date | null;
 	planStart: Date | null;
 };
@@ -86,6 +87,7 @@ const buildEventRow = (
 			event,
 			factEnd,
 			factStart,
+			isDependencyDuration: true,
 			planEnd,
 			planStart,
 		};
@@ -109,6 +111,7 @@ const buildEventRow = (
 		event,
 		factEnd: resolvedFactEnd,
 		factStart: resolvedFactStart,
+		isDependencyDuration: false,
 		planEnd: resolvedPlanEnd,
 		planStart: resolvedPlanStart,
 	};
@@ -267,12 +270,29 @@ export const getPaymentStatusLabel = (
 
 export const formatAutonomousEventTooltip = (
 	event: AutonomousGanttEventRow,
-) =>
-	[
+) => {
+	if (event.isDependencyDuration) {
+		return [
+			event.event.title,
+			`Расчётный период: ${formatDateFull(event.displayStart)} — ${formatDateFull(event.displayEnd)}`,
+			`Факт. завершение: ${formatDateFull(event.factEnd)}`,
+		].join("\n");
+	}
+
+	if (event.event.eventKind === "one_time") {
+		return [
+			event.event.title,
+			`План: ${formatDateFull(event.planStart)}`,
+			`Факт: ${formatDateFull(event.factStart)}`,
+		].join("\n");
+	}
+
+	return [
 		event.event.title,
 		`План: ${formatDateFull(event.planStart)} — ${formatDateFull(event.planEnd)}`,
 		`Факт: ${formatDateFull(event.factStart)} — ${formatDateFull(event.factEnd)}`,
 	].join("\n");
+};
 
 export const formatAutonomousPaymentTooltip = (
 	payment: AutonomousProjectPayment,

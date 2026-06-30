@@ -1162,6 +1162,67 @@
 		0 0 0 8px rgba(142, 111, 255, 0.12);
 }
 
+.ganttCustomEventOneTimeShell {
+	position: absolute;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font: inherit;
+	cursor: pointer;
+	appearance: none;
+	overflow: visible;
+}
+
+.ganttCustomEventOneTimeShell:hover {
+	filter: brightness(2.08);
+}
+
+.ganttCustomEventOneTimePath {
+	position: absolute;
+	top: 50%;
+	right: 10px;
+	left: 10px;
+	height: 10px;
+	border-radius: 999px;
+	background: #b8bbbe;
+	transform: translateY(-50%);
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.ganttCustomEventOneTimePath::after {
+	position: absolute;
+	inset: 0;
+	background: repeating-linear-gradient(45deg,
+			#1c2129 0 5px,
+			#caced4 5px 10px);
+	content: "";
+}
+
+.ganttCustomEventOneTimeDot {
+	position: absolute;
+	top: 50%;
+	display: grid;
+	place-items: center;
+	width: 20px;
+	height: 20px;
+	border: 1px solid rgb(158, 156, 156);
+	border-radius: 50%;
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+	box-shadow: 0 3px 8px rgba(1, 8, 14, 0.24);
+}
+
+.ganttCustomEventOneTimePlanDot {
+	border-color: #48494b;
+	background: #caced4;
+}
+
+.ganttCustomEventOneTimeFactDot {
+	z-index: 2;
+}
+
 .ganttAutonomousEventSigning {
 	border-color: rgba(255, 200, 71, 0.78);
 	background: var(--color-warning);
@@ -2320,14 +2381,14 @@
 	flex-direction: column;
 	gap: 8px;
 
-	> strong {
+	>strong {
 		color: rgba(238, 245, 255, 0.72);
 		font-size: 12px;
 		font-weight: 950;
 		text-transform: uppercase;
 	}
 
-	> small {
+	>small {
 		color: rgba(238, 245, 255, 0.54);
 		font-size: 12px;
 		font-weight: 800;
@@ -3263,7 +3324,7 @@
 	appearance: none;
 }
 
-.dealSummaryPrimaryStats > div:first-child input {
+.dealSummaryPrimaryStats>div:first-child input {
 	color: var(--color-accent-blue);
 }
 

@@ -1334,6 +1334,58 @@ const AutonomousEventItem = ({
 		);
 	}
 
+	if (
+		event.planStart &&
+		event.factStart &&
+		event.planStart.getTime() !== event.factStart.getTime()
+	) {
+		const shellStart = getDateMin(event.planStart, event.factStart);
+		const shellEnd = getDateMax(event.planStart, event.factStart);
+		const factClassName = eventClassName || styles.ganttAutonomousEventFact;
+
+		if (!shellStart || !shellEnd) {
+			return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
+		}
+
+		return (
+			<button
+				type="button"
+				className={styles.ganttCustomEventOneTimeShell}
+				onClick={(clickEvent) => {
+					clickEvent.stopPropagation();
+					onEdit();
+				}}
+				ref={targetRef}
+				style={getSegmentStyle(shellStart, shellEnd, timeline)}
+				title={formatAutonomousEventTooltip(event)}
+			>
+				<span className={styles.ganttCustomEventOneTimePath} />
+				<span
+					className={`${styles.ganttCustomEventOneTimeDot} ${styles.ganttCustomEventOneTimePlanDot}`}
+					style={{
+						left: getInnerSegmentStyle(
+							event.planStart,
+							event.planStart,
+							shellStart,
+							shellEnd,
+						).left,
+					}}
+				/>
+				<span
+					className={`${styles.ganttCustomEventOneTimeDot} ${styles.ganttCustomEventOneTimeFactDot} ${factClassName}`}
+					style={{
+						left: getInnerSegmentStyle(
+							event.factStart,
+							event.factStart,
+							shellStart,
+							shellEnd,
+						).left,
+					}}
+				/>
+			</button>
+		);
+	}
+
 	return (
 		<button
 			type="button"
