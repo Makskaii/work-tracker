@@ -1,4 +1,11 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
@@ -70,6 +77,23 @@ type EventFormState = {
 	title: string;
 };
 
+type PaymentLinkLayout = {
+	height: number;
+	links: Array<{
+		endX: number;
+		endY: number;
+		id: number;
+		startX: number;
+		startY: number;
+	}>;
+	width: number;
+};
+
+type PaymentLayoutItem = {
+	level: number;
+	payment: AutonomousProjectPayment;
+};
+
 export type PaymentFormState = {
 	amount: string;
 	id: number | null;
@@ -111,6 +135,7 @@ const STAGE_TYPE_OPTIONS: Array<{
 }> = [
 	{ label: "Написание ТЗ", value: "tz_writing" },
 	{ label: "Подписание ТЗ", value: "tz_signing" },
+	{ label: "Контрактация", value: "contracting" },
 	{ label: "Разработка", value: "development" },
 	{ label: "Обучение", value: "education" },
 	{ label: "Сдача", value: "delivery" },
@@ -122,6 +147,10 @@ const DURATION_STAGE_TYPES = new Set<ProjectGanttStageType>([
 	"development",
 	"education",
 ]);
+const GANTT_ROW_HEIGHT = 74;
+const GANTT_PAYMENT_MARKER_STEP = 46;
+const GANTT_PAYMENT_MARKER_TOP = 16;
+const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
 
 export const DEFAULT_PAYMENT_FORM: PaymentFormState = {
 	amount: "",
@@ -192,6 +221,83 @@ const getDateMax = (left: Date | null, right: Date | null) => {
 	return dayjs(left).isAfter(right) ? left : right;
 };
 
+const getPaymentTimelinePercent = (
+	payment: AutonomousProjectPayment,
+	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"],
+) => {
+	const paymentDate = parseGanttDate(payment.paymentDate);
+
+	if (!paymentDate) {
+		return null;
+	}
+
+	const totalTime = Math.max(
+		timeline.end.getTime() - timeline.start.getTime(),
+		1,
+	);
+
+	return (
+		((paymentDate.getTime() - timeline.start.getTime()) / totalTime) * 100
+	);
+};
+
+const getPaymentLayoutItems = (
+	payments: AutonomousProjectPayment[],
+	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"],
+): PaymentLayoutItem[] => {
+	const levelPositions: number[][] = [];
+
+	return payments.map((payment) => {
+		const position = getPaymentTimelinePercent(payment, timeline);
+		const safePosition = position ?? -1000;
+		const level = levelPositions.findIndex(
+			(positions) =>
+				positions.every(
+					(levelPosition) =>
+						Math.abs(levelPosition - safePosition) >=
+						GANTT_PAYMENT_COLLISION_THRESHOLD,
+				),
+		);
+		const nextLevel = level >= 0 ? level : levelPositions.length;
+
+		levelPositions[nextLevel] = [
+			...(levelPositions[nextLevel] ?? []),
+			safePosition,
+		];
+
+		return {
+			level: nextLevel,
+			payment,
+		};
+	});
+};
+
+const getEventVisualRange = (
+	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number],
+) => {
+	const dates = [
+		event.planStart,
+		event.planEnd,
+		event.factStart,
+		event.factEnd,
+		event.displayStart,
+		event.displayEnd,
+		event.displayDate,
+	].filter((date): date is Date => Boolean(date));
+
+	if (dates.length === 0) {
+		return {
+			end: null,
+			start: null,
+		};
+	}
+
+	return {
+		end: new Date(Math.max(...dates.map((date) => date.getTime()))),
+		start: new Date(Math.min(...dates.map((date) => date.getTime()))),
+	};
+};
+
 const isPaymentPaid = (payment: AutonomousProjectPayment) =>
 	payment.status === "paid";
 
@@ -247,7 +353,7 @@ const getAutonomousEventClassName = (
 		return styles.ganttAutonomousEventEarly;
 	}
 
-	if (stageType === "tz_signing") {
+	if (stageType === "tz_signing" || stageType === "contracting") {
 		return styles.ganttAutonomousEventSigning;
 	}
 
@@ -330,6 +436,15 @@ export const AutonomousProjectGantt = ({
 	const [deletingStageId, setDeletingStageId] = useState<number | null>(null);
 	const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
 	const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
+	const ganttBoardRef = useRef<HTMLDivElement | null>(null);
+	const paymentMarkerRefs = useRef(new Map<number, HTMLButtonElement>());
+	const eventRefsByStageId = useRef(new Map<number, HTMLButtonElement>());
+	const [paymentLinksLayout, setPaymentLinksLayout] =
+		useState<PaymentLinkLayout>({
+			height: 0,
+			links: [],
+			width: 0,
+		});
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -360,6 +475,28 @@ export const AutonomousProjectGantt = ({
 	const editableStages = useMemo(
 		() => stages.filter((stage) => stage.code !== "payments"),
 		[stages],
+	);
+	const setPaymentMarkerRef = useCallback(
+		(paymentId: number) => (node: HTMLButtonElement | null) => {
+			if (node) {
+				paymentMarkerRefs.current.set(paymentId, node);
+				return;
+			}
+
+			paymentMarkerRefs.current.delete(paymentId);
+		},
+		[],
+	);
+	const setStageEventRef = useCallback(
+		(stageId: number) => (node: HTMLButtonElement | null) => {
+			if (node) {
+				eventRefsByStageId.current.set(stageId, node);
+				return;
+			}
+
+			eventRefsByStageId.current.delete(stageId);
+		},
+		[],
 	);
 	const refreshData = useCallback(
 		async (signal?: AbortSignal) => {
@@ -406,6 +543,136 @@ export const AutonomousProjectGantt = ({
 
 		return () => controller.abort();
 	}, [refreshData, paymentsRefreshKey]);
+	useLayoutEffect(() => {
+		const board = ganttBoardRef.current;
+
+		if (!board) {
+			setPaymentLinksLayout({ height: 0, links: [], width: 0 });
+			return;
+		}
+
+		let animationFrameId: number | null = null;
+		const updatePaymentLinks = () => {
+			const boardRect = board.getBoundingClientRect();
+			const paymentsRow = gantt.rows.find((row) => row.stage.code === "payments");
+
+			if (!paymentsRow) {
+				setPaymentLinksLayout({
+					height: board.scrollHeight,
+					links: [],
+					width: board.scrollWidth,
+				});
+				return;
+			}
+
+			const links = paymentsRow.payments.flatMap((payment) => {
+				const paymentNode = paymentMarkerRefs.current.get(payment.id);
+				const targetNode = eventRefsByStageId.current.get(payment.stageId);
+				const targetEvent = gantt.rows
+					.flatMap((row) => row.events)
+					.find((event) => event.event.stageId === payment.stageId);
+
+				if (!paymentNode || !targetNode || !targetEvent) {
+					return [];
+				}
+
+				const paymentIconRect =
+					paymentNode.querySelector("b")?.getBoundingClientRect() ??
+					paymentNode.getBoundingClientRect();
+				const targetRect = targetNode.getBoundingClientRect();
+				const isStageStartAnchor = payment.paymentAnchor === "stage_start";
+				const startX =
+					paymentIconRect.left +
+					paymentIconRect.width / 2 -
+					boardRect.left +
+					board.scrollLeft;
+				const startY =
+					paymentIconRect.top +
+					paymentIconRect.height / 2 -
+					boardRect.top +
+					board.scrollTop;
+				const targetDate = isStageStartAnchor
+					? targetEvent.factStart
+					: targetEvent.factEnd;
+				const targetRange = getEventVisualRange(targetEvent);
+				const targetRangeStart = targetRange.start;
+				const targetRangeEnd = targetRange.end;
+				const targetDateOffset =
+					targetDate && targetRangeStart && targetRangeEnd
+						? Math.min(
+								Math.max(
+									(targetDate.getTime() - targetRangeStart.getTime()) /
+										Math.max(
+											targetRangeEnd.getTime() - targetRangeStart.getTime(),
+											1,
+										),
+									0,
+								),
+								1,
+							)
+						: null;
+				const endX =
+					(targetEvent.event.eventKind === "duration"
+						? targetDateOffset !== null
+							? targetRect.left + targetRect.width * targetDateOffset
+							: isStageStartAnchor
+								? targetRect.left
+								: targetRect.right
+						: targetRect.left + targetRect.width / 2) -
+					boardRect.left +
+					board.scrollLeft;
+				const endY =
+					targetRect.top +
+					targetRect.height / 2 -
+					boardRect.top +
+					board.scrollTop;
+
+				return [
+					{
+						endX,
+						endY,
+						id: payment.id,
+						startX,
+						startY,
+					},
+				];
+			});
+
+			setPaymentLinksLayout({
+				height: board.scrollHeight,
+				links,
+				width: board.scrollWidth,
+			});
+		};
+		const schedulePaymentLinksUpdate = () => {
+			if (animationFrameId !== null) {
+				cancelAnimationFrame(animationFrameId);
+			}
+
+			animationFrameId = requestAnimationFrame(() => {
+				animationFrameId = null;
+				updatePaymentLinks();
+			});
+		};
+		const resizeObserver = new ResizeObserver(schedulePaymentLinksUpdate);
+
+		updatePaymentLinks();
+		resizeObserver.observe(board);
+		window.addEventListener("resize", schedulePaymentLinksUpdate);
+		board.addEventListener("scroll", schedulePaymentLinksUpdate, {
+			passive: true,
+		});
+
+		return () => {
+			if (animationFrameId !== null) {
+				cancelAnimationFrame(animationFrameId);
+			}
+
+			resizeObserver.disconnect();
+			window.removeEventListener("resize", schedulePaymentLinksUpdate);
+			board.removeEventListener("scroll", schedulePaymentLinksUpdate);
+		};
+	}, [gantt.rows]);
 
 	const openStageCreateModal = () => {
 		setStageForm({
@@ -432,20 +699,6 @@ export const AutonomousProjectGantt = ({
 			title: stage.title,
 		});
 		setIsStageModalOpen(true);
-	};
-
-	const openEventEditModal = (event: ProjectGanttEvent) => {
-		setEventForm({
-			eventKind: event.eventKind,
-			factEndDate: event.factEndDate ?? "",
-			factStartDate: event.factStartDate ?? "",
-			id: event.id,
-			planEndDate: event.planEndDate ?? "",
-			planStartDate: event.planStartDate ?? "",
-			stageId: event.stageId,
-			title: event.title,
-		});
-		setIsEventModalOpen(true);
 	};
 
 	const openPaymentCreateModal = () => {
@@ -487,9 +740,7 @@ export const AutonomousProjectGantt = ({
 		const eventPayload = {
 			eventKind,
 			factEndDate:
-				!isDependencyStage && eventKind === "duration"
-					? stageForm.factEndDate || null
-					: null,
+				eventKind === "duration" ? stageForm.factEndDate || null : null,
 			factStartDate: isDependencyStage ? null : stageForm.factStartDate || null,
 			planEndDate:
 				!isDependencyStage && eventKind === "duration"
@@ -686,53 +937,50 @@ export const AutonomousProjectGantt = ({
 
 	return (
 		<>
-			<div className={styles.ganttCard}>
-				<div className={styles.autonomousGanttToolbar}>
-					<div>
-						<h3>Диаграмма Ганта: {project.title}</h3>
-						<span>План пересчитывается по зависимостям между этапами</span>
+			{error ? <div className={styles.emptyState}>{error}</div> : null}
+			{isLoading ? (
+				<div className={styles.emptyState}>Загрузка Ганта...</div>
+			) : (
+				<div
+					ref={ganttBoardRef}
+					className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
+				>
+					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
+					<div className={styles.ganttScale}>
+						<GanttScale monthTicks={monthTicks} weekTicks={scaleWeekTicks} />
+					</div>
+					<AutonomousPaymentLinksLayer layout={paymentLinksLayout} />
+					{gantt.rows.map((row) => (
+						<AutonomousStageRow
+							key={row.stage.id}
+							monthTicks={monthTicks}
+							onPaymentCreate={openPaymentCreateModal}
+							onPaymentEdit={openPaymentEditModal}
+							onStageEdit={openStageEditModal}
+							row={row}
+							setPaymentMarkerRef={setPaymentMarkerRef}
+							setStageEventRef={setStageEventRef}
+							stageById={stageById}
+							today={today}
+							timeline={gantt.timeline}
+							weekTicks={weekTicks}
+						/>
+					))}
+					<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
+						<button
+							type="button"
+							className={styles.ganttAddEventButton}
+							onClick={openStageCreateModal}
+						>
+							+
+						</button>
+					</div>
+					<div className={styles.ganttTrack}>
+						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
 					</div>
 				</div>
-				{error ? <div className={styles.emptyState}>{error}</div> : null}
-				{isLoading ? (
-					<div className={styles.emptyState}>Загрузка Ганта...</div>
-				) : (
-					<div className={styles.ganttBoard}>
-						<div className={styles.ganttScaleLabel}>Этапы проекта</div>
-						<div className={styles.ganttScale}>
-							<GanttScale monthTicks={monthTicks} weekTicks={scaleWeekTicks} />
-						</div>
-						{gantt.rows.map((row) => (
-							<AutonomousStageRow
-								key={row.stage.id}
-								monthTicks={monthTicks}
-								onPaymentCreate={openPaymentCreateModal}
-								onEventEdit={openEventEditModal}
-								onPaymentEdit={openPaymentEditModal}
-								onStageEdit={openStageEditModal}
-								row={row}
-								stageById={stageById}
-								today={today}
-								timeline={gantt.timeline}
-								weekTicks={weekTicks}
-							/>
-						))}
-						<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
-							<button
-								type="button"
-								className={styles.ganttAddEventButton}
-								onClick={openStageCreateModal}
-							>
-								+
-							</button>
-						</div>
-						<div className={styles.ganttTrack}>
-							<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
-						</div>
-					</div>
-				)}
-				<AutonomousGanttLegend />
-			</div>
+			)}
+			<AutonomousGanttLegend />
 			<StageModal
 				deletingStageId={deletingStageId}
 				form={stageForm}
@@ -777,34 +1025,81 @@ export const AutonomousProjectGantt = ({
 	);
 };
 
+const AutonomousPaymentLinksLayer = ({
+	layout,
+}: {
+	layout: PaymentLinkLayout;
+}) => {
+	if (layout.links.length === 0 || layout.width <= 0 || layout.height <= 0) {
+		return null;
+	}
+
+	return (
+		<svg
+			className={styles.ganttPaymentLinksLayer}
+			style={{ height: layout.height, width: layout.width }}
+			viewBox={`0 0 ${layout.width} ${layout.height}`}
+		>
+			{layout.links.map((link) => (
+				<polyline
+					key={link.id}
+					className={styles.ganttPaymentLinkLine}
+					points={`${link.startX},${link.startY} ${link.endX},${link.endY}`}
+				/>
+			))}
+		</svg>
+	);
+};
+
 const AutonomousStageRow = ({
 	monthTicks,
-	onEventEdit,
 	onPaymentCreate,
 	onPaymentEdit,
 	onStageEdit,
 	row,
+	setPaymentMarkerRef,
+	setStageEventRef,
 	stageById,
 	today,
 	timeline,
 	weekTicks,
 }: {
 	monthTicks: GanttMonthTick[];
-	onEventEdit: (event: ProjectGanttEvent) => void;
 	onPaymentCreate: () => void;
 	onPaymentEdit: (payment: AutonomousProjectPayment) => void;
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
+	setPaymentMarkerRef: (
+		paymentId: number,
+	) => (node: HTMLButtonElement | null) => void;
+	setStageEventRef: (
+		stageId: number,
+	) => (node: HTMLButtonElement | null) => void;
 	stageById: Map<number, ProjectGanttStage>;
 	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 	weekTicks: GanttWeekTick[];
 }) => {
 	const isPaymentsStage = row.stage.code === "payments";
+	const paymentLayoutItems = isPaymentsStage
+		? getPaymentLayoutItems(row.payments, timeline)
+		: [];
+	const maxPaymentLevel = paymentLayoutItems.reduce(
+		(maxLevel, item) => Math.max(maxLevel, item.level),
+		0,
+	);
+	const rowHeight = isPaymentsStage
+		? Math.max(
+				GANTT_ROW_HEIGHT,
+				GANTT_PAYMENT_MARKER_TOP +
+					(maxPaymentLevel + 1) * GANTT_PAYMENT_MARKER_STEP +
+					18,
+			)
+		: GANTT_ROW_HEIGHT;
 
 	return (
 		<>
-			<div className={styles.ganttRowInfo}>
+			<div className={styles.ganttRowInfo} style={{ minHeight: rowHeight }}>
 				<div className={styles.ganttCustomEventHeader}>
 					<strong>{row.stage.title}</strong>
 					{!row.stage.isDefault && row.stage.code !== "payments" ? (
@@ -825,6 +1120,7 @@ const AutonomousStageRow = ({
 			</div>
 			<div
 				className={styles.autonomousGanttTrack}
+				style={{ minHeight: rowHeight }}
 				onClick={isPaymentsStage ? onPaymentCreate : undefined}
 				onKeyDown={
 					isPaymentsStage
@@ -843,20 +1139,24 @@ const AutonomousStageRow = ({
 					<AutonomousEventItem
 						event={event}
 						key={event.event.id}
-						onEdit={onEventEdit}
+						onEdit={() => onStageEdit(row.stage)}
+						targetRef={setStageEventRef(row.stage.id)}
 						stageType={row.stage.stageType}
 						today={today}
 						timeline={timeline}
 					/>
 				))}
-				{row.payments.map((payment, index) => (
+				{paymentLayoutItems.map(({ level, payment }) => (
 					<AutonomousPaymentItem
 						key={payment.id}
+						markerRef={setPaymentMarkerRef(payment.id)}
 						onEdit={onPaymentEdit}
 						payment={payment}
 						stageTitle={stageById.get(payment.stageId)?.title ?? "—"}
 						timeline={timeline}
-						top={16 + index * 46}
+						top={
+							GANTT_PAYMENT_MARKER_TOP + level * GANTT_PAYMENT_MARKER_STEP
+						}
 					/>
 				))}
 			</div>
@@ -868,12 +1168,14 @@ const AutonomousEventItem = ({
 	event,
 	onEdit,
 	stageType,
+	targetRef,
 	today,
 	timeline,
 }: {
 	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number];
-	onEdit: (event: ProjectGanttEvent) => void;
+	onEdit: () => void;
 	stageType: ProjectGanttStage["stageType"];
+	targetRef: (node: HTMLButtonElement | null) => void;
 	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 }) => {
@@ -911,11 +1213,28 @@ const AutonomousEventItem = ({
 			);
 		const fallbackSegments =
 			!planSegment && event.displayStart && event.displayEnd
-				? {
-						className: eventClassName || styles.ganttAutonomousEventFact,
-						end: event.displayEnd,
-						start: event.displayStart,
-					}
+				? event.factEnd &&
+					event.factEnd > event.displayStart &&
+					event.factEnd < event.displayEnd
+					? [
+							{
+								className: eventClassName || styles.ganttAutonomousEventFact,
+								end: event.factEnd,
+								start: event.displayStart,
+							},
+							{
+								className: styles.ganttAutonomousEventReserve,
+								end: event.displayEnd,
+								start: event.factEnd,
+							},
+						]
+					: [
+							{
+								className: eventClassName || styles.ganttAutonomousEventFact,
+								end: event.displayEnd,
+								start: event.displayStart,
+							},
+						]
 				: null;
 		const segments = planSegment
 			? boundaryDates
@@ -965,7 +1284,7 @@ const AutonomousEventItem = ({
 						};
 					})
 					.filter(Boolean)
-			: [fallbackSegments].filter(Boolean);
+			: (fallbackSegments ?? []);
 		const normalizedSegments = segments.filter((segment): segment is {
 			className: string;
 			end: Date;
@@ -993,8 +1312,9 @@ const AutonomousEventItem = ({
 				className={`${styles.ganttSegment} ${styles.ganttCustomEventSegmentShell}`}
 				onClick={(clickEvent) => {
 					clickEvent.stopPropagation();
-					onEdit(event.event);
+					onEdit();
 				}}
+				ref={targetRef}
 				style={getSegmentStyle(shellStart, shellEnd, timeline)}
 				title={formatAutonomousEventTooltip(event)}
 			>
@@ -1020,8 +1340,9 @@ const AutonomousEventItem = ({
 			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker} ${eventClassName}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
-				onEdit(event.event);
+				onEdit();
 			}}
+			ref={targetRef}
 			style={style}
 			title={formatAutonomousEventTooltip(event)}
 		>
@@ -1065,12 +1386,14 @@ const AutonomousGanttLegend = () => (
 );
 
 const AutonomousPaymentItem = ({
+	markerRef,
 	onEdit,
 	payment,
 	stageTitle,
 	timeline,
 	top,
 }: {
+	markerRef: (node: HTMLButtonElement | null) => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
 	payment: AutonomousProjectPayment;
 	stageTitle: string;
@@ -1097,6 +1420,7 @@ const AutonomousPaymentItem = ({
 				clickEvent.stopPropagation();
 				onEdit(payment);
 			}}
+			ref={markerRef}
 			style={style}
 			title={formatAutonomousPaymentTooltip(payment, stageTitle)}
 		>
@@ -1197,18 +1521,33 @@ const StageModal = ({
 					</select>
 				</label>
 				{isDependencyStage ? (
-					<label>
-						<span>Длительность, дней</span>
-						<input
-							value={form.durationDays}
-							onChange={(event) =>
-								onFormChange({
-									...form,
-									durationDays: event.target.value,
-								})
-							}
-						/>
-					</label>
+					<>
+						<label>
+							<span>Длительность, дней</span>
+							<input
+								value={form.durationDays}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										durationDays: event.target.value,
+									})
+								}
+							/>
+						</label>
+						<label>
+							<span>Фактическая дата завершения</span>
+							<input
+								type="date"
+								value={form.factEndDate}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										factEndDate: event.target.value,
+									})
+								}
+							/>
+						</label>
+					</>
 				) : null}
 				<div className={styles.ganttFormGrid}>
 					{!isDependencyStage ? (

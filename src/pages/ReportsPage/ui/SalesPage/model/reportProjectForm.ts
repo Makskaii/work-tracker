@@ -51,6 +51,7 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	redline: "",
 	reportInfo: "",
 	responsible: "",
+	salesManager: "",
 	summaryFactCompletionDate: "",
 	summaryFactHours: "",
 	summaryLossHours: "",
@@ -138,6 +139,7 @@ export const getReportProjectForm = (
 		redline: project.redline ?? "",
 		reportInfo: project.reportInfo ?? "",
 		responsible: project.responsible ?? "",
+		salesManager: project.salesManager ?? "",
 		summaryFactCompletionDate: project.summaryFactCompletionDate ?? "",
 		summaryFactHours:
 			project.summaryFactHours === null ? "" : String(project.summaryFactHours),
@@ -193,6 +195,7 @@ export const getReportProjectPayload = (
 	redline: dateOrNull(form.redline),
 	reportInfo: textOrNull(form.reportInfo),
 	responsible: textOrNull(form.responsible),
+	salesManager: textOrNull(form.salesManager),
 	summaryFactCompletionDate: dateOrNull(form.summaryFactCompletionDate),
 	summaryFactHours: numberOrNull(form.summaryFactHours),
 	summaryLossHours: numberOrNull(form.summaryLossHours),

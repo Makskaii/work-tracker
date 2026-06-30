@@ -162,6 +162,14 @@ export const ReportProjectDetailsTab = ({
 				/>
 				<ReportProjectInput
 					form={form}
+					label="Продажник"
+					name="salesManager"
+					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
+					variant="details"
+				/>
+				<ReportProjectInput
+					form={form}
 					label="Аналитик"
 					name="analyst"
 					onFormChange={onFormChange}

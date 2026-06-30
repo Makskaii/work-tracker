@@ -74,9 +74,7 @@ const buildEventRow = (
 	if (hasDependencyDuration) {
 		const displayStart = planStart ?? factStart ?? dependencyStart;
 		const displayEnd =
-			planEnd ??
-			factEnd ??
-			(displayStart ? addDays(displayStart, dependencyDurationDays) : null);
+			planEnd ?? (displayStart ? addDays(displayStart, dependencyDurationDays) : null);
 
 		return {
 			displayDate: displayStart,

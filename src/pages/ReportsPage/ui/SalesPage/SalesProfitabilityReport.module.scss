@@ -2810,20 +2810,26 @@
 	text-align: left;
 }
 
+.autonomousGanttBoard {
+	margin: 0 0 16px;
+}
+
 .ganttPaymentLinksLayer {
 	position: absolute;
-	top: 0;
-	left: 0;
+	inset: 0;
+	width: 100%;
+	height: 100%;
 	z-index: 4;
 	pointer-events: none;
+	overflow: visible;
 }
 
 .ganttPaymentLinkLine {
 	fill: none;
-	stroke: rgba(111, 168, 255, 0.78);
-	stroke-dasharray: 5 5;
+	stroke: rgba(190, 202, 220, 0.58);
+	stroke-dasharray: 2 4;
 	stroke-linecap: round;
-	stroke-width: 2;
+	stroke-width: 1;
 }
 
 .ganttPaymentOverdueLinkLine {
