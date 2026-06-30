@@ -117,6 +117,7 @@ export type AutonomousPaymentAnchor = "stage_start" | "stage_end";
 export type ProjectGanttStageType =
 	| "tz_writing"
 	| "tz_signing"
+	| "contracting"
 	| "development"
 	| "education"
 	| "delivery"
@@ -274,6 +275,7 @@ export type ReportProject = {
 	deadline: string | null;
 	redline: string | null;
 	responsible: string | null;
+	salesManager: string | null;
 	analyst: string | null;
 	developmentTeam: string | null;
 	qa: string | null;
@@ -320,6 +322,7 @@ export type ReportProjectPayload = {
 	deadline?: string | null;
 	redline?: string | null;
 	responsible?: string | null;
+	salesManager?: string | null;
 	analyst?: string | null;
 	developmentTeam?: string | null;
 	qa?: string | null;

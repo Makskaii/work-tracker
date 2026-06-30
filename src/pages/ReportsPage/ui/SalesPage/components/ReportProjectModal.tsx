@@ -144,6 +144,13 @@ export const ReportProjectModal = ({
 				/>
 				<ReportProjectInput
 					form={form}
+					label="Продажник"
+					name="salesManager"
+					onFormChange={onFormChange}
+					options={getUserAutocompleteOptions(users)}
+				/>
+				<ReportProjectInput
+					form={form}
 					label="Аналитик"
 					name="analyst"
 					onFormChange={onFormChange}
