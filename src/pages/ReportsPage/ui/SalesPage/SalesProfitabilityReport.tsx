@@ -1605,11 +1605,11 @@ const AutonomousPaymentsTab = ({
 				{isLoading ? (
 					<div className={styles.emptyState}>Загрузка оплат...</div>
 				) : null}
-				{!isLoading && !payments.length ? (
+				{!isLoading && !paymentsWithDisplayDates.length ? (
 					<div className={styles.emptyState}>Платежи не найдены</div>
 				) : null}
 				<div className={styles.paymentsList}>
-					{payments.map((payment) => (
+					{paymentsWithDisplayDates.map((payment) => (
 						<button
 							key={payment.id}
 							type="button"
