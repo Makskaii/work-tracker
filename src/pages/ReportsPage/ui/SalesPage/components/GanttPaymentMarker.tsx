@@ -10,7 +10,6 @@ import {
 import { getMilestoneStyle } from "../model/ganttUtils";
 import {
 	getPaymentAmount,
-	getPaymentPercent,
 	getPaymentStageBindingLabel,
 	getProjectPaymentStageType,
 } from "../model/paymentUtils";
@@ -28,15 +27,7 @@ const getPaymentMarkerClass = (stageId?: string | null) => {
 		return styles.ganttPaymentPaid;
 	}
 
-	if (stageType === "canceled") {
-		return styles.ganttPaymentCanceled;
-	}
-
-	if (stageType === "debt") {
-		return styles.ganttPaymentDebt;
-	}
-
-	return styles.ganttPaymentPlanned;
+	return styles.ganttPaymentCanceled;
 };
 
 const getPaymentTooltip = (
@@ -51,13 +42,10 @@ const getPaymentTooltip = (
 		? paymentDate.format("DD.MM.YYYY")
 		: "—";
 	const amount = getPaymentAmount(payment, dealAmount);
-	const percent = getPaymentPercent(payment, dealAmount);
 	const lines = [
 		"Оплата",
 		`Дата платежа: ${date}`,
 		`Сумма: ${formatMoney(amount)}`,
-		`Процент: ${percent}%`,
-		`Стадия: ${payment.stageId ?? "—"}`,
 		`Этап: ${getPaymentStageBindingLabel(payment[ProjectCodes.paymentStageBinding])}`,
 	];
 
@@ -93,7 +81,6 @@ export const GanttPaymentMarker = forwardRef<
 	timeline,
 }, ref) => {
 	const amount = getPaymentAmount(payment, dealAmount);
-	const percent = getPaymentPercent(payment, dealAmount);
 	const markerStyle = getMilestoneStyle(date, timeline);
 	const left = Number.parseFloat(String(markerStyle.left ?? 0));
 	const safeLeft = Number.isFinite(left)
@@ -118,11 +105,7 @@ export const GanttPaymentMarker = forwardRef<
 				<b>
 					<FaMoneyBillWave aria-hidden="true" />
 				</b>
-				<small>
-					Оплата{percent ? ` ${percent}%` : ""}
-					<br />
-					{formatMoney(amount)}
-				</small>
+				<small>{formatMoney(amount)}</small>
 			</span>
 	);
 });

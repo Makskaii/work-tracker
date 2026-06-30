@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
@@ -28,6 +28,7 @@ import {
 	fetchAutonomousProjectPayments,
 	updateAutonomousProjectPayment,
 } from "./model/projectPayments.api";
+import { resolveAutonomousPaymentDates } from "./model/autonomousProjectGantt";
 import {
 	createReportProject,
 	createProjectReportEntry,
@@ -107,11 +108,19 @@ const ProjectListSkeleton = () => (
 );
 
 const paymentStatusLabels = {
-	canceled: "отменено",
-	debt: "дебиторка",
 	paid: "оплачено",
-	todo: "нужно выполнить",
+	todo: "неоплачено",
+	debt: "неоплачено",
+	canceled: "неоплачено",
 } as const;
+
+type PaymentsScope = "all" | "client" | "project";
+
+const paymentsScopeLabels: Record<PaymentsScope, string> = {
+	all: "Все проекты",
+	project: "Проект",
+	client: "Компания клиента",
+};
 
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
 
@@ -146,9 +155,6 @@ const getNextProjectReportDate = (reports: ProjectReportEntry[]) => {
 	return futureDate ?? pastDate ?? null;
 };
 
-const formatPaymentPercent = (percent: number | null) =>
-	percent === null ? "—" : `${percent}%`;
-
 const getPaymentMonthKey = (date: Date) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
@@ -171,14 +177,43 @@ const getAutonomousPaymentStatusClassName = (
 	status: AutonomousProjectPayment["status"],
 ) => {
 	if (status === "paid") return styles.paymentPaid;
-	if (status === "debt") return styles.paymentDebt;
-	if (status === "canceled") return styles.paymentCanceled;
 
-	return styles.paymentPlanned;
+	return styles.paymentCanceled;
 };
 
 const getAutonomousPaymentAmount = (payment: AutonomousProjectPayment) =>
 	payment.amount ?? 0;
+
+const getPaymentsScopeProjects = (
+	projects: ReportProject[],
+	scope: PaymentsScope,
+	selectedProject: ReportProject | null,
+) => {
+	if (!selectedProject) {
+		return [];
+	}
+
+	if (scope === "project") {
+		return [selectedProject];
+	}
+
+	if (scope === "client") {
+		const selectedClientCompany = String(
+			selectedProject.clientCompany ?? "",
+		).trim();
+
+		if (!selectedClientCompany) {
+			return [selectedProject];
+		}
+
+		return projects.filter(
+			(project) =>
+				String(project.clientCompany ?? "").trim() === selectedClientCompany,
+		);
+	}
+
+	return projects;
+};
 
 const getReportProjectSummary = (
 	project: ReportProject | null | undefined,
@@ -262,6 +297,7 @@ export const SalesProfitabilityReport = ({
 	const [autonomousPaymentsError, setAutonomousPaymentsError] = useState<
 		string | null
 	>(null);
+	const [paymentsScope, setPaymentsScope] = useState<PaymentsScope>("all");
 	const [paymentForm, setPaymentForm] =
 		useState<PaymentFormState>(DEFAULT_PAYMENT_FORM);
 	const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -278,14 +314,22 @@ export const SalesProfitabilityReport = ({
 		number | null
 	>(null);
 	const { openTask } = useBitrixSlider();
-	const { projects: bitrixProjects, isLoadingDetails: isBitrixProjectsLoading } =
-		useCompanyProjects();
+	const {
+		companyTitleById,
+		projects: bitrixProjects,
+		isLoadingDetails: isBitrixProjectsLoading,
+	} = useCompanyProjects();
 	const selectedReportProject = reportProjects.find(
 		(project) => getDbProjectId(project) === selectedProjectId,
 	) ?? reportProjects[0] ?? null;
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
+	const paymentsScopeProjects = useMemo(
+		() =>
+			getPaymentsScopeProjects(reportProjects, paymentsScope, selectedReportProject),
+		[paymentsScope, reportProjects, selectedReportProject],
+	);
 
-	const updateProjectNextReportDate = (
+	const updateProjectNextReportDate = useCallback((
 		projectId: number,
 		reports: ProjectReportEntry[],
 	) => {
@@ -301,7 +345,7 @@ export const SalesProfitabilityReport = ({
 					: project,
 			),
 		);
-	};
+	}, []);
 
 	useEffect(() => {
 		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
@@ -344,9 +388,11 @@ export const SalesProfitabilityReport = ({
 			});
 
 		return () => controller.abort();
-	}, [selectedReportProjectId]);
+	}, [selectedReportProjectId, updateProjectNextReportDate]);
 
 	useEffect(() => {
+		void paymentsRefreshKey;
+
 		if (!selectedReportProjectId) {
 			setAutonomousPayments([]);
 			setAutonomousPaymentStages([]);
@@ -355,20 +401,34 @@ export const SalesProfitabilityReport = ({
 		}
 
 		const controller = new AbortController();
-		const projectId = String(selectedReportProjectId);
+		const paymentProjectIds = paymentsScopeProjects.map((project) =>
+			String(project.id),
+		);
 
 		setIsAutonomousPaymentsLoading(true);
 		setAutonomousPaymentsError(null);
 
 		Promise.all([
-			fetchAutonomousProjectPayments(projectId, controller.signal),
-			fetchProjectGanttStages(projectId, controller.signal),
-			fetchProjectGanttEvents(projectId, controller.signal),
+			Promise.all(
+				paymentProjectIds.map((paymentProjectId) =>
+					fetchAutonomousProjectPayments(paymentProjectId, controller.signal),
+				),
+			),
+			Promise.all(
+				paymentProjectIds.map((paymentProjectId) =>
+					fetchProjectGanttStages(paymentProjectId, controller.signal),
+				),
+			),
+			Promise.all(
+				paymentProjectIds.map((paymentProjectId) =>
+					fetchProjectGanttEvents(paymentProjectId, controller.signal),
+				),
+			),
 		])
 			.then(([payments, stages, events]) => {
-				setAutonomousPayments(payments);
-				setAutonomousPaymentStages(stages);
-				setAutonomousPaymentEvents(events);
+				setAutonomousPayments(payments.flat());
+				setAutonomousPaymentStages(stages.flat());
+				setAutonomousPaymentEvents(events.flat());
 			})
 			.catch(() => {
 				if (!controller.signal.aborted) {
@@ -382,7 +442,7 @@ export const SalesProfitabilityReport = ({
 			});
 
 		return () => controller.abort();
-	}, [selectedReportProjectId, paymentsRefreshKey]);
+	}, [paymentsRefreshKey, paymentsScopeProjects, selectedReportProjectId]);
 
 	const effectiveSelectedProjectId = useMemo(() => {
 		if (selectedReportProject) {
@@ -433,6 +493,28 @@ export const SalesProfitabilityReport = ({
 				project.title.toLowerCase().includes(normalizedProjectSearchQuery),
 			)
 		: reportProjects;
+	const companyOptions = useMemo(
+		() =>
+			Array.from(companyTitleById.entries()).map(([id, title]) => ({
+				id,
+				title,
+			})),
+		[companyTitleById],
+	);
+	const bitrixProjectOptions = useMemo(
+		() =>
+			bitrixProjects.map((project) => {
+				const id = normalizeProjectId(project.projectId ?? project.id);
+				const title = String(project.title ?? `Проект #${id}`).trim();
+
+				return {
+					id,
+					title: `${title} · #${id}`,
+					value: id,
+				};
+			}),
+		[bitrixProjects],
+	);
 
 	const initialDetailsProjectForm = useMemo(
 		() => getReportProjectForm(selectedReportProject),
@@ -554,6 +636,20 @@ export const SalesProfitabilityReport = ({
 		);
 	};
 
+	const hasExistingBitrixProject = (bitrixProjectId: string) => {
+		const normalizedBitrixProjectId = normalizeProjectId(bitrixProjectId);
+
+		if (!normalizedBitrixProjectId) {
+			return true;
+		}
+
+		return bitrixProjects.some((project) => {
+			const projectId = normalizeProjectId(project.projectId ?? project.id);
+
+			return projectId === normalizedBitrixProjectId;
+		});
+	};
+
 	const handleProjectReportCreate = async () => {
 		if (!selectedReportProject) {
 			return;
@@ -633,20 +729,6 @@ export const SalesProfitabilityReport = ({
 		setPaymentsRefreshKey((prev) => prev + 1);
 	};
 
-	const getAutonomousPaymentDateForStage = (stageId: number | null) => {
-		const stageEvent = autonomousPaymentEvents.find(
-			(event) => event.stageId === stageId,
-		);
-
-		return (
-			stageEvent?.factEndDate ??
-			stageEvent?.planEndDate ??
-			stageEvent?.factStartDate ??
-			stageEvent?.planStartDate ??
-			""
-		);
-	};
-
 	const openPaymentCreateModal = () => {
 		const defaultStage =
 			autonomousPaymentStages.find((stage) => stage.code !== "payments") ??
@@ -654,7 +736,7 @@ export const SalesProfitabilityReport = ({
 
 		setPaymentForm({
 			...DEFAULT_PAYMENT_FORM,
-			paymentDate: getAutonomousPaymentDateForStage(defaultStage?.id ?? null),
+			paymentDate: "",
 			stageId: defaultStage?.id ?? null,
 		});
 		setDeletingPaymentId(null);
@@ -665,6 +747,7 @@ export const SalesProfitabilityReport = ({
 		setPaymentForm({
 			amount: payment.amount === null ? "" : String(payment.amount),
 			id: payment.id,
+			paymentAnchor: payment.paymentAnchor ?? "stage_end",
 			paymentDate: payment.paymentDate ?? "",
 			percent: payment.percent === null ? "" : String(payment.percent),
 			stageId: payment.stageId,
@@ -676,33 +759,40 @@ export const SalesProfitabilityReport = ({
 		setIsPaymentModalOpen(true);
 	};
 
-	const handlePaymentSubmit = async () => {
-		if (!selectedReportProjectId || !paymentForm.stageId) {
+	const handlePaymentSubmit = async (submittedPaymentForm: PaymentFormState) => {
+		setPaymentForm(submittedPaymentForm);
+
+		if (!selectedReportProjectId || !submittedPaymentForm.stageId) {
 			return;
 		}
 
 		const calculatedPaymentFields = calculatePaymentFields({
-			amount: paymentForm.amount,
-			percent: paymentForm.percent,
+			amount: submittedPaymentForm.amount,
+			percent: submittedPaymentForm.percent,
 			projectAmount: selectedReportProject?.projectAmount,
-			source: paymentForm.amount ? "amount" : "percent",
+			source: submittedPaymentForm.amount ? "amount" : "percent",
 		});
 
 		const payload = {
 			amount: numberOrNull(calculatedPaymentFields.amount),
-			paymentDate: paymentForm.paymentDate || null,
+			paymentAnchor: submittedPaymentForm.paymentAnchor,
+			paymentDate: null,
 			percent: numberOrNull(calculatedPaymentFields.percent),
-			stageId: paymentForm.stageId,
-			status: paymentForm.status,
-			waitingDays: numberOrNull(paymentForm.waitingDays),
+			stageId: submittedPaymentForm.stageId,
+			status: submittedPaymentForm.status,
+			waitingDays: numberOrNull(submittedPaymentForm.waitingDays),
 		};
 
-		if (paymentForm.id) {
-			await updateAutonomousProjectPayment(paymentForm.id, payload);
+		if (submittedPaymentForm.id) {
+			await updateAutonomousProjectPayment(submittedPaymentForm.id, payload);
 		} else {
+			const selectedProjectPaymentsCount = autonomousPayments.filter(
+				(payment) => String(payment.projectId) === String(selectedReportProjectId),
+			).length;
+
 			await createAutonomousProjectPayment(String(selectedReportProjectId), {
 				...payload,
-				sortOrder: autonomousPayments.length,
+				sortOrder: selectedProjectPaymentsCount,
 			});
 		}
 
@@ -779,6 +869,11 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
+		if (!hasExistingBitrixProject(projectForm.bitrixProjectId)) {
+			setProjectFormError("Проект с таким ID не найден в Битрикс");
+			return;
+		}
+
 		const payload = getReportProjectPayload(projectForm);
 
 		setIsReportProjectSaving(true);
@@ -835,6 +930,11 @@ export const SalesProfitabilityReport = ({
 
 		if (!detailsProjectForm.title.trim()) {
 			setDetailsProjectError("Заполните название проекта");
+			return;
+		}
+
+		if (!hasExistingBitrixProject(detailsProjectForm.bitrixProjectId)) {
+			setDetailsProjectError("Проект с таким ID не найден в Битрикс");
 			return;
 		}
 
@@ -1083,14 +1183,19 @@ export const SalesProfitabilityReport = ({
 									isLoading={isAutonomousPaymentsLoading}
 									onCreate={openPaymentCreateModal}
 									onEdit={openPaymentEditModal}
+									onScopeChange={setPaymentsScope}
 									payments={autonomousPayments}
+									paymentEvents={autonomousPaymentEvents}
 									project={selectedReportProject}
+									projects={paymentsScopeProjects}
+									scope={paymentsScope}
 									stages={autonomousPaymentStages}
 								/>
 							)}
 
 							{activeTab === "projects" && (
 								<ProjectsTab
+									bitrixProjects={selectedBitrixProjects}
 									onPaymentsChanged={refreshAutonomousPayments}
 									paymentsRefreshKey={paymentsRefreshKey}
 									projects={reportProjects}
@@ -1101,6 +1206,8 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "projectDetails" && (
 								<ReportProjectDetailsTab
+									bitrixProjectOptions={bitrixProjectOptions}
+									companyOptions={companyOptions}
 									detailsFileDrafts={detailsFileDrafts}
 									detailsProjectError={detailsProjectError}
 									form={detailsProjectForm}
@@ -1117,6 +1224,7 @@ export const SalesProfitabilityReport = ({
 									onSave={handleDetailsProjectSave}
 									project={selectedReportProject}
 									shouldShowSave={shouldShowDetailsSave}
+									users={users}
 								/>
 							)}
 
@@ -1170,6 +1278,8 @@ export const SalesProfitabilityReport = ({
 			</div>
 		</section>
 		<ReportProjectModal
+			bitrixProjectOptions={bitrixProjectOptions}
+			companyOptions={companyOptions}
 			deletingReportProjectId={deletingReportProjectId}
 			fileDrafts={projectFileDrafts}
 			form={projectForm}
@@ -1193,11 +1303,11 @@ export const SalesProfitabilityReport = ({
 			project={editingReportProject}
 			projectFormError={projectFormError}
 			saving={isReportProjectSaving}
+			users={users}
 		/>
 		<PaymentModal
 			deletingPaymentId={deletingPaymentId}
 			form={paymentForm}
-			getPaymentDateForStage={getAutonomousPaymentDateForStage}
 			isOpen={isPaymentModalOpen}
 			onClose={() => {
 				setDeletingPaymentId(null);
@@ -1218,23 +1328,38 @@ const AutonomousPaymentsTab = ({
 	isLoading,
 	onCreate,
 	onEdit,
+	onScopeChange,
 	payments,
+	paymentEvents,
 	project,
+	projects,
+	scope,
 	stages,
 }: {
 	error: string | null;
 	isLoading: boolean;
 	onCreate: () => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
+	onScopeChange: (scope: PaymentsScope) => void;
 	payments: AutonomousProjectPayment[];
+	paymentEvents: ProjectGanttEvent[];
 	project: ReportProject | null;
+	projects: ReportProject[];
+	scope: PaymentsScope;
 	stages: ProjectGanttStage[];
 }) => {
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage.title])),
 		[stages],
 	);
-	const projectAmount = project?.projectAmount ?? 0;
+	const projectById = useMemo(
+		() => new Map(projects.map((item) => [String(item.id), item])),
+		[projects],
+	);
+	const projectAmount = projects.reduce(
+		(sum, item) => sum + (item.projectAmount ?? 0),
+		0,
+	);
 	const paidAmount = payments.reduce(
 		(sum, payment) =>
 			payment.status === "paid" ? sum + getAutonomousPaymentAmount(payment) : sum,
@@ -1246,9 +1371,26 @@ const AutonomousPaymentsTab = ({
 		0,
 	);
 	const requestAmount = Math.max(projectAmount - paidAmount, 0);
-	const marginPercent = project?.summaryMarginPercent ?? 0;
+	const marginPercent = projectAmount
+		? Math.round((paidAmount / projectAmount) * 100)
+		: 0;
+	const scopeSubtitle =
+		scope === "project"
+			? (project?.title ?? "Проект")
+			: scope === "client"
+				? (project?.clientCompany || project?.title || "Компания клиента")
+			: "Все проекты";
+	const paymentsWithDisplayDates = useMemo(
+		() =>
+			resolveAutonomousPaymentDates({
+				events: paymentEvents,
+				payments,
+				stages,
+			}),
+		[paymentEvents, payments, stages],
+	);
 	const paymentsByMonth = useMemo(() => {
-		return payments.reduce(
+		return paymentsWithDisplayDates.reduce(
 			(result, payment) => {
 				const date = payment.paymentDate ? new Date(payment.paymentDate) : null;
 				const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
@@ -1268,7 +1410,7 @@ const AutonomousPaymentsTab = ({
 				{ date: Date | null; items: AutonomousProjectPayment[] }
 			>(),
 		);
-	}, [payments]);
+	}, [paymentsWithDisplayDates]);
 	const chartColumns = useMemo(() => {
 		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(
@@ -1316,14 +1458,26 @@ const AutonomousPaymentsTab = ({
 			<div className={styles.projectReportsHeader}>
 				<div>
 					<h3>Список оплат</h3>
-					<span>{project.title}</span>
+					<span>{scopeSubtitle}</span>
 				</div>
+			</div>
+			<div className={styles.marginalityFilters}>
+				{Object.entries(paymentsScopeLabels).map(([scopeId, label]) => (
+					<button
+						key={scopeId}
+						type="button"
+						className={scope === scopeId ? styles.activeFilter : ""}
+						onClick={() => onScopeChange(scopeId as PaymentsScope)}
+					>
+						{label}
+					</button>
+				))}
 			</div>
 
 			<div className={styles.marginalityMetrics}>
 				<div>
 					<span>Проектов</span>
-					<strong>1</strong>
+					<strong>{projects.length}</strong>
 				</div>
 				<div>
 					<span>Маржа</span>
@@ -1353,9 +1507,7 @@ const AutonomousPaymentsTab = ({
 				<h4>График оплат по датам</h4>
 				<div className={styles.paymentLegend}>
 					<span className={styles.paymentPaid}>оплачено</span>
-					<span className={styles.paymentPlanned}>нужно выполнить</span>
-					<span className={styles.paymentDebt}>дебиторка</span>
-					<span className={styles.paymentCanceled}>отменено</span>
+					<span className={styles.paymentCanceled}>неоплачено</span>
 				</div>
 				<div className={styles.paymentChart}>
 					{hasChartColumns ? (
@@ -1396,13 +1548,9 @@ const AutonomousPaymentsTab = ({
 																	16,
 																)}px`,
 															}}
-															title={`${formatMoney(amount)} · ${formatPaymentPercent(
-																payment.percent,
-															)}`}
+															title={formatMoney(amount)}
 														>
-															{payment.percent === null
-																? formatMoney(amount)
-																: formatPaymentPercent(payment.percent)}
+															{formatMoney(amount)}
 														</span>
 													))
 												) : (
@@ -1450,7 +1598,9 @@ const AutonomousPaymentsTab = ({
 						>
 							<span>
 								<strong>
-									Платёж {formatPaymentPercent(payment.percent)}
+									{projectById.get(String(payment.projectId))?.title ??
+										"Проект"}{" "}
+									· Платёж
 								</strong>
 								<span>
 									Дата платежа:{" "}
@@ -1462,7 +1612,7 @@ const AutonomousPaymentsTab = ({
 								</small>
 							</span>
 							<b>{formatMoney(payment.amount ?? 0)}</b>
-							<em className={styles[`payment${payment.status}`]}>
+							<em className={getAutonomousPaymentStatusClassName(payment.status)}>
 								{paymentStatusLabels[payment.status]}
 							</em>
 						</button>

@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
 import {
@@ -28,12 +29,14 @@ import {
 	formatDateShort,
 	getMilestoneStyle,
 	getMonthTicks,
+	getSegmentStyle,
 	getWeekTicks,
 	parseGanttDate,
 } from "../model/ganttUtils";
 import { formatMoney } from "../model/profitabilityUtils";
 import type {
 	AutonomousGanttEventKind,
+	AutonomousPaymentAnchor,
 	AutonomousPaymentStatus,
 	AutonomousProjectPayment,
 	ProjectGanttEvent,
@@ -44,6 +47,8 @@ import type {
 import styles from "../SalesProfitabilityReport.module.scss";
 
 type StageFormState = {
+	dependsOnStageId: number | null;
+	durationDays: string;
 	eventId: number | null;
 	factEndDate: string;
 	factStartDate: string;
@@ -68,6 +73,7 @@ type EventFormState = {
 export type PaymentFormState = {
 	amount: string;
 	id: number | null;
+	paymentAnchor: AutonomousPaymentAnchor;
 	paymentDate: string;
 	percent: string;
 	stageId: number | null;
@@ -76,6 +82,8 @@ export type PaymentFormState = {
 };
 
 const DEFAULT_STAGE_FORM: StageFormState = {
+	dependsOnStageId: null,
+	durationDays: "",
 	eventId: null,
 	factEndDate: "",
 	factStartDate: "",
@@ -118,6 +126,7 @@ const DURATION_STAGE_TYPES = new Set<ProjectGanttStageType>([
 export const DEFAULT_PAYMENT_FORM: PaymentFormState = {
 	amount: "",
 	id: null,
+	paymentAnchor: "stage_end",
 	paymentDate: "",
 	percent: "",
 	stageId: null,
@@ -169,22 +178,93 @@ const getStageTypeFromStage = (
 		? stage.stageType
 		: "tz_writing";
 
-const getPaymentDateFromEventDates = ({
-	factEndDate,
-	factStartDate,
-	planEndDate,
-	planStartDate,
-}: {
-	factEndDate?: string | null;
-	factStartDate?: string | null;
-	planEndDate?: string | null;
-	planStartDate?: string | null;
-}) =>
-	factEndDate ??
-	planEndDate ??
-	factStartDate ??
-	planStartDate ??
-	"";
+const getDateMin = (left: Date | null, right: Date | null) => {
+	if (!left) return right;
+	if (!right) return left;
+
+	return dayjs(left).isBefore(right) ? left : right;
+};
+
+const getDateMax = (left: Date | null, right: Date | null) => {
+	if (!left) return right;
+	if (!right) return left;
+
+	return dayjs(left).isAfter(right) ? left : right;
+};
+
+const isPaymentPaid = (payment: AutonomousProjectPayment) =>
+	payment.status === "paid";
+
+const getInnerSegmentStyle = (
+	start: Date,
+	end: Date,
+	shellStart: Date,
+	shellEnd: Date,
+) => {
+	const totalTime = Math.max(shellEnd.getTime() - shellStart.getTime(), 1);
+	const left = Math.max(
+		0,
+		((start.getTime() - shellStart.getTime()) / totalTime) * 100,
+	);
+	const right = Math.min(
+		100,
+		((end.getTime() - shellStart.getTime()) / totalTime) * 100,
+	);
+
+	return {
+		left: `${left}%`,
+		width: `${Math.max(right - left, 0.8)}%`,
+	};
+};
+
+const getAutonomousEventClassName = (
+	event: ProjectGanttEvent,
+	stageType: ProjectGanttStage["stageType"],
+	today: Date,
+) => {
+	const planStartDate = parseGanttDate(event.planStartDate);
+	const planEndDate = parseGanttDate(event.planEndDate);
+	const factStartDate = parseGanttDate(event.factStartDate);
+	const factEndDate = parseGanttDate(event.factEndDate);
+
+	if (
+		planEndDate &&
+		((factEndDate && factEndDate > planEndDate) ||
+			(!factEndDate && today > planEndDate))
+	) {
+		return styles.ganttAutonomousEventOverdue;
+	}
+
+	if (planEndDate && factEndDate && factEndDate < planEndDate) {
+		return styles.ganttAutonomousEventReserve;
+	}
+
+	if (planStartDate && factStartDate && factStartDate > planStartDate) {
+		return styles.ganttAutonomousEventLate;
+	}
+
+	if (planStartDate && factStartDate && factStartDate < planStartDate) {
+		return styles.ganttAutonomousEventEarly;
+	}
+
+	if (stageType === "tz_signing") {
+		return styles.ganttAutonomousEventSigning;
+	}
+
+	if (stageType === "closing") {
+		return styles.ganttAutonomousEventClosing;
+	}
+
+	if (event.eventKind === "duration" && (factStartDate || factEndDate)) {
+		return styles.ganttAutonomousEventFact;
+	}
+
+	if (event.eventKind === "duration") {
+		return styles.ganttAutonomousEventPlan;
+	}
+
+	return "";
+};
 
 export const calculatePaymentFields = ({
 	amount,
@@ -281,15 +361,6 @@ export const AutonomousProjectGantt = ({
 		() => stages.filter((stage) => stage.code !== "payments"),
 		[stages],
 	);
-	const getPaymentDateForStage = useCallback(
-		(stageId: number | null) => {
-			const stageEvent = events.find((event) => event.stageId === stageId);
-
-			return getPaymentDateFromEventDates(stageEvent ?? {});
-		},
-		[events],
-	);
-
 	const refreshData = useCallback(
 		async (signal?: AbortSignal) => {
 			if (!project?.id) {
@@ -315,6 +386,8 @@ export const AutonomousProjectGantt = ({
 	);
 
 	useEffect(() => {
+		void paymentsRefreshKey;
+
 		const controller = new AbortController();
 
 		setIsLoading(true);
@@ -347,6 +420,8 @@ export const AutonomousProjectGantt = ({
 		const stageType = getStageTypeFromStage(stage);
 
 		setStageForm({
+			dependsOnStageId: stage.dependsOnStageId,
+			durationDays: stage.durationDays === null ? "" : String(stage.durationDays),
 			eventId: stageEvent?.id ?? null,
 			factEndDate: stageEvent?.factEndDate ?? "",
 			factStartDate: stageEvent?.factStartDate ?? "",
@@ -378,7 +453,7 @@ export const AutonomousProjectGantt = ({
 
 		setPaymentForm({
 			...DEFAULT_PAYMENT_FORM,
-			paymentDate: getPaymentDateForStage(stageId),
+			paymentDate: "",
 			stageId,
 		});
 		setIsPaymentModalOpen(true);
@@ -388,6 +463,7 @@ export const AutonomousProjectGantt = ({
 		setPaymentForm({
 			amount: payment.amount === null ? "" : String(payment.amount),
 			id: payment.id,
+			paymentAnchor: payment.paymentAnchor ?? "stage_end",
 			paymentDate: payment.paymentDate ?? "",
 			percent: payment.percent === null ? "" : String(payment.percent),
 			stageId: payment.stageId,
@@ -404,43 +480,33 @@ export const AutonomousProjectGantt = ({
 		}
 
 		const title = stageForm.title.trim() || getStageTypeLabel(stageForm.stageType);
-		const eventKind = getStageEventKind(stageForm.stageType);
+		const isDependencyStage = Boolean(stageForm.dependsOnStageId);
+		const eventKind = isDependencyStage
+			? "duration"
+			: getStageEventKind(stageForm.stageType);
 		const eventPayload = {
 			eventKind,
 			factEndDate:
-				eventKind === "duration" ? stageForm.factEndDate || null : null,
-			factStartDate: stageForm.factStartDate || null,
+				!isDependencyStage && eventKind === "duration"
+					? stageForm.factEndDate || null
+					: null,
+			factStartDate: isDependencyStage ? null : stageForm.factStartDate || null,
 			planEndDate:
-				eventKind === "duration" ? stageForm.planEndDate || null : null,
-			planStartDate: stageForm.planStartDate || null,
+				!isDependencyStage && eventKind === "duration"
+					? stageForm.planEndDate || null
+					: null,
+			planStartDate: isDependencyStage ? null : stageForm.planStartDate || null,
 			title,
 		};
-		const updateStagePaymentsDate = async (stageId: number) => {
-			const paymentDate = getPaymentDateFromEventDates(eventPayload);
-			const stagePayments = payments.filter(
-				(payment) =>
-					payment.stageId === stageId &&
-					(payment.paymentDate ?? "") !== paymentDate,
-			);
-
-			if (!stagePayments.length) {
-				return;
-			}
-
-			await Promise.all(
-				stagePayments.map((payment) =>
-					updateAutonomousProjectPayment(payment.id, {
-						paymentDate: paymentDate || null,
-					}),
-				),
-			);
+		const stagePayload = {
+			dependsOnStageId: stageForm.dependsOnStageId,
+			durationDays: toNumberOrNull(stageForm.durationDays),
+			stageType: stageForm.stageType,
+			title,
 		};
 
 		if (stageForm.id) {
-			await updateProjectGanttStage(stageForm.id, {
-				stageType: stageForm.stageType,
-				title,
-			});
+			await updateProjectGanttStage(stageForm.id, stagePayload);
 
 			const stageEvent =
 				stageForm.eventId ??
@@ -459,12 +525,10 @@ export const AutonomousProjectGantt = ({
 					stageId: stageForm.id,
 				});
 			}
-			await updateStagePaymentsDate(stageForm.id);
 		} else {
 			const createdStage = await createProjectGanttStage(String(project.id), {
+				...stagePayload,
 				sortOrder: stages.length,
-				stageType: stageForm.stageType,
-				title,
 			});
 			const createdEvents = await fetchProjectGanttEvents(String(project.id));
 			const createdStageEvent = createdEvents.find(
@@ -552,36 +616,41 @@ export const AutonomousProjectGantt = ({
 		await refreshData();
 	};
 
-	const handlePaymentSubmit = async () => {
-		if (!project?.id || !paymentForm.stageId) {
+	const handlePaymentSubmit = async (submittedPaymentForm: PaymentFormState) => {
+		setPaymentForm(submittedPaymentForm);
+
+		if (!project?.id || !submittedPaymentForm.stageId) {
 			return;
 		}
 
+		const normalizedPaymentStatus: AutonomousPaymentStatus =
+			submittedPaymentForm.status === "paid" ? "paid" : "todo";
 		const payload = {
 			amount: toNumberOrNull(
 				calculatePaymentFields({
-					amount: paymentForm.amount,
-					percent: paymentForm.percent,
+					amount: submittedPaymentForm.amount,
+					percent: submittedPaymentForm.percent,
 					projectAmount: project.projectAmount,
-					source: paymentForm.amount ? "amount" : "percent",
+					source: submittedPaymentForm.amount ? "amount" : "percent",
 				}).amount,
 			),
-			paymentDate: paymentForm.paymentDate || null,
+			paymentAnchor: submittedPaymentForm.paymentAnchor,
+			paymentDate: null,
 			percent: toNumberOrNull(
 				calculatePaymentFields({
-					amount: paymentForm.amount,
-					percent: paymentForm.percent,
+					amount: submittedPaymentForm.amount,
+					percent: submittedPaymentForm.percent,
 					projectAmount: project.projectAmount,
-					source: paymentForm.amount ? "amount" : "percent",
+					source: submittedPaymentForm.amount ? "amount" : "percent",
 				}).percent,
 			),
-			stageId: paymentForm.stageId,
-			status: paymentForm.status,
-			waitingDays: toNumberOrNull(paymentForm.waitingDays),
+			stageId: submittedPaymentForm.stageId,
+			status: normalizedPaymentStatus,
+			waitingDays: toNumberOrNull(submittedPaymentForm.waitingDays),
 		};
 
-		if (paymentForm.id) {
-			await updateAutonomousProjectPayment(paymentForm.id, payload);
+		if (submittedPaymentForm.id) {
+			await updateAutonomousProjectPayment(submittedPaymentForm.id, payload);
 		} else {
 			await createAutonomousProjectPayment(String(project.id), {
 				...payload,
@@ -619,7 +688,10 @@ export const AutonomousProjectGantt = ({
 		<>
 			<div className={styles.ganttCard}>
 				<div className={styles.autonomousGanttToolbar}>
-					<strong>Гант проекта</strong>
+					<div>
+						<h3>Диаграмма Ганта: {project.title}</h3>
+						<span>План пересчитывается по зависимостям между этапами</span>
+					</div>
 				</div>
 				{error ? <div className={styles.emptyState}>{error}</div> : null}
 				{isLoading ? (
@@ -640,6 +712,7 @@ export const AutonomousProjectGantt = ({
 								onStageEdit={openStageEditModal}
 								row={row}
 								stageById={stageById}
+								today={today}
 								timeline={gantt.timeline}
 								weekTicks={weekTicks}
 							/>
@@ -658,6 +731,7 @@ export const AutonomousProjectGantt = ({
 						</div>
 					</div>
 				)}
+				<AutonomousGanttLegend />
 			</div>
 			<StageModal
 				deletingStageId={deletingStageId}
@@ -671,6 +745,7 @@ export const AutonomousProjectGantt = ({
 				onFormChange={setStageForm}
 				onSubmit={handleStageSubmit}
 				stage={stageForm.id ? stageById.get(stageForm.id) : null}
+				stages={editableStages}
 			/>
 			<EventModal
 				deletingEventId={deletingEventId}
@@ -695,7 +770,6 @@ export const AutonomousProjectGantt = ({
 				onDelete={handlePaymentDelete}
 				onFormChange={setPaymentForm}
 				onSubmit={handlePaymentSubmit}
-				getPaymentDateForStage={getPaymentDateForStage}
 				projectAmount={project.projectAmount}
 				stages={stages}
 			/>
@@ -711,6 +785,7 @@ const AutonomousStageRow = ({
 	onStageEdit,
 	row,
 	stageById,
+	today,
 	timeline,
 	weekTicks,
 }: {
@@ -721,6 +796,7 @@ const AutonomousStageRow = ({
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
 	stageById: Map<number, ProjectGanttStage>;
+	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 	weekTicks: GanttWeekTick[];
 }) => {
@@ -768,6 +844,8 @@ const AutonomousStageRow = ({
 						event={event}
 						key={event.event.id}
 						onEdit={onEventEdit}
+						stageType={row.stage.stageType}
+						today={today}
 						timeline={timeline}
 					/>
 				))}
@@ -789,35 +867,157 @@ const AutonomousStageRow = ({
 const AutonomousEventItem = ({
 	event,
 	onEdit,
+	stageType,
+	today,
 	timeline,
 }: {
 	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number];
 	onEdit: (event: ProjectGanttEvent) => void;
+	stageType: ProjectGanttStage["stageType"];
+	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 }) => {
 	const style = getAutonomousEventStyle(event, timeline);
+	const eventClassName = getAutonomousEventClassName(
+		event.event,
+		stageType,
+		today,
+	);
 
 	if (!style) {
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
 	}
 
-	return event.event.eventKind === "duration" ? (
+	if (event.event.eventKind === "duration") {
+		const planSegment =
+			event.planStart && event.planEnd
+				? {
+						end: event.planEnd,
+						start: event.planStart,
+					}
+				: null;
+		const factEnd = event.factEnd ?? (event.factStart ? today : null);
+		const boundaryDates = [
+			event.planStart,
+			event.planEnd,
+			event.factStart,
+			factEnd,
+		]
+			.filter((date): date is Date => Boolean(date))
+			.toSorted((left, right) => left.getTime() - right.getTime())
+			.filter(
+				(date, index, dates) =>
+					index === 0 || date.getTime() !== dates[index - 1].getTime(),
+			);
+		const fallbackSegments =
+			!planSegment && event.displayStart && event.displayEnd
+				? {
+						className: eventClassName || styles.ganttAutonomousEventFact,
+						end: event.displayEnd,
+						start: event.displayStart,
+					}
+				: null;
+		const segments = planSegment
+			? boundaryDates
+					.slice(0, -1)
+					.map((start, index) => {
+						const end = boundaryDates[index + 1];
+						const isInsidePlan = start >= planSegment.start && end <= planSegment.end;
+						const isInsideFact =
+							Boolean(event.factStart && factEnd) &&
+							start >= (event.factStart ?? start) &&
+							end <= (factEnd ?? end);
+						const isEarlyStart =
+							Boolean(event.factStart && event.planStart) &&
+							start < (event.planStart ?? start) &&
+							end <= (event.planStart ?? end);
+						const isLateStart =
+							Boolean(event.factStart) &&
+							isInsidePlan &&
+							start < (event.factStart ?? start);
+						const isOverdue =
+							Boolean(event.planEnd) &&
+							start >= (event.planEnd ?? start) &&
+							Boolean(factEnd);
+						const isReserve =
+							Boolean(event.factEnd && event.planEnd) &&
+							start >= (event.factEnd ?? start) &&
+							end <= (event.planEnd ?? end);
+
+						if (!isInsidePlan && !isInsideFact && !isEarlyStart && !isOverdue) {
+							return null;
+						}
+
+						return {
+							className: isOverdue
+								? styles.ganttAutonomousEventOverdue
+								: isEarlyStart
+									? styles.ganttAutonomousEventEarly
+									: isLateStart
+										? styles.ganttAutonomousEventLate
+										: isReserve
+											? styles.ganttAutonomousEventReserve
+											: isInsideFact
+												? styles.ganttAutonomousEventFact
+												: styles.ganttAutonomousEventPlan,
+							end,
+							start,
+						};
+					})
+					.filter(Boolean)
+			: [fallbackSegments].filter(Boolean);
+		const normalizedSegments = segments.filter((segment): segment is {
+			className: string;
+			end: Date;
+			start: Date;
+		} => Boolean(segment));
+
+		const segmentStarts = normalizedSegments.map((segment) => segment.start);
+		const segmentEnds = normalizedSegments.map((segment) => segment.end);
+		const shellStart = segmentStarts.reduce<Date | null>(
+			(minDate, date) => getDateMin(minDate, date),
+			null,
+		);
+		const shellEnd = segmentEnds.reduce<Date | null>(
+			(maxDate, date) => getDateMax(maxDate, date),
+			null,
+		);
+
+		if (!shellStart || !shellEnd) {
+			return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
+		}
+
+		return (
+			<button
+				type="button"
+				className={`${styles.ganttSegment} ${styles.ganttCustomEventSegmentShell}`}
+				onClick={(clickEvent) => {
+					clickEvent.stopPropagation();
+					onEdit(event.event);
+				}}
+				style={getSegmentStyle(shellStart, shellEnd, timeline)}
+				title={formatAutonomousEventTooltip(event)}
+			>
+				{normalizedSegments.map((segment) => (
+					<span
+						key={`${segment.className}-${segment.start.toISOString()}-${segment.end.toISOString()}`}
+						className={`${styles.ganttCustomEventSegment} ${segment.className}`}
+						style={getInnerSegmentStyle(
+							segment.start,
+							segment.end,
+							shellStart,
+							shellEnd,
+						)}
+					/>
+				))}
+			</button>
+		);
+	}
+
+	return (
 		<button
 			type="button"
-			className={`${styles.ganttSegment} ${styles.ganttCustomEventSegment}`}
-			onClick={(clickEvent) => {
-				clickEvent.stopPropagation();
-				onEdit(event.event);
-			}}
-			style={style}
-			title={formatAutonomousEventTooltip(event)}
-		>
-			{event.event.title}
-		</button>
-	) : (
-		<button
-			type="button"
-			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker}`}
+			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker} ${eventClassName}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
 				onEdit(event.event);
@@ -834,6 +1034,35 @@ const AutonomousEventItem = ({
 		</button>
 	);
 };
+
+const AutonomousGanttLegend = () => (
+	<div className={styles.ganttLegend}>
+		<span>
+			<i className={styles.legendPlan} /> Плановый период
+		</span>
+		<span>
+			<i className={styles.legendFact} /> Фактическая работа
+		</span>
+		<span>
+			<i className={styles.legendLate} /> Поздний старт
+		</span>
+		<span>
+			<i className={styles.legendEarly} /> Ранний старт
+		</span>
+		<span>
+			<i className={styles.legendOverdue} /> Просрочка завершения
+		</span>
+		<span>
+			<i className={styles.legendReserve} /> Запас до планового срока
+		</span>
+		<span>
+			<i className={styles.legendSign} /> Подписание ТЗ
+		</span>
+		<span>
+			<i className={styles.legendClose} /> Акт / закрытие
+		</span>
+	</div>
+);
 
 const AutonomousPaymentItem = ({
 	onEdit,
@@ -860,7 +1089,9 @@ const AutonomousPaymentItem = ({
 		<button
 			type="button"
 			className={`${styles.ganttMilestone} ${styles.autonomousPaymentMarker} ${
-				styles[`autonomousPayment${payment.status}`] ?? ""
+				isPaymentPaid(payment)
+					? styles.autonomousPaymentPaid
+					: styles.autonomousPaymentUnpaid
 			}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
@@ -872,11 +1103,7 @@ const AutonomousPaymentItem = ({
 			<b>
 				<FaMoneyBillWave aria-hidden="true" />
 			</b>
-			<small>
-				{payment.percent ?? "—"}%
-				<br />
-				{formatMoney(payment.amount ?? 0)}
-			</small>
+			<small>{formatMoney(payment.amount ?? 0)}</small>
 		</button>
 	);
 };
@@ -890,6 +1117,7 @@ const StageModal = ({
 	onFormChange,
 	onSubmit,
 	stage,
+	stages,
 }: {
 	deletingStageId: number | null;
 	form: StageFormState;
@@ -899,8 +1127,11 @@ const StageModal = ({
 	onFormChange: (value: StageFormState) => void;
 	onSubmit: () => void;
 	stage: ProjectGanttStage | null | undefined;
+	stages: ProjectGanttStage[];
 }) => {
 	const isDurationStage = DURATION_STAGE_TYPES.has(form.stageType);
+	const isDependencyStage = Boolean(form.dependsOnStageId);
+	const availableDependencyStages = stages.filter((item) => item.id !== form.id);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size="small">
@@ -944,23 +1175,60 @@ const StageModal = ({
 						}
 					/>
 				</label>
-				<div className={styles.ganttFormGrid}>
+				<label>
+					<span>Привязка к этапу</span>
+					<select
+						value={form.dependsOnStageId ?? ""}
+						onChange={(event) =>
+							onFormChange({
+								...form,
+								dependsOnStageId: event.target.value
+									? Number(event.target.value)
+									: null,
+							})
+						}
+					>
+						<option value="">Без привязки</option>
+						{availableDependencyStages.map((item) => (
+							<option key={item.id} value={item.id}>
+								После этапа: {item.title}
+							</option>
+						))}
+					</select>
+				</label>
+				{isDependencyStage ? (
 					<label>
-						<span>
-							{isDurationStage ? "Плановая дата начала" : "Плановая дата"}
-						</span>
+						<span>Длительность, дней</span>
 						<input
-							type="date"
-							value={form.planStartDate}
+							value={form.durationDays}
 							onChange={(event) =>
 								onFormChange({
 									...form,
-									planStartDate: event.target.value,
+									durationDays: event.target.value,
 								})
 							}
 						/>
 					</label>
-					{isDurationStage ? (
+				) : null}
+				<div className={styles.ganttFormGrid}>
+					{!isDependencyStage ? (
+						<label>
+							<span>
+								{isDurationStage ? "Плановая дата начала" : "Плановая дата"}
+							</span>
+							<input
+								type="date"
+								value={form.planStartDate}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										planStartDate: event.target.value,
+									})
+								}
+							/>
+						</label>
+					) : null}
+					{!isDependencyStage && isDurationStage ? (
 						<label>
 							<span>Плановая дата завершения</span>
 							<input
@@ -975,22 +1243,24 @@ const StageModal = ({
 							/>
 						</label>
 					) : null}
-					<label>
-						<span>
-							{isDurationStage ? "Фактическая дата начала" : "Фактическая дата"}
-						</span>
-						<input
-							type="date"
-							value={form.factStartDate}
-							onChange={(event) =>
-								onFormChange({
-									...form,
-									factStartDate: event.target.value,
-								})
-							}
-						/>
-					</label>
-					{isDurationStage ? (
+					{!isDependencyStage ? (
+						<label>
+							<span>
+								{isDurationStage ? "Фактическая дата начала" : "Фактическая дата"}
+							</span>
+							<input
+								type="date"
+								value={form.factStartDate}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										factStartDate: event.target.value,
+									})
+								}
+							/>
+						</label>
+					) : null}
+					{!isDependencyStage && isDurationStage ? (
 						<label>
 							<span>Фактическая дата завершения</span>
 							<input
@@ -1153,7 +1423,6 @@ const EventModal = ({
 export const PaymentModal = ({
 	deletingPaymentId,
 	form,
-	getPaymentDateForStage,
 	isOpen,
 	onClose,
 	onDelete,
@@ -1164,22 +1433,27 @@ export const PaymentModal = ({
 }: {
 	deletingPaymentId: number | null;
 	form: PaymentFormState;
-	getPaymentDateForStage: (stageId: number | null) => string;
 	isOpen: boolean;
 	onClose: () => void;
 	onDelete: () => void;
 	onFormChange: (value: PaymentFormState) => void;
-	onSubmit: () => void;
+	onSubmit: (value: PaymentFormState) => void;
 	projectAmount?: number | null;
 	stages: ProjectGanttStage[];
 }) => (
 	<Modal isOpen={isOpen} onClose={onClose} size="small">
-		<div className={styles.ganttFormModal}>
+		<form
+			className={styles.ganttFormModal}
+			onSubmit={(event) => {
+				event.preventDefault();
+				onSubmit(form);
+			}}
+		>
 			<h3>{form.id ? "Редактирование оплаты" : "Новая оплата"}</h3>
 			<label>
 				<span>Стадия</span>
 				<select
-					value={form.status}
+					value={form.status === "paid" ? "paid" : "todo"}
 					onChange={(event) =>
 						onFormChange({
 							...form,
@@ -1187,10 +1461,8 @@ export const PaymentModal = ({
 						})
 					}
 				>
-					<option value="todo">Нужно выполнить</option>
-					<option value="debt">Дебиторка</option>
 					<option value="paid">Оплачено</option>
-					<option value="canceled">Отменено</option>
+					<option value="todo">Неоплачено</option>
 				</select>
 			</label>
 			<label>
@@ -1202,7 +1474,6 @@ export const PaymentModal = ({
 
 						onFormChange({
 							...form,
-							paymentDate: getPaymentDateForStage(stageId),
 							stageId,
 						});
 					}}
@@ -1216,37 +1487,22 @@ export const PaymentModal = ({
 						))}
 				</select>
 			</label>
+			<label>
+				<span>Дата оплаты от этапа</span>
+				<select
+					value={form.paymentAnchor}
+					onChange={(event) =>
+						onFormChange({
+							...form,
+							paymentAnchor: event.target.value as PaymentFormState["paymentAnchor"],
+						})
+					}
+				>
+					<option value="stage_start">К началу этапа</option>
+					<option value="stage_end">К концу этапа</option>
+				</select>
+			</label>
 			<div className={styles.ganttFormGrid}>
-				<label>
-					<span>Дата платежа</span>
-					<input
-						type="date"
-						value={form.paymentDate}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								paymentDate: event.target.value,
-							})
-						}
-					/>
-				</label>
-				<label>
-					<span>Процент от проекта</span>
-					<input
-						value={form.percent}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								...calculatePaymentFields({
-									amount: form.amount,
-									percent: event.target.value,
-									projectAmount,
-									source: "percent",
-								}),
-							})
-						}
-					/>
-				</label>
 				<label>
 					<span>Сумма от проекта</span>
 					<input
@@ -1289,11 +1545,9 @@ export const PaymentModal = ({
 							: "Удалить"}
 					</button>
 				) : null}
-				<button type="button" onClick={onSubmit}>
-					Сохранить
-				</button>
+				<button type="submit">Сохранить</button>
 			</div>
-		</div>
+		</form>
 	</Modal>
 );
 

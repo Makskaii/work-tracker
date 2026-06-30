@@ -9,9 +9,12 @@ export const useBitrixSlider = () => {
 		entityId: number = EntityTypeIds.tasks,
 		type: "task" | "common" = "task",
 	) => {
-		if (!b24) return null;
-
 		const path = `/crm/${type === "task" ? `type/${entityId}` : "deal"}/details/${itemId}/`;
+
+		if (!b24) {
+			window.open(path, "_blank", "noopener,noreferrer");
+			return null;
+		}
 
 		const url = b24.slider.getUrl(path);
 		return b24.slider.openPath(url, 1100);

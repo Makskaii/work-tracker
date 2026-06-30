@@ -24,7 +24,9 @@ export const ReportsTab = ({
 	openReport,
 }: ReportsTabProps) => (
 	<div className={styles.tableCard}>
-		<div className={styles.tableTitle}>Все отчёты сотрудников ({items.length})</div>
+		<div className={styles.tableTitle}>
+			Все отчёты сотрудников ({items.length})
+		</div>
 		<div className={styles.reportsTable}>
 			<div className={styles.reportsHead}>
 				<span>Дата</span>
@@ -34,15 +36,11 @@ export const ReportsTab = ({
 				<span>Активность</span>
 				<span>Часы</span>
 				<span>Клиентский отчёт</span>
+				<span>Bitrix</span>
 			</div>
 			{items.length ? (
 				items.map(({ report, project }) => (
-					<button
-						key={report.id}
-						type="button"
-						className={styles.reportRow}
-						onClick={() => openReport(report.id)}
-					>
+					<div key={report.id} className={styles.reportRow}>
 						<span>
 							{new Date(report.begindate).toLocaleDateString("ru-RU")}
 						</span>
@@ -56,7 +54,14 @@ export const ReportsTab = ({
 							{formatHours(toNumber(report[ReportCodes.timeSpent]))}
 						</strong>
 						<span className={styles.paymentPill}>Показывать</span>
-					</button>
+						<button
+							type="button"
+							className={styles.openBitrixButton}
+							onClick={() => openReport(report.id)}
+						>
+							Открыть
+						</button>
+					</div>
 				))
 			) : (
 				<div className={styles.emptyState}>

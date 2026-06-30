@@ -206,7 +206,6 @@ export const ProjectGantt = ({
 
 		return items;
 	}, [ganttIncidents]);
-	const paymentLinksVersion = `${gantt.rows.length}:${ganttCustomEvents.length}`;
 	const paymentRowHeight = getPaymentRowHeight(paymentMarkers);
 	const setPaymentMarkerRef = useCallback(
 		(paymentId: string) => (node: HTMLSpanElement | null) => {
@@ -607,7 +606,7 @@ export const ProjectGantt = ({
 			window.removeEventListener("resize", schedulePaymentLinksUpdate);
 			board.removeEventListener("scroll", schedulePaymentLinksUpdate);
 		};
-	}, [paymentIncidentById, paymentLinksVersion, paymentMarkers, timeline]);
+	}, [paymentIncidentById, paymentMarkers, timeline]);
 	const handleOverdueClick = async () => {
 		if (!project) {
 			setIncidents([]);
