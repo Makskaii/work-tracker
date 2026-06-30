@@ -3,7 +3,9 @@
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
+	height: calc(100vh - 36px);
 	min-width: 0;
+	min-height: 0;
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: 24px;
@@ -19,7 +21,11 @@
 	grid-template-columns: var(--structure-width) minmax(0, 1fr);
 	gap: 18px;
 	align-items: start;
+	flex: 1 1 auto;
+	height: 100%;
 	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
 	transition: grid-template-columns 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -29,11 +35,13 @@
 
 .content {
 	box-sizing: border-box;
+	height: 100%;
 	min-width: 0;
+	min-height: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 20px;
 	background: var(--color-surface);
-	overflow: hidden;
+	overflow: auto;
 }
 
 .structure {
@@ -44,7 +52,8 @@
 	min-width: 0;
 	width: 100%;
 	max-width: 100%;
-	min-height: calc(100vh - 96px);
+	height: 100%;
+	min-height: 0;
 	padding: 14px;
 	border: 1px solid var(--color-border);
 	border-radius: 22px;
@@ -102,7 +111,8 @@
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	max-height: calc(100vh - 72px);
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow-y: auto;
 	padding: 0 4px 0 0;
 	scrollbar-width: none;
@@ -228,10 +238,10 @@
 	display: grid;
 	grid-template-columns: 26px minmax(0, 1fr);
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	width: 100%;
-	min-height: 42px;
-	padding: 8px 10px;
+	min-height: 46px;
+	padding: 9px 12px;
 	border: 1px solid transparent;
 	border-radius: 12px;
 	background: rgba(22, 36, 55, 0.24);
@@ -312,20 +322,47 @@
 }
 
 .reportProjectButton {
-	grid-template-columns: 26px minmax(0, 1fr) auto;
+	grid-template-columns: 28px minmax(0, 1fr) 28px;
+	align-items: center;
+	column-gap: 11px;
+	padding-right: 12px;
+}
+
+.reportProjectText {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+}
+
+.reportProjectTitle {
+	align-self: center;
+	line-height: 1.1;
 }
 
 .reportProjectMenuButton {
 	display: inline-flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
-	border-radius: 999px;
+	width: 28px;
+	height: 28px;
+	align-self: center;
+	justify-self: end;
+	border-radius: 8px;
 	color: rgba(238, 245, 255, 0.72);
-	font-size: 13px;
-	font-weight: 900;
 	line-height: 1;
+
+	span {
+		display: block;
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+
+	span+span {
+		margin-top: 2px;
+	}
 }
 
 .reportProjectMenuButton:hover {
@@ -338,6 +375,7 @@
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
+	line-height: 1.1;
 }
 
 .reportProjectMeta span {
@@ -347,9 +385,14 @@
 }
 
 .reportProjectNextReportDate {
+	margin-left: auto;
 	color: rgba(238, 245, 255, 0.48) !important;
 	font-size: 10px !important;
 	font-weight: 800 !important;
+}
+
+.reportProjectNextReportDateOverdue {
+	color: #ff6f7d !important;
 }
 
 .dealProjectAddButton {

@@ -155,6 +155,14 @@ const getNextProjectReportDate = (reports: ProjectReportEntry[]) => {
 	return futureDate ?? pastDate ?? null;
 };
 
+const isProjectReportDateOverdue = (date: string | null | undefined) => {
+	if (!date) {
+		return false;
+	}
+
+	return date < new Date().toISOString().slice(0, 10);
+};
+
 const getPaymentMonthKey = (date: Date) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
@@ -1097,11 +1105,21 @@ export const SalesProfitabilityReport = ({
 									<span className={styles.dealProjectIcon}>
 										{project.title.trim().charAt(0) || "P"}
 									</span>
-									<span>
-										<strong>{project.title}</strong>
+									<span className={styles.reportProjectText}>
+										<strong className={styles.reportProjectTitle}>
+											{project.title}
+										</strong>
 										<small className={styles.reportProjectMeta}>
 											<span>Проект</span>
-											<span className={styles.reportProjectNextReportDate}>
+											<span
+												className={`${styles.reportProjectNextReportDate} ${
+													isProjectReportDateOverdue(
+														project.nextProjectReportDate,
+													)
+														? styles.reportProjectNextReportDateOverdue
+														: ""
+												}`}
+											>
 												{formatProjectReportDate(project.nextProjectReportDate)}
 											</span>
 										</small>
@@ -1113,7 +1131,9 @@ export const SalesProfitabilityReport = ({
 											openReportProjectEditModal(project);
 										}}
 									>
-										...
+										<span aria-hidden="true" />
+										<span aria-hidden="true" />
+										<span aria-hidden="true" />
 									</span>
 								</button>
 							))}
