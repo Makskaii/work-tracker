@@ -407,8 +407,9 @@ const ProjectReportCreateModal = ({
 	onNextReportDateChange: (value: string) => void;
 	onTextChange: (value: string) => void;
 	text: string;
-}) => (
-	<Modal isOpen={isOpen} onClose={onClose} size="small">
+}) => {
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} size="small">
 		<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
 			<h3>Создать отчёт по проекту</h3>
 			<div className={styles.projectReportComposer}>
@@ -442,7 +443,9 @@ const ProjectReportCreateModal = ({
 					</label>
 					<div className={styles.projectReportFilePicker}>
 						<span>Файлы</span>
-						<label className={projectReportsStyles.projectFileField}>
+						<label
+							className={`${projectReportsStyles.projectFileField} ${styles.projectReportCreateFileField}`}
+						>
 							<input
 								type="file"
 								multiple
@@ -473,5 +476,6 @@ const ProjectReportCreateModal = ({
 				</div>
 			</div>
 		</div>
-	</Modal>
-);
+		</Modal>
+	);
+};
