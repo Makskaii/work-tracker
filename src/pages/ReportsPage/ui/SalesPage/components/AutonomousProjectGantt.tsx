@@ -10,6 +10,12 @@ import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
 import {
+	calculatePaymentFields,
+	DEFAULT_PAYMENT_FORM,
+	type PaymentFormState,
+	toNumberOrNull,
+} from "../model/autonomousPaymentForm";
+import {
 	buildAutonomousProjectGantt,
 	formatAutonomousEventTooltip,
 	formatAutonomousPaymentTooltip,
@@ -43,7 +49,6 @@ import {
 import { formatMoney } from "../model/profitabilityUtils";
 import type {
 	AutonomousGanttEventKind,
-	AutonomousPaymentAnchor,
 	AutonomousPaymentStatus,
 	AutonomousProjectPayment,
 	ProjectGanttEvent,
@@ -52,6 +57,19 @@ import type {
 	ReportProject,
 } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { AutonomousGanttLegend } from "./AutonomousGanttLegend";
+import {
+	AutonomousGanttScale,
+	AutonomousGanttTrackGrid,
+} from "./AutonomousGanttScale";
+import { PaymentModal } from "./AutonomousPaymentModal";
+
+export {
+	calculatePaymentFields,
+	DEFAULT_PAYMENT_FORM,
+	type PaymentFormState,
+} from "../model/autonomousPaymentForm";
+export { PaymentModal } from "./AutonomousPaymentModal";
 
 type StageFormState = {
 	dependsOnStageId: number | null;
@@ -92,17 +110,6 @@ type PaymentLinkLayout = {
 type PaymentLayoutItem = {
 	level: number;
 	payment: AutonomousProjectPayment;
-};
-
-export type PaymentFormState = {
-	amount: string;
-	id: number | null;
-	paymentAnchor: AutonomousPaymentAnchor;
-	paymentDate: string;
-	percent: string;
-	stageId: number | null;
-	status: AutonomousPaymentStatus;
-	waitingDays: string;
 };
 
 const DEFAULT_STAGE_FORM: StageFormState = {
@@ -152,43 +159,12 @@ const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
 
-export const DEFAULT_PAYMENT_FORM: PaymentFormState = {
-	amount: "",
-	id: null,
-	paymentAnchor: "stage_end",
-	paymentDate: "",
-	percent: "",
-	stageId: null,
-	status: "todo",
-	waitingDays: "",
-};
-
 const getScaleWeekStep = (weekTicksCount: number) => {
 	if (weekTicksCount > 36) return 4;
 	if (weekTicksCount > 24) return 3;
 	if (weekTicksCount > 14) return 2;
 
 	return 1;
-};
-
-const toNumberOrNull = (value: string) => {
-	const normalizedValue = value.trim().replace(",", ".");
-
-	if (!normalizedValue) {
-		return null;
-	}
-
-	const parsedValue = Number(normalizedValue);
-
-	return Number.isFinite(parsedValue) ? parsedValue : null;
-};
-
-const formatPaymentNumber = (value: number) => {
-	const roundedValue = Math.round(value * 100) / 100;
-
-	return Number.isInteger(roundedValue)
-		? String(roundedValue)
-		: String(roundedValue).replace(".", ",");
 };
 
 const getStageTypeLabel = (stageType: ProjectGanttStageType) =>
@@ -370,46 +346,6 @@ const getAutonomousEventClassName = (
 	}
 
 	return "";
-};
-
-export const calculatePaymentFields = ({
-	amount,
-	percent,
-	projectAmount,
-	source,
-}: {
-	amount: string;
-	percent: string;
-	projectAmount: number | null | undefined;
-	source: "amount" | "percent";
-}): Pick<PaymentFormState, "amount" | "percent"> => {
-	const normalizedProjectAmount = projectAmount ?? 0;
-
-	if (normalizedProjectAmount <= 0) {
-		return { amount, percent };
-	}
-
-	if (source === "percent") {
-		const percentValue = toNumberOrNull(percent);
-
-		return {
-			amount:
-				percentValue === null
-					? ""
-					: formatPaymentNumber((normalizedProjectAmount * percentValue) / 100),
-			percent,
-		};
-	}
-
-	const amountValue = toNumberOrNull(amount);
-
-	return {
-		amount,
-		percent:
-			amountValue === null
-				? ""
-				: formatPaymentNumber((amountValue / normalizedProjectAmount) * 100),
-	};
 };
 
 export const AutonomousProjectGantt = ({
@@ -947,7 +883,10 @@ export const AutonomousProjectGantt = ({
 				>
 					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
 					<div className={styles.ganttScale}>
-						<GanttScale monthTicks={monthTicks} weekTicks={scaleWeekTicks} />
+						<AutonomousGanttScale
+							monthTicks={monthTicks}
+							weekTicks={scaleWeekTicks}
+						/>
 					</div>
 					<AutonomousPaymentLinksLayer layout={paymentLinksLayout} />
 					{gantt.rows.map((row) => (
@@ -976,7 +915,10 @@ export const AutonomousProjectGantt = ({
 						</button>
 					</div>
 					<div className={styles.ganttTrack}>
-						<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+						<AutonomousGanttTrackGrid
+							monthTicks={monthTicks}
+							weekTicks={weekTicks}
+						/>
 					</div>
 				</div>
 			)}
@@ -1134,7 +1076,10 @@ const AutonomousStageRow = ({
 				role={isPaymentsStage ? "button" : undefined}
 				tabIndex={isPaymentsStage ? 0 : undefined}
 			>
-				<GanttTrackGrid monthTicks={monthTicks} weekTicks={weekTicks} />
+				<AutonomousGanttTrackGrid
+					monthTicks={monthTicks}
+					weekTicks={weekTicks}
+				/>
 				{row.events.map((event) => (
 					<AutonomousEventItem
 						event={event}
@@ -1407,35 +1352,6 @@ const AutonomousEventItem = ({
 		</button>
 	);
 };
-
-const AutonomousGanttLegend = () => (
-	<div className={styles.ganttLegend}>
-		<span>
-			<i className={styles.legendPlan} /> Плановый период
-		</span>
-		<span>
-			<i className={styles.legendFact} /> Фактическая работа
-		</span>
-		<span>
-			<i className={styles.legendLate} /> Поздний старт
-		</span>
-		<span>
-			<i className={styles.legendEarly} /> Ранний старт
-		</span>
-		<span>
-			<i className={styles.legendOverdue} /> Просрочка завершения
-		</span>
-		<span>
-			<i className={styles.legendReserve} /> Запас до планового срока
-		</span>
-		<span>
-			<i className={styles.legendSign} /> Подписание ТЗ
-		</span>
-		<span>
-			<i className={styles.legendClose} /> Акт / закрытие
-		</span>
-	</div>
-);
 
 const AutonomousPaymentItem = ({
 	markerRef,
@@ -1809,185 +1725,4 @@ const EventModal = ({
 			</div>
 		</div>
 	</Modal>
-);
-
-export const PaymentModal = ({
-	deletingPaymentId,
-	form,
-	isOpen,
-	onClose,
-	onDelete,
-	onFormChange,
-	onSubmit,
-	projectAmount,
-	stages,
-}: {
-	deletingPaymentId: number | null;
-	form: PaymentFormState;
-	isOpen: boolean;
-	onClose: () => void;
-	onDelete: () => void;
-	onFormChange: (value: PaymentFormState) => void;
-	onSubmit: (value: PaymentFormState) => void;
-	projectAmount?: number | null;
-	stages: ProjectGanttStage[];
-}) => (
-	<Modal isOpen={isOpen} onClose={onClose} size="small">
-		<form
-			className={styles.ganttFormModal}
-			onSubmit={(event) => {
-				event.preventDefault();
-				onSubmit(form);
-			}}
-		>
-			<h3>{form.id ? "Редактирование оплаты" : "Новая оплата"}</h3>
-			<label>
-				<span>Стадия</span>
-				<select
-					value={form.status === "paid" ? "paid" : "todo"}
-					onChange={(event) =>
-						onFormChange({
-							...form,
-							status: event.target.value as AutonomousPaymentStatus,
-						})
-					}
-				>
-					<option value="paid">Оплачено</option>
-					<option value="todo">Неоплачено</option>
-				</select>
-			</label>
-			<label>
-				<span>Этап, к которому привязана оплата</span>
-				<select
-					value={form.stageId ?? ""}
-					onChange={(event) => {
-						const stageId = Number(event.target.value);
-
-						onFormChange({
-							...form,
-							stageId,
-						});
-					}}
-				>
-					{stages
-						.filter((stage) => stage.code !== "payments")
-						.map((stage) => (
-							<option key={stage.id} value={stage.id}>
-								{stage.title}
-							</option>
-						))}
-				</select>
-			</label>
-			<label>
-				<span>Дата оплаты от этапа</span>
-				<select
-					value={form.paymentAnchor}
-					onChange={(event) =>
-						onFormChange({
-							...form,
-							paymentAnchor: event.target.value as PaymentFormState["paymentAnchor"],
-						})
-					}
-				>
-					<option value="stage_start">К началу этапа</option>
-					<option value="stage_end">К концу этапа</option>
-				</select>
-			</label>
-			<div className={styles.ganttFormGrid}>
-				<label>
-					<span>Сумма от проекта</span>
-					<input
-						value={form.amount}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								...calculatePaymentFields({
-									amount: event.target.value,
-									percent: form.percent,
-									projectAmount,
-									source: "amount",
-								}),
-							})
-						}
-					/>
-				</label>
-				<label>
-					<span>Дней ожидания</span>
-					<input
-						value={form.waitingDays}
-						onChange={(event) =>
-							onFormChange({
-								...form,
-								waitingDays: event.target.value,
-							})
-						}
-					/>
-				</label>
-			</div>
-			<div className={styles.ganttFormActions}>
-				{form.id ? (
-					<button
-						type="button"
-						className={styles.ganttFormDeleteButton}
-						onClick={onDelete}
-					>
-						{deletingPaymentId === form.id
-							? "Подтвердить удаление"
-							: "Удалить"}
-					</button>
-				) : null}
-				<button type="submit">Сохранить</button>
-			</div>
-		</form>
-	</Modal>
-);
-
-const GanttScale = ({
-	monthTicks,
-	weekTicks,
-}: {
-	monthTicks: GanttMonthTick[];
-	weekTicks: GanttWeekTick[];
-}) => (
-	<div className={styles.ganttScaleHeader}>
-		<div className={styles.ganttMonthScale}>
-			{monthTicks.map((tick) => (
-				<span key={tick.date.toISOString()} style={tick.style}>
-					{tick.label}
-				</span>
-			))}
-		</div>
-		<div className={styles.ganttWeekScale}>
-			{weekTicks.map((tick) => (
-				<span key={tick.date.toISOString()} style={tick.style}>
-					{tick.label}
-				</span>
-			))}
-		</div>
-	</div>
-);
-
-const GanttTrackGrid = ({
-	monthTicks,
-	weekTicks,
-}: {
-	monthTicks: GanttMonthTick[];
-	weekTicks: GanttWeekTick[];
-}) => (
-	<>
-		{weekTicks.map((tick) => (
-			<i
-				key={`week-${tick.date.toISOString()}`}
-				className={styles.ganttTrackWeekLine}
-				style={tick.style}
-			/>
-		))}
-		{monthTicks.map((tick) => (
-			<i
-				key={`month-${tick.date.toISOString()}`}
-				className={styles.ganttTrackMonthLine}
-				style={{ left: tick.style.left }}
-			/>
-		))}
-	</>
 );
