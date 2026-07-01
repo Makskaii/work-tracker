@@ -28,6 +28,86 @@ const getUniqueValues = (values: Array<string | number | null | undefined>) =>
 		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
 	);
 
+export const fetchProfitabilityProjectDetails = async (
+	project: ProfitabilityProject,
+	signal?: AbortSignal,
+): Promise<ProfitabilityProject> => {
+	const projectId = String(project.projectId ?? project.id);
+	const companyId = String(project[ProjectCodes.company] ?? "").trim();
+	const tasksProjectFilter = {
+		[TaskCodes.parentproject]: projectId,
+	};
+	const tasksStrictFilter = {
+		...tasksProjectFilter,
+		...(companyId ? { [TaskCodes.company]: companyId } : {}),
+	};
+	const reportsProjectFilter = {
+		[ReportCodes.parentproject]: projectId,
+		stageId: ReportStageIds.confirmed,
+	};
+	const reportsStrictFilter = {
+		...reportsProjectFilter,
+		...(companyId ? { [ReportCodes.company]: companyId } : {}),
+	};
+
+	const fetchProjectTasks = async () => {
+		const tasks = await fetchAllCrmItems<TaskProps>({
+			entityTypeId: EntityTypeIds.tasks,
+			select: TASK_SELECT_FIELDS,
+			filter: tasksStrictFilter,
+			signal,
+		});
+
+		if (tasks.length || !companyId) {
+			return tasks;
+		}
+
+		return fetchAllCrmItems<TaskProps>({
+			entityTypeId: EntityTypeIds.tasks,
+			select: TASK_SELECT_FIELDS,
+			filter: tasksProjectFilter,
+			signal,
+		});
+	};
+
+	const fetchProjectReports = async () => {
+		const reports = await fetchAllCrmItems<ReportProps>({
+			entityTypeId: EntityTypeIds.reports,
+			select: REPORT_SELECT_FIELDS,
+			filter: reportsStrictFilter,
+			signal,
+		});
+
+		if (reports.length || !companyId) {
+			return reports;
+		}
+
+		return fetchAllCrmItems<ReportProps>({
+			entityTypeId: EntityTypeIds.reports,
+			select: REPORT_SELECT_FIELDS,
+			filter: reportsProjectFilter,
+			signal,
+		});
+	};
+
+	const [tasks, reports, payments] = await Promise.all([
+		fetchProjectTasks(),
+		fetchProjectReports(),
+		fetchProjectPaymentsByProjectIds({
+			projectIds: [projectId],
+			signal,
+		}),
+	]);
+
+	return {
+		...project,
+		projectId,
+		tasks,
+		reports,
+		payments,
+	};
+};
+
 export const useCompanyProjects = () => {
 	const [projectsState, setProjectsState] = useState<ProjectsState>({
 		companyTitleById: new Map(),
@@ -73,86 +153,13 @@ export const useCompanyProjects = () => {
 					.filter(([id, title]) => id && title);
 				const companyTitleById = new Map(companyTitleEntries);
 
-				const preparedProjects = await Promise.all(
-					projects.map(async (project) => {
-						const projectId = String(project.projectId ?? project.id);
-						const companyId = String(
-							project[ProjectCodes.company] ?? "",
-						).trim();
-						const tasksProjectFilter = {
-							[TaskCodes.parentproject]: projectId,
-						};
-						const tasksStrictFilter = {
-							...tasksProjectFilter,
-							...(companyId ? { [TaskCodes.company]: companyId } : {}),
-						};
-						const reportsProjectFilter = {
-							[ReportCodes.parentproject]: projectId,
-							stageId: ReportStageIds.confirmed,
-						};
-						const reportsStrictFilter = {
-							...reportsProjectFilter,
-							...(companyId ? { [ReportCodes.company]: companyId } : {}),
-						};
-
-						const fetchProjectTasks = async () => {
-							const tasks = await fetchAllCrmItems<TaskProps>({
-								entityTypeId: EntityTypeIds.tasks,
-								select: TASK_SELECT_FIELDS,
-								filter: tasksStrictFilter,
-								signal: controller.signal,
-							});
-
-							if (tasks.length || !companyId) {
-								return tasks;
-							}
-
-							return fetchAllCrmItems<TaskProps>({
-								entityTypeId: EntityTypeIds.tasks,
-								select: TASK_SELECT_FIELDS,
-								filter: tasksProjectFilter,
-								signal: controller.signal,
-							});
-						};
-
-						const fetchProjectReports = async () => {
-							const reports = await fetchAllCrmItems<ReportProps>({
-								entityTypeId: EntityTypeIds.reports,
-								select: REPORT_SELECT_FIELDS,
-								filter: reportsStrictFilter,
-								signal: controller.signal,
-							});
-
-							if (reports.length || !companyId) {
-								return reports;
-							}
-
-							return fetchAllCrmItems<ReportProps>({
-								entityTypeId: EntityTypeIds.reports,
-								select: REPORT_SELECT_FIELDS,
-								filter: reportsProjectFilter,
-								signal: controller.signal,
-							});
-						};
-
-						const [tasks, reports, payments] = await Promise.all([
-							fetchProjectTasks(),
-							fetchProjectReports(),
-							fetchProjectPaymentsByProjectIds({
-								projectIds: [projectId],
-								signal: controller.signal,
-							}),
-						]);
-
-						return {
-							...project,
-							projectId,
-							tasks,
-							reports,
-							payments,
-						};
-					}),
-				);
+				const preparedProjects = projects.map((project) => ({
+					...project,
+					projectId: String(project.projectId ?? project.id),
+					tasks: [],
+					reports: [],
+					payments: [],
+				}));
 
 				if (!controller.signal.aborted) {
 					setProjectsState({

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
@@ -52,6 +52,7 @@ import type {
 	ProjectGanttStage,
 	ProjectReportEntry,
 	ProjectReportEntryFile,
+	ProfitabilityProject,
 	ReportProject,
 	ReportProjectFile,
 	ReportProjectFileKind,
@@ -71,7 +72,10 @@ import {
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
 import { formatMoney } from "./model/profitabilityUtils";
-import { useCompanyProjects } from "./model/useCompanyProjects";
+import {
+	fetchProfitabilityProjectDetails,
+	useCompanyProjects,
+} from "./model/useCompanyProjects";
 import styles from "./SalesProfitabilityReport.module.scss";
 
 type SalesProfitabilityReportProps = {
@@ -115,6 +119,12 @@ const paymentStatusLabels = {
 } as const;
 
 type PaymentsScope = "all" | "client" | "project";
+
+type AutonomousProjectData = {
+	events: ProjectGanttEvent[];
+	payments: AutonomousProjectPayment[];
+	stages: ProjectGanttStage[];
+};
 
 const paymentsScopeLabels: Record<PaymentsScope, string> = {
 	all: "Все проекты",
@@ -305,7 +315,7 @@ export const SalesProfitabilityReport = ({
 	const [autonomousPaymentsError, setAutonomousPaymentsError] = useState<
 		string | null
 	>(null);
-	const [paymentsScope, setPaymentsScope] = useState<PaymentsScope>("all");
+	const [paymentsScope, setPaymentsScope] = useState<PaymentsScope>("project");
 	const [paymentForm, setPaymentForm] =
 		useState<PaymentFormState>(DEFAULT_PAYMENT_FORM);
 	const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -313,6 +323,9 @@ export const SalesProfitabilityReport = ({
 		null,
 	);
 	const [paymentsRefreshKey, setPaymentsRefreshKey] = useState(0);
+	const autonomousProjectDataCacheRef = useRef(
+		new Map<string, AutonomousProjectData>(),
+	);
 	const [isReportProjectModalOpen, setIsReportProjectModalOpen] = useState(false);
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
@@ -321,6 +334,11 @@ export const SalesProfitabilityReport = ({
 	const [deletingReportProjectId, setDeletingReportProjectId] = useState<
 		number | null
 	>(null);
+	const [bitrixProjectDetailsById, setBitrixProjectDetailsById] = useState(
+		() => new Map<string, ProfitabilityProject>(),
+	);
+	const [isBitrixProjectDetailsLoading, setIsBitrixProjectDetailsLoading] =
+		useState(false);
 	const { openTask } = useBitrixSlider();
 	const {
 		companyTitleById,
@@ -401,10 +419,12 @@ export const SalesProfitabilityReport = ({
 	useEffect(() => {
 		void paymentsRefreshKey;
 
-		if (!selectedReportProjectId) {
+		if (activeTab !== "marginality" || !selectedReportProjectId) {
 			setAutonomousPayments([]);
 			setAutonomousPaymentStages([]);
 			setAutonomousPaymentEvents([]);
+			setIsAutonomousPaymentsLoading(false);
+			setAutonomousPaymentsError(null);
 			return;
 		}
 
@@ -412,31 +432,52 @@ export const SalesProfitabilityReport = ({
 		const paymentProjectIds = paymentsScopeProjects.map((project) =>
 			String(project.id),
 		);
+		const cachedProjectData = paymentProjectIds
+			.map((projectId) => autonomousProjectDataCacheRef.current.get(projectId))
+			.filter((item): item is AutonomousProjectData => Boolean(item));
+		const missingProjectIds = paymentProjectIds.filter(
+			(projectId) => !autonomousProjectDataCacheRef.current.has(projectId),
+		);
 
 		setIsAutonomousPaymentsLoading(true);
 		setAutonomousPaymentsError(null);
 
-		Promise.all([
-			Promise.all(
-				paymentProjectIds.map((paymentProjectId) =>
+		if (!missingProjectIds.length) {
+			setAutonomousPayments(cachedProjectData.flatMap((item) => item.payments));
+			setAutonomousPaymentStages(cachedProjectData.flatMap((item) => item.stages));
+			setAutonomousPaymentEvents(cachedProjectData.flatMap((item) => item.events));
+			setIsAutonomousPaymentsLoading(false);
+			return;
+		}
+
+		Promise.all(
+			missingProjectIds.map(async (paymentProjectId) => {
+				const [payments, stages, events] = await Promise.all([
 					fetchAutonomousProjectPayments(paymentProjectId, controller.signal),
-				),
-			),
-			Promise.all(
-				paymentProjectIds.map((paymentProjectId) =>
 					fetchProjectGanttStages(paymentProjectId, controller.signal),
-				),
-			),
-			Promise.all(
-				paymentProjectIds.map((paymentProjectId) =>
 					fetchProjectGanttEvents(paymentProjectId, controller.signal),
-				),
-			),
-		])
-			.then(([payments, stages, events]) => {
-				setAutonomousPayments(payments.flat());
-				setAutonomousPaymentStages(stages.flat());
-				setAutonomousPaymentEvents(events.flat());
+				]);
+
+				return {
+					events,
+					payments,
+					projectId: paymentProjectId,
+					stages,
+				};
+			}),
+		)
+			.then((loadedProjectData) => {
+				loadedProjectData.forEach(({ projectId, ...projectData }) => {
+					autonomousProjectDataCacheRef.current.set(projectId, projectData);
+				});
+
+				const nextProjectData = paymentProjectIds
+					.map((projectId) => autonomousProjectDataCacheRef.current.get(projectId))
+					.filter((item): item is AutonomousProjectData => Boolean(item));
+
+				setAutonomousPayments(nextProjectData.flatMap((item) => item.payments));
+				setAutonomousPaymentStages(nextProjectData.flatMap((item) => item.stages));
+				setAutonomousPaymentEvents(nextProjectData.flatMap((item) => item.events));
 			})
 			.catch(() => {
 				if (!controller.signal.aborted) {
@@ -450,7 +491,12 @@ export const SalesProfitabilityReport = ({
 			});
 
 		return () => controller.abort();
-	}, [paymentsRefreshKey, paymentsScopeProjects, selectedReportProjectId]);
+	}, [
+		activeTab,
+		paymentsRefreshKey,
+		paymentsScopeProjects,
+		selectedReportProjectId,
+	]);
 
 	const effectiveSelectedProjectId = useMemo(() => {
 		if (selectedReportProject) {
@@ -471,9 +517,15 @@ export const SalesProfitabilityReport = ({
 	}, [reportProjects, selectedReportProject, selectedProjectId]);
 
 	const summary = getReportProjectSummary(selectedReportProject);
-	const isBusy = loading || isReportProjectsLoading || isBitrixProjectsLoading;
-	const selectedBitrixProjects = selectedReportProject
-		? bitrixProjects.filter((project) => {
+	const isBusy =
+		loading ||
+		isReportProjectsLoading ||
+		isBitrixProjectsLoading ||
+		isBitrixProjectDetailsLoading;
+	const selectedBitrixProjects = useMemo(
+		() =>
+			selectedReportProject
+				? bitrixProjects.filter((project) => {
 				const bitrixProjectId = normalizeProjectId(project.projectId ?? project.id);
 				const selectedBitrixProjectId = normalizeProjectId(
 					selectedReportProject.bitrixProjectId,
@@ -488,11 +540,31 @@ export const SalesProfitabilityReport = ({
 					normalizeProjectTitle(selectedReportProject.title)
 				);
 			})
-		: [];
-	const allTasks = selectedBitrixProjects.flatMap((project) =>
+				: [],
+		[bitrixProjects, selectedReportProject],
+	);
+	const selectedBitrixProjectIds = useMemo(
+		() =>
+			selectedBitrixProjects
+				.map((project) => normalizeProjectId(project.projectId ?? project.id))
+				.filter(Boolean),
+		[selectedBitrixProjects],
+	);
+	const shouldLoadBitrixProjectDetails =
+		activeTab === "projects" || activeTab === "tasks" || activeTab === "reports";
+	const selectedBitrixProjectsWithDetails = useMemo(
+		() =>
+			selectedBitrixProjects.map((project) => {
+				const projectId = normalizeProjectId(project.projectId ?? project.id);
+
+				return bitrixProjectDetailsById.get(projectId) ?? project;
+			}),
+		[bitrixProjectDetailsById, selectedBitrixProjects],
+	);
+	const allTasks = selectedBitrixProjectsWithDetails.flatMap((project) =>
 		project.tasks.map((task) => ({ project, task })),
 	);
-	const allReports = selectedBitrixProjects.flatMap((project) =>
+	const allReports = selectedBitrixProjectsWithDetails.flatMap((project) =>
 		project.reports.map((report) => ({ project, report })),
 	);
 	const normalizedProjectSearchQuery = projectSearchQuery.trim().toLowerCase();
@@ -541,6 +613,70 @@ export const SalesProfitabilityReport = ({
 	const selectReportProject = (project: ReportProject) => {
 		setSelectedProjectId(getDbProjectId(project));
 	};
+
+	useEffect(() => {
+		if (!shouldLoadBitrixProjectDetails || !selectedBitrixProjectIds.length) {
+			setIsBitrixProjectDetailsLoading(false);
+			return;
+		}
+
+		const missingProjects = selectedBitrixProjects.filter((project) => {
+			const projectId = normalizeProjectId(project.projectId ?? project.id);
+
+			return projectId && !bitrixProjectDetailsById.has(projectId);
+		});
+
+		if (!missingProjects.length) {
+			setIsBitrixProjectDetailsLoading(false);
+			return;
+		}
+
+		const controller = new AbortController();
+
+		setIsBitrixProjectDetailsLoading(true);
+
+		Promise.all(
+			missingProjects.map((project) =>
+				fetchProfitabilityProjectDetails(project, controller.signal),
+			),
+		)
+			.then((projects) => {
+				if (controller.signal.aborted) {
+					return;
+				}
+
+				setBitrixProjectDetailsById((prev) => {
+					const next = new Map(prev);
+
+					projects.forEach((project) => {
+						const projectId = normalizeProjectId(project.projectId ?? project.id);
+
+						if (projectId) {
+							next.set(projectId, project);
+						}
+					});
+
+					return next;
+				});
+			})
+			.catch((error) => {
+				if (!controller.signal.aborted) {
+					console.error("Failed to fetch selected Bitrix project details", error);
+				}
+			})
+			.finally(() => {
+				if (!controller.signal.aborted) {
+					setIsBitrixProjectDetailsLoading(false);
+				}
+			});
+
+		return () => controller.abort();
+	}, [
+		bitrixProjectDetailsById,
+		selectedBitrixProjectIds,
+		selectedBitrixProjects,
+		shouldLoadBitrixProjectDetails,
+	]);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -734,6 +870,7 @@ export const SalesProfitabilityReport = ({
 	};
 
 	const refreshAutonomousPayments = () => {
+		autonomousProjectDataCacheRef.current.clear();
 		setPaymentsRefreshKey((prev) => prev + 1);
 	};
 
@@ -1215,7 +1352,7 @@ export const SalesProfitabilityReport = ({
 
 							{activeTab === "projects" && (
 								<ProjectsTab
-									bitrixProjects={selectedBitrixProjects}
+									bitrixProjects={selectedBitrixProjectsWithDetails}
 									onPaymentsChanged={refreshAutonomousPayments}
 									paymentsRefreshKey={paymentsRefreshKey}
 									projects={reportProjects}
