@@ -1207,12 +1207,14 @@
 
 .ganttCustomEventOneTimeShell {
 	position: absolute;
+	top: 50%;
 	height: 22px;
 	padding: 0;
 	border: 0;
 	background: transparent;
 	font: inherit;
 	cursor: pointer;
+	transform: translateY(-50%);
 	appearance: none;
 	overflow: visible;
 }
@@ -1523,23 +1525,53 @@
 }
 
 .autonomousPaymentMarker {
+	display: flex;
+	width: 32px;
+	justify-content: center;
 	padding: 0;
 	border: 0;
 	background: transparent;
 	font: inherit;
 	cursor: pointer;
 	appearance: none;
+	line-height: 1;
 
 	b {
-		display: flex;
+		display: inline-flex;
+		width: 24px;
+		height: 24px;
 		align-items: center;
 		justify-content: center;
 		color: #06111e;
+		line-height: 1;
 	}
 
 	svg {
-		width: 10px;
-		height: 10px;
+		display: block;
+		width: 14px;
+		height: 14px;
+	}
+
+	&.ganttMilestone {
+		b {
+			display: inline-flex;
+			width: 24px;
+			height: 24px;
+			align-items: center;
+			justify-content: center;
+			line-height: 1;
+		}
+
+		svg {
+			display: block;
+			width: 14px;
+			height: 14px;
+			flex: 0 0 auto;
+		}
+
+		small {
+			top: 30px;
+		}
 	}
 }
 
