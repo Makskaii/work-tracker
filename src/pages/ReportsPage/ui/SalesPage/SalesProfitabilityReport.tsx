@@ -292,6 +292,9 @@ export const SalesProfitabilityReport = ({
 	const [projectReportsError, setProjectReportsError] = useState<string | null>(
 		null,
 	);
+	const [projectReportAuthorId, setProjectReportAuthorId] = useState<
+		string | null
+	>(null);
 	const [projectReportAuthorName, setProjectReportAuthorName] = useState("");
 	const [projectReportText, setProjectReportText] = useState("");
 	const [projectReportNextDate, setProjectReportNextDate] = useState("");
@@ -808,6 +811,7 @@ export const SalesProfitabilityReport = ({
 		}
 
 		const payload: CreateProjectReportEntryPayload = {
+			authorId: projectReportAuthorId,
 			authorName,
 			text,
 			nextReportDate: projectReportNextDate || null,
@@ -836,6 +840,7 @@ export const SalesProfitabilityReport = ({
 
 			setProjectReportEntries(reports);
 			updateProjectNextReportDate(selectedReportProject.id, reports);
+			setProjectReportAuthorId(null);
 			setProjectReportText("");
 			setProjectReportNextDate("");
 			setProjectReportFileDrafts([]);
@@ -1014,15 +1019,16 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
-		if (!hasExistingBitrixProject(projectForm.bitrixProjectId)) {
-			setProjectFormError("Проект с таким ID не найден в Битрикс");
-			return;
-		}
+		const projectFormBitrixWarning = !hasExistingBitrixProject(
+			projectForm.bitrixProjectId,
+		)
+			? "Проект с таким ID не найден в Битрикс"
+			: null;
 
 		const payload = getReportProjectPayload(projectForm);
 
 		setIsReportProjectSaving(true);
-		setProjectFormError(null);
+		setProjectFormError(projectFormBitrixWarning);
 
 		try {
 			let savedProject: ReportProject;
@@ -1078,13 +1084,14 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
-		if (!hasExistingBitrixProject(detailsProjectForm.bitrixProjectId)) {
-			setDetailsProjectError("Проект с таким ID не найден в Битрикс");
-			return;
-		}
+		const detailsProjectBitrixWarning = !hasExistingBitrixProject(
+			detailsProjectForm.bitrixProjectId,
+		)
+			? "Проект с таким ID не найден в Битрикс"
+			: null;
 
 		setIsDetailsProjectSaving(true);
-		setDetailsProjectError(null);
+		setDetailsProjectError(detailsProjectBitrixWarning);
 
 		try {
 			let savedProject = await updateReportProject(
@@ -1411,7 +1418,10 @@ export const SalesProfitabilityReport = ({
 									isModalOpen={isProjectReportModalOpen}
 									isSaving={isProjectReportSaving}
 									nextReportDate={projectReportNextDate}
-									onAuthorNameChange={setProjectReportAuthorName}
+									onAuthorChange={(authorName, authorId) => {
+										setProjectReportAuthorName(authorName);
+										setProjectReportAuthorId(authorId);
+									}}
 									onCloseModal={() => setIsProjectReportModalOpen(false)}
 									onCreate={handleProjectReportCreate}
 									onFileDelete={deleteProjectReportFile}
@@ -1427,6 +1437,7 @@ export const SalesProfitabilityReport = ({
 									project={selectedReportProject}
 									reports={projectReportEntries}
 									text={projectReportText}
+									users={users}
 								/>
 							)}
 						</>

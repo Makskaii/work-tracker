@@ -2194,8 +2194,9 @@
 	}
 }
 
-.projectReportTextarea {
-	min-height: 500px;
+.projectReportComposer .projectReportTextarea {
+	min-height: 150px;
+	line-height: 1.3;
 	resize: vertical;
 }
 
