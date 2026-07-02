@@ -41,6 +41,7 @@ import {
 } from "../model/projectPayments.api";
 import type { GanttMonthTick, GanttWeekTick } from "../model/ganttTypes";
 import {
+	daysBetween,
 	formatDateShort,
 	getMilestoneStyle,
 	getMonthTicks,
@@ -110,6 +111,15 @@ type PaymentLinkLayout = {
 	width: number;
 };
 
+type DependencyLinkDraft = {
+	endX: number;
+	endY: number;
+	startX: number;
+	startY: number;
+} | null;
+
+type DependencyLinkSide = "left" | "right";
+
 type PaymentLayoutItem = {
 	level: number;
 	payment: AutonomousProjectPayment;
@@ -161,6 +171,7 @@ const GANTT_ROW_HEIGHT = 74;
 const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
+const GANTT_DRAG_CLICK_THRESHOLD = 4;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type EventDateField =
@@ -168,6 +179,13 @@ type EventDateField =
 	| "factStartDate"
 	| "planEndDate"
 	| "planStartDate";
+
+const EVENT_DATE_FIELDS: EventDateField[] = [
+	"factEndDate",
+	"factStartDate",
+	"planEndDate",
+	"planStartDate",
+];
 
 const getScaleWeekStep = (weekTicksCount: number) => {
 	if (weekTicksCount > 36) return 4;
@@ -255,6 +273,79 @@ const getClampedEventDate = (
 
 	return date;
 };
+
+const shiftEventDateValue = (value: string | null, deltaDays: number) =>
+	value ? formatInputDate(dayjs(value).add(deltaDays, "day").toDate()) : value;
+
+const getDependentStageIds = (
+	stageId: number,
+	stages: ProjectGanttStage[],
+) => {
+	const dependentStageIds = new Set<number>();
+	const collectDependentStageIds = (currentStageId: number) => {
+		stages
+			.filter((stage) => stage.dependsOnStageId === currentStageId)
+			.forEach((stage) => {
+				if (dependentStageIds.has(stage.id)) {
+					return;
+				}
+
+				dependentStageIds.add(stage.id);
+				collectDependentStageIds(stage.id);
+			});
+	};
+
+	collectDependentStageIds(stageId);
+
+	return dependentStageIds;
+};
+
+const wouldCreateDependencyCycle = (
+	dependentStageId: number,
+	dependencyStageId: number,
+	stages: ProjectGanttStage[],
+) => {
+	let currentStageId: number | null = dependencyStageId;
+
+	while (currentStageId) {
+		if (currentStageId === dependentStageId) {
+			return true;
+		}
+
+		currentStageId =
+			stages.find((stage) => stage.id === currentStageId)?.dependsOnStageId ??
+			null;
+	}
+
+	return false;
+};
+
+const shiftEventDates = (
+	event: ProjectGanttEvent,
+	deltaDays: number,
+	eventRow?: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number],
+) =>
+	EVENT_DATE_FIELDS.reduce<ProjectGanttEvent>((result, field) => {
+		const shiftedValue = shiftEventDateValue(event[field], deltaDays);
+
+		if (
+			field === "factEndDate" &&
+			eventRow?.isDependencyDuration &&
+			eventRow.displayStart &&
+			shiftedValue &&
+			dayjs(shiftedValue).isBefore(eventRow.displayStart)
+		) {
+			return {
+				...result,
+				[field]: formatInputDate(eventRow.displayStart),
+			};
+		}
+
+		return {
+			...result,
+			[field]: shiftedValue,
+		};
+	}, event);
 
 let shouldSuppressNextGanttClick = false;
 
@@ -498,6 +589,8 @@ export const AutonomousProjectGantt = ({
 			links: [],
 			width: 0,
 		});
+	const [dependencyLinkDraft, setDependencyLinkDraft] =
+		useState<DependencyLinkDraft>(null);
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -802,11 +895,30 @@ export const AutonomousProjectGantt = ({
 			const eventRow = gantt.rows
 				.flatMap((row) => row.events)
 				.find((rowEvent) => rowEvent.event.id === event.id);
+			const linkedStageIds = getDependentStageIds(event.stageId, stages);
+			const shouldMoveLinkedStages =
+				field.startsWith("fact") ||
+				(field === "planStartDate" && !event.factStartDate) ||
+				(field === "planEndDate" && !event.factEndDate);
+			const eventIdsToMove = new Set<number>();
+			events.forEach((currentEvent) => {
+				if (
+					shouldMoveLinkedStages &&
+					linkedStageIds.has(currentEvent.stageId)
+				) {
+					eventIdsToMove.add(currentEvent.id);
+				}
+			});
+			const initialEventById = new Map(
+				events.map((currentEvent) => [currentEvent.id, currentEvent]),
+			);
+			const initialFieldDate = parseGanttDate(event[field]);
 			const minDate =
 				field === "factEndDate" && eventRow?.isDependencyDuration
 					? eventRow.displayStart
 					: null;
 			let latestEvent = event;
+			let latestEventsToSave: ProjectGanttEvent[] = [event];
 			let latestValue = event[field];
 			let hasMoved = false;
 
@@ -827,13 +939,34 @@ export const AutonomousProjectGantt = ({
 					...latestEvent,
 					[field]: nextValue,
 				};
+				const deltaDays = initialFieldDate
+					? dayjs(clampedDate).diff(initialFieldDate, "day")
+					: 0;
 
 				latestEvent = nextEvent;
 				latestValue = nextValue;
 
 				setEvents((currentEvents) => {
-					const nextEvents = currentEvents.map((currentEvent) =>
-						currentEvent.id === event.id ? nextEvent : currentEvent,
+					const nextEvents = currentEvents.map((currentEvent) => {
+						if (currentEvent.id === event.id) {
+							return nextEvent;
+						}
+
+						if (!eventIdsToMove.has(currentEvent.id)) {
+							return currentEvent;
+						}
+
+						const initialEvent =
+							initialEventById.get(currentEvent.id) ?? currentEvent;
+
+						return shiftEventDates(initialEvent, deltaDays);
+					});
+
+					latestEventsToSave = nextEvents.filter(
+						(currentEvent) =>
+							currentEvent.id === event.id ||
+							(eventIdsToMove.has(currentEvent.id) &&
+								EVENT_DATE_FIELDS.some((item) => currentEvent[item])),
 					);
 
 					setPayments((currentPayments) =>
@@ -861,13 +994,18 @@ export const AutonomousProjectGantt = ({
 				}
 
 				markGanttDragClick(dragTarget);
-				void updateProjectGanttEvent(
-					event.id,
-					getEventPayload(latestEvent, {
-						[field]: latestValue,
-					}),
-				)
-					.catch(() => {
+				void Promise.all(
+					latestEventsToSave.map((eventToSave) =>
+						updateProjectGanttEvent(
+							eventToSave.id,
+							eventToSave.id === event.id
+								? getEventPayload(latestEvent, {
+										[field]: latestValue,
+									})
+								: getEventPayload(eventToSave),
+						),
+					),
+				).catch(() => {
 						void refreshData();
 					});
 			};
@@ -875,7 +1013,270 @@ export const AutonomousProjectGantt = ({
 			window.addEventListener("pointermove", handlePointerMove);
 			window.addEventListener("pointerup", handlePointerUp, { once: true });
 		},
-		[gantt.timeline, onPaymentsChanged, refreshData, stages],
+		[events, gantt.rows, gantt.timeline, refreshData, stages],
+	);
+
+	const handleEventMoveDragStart = useCallback(
+		(
+			pointerEvent: ReactPointerEvent<HTMLElement>,
+			event: ProjectGanttEvent,
+		) => {
+			if (pointerEvent.button !== 0) {
+				return;
+			}
+
+			const track = getGanttTrackFromPointerEvent(pointerEvent);
+			const linkedStageIds = getDependentStageIds(event.stageId, stages);
+			const eventIdsToMove = new Set([event.id]);
+			events.forEach((currentEvent) => {
+				if (linkedStageIds.has(currentEvent.stageId)) {
+					eventIdsToMove.add(currentEvent.id);
+				}
+			});
+			const initialEventById = new Map(
+				events.map((currentEvent) => [currentEvent.id, currentEvent]),
+			);
+			const hasMovableDates = events.some(
+				(currentEvent) =>
+					eventIdsToMove.has(currentEvent.id) &&
+					EVENT_DATE_FIELDS.some((field) => currentEvent[field]),
+			);
+
+			if (!track || !hasMovableDates) {
+				return;
+			}
+
+			const dragTarget = pointerEvent.currentTarget;
+			const trackRect = track.getBoundingClientRect();
+			const startClientX = pointerEvent.clientX;
+			const startDate = getTrackDateFromClientX(
+				startClientX,
+				gantt.timeline,
+				trackRect,
+			);
+			const eventRow = gantt.rows
+				.flatMap((row) => row.events)
+				.find((rowEvent) => rowEvent.event.id === event.id);
+			let latestEventsToSave: ProjectGanttEvent[] = [event];
+			let latestDeltaDays = 0;
+			let hasDragged = false;
+
+			const applyDelta = (clientX: number) => {
+				if (
+					!hasDragged &&
+					Math.abs(clientX - startClientX) < GANTT_DRAG_CLICK_THRESHOLD
+				) {
+					return;
+				}
+
+				const nextDate = getTrackDateFromClientX(
+					clientX,
+					gantt.timeline,
+					trackRect,
+				);
+				const deltaDays = dayjs(nextDate).diff(startDate, "day");
+
+				if (hasDragged && deltaDays === latestDeltaDays) {
+					return;
+				}
+
+				hasDragged = true;
+				latestDeltaDays = deltaDays;
+				markGanttDragClick(dragTarget);
+				setEvents((currentEvents) => {
+					const nextEvents = currentEvents.map((currentEvent) => {
+						if (!eventIdsToMove.has(currentEvent.id)) {
+							return currentEvent;
+						}
+
+						const initialEvent =
+							initialEventById.get(currentEvent.id) ?? currentEvent;
+
+						return shiftEventDates(
+							initialEvent,
+							deltaDays,
+							currentEvent.id === event.id ? eventRow : undefined,
+						);
+					});
+
+					latestEventsToSave = nextEvents.filter((currentEvent) =>
+						eventIdsToMove.has(currentEvent.id) &&
+						EVENT_DATE_FIELDS.some((field) => currentEvent[field]),
+					);
+
+					setPayments((currentPayments) =>
+						resolveAutonomousPaymentDates({
+							events: nextEvents,
+							payments: currentPayments,
+							stages,
+						}),
+					);
+
+					return nextEvents;
+				});
+			};
+			const handlePointerMove = (moveEvent: PointerEvent) => {
+				applyDelta(moveEvent.clientX);
+				if (hasDragged) {
+					moveEvent.preventDefault();
+				}
+			};
+			const handlePointerUp = () => {
+				window.removeEventListener("pointermove", handlePointerMove);
+				window.removeEventListener("pointerup", handlePointerUp);
+
+				if (!hasDragged || latestDeltaDays === 0) {
+					return;
+				}
+
+				markGanttDragClick(dragTarget);
+				void Promise.all(
+					latestEventsToSave.map((eventToSave) =>
+						updateProjectGanttEvent(
+							eventToSave.id,
+							getEventPayload(eventToSave),
+						),
+					),
+				).catch(() => {
+					void refreshData();
+				});
+			};
+
+			window.addEventListener("pointermove", handlePointerMove);
+			window.addEventListener("pointerup", handlePointerUp, { once: true });
+		},
+		[events, gantt.rows, gantt.timeline, refreshData, stages],
+	);
+
+	const handleDependencyLinkDragStart = useCallback(
+		(
+			pointerEvent: ReactPointerEvent<HTMLElement>,
+			sourceStageId: number,
+			side: DependencyLinkSide,
+		) => {
+			if (pointerEvent.button !== 0) {
+				return;
+			}
+
+			const board = ganttBoardRef.current;
+
+			if (!board) {
+				return;
+			}
+
+			pointerEvent.preventDefault();
+			pointerEvent.stopPropagation();
+
+			const boardRect = board.getBoundingClientRect();
+			const handleRect = pointerEvent.currentTarget.getBoundingClientRect();
+			const getBoardPoint = (clientX: number, clientY: number) => ({
+				x: clientX - boardRect.left + board.scrollLeft,
+				y: clientY - boardRect.top + board.scrollTop,
+			});
+			const startPoint = getBoardPoint(
+				handleRect.left + handleRect.width / 2,
+				handleRect.top + handleRect.height / 2,
+			);
+			const getTargetStageId = (clientX: number, clientY: number) => {
+				for (const [stageId, node] of eventRefsByStageId.current.entries()) {
+					if (stageId === sourceStageId) {
+						continue;
+					}
+
+					const rect = node.getBoundingClientRect();
+
+					if (
+						clientX >= rect.left &&
+						clientX <= rect.right &&
+						clientY >= rect.top &&
+						clientY <= rect.bottom
+					) {
+						return stageId;
+					}
+				}
+
+				return null;
+			};
+			const updateDraft = (clientX: number, clientY: number) => {
+				const endPoint = getBoardPoint(clientX, clientY);
+
+				setDependencyLinkDraft({
+					endX: endPoint.x,
+					endY: endPoint.y,
+					startX: startPoint.x,
+					startY: startPoint.y,
+				});
+			};
+			const handlePointerMove = (moveEvent: PointerEvent) => {
+				moveEvent.preventDefault();
+				updateDraft(moveEvent.clientX, moveEvent.clientY);
+			};
+			const handlePointerUp = (upEvent: PointerEvent) => {
+				window.removeEventListener("pointermove", handlePointerMove);
+				window.removeEventListener("pointerup", handlePointerUp);
+				setDependencyLinkDraft(null);
+
+				const targetStageId = getTargetStageId(upEvent.clientX, upEvent.clientY);
+
+				if (!targetStageId) {
+					return;
+				}
+
+				const dependentStageId =
+					side === "right" ? targetStageId : sourceStageId;
+				const dependencyStageId =
+					side === "right" ? sourceStageId : targetStageId;
+
+				if (
+					wouldCreateDependencyCycle(
+						dependentStageId,
+						dependencyStageId,
+						stages,
+					)
+				) {
+					return;
+				}
+
+				const dependentStage = stages.find(
+					(stage) => stage.id === dependentStageId,
+				);
+				const dependentEventRow = gantt.rows
+					.flatMap((row) => row.events)
+					.find((eventRow) => eventRow.event.stageId === dependentStageId);
+				const dependentRange = dependentEventRow
+					? getEventVisualRange(dependentEventRow)
+					: null;
+				const durationDays =
+					dependentStage?.durationDays ??
+					(dependentRange?.start && dependentRange.end
+						? Math.max(daysBetween(dependentRange.start, dependentRange.end), 1)
+						: null);
+
+				setStages((currentStages) =>
+					currentStages.map((stage) =>
+						stage.id === dependentStageId
+							? {
+									...stage,
+									dependsOnStageId: dependencyStageId,
+									durationDays,
+								}
+							: stage,
+					),
+				);
+
+				void updateProjectGanttStage(dependentStageId, {
+					dependsOnStageId: dependencyStageId,
+					durationDays,
+				}).catch(() => {
+					void refreshData();
+				});
+			};
+
+			updateDraft(pointerEvent.clientX, pointerEvent.clientY);
+			window.addEventListener("pointermove", handlePointerMove);
+			window.addEventListener("pointerup", handlePointerUp, { once: true });
+		},
+		[gantt.rows, refreshData, stages],
 	);
 
 	const handlePaymentDateDragStart = useCallback(
@@ -1180,7 +1581,10 @@ export const AutonomousProjectGantt = ({
 							weekTicks={scaleWeekTicks}
 						/>
 					</div>
-					<AutonomousPaymentLinksLayer layout={paymentLinksLayout} />
+					<AutonomousPaymentLinksLayer
+						dependencyLinkDraft={dependencyLinkDraft}
+						layout={paymentLinksLayout}
+					/>
 					{gantt.rows.map((row) => (
 						<AutonomousStageRow
 							key={row.stage.id}
@@ -1189,6 +1593,8 @@ export const AutonomousProjectGantt = ({
 							onPaymentDateDragStart={handlePaymentDateDragStart}
 							onPaymentEdit={openPaymentEditModal}
 							onEventDateDragStart={handleEventDateDragStart}
+							onDependencyLinkDragStart={handleDependencyLinkDragStart}
+							onEventMoveDragStart={handleEventMoveDragStart}
 							onStageEdit={openStageEditModal}
 							row={row}
 							setPaymentMarkerRef={setPaymentMarkerRef}
@@ -1262,11 +1668,17 @@ export const AutonomousProjectGantt = ({
 };
 
 const AutonomousPaymentLinksLayer = ({
+	dependencyLinkDraft,
 	layout,
 }: {
+	dependencyLinkDraft: DependencyLinkDraft;
 	layout: PaymentLinkLayout;
 }) => {
-	if (layout.links.length === 0 || layout.width <= 0 || layout.height <= 0) {
+	if (
+		(layout.links.length === 0 && !dependencyLinkDraft) ||
+		layout.width <= 0 ||
+		layout.height <= 0
+	) {
 		return null;
 	}
 
@@ -1283,13 +1695,21 @@ const AutonomousPaymentLinksLayer = ({
 					points={`${link.startX},${link.startY} ${link.endX},${link.endY}`}
 				/>
 			))}
+			{dependencyLinkDraft ? (
+				<polyline
+					className={styles.ganttDependencyLinkLine}
+					points={`${dependencyLinkDraft.startX},${dependencyLinkDraft.startY} ${dependencyLinkDraft.endX},${dependencyLinkDraft.endY}`}
+				/>
+			) : null}
 		</svg>
 	);
 };
 
 const AutonomousStageRow = ({
 	monthTicks,
+	onDependencyLinkDragStart,
 	onEventDateDragStart,
+	onEventMoveDragStart,
 	onPaymentCreate,
 	onPaymentDateDragStart,
 	onPaymentEdit,
@@ -1303,10 +1723,19 @@ const AutonomousStageRow = ({
 	weekTicks,
 }: {
 	monthTicks: GanttMonthTick[];
+	onDependencyLinkDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		sourceStageId: number,
+		side: DependencyLinkSide,
+	) => void;
 	onEventDateDragStart: (
 		event: ReactPointerEvent<HTMLElement>,
 		ganttEvent: ProjectGanttEvent,
 		field: EventDateField,
+	) => void;
+	onEventMoveDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		ganttEvent: ProjectGanttEvent,
 	) => void;
 	onPaymentCreate: () => void;
 	onPaymentDateDragStart: (
@@ -1390,8 +1819,10 @@ const AutonomousStageRow = ({
 					<AutonomousEventItem
 						event={event}
 						key={event.event.id}
+						onDependencyLinkDragStart={onDependencyLinkDragStart}
 						onDateDragStart={onEventDateDragStart}
 						onEdit={() => onStageEdit(row.stage)}
+						onMoveDragStart={onEventMoveDragStart}
 						targetRef={setStageEventRef(row.stage.id)}
 						stageType={row.stage.stageType}
 						today={today}
@@ -1419,20 +1850,31 @@ const AutonomousStageRow = ({
 
 const AutonomousEventItem = ({
 	event,
+	onDependencyLinkDragStart,
 	onDateDragStart,
 	onEdit,
+	onMoveDragStart,
 	stageType,
 	targetRef,
 	today,
 	timeline,
 }: {
 	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number];
+	onDependencyLinkDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		sourceStageId: number,
+		side: DependencyLinkSide,
+	) => void;
 	onDateDragStart: (
 		event: ReactPointerEvent<HTMLElement>,
 		ganttEvent: ProjectGanttEvent,
 		field: EventDateField,
 	) => void;
 	onEdit: () => void;
+	onMoveDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		ganttEvent: ProjectGanttEvent,
+	) => void;
 	stageType: ProjectGanttStage["stageType"];
 	targetRef: (node: HTMLButtonElement | null) => void;
 	today: Date;
@@ -1454,14 +1896,41 @@ const AutonomousEventItem = ({
 		date ? (
 			<span
 				className={`${styles.ganttDateDragHandle} ${className}`}
-				onPointerDown={(pointerEvent) =>
-					onDateDragStart(pointerEvent, event.event, field)
-				}
+				onPointerDown={(pointerEvent) => {
+					pointerEvent.stopPropagation();
+					onDateDragStart(pointerEvent, event.event, field);
+				}}
 				style={{
 					left: getInnerSegmentStyle(date, date, shellStart, shellEnd).left,
 				}}
 			/>
 		) : null;
+	const renderDependencyHandles = () => (
+		<>
+			<span
+				className={`${styles.ganttDependencyHandle} ${styles.ganttDependencyHandleLeft}`}
+				onPointerDown={(pointerEvent) => {
+					pointerEvent.stopPropagation();
+					onDependencyLinkDragStart(
+						pointerEvent,
+						event.event.stageId,
+						"left",
+					);
+				}}
+			/>
+			<span
+				className={`${styles.ganttDependencyHandle} ${styles.ganttDependencyHandleRight}`}
+				onPointerDown={(pointerEvent) => {
+					pointerEvent.stopPropagation();
+					onDependencyLinkDragStart(
+						pointerEvent,
+						event.event.stageId,
+						"right",
+					);
+				}}
+			/>
+		</>
+	);
 
 	if (!style) {
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
@@ -1614,6 +2083,9 @@ const AutonomousEventItem = ({
 
 					onEdit();
 				}}
+				onPointerDown={(pointerEvent) =>
+					onMoveDragStart(pointerEvent, event.event)
+				}
 				ref={targetRef}
 				style={getSegmentStyle(shellStart, shellEnd, timeline)}
 				title={formatAutonomousEventTooltip(event)}
@@ -1621,7 +2093,15 @@ const AutonomousEventItem = ({
 				{normalizedSegments.map((segment) => (
 					<span
 						key={`${segment.className}-${segment.start.toISOString()}-${segment.end.toISOString()}`}
-						className={`${styles.ganttCustomEventSegment} ${segment.className}`}
+						className={`${styles.ganttCustomEventSegment} ${segment.className} ${
+							segment.start.getTime() === shellStart.getTime()
+								? styles.ganttCustomEventSegmentStart
+								: ""
+						} ${
+							segment.end.getTime() === shellEnd.getTime()
+								? styles.ganttCustomEventSegmentEnd
+								: ""
+						}`}
 						style={getInnerSegmentStyle(
 							segment.start,
 							segment.end,
@@ -1658,6 +2138,7 @@ const AutonomousEventItem = ({
 					shellEnd,
 					styles.ganttDateDragHandleFact,
 				)}
+				{renderDependencyHandles()}
 			</button>
 		);
 	}
@@ -1687,6 +2168,9 @@ const AutonomousEventItem = ({
 
 					onEdit();
 				}}
+				onPointerDown={(pointerEvent) =>
+					onMoveDragStart(pointerEvent, event.event)
+				}
 				ref={targetRef}
 				style={getSegmentStyle(shellStart, shellEnd, timeline)}
 				title={formatAutonomousEventTooltip(event)}
@@ -1694,9 +2178,10 @@ const AutonomousEventItem = ({
 				<span className={styles.ganttCustomEventOneTimePath} />
 				<span
 					className={`${styles.ganttCustomEventOneTimeDot} ${styles.ganttCustomEventOneTimePlanDot}`}
-					onPointerDown={(pointerEvent) =>
-						onDateDragStart(pointerEvent, event.event, "planStartDate")
-					}
+					onPointerDown={(pointerEvent) => {
+						pointerEvent.stopPropagation();
+						onDateDragStart(pointerEvent, event.event, "planStartDate");
+					}}
 					style={{
 						left: getInnerSegmentStyle(
 							event.planStart,
@@ -1708,9 +2193,10 @@ const AutonomousEventItem = ({
 				/>
 				<span
 					className={`${styles.ganttCustomEventOneTimeDot} ${styles.ganttCustomEventOneTimeFactDot} ${factClassName}`}
-					onPointerDown={(pointerEvent) =>
-						onDateDragStart(pointerEvent, event.event, "factStartDate")
-					}
+					onPointerDown={(pointerEvent) => {
+						pointerEvent.stopPropagation();
+						onDateDragStart(pointerEvent, event.event, "factStartDate");
+					}}
 					style={{
 						left: getInnerSegmentStyle(
 							event.factStart,
@@ -1720,6 +2206,7 @@ const AutonomousEventItem = ({
 						).left,
 					}}
 				/>
+				{renderDependencyHandles()}
 			</button>
 		);
 	}
@@ -1736,24 +2223,29 @@ const AutonomousEventItem = ({
 
 				onEdit();
 			}}
+			onPointerDown={(pointerEvent) =>
+				onMoveDragStart(pointerEvent, event.event)
+			}
 			ref={targetRef}
 			style={style}
 			title={formatAutonomousEventTooltip(event)}
 		>
 			<b
-				onPointerDown={(pointerEvent) =>
+				onPointerDown={(pointerEvent) => {
+					pointerEvent.stopPropagation();
 					onDateDragStart(
 						pointerEvent,
 						event.event,
 						event.event.factStartDate ? "factStartDate" : "planStartDate",
-					)
-				}
+					);
+				}}
 			/>
 			<small>
 				{event.event.title}
 				<br />
 				{formatDateShort(event.displayDate)}
 			</small>
+			{renderDependencyHandles()}
 		</button>
 	);
 };

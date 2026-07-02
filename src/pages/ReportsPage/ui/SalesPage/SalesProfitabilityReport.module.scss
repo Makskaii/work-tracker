@@ -1167,7 +1167,7 @@
 	font: inherit;
 	cursor: pointer;
 	appearance: none;
-	overflow: hidden;
+	overflow: visible;
 	box-shadow: 0 4px 10px rgba(1, 8, 14, 0.22);
 }
 
@@ -1180,6 +1180,15 @@
 	opacity: 0.42;
 }
 
+.ganttCustomEventSegmentShell:hover .ganttDependencyHandle,
+.ganttCustomEventSegmentShell:focus-visible .ganttDependencyHandle,
+.ganttCustomEventOneTimeShell:hover .ganttDependencyHandle,
+.ganttCustomEventOneTimeShell:focus-visible .ganttDependencyHandle,
+.ganttCustomEventMarker:hover .ganttDependencyHandle,
+.ganttCustomEventMarker:focus-visible .ganttDependencyHandle {
+	opacity: 1;
+}
+
 .ganttCustomEventSegment {
 	position: absolute;
 	top: 0;
@@ -1188,6 +1197,16 @@
 	border: 0;
 	border-radius: 0;
 	pointer-events: none;
+}
+
+.ganttCustomEventSegmentStart {
+	border-top-left-radius: 999px;
+	border-bottom-left-radius: 999px;
+}
+
+.ganttCustomEventSegmentEnd {
+	border-top-right-radius: 999px;
+	border-bottom-right-radius: 999px;
 }
 
 .ganttDateDragHandle {
@@ -1214,6 +1233,39 @@
 	background: rgba(38, 240, 233, 0.22);
 }
 
+.ganttDependencyHandle {
+	position: absolute;
+	top: 50%;
+	z-index: 7;
+	width: 12px;
+	height: 12px;
+	border: 2px solid rgba(255, 255, 255, 0.98);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 0 0 3px rgba(8, 18, 31, 0.42);
+	cursor: crosshair;
+	opacity: 0;
+	transform: translate(-50%, -50%);
+	transition:
+		opacity 0.16s ease,
+		box-shadow 0.16s ease;
+	pointer-events: auto;
+}
+
+.ganttDependencyHandle:hover {
+	box-shadow:
+		0 0 0 3px rgba(8, 18, 31, 0.5),
+		0 0 0 6px rgba(255, 255, 255, 0.18);
+}
+
+.ganttDependencyHandleLeft {
+	left: -10px;
+}
+
+.ganttDependencyHandleRight {
+	left: calc(100% + 10px);
+}
+
 .ganttCustomEventMarker {
 	padding: 0;
 	border: 0;
@@ -1221,6 +1273,14 @@
 	font: inherit;
 	cursor: pointer;
 	appearance: none;
+}
+
+.ganttCustomEventMarker .ganttDependencyHandleLeft {
+	left: -12px;
+}
+
+.ganttCustomEventMarker .ganttDependencyHandleRight {
+	left: 30px;
 }
 
 .ganttCustomEventMarker b {
@@ -3009,6 +3069,14 @@
 	stroke-dasharray: 2 4;
 	stroke-linecap: round;
 	stroke-width: 1;
+}
+
+.ganttDependencyLinkLine {
+	fill: none;
+	stroke: rgba(255, 255, 255, 0.92);
+	stroke-dasharray: 3 5;
+	stroke-linecap: round;
+	stroke-width: 2;
 }
 
 .ganttPaymentOverdueLinkLine {
