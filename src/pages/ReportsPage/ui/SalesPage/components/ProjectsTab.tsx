@@ -8,7 +8,6 @@ import { DealWorkDensityChart } from "./DealWorkDensityChart";
 type ProjectsTabProps = {
 	bitrixProjects: ProfitabilityProject[];
 	onPaymentsChanged?: () => void;
-	paymentsRefreshKey?: number;
 	projects: ReportProject[];
 	selectedProjectId: string | null;
 	users: User[];
@@ -17,7 +16,6 @@ type ProjectsTabProps = {
 export const ProjectsTab = ({
 	bitrixProjects,
 	onPaymentsChanged,
-	paymentsRefreshKey,
 	projects,
 	selectedProjectId,
 	users,
@@ -32,7 +30,6 @@ export const ProjectsTab = ({
 				<>
 					<AutonomousProjectGantt
 						onPaymentsChanged={onPaymentsChanged}
-						paymentsRefreshKey={paymentsRefreshKey}
 						project={selectedProject}
 					/>
 					<DealWorkDensityChart

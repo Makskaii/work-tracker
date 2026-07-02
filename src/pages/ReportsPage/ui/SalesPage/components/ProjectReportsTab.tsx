@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/modal/Modal";
+import type { User } from "@/shared/types/types";
 import projectReportsStyles from "../../ProjectReports/ProjectsReports.module.scss";
 import type {
 	ProjectReportEntry,
@@ -11,6 +12,7 @@ import {
 	formatFileSize,
 	formatProjectReportDate,
 } from "../model/reportProjectFormat";
+import { getUserAutocompleteOptions } from "./ReportProjectFileInput";
 import styles from "../SalesProfitabilityReport.module.scss";
 
 export const ProjectReportsTab = ({
@@ -21,7 +23,7 @@ export const ProjectReportsTab = ({
 	isModalOpen,
 	isSaving,
 	nextReportDate,
-	onAuthorNameChange,
+	onAuthorChange,
 	onCloseModal,
 	onCreate,
 	onFileDelete,
@@ -34,6 +36,7 @@ export const ProjectReportsTab = ({
 	project,
 	reports,
 	text,
+	users,
 }: {
 	authorName: string;
 	error: string | null;
@@ -42,7 +45,7 @@ export const ProjectReportsTab = ({
 	isModalOpen: boolean;
 	isSaving: boolean;
 	nextReportDate: string;
-	onAuthorNameChange: (value: string) => void;
+	onAuthorChange: (authorName: string, authorId: string | null) => void;
 	onCloseModal: () => void;
 	onCreate: () => void;
 	onFileDelete: (
@@ -64,6 +67,7 @@ export const ProjectReportsTab = ({
 	project: ReportProject | null;
 	reports: ProjectReportEntry[];
 	text: string;
+	users: User[];
 }) => {
 	const [selectedReportEntryId, setSelectedReportEntryId] = useState<
 		number | null
@@ -103,13 +107,14 @@ export const ProjectReportsTab = ({
 				isOpen={isModalOpen}
 				isSaving={isSaving}
 				nextReportDate={nextReportDate}
-				onAuthorNameChange={onAuthorNameChange}
+				onAuthorChange={onAuthorChange}
 				onClose={onCloseModal}
 				onCreate={onCreate}
 				onFilesChange={onFilesChange}
 				onNextReportDateChange={onNextReportDateChange}
 				onTextChange={onTextChange}
 				text={text}
+				users={users}
 			/>
 
 			<div className={styles.projectReportList}>
@@ -169,6 +174,7 @@ export const ProjectReportsTab = ({
 				onFileDelete={onFileDelete}
 				onFileDownload={onFileDownload}
 				onUpdate={onUpdate}
+				users={users}
 			/>
 		</section>
 	);
@@ -180,6 +186,7 @@ const ProjectReportViewModal = ({
 	onFileDownload,
 	onUpdate,
 	reportEntry,
+	users,
 }: {
 	onClose: () => void;
 	onFileDelete: (
@@ -195,11 +202,13 @@ const ProjectReportViewModal = ({
 		payload: UpdateProjectReportEntryPayload,
 	) => Promise<void>;
 	reportEntry: ProjectReportEntry | null;
+	users: User[];
 }) => {
 	const [isEditing, setIsEditing] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState({
+		authorId: null as string | null,
 		authorName: "",
 		nextReportDate: "",
 		text: "",
@@ -211,6 +220,7 @@ const ProjectReportViewModal = ({
 		}
 
 		setDraft({
+			authorId: reportEntry.authorId,
 			authorName: reportEntry.authorName,
 			nextReportDate: reportEntry.nextReportDate ?? "",
 			text: reportEntry.text,
@@ -237,6 +247,7 @@ const ProjectReportViewModal = ({
 
 		try {
 			await onUpdate(reportEntry, {
+				authorId: draft.authorId,
 				authorName,
 				nextReportDate: draft.nextReportDate || null,
 				text,
@@ -248,6 +259,7 @@ const ProjectReportViewModal = ({
 			setIsSaving(false);
 		}
 	};
+	const authorOptions = getUserAutocompleteOptions(users);
 
 	return (
 		<Modal isOpen={Boolean(reportEntry)} onClose={onClose} size="covered">
@@ -269,14 +281,26 @@ const ProjectReportViewModal = ({
 								<span>Автор</span>
 								<input
 									type="text"
+									list="project-report-edit-author-options"
 									value={draft.authorName}
-									onChange={(event) =>
+									onChange={(event) => {
+										const value = event.target.value;
+										const selectedAuthor = authorOptions.find(
+											(option) => option.title === value,
+										);
+
 										setDraft((prev) => ({
 											...prev,
-											authorName: event.target.value,
-										}))
-									}
+											authorId: selectedAuthor?.id ?? null,
+											authorName: value,
+										}));
+									}}
 								/>
+								<datalist id="project-report-edit-author-options">
+									{authorOptions.map((option) => (
+										<option key={option.id} value={option.title} />
+									))}
+								</datalist>
 							</label>
 							<label>
 								<span>Дата следующего отчёта</span>
@@ -386,13 +410,14 @@ const ProjectReportCreateModal = ({
 	isOpen,
 	isSaving,
 	nextReportDate,
-	onAuthorNameChange,
+	onAuthorChange,
 	onClose,
 	onCreate,
 	onFilesChange,
 	onNextReportDateChange,
 	onTextChange,
 	text,
+	users,
 }: {
 	authorName: string;
 	error: string | null;
@@ -400,14 +425,17 @@ const ProjectReportCreateModal = ({
 	isOpen: boolean;
 	isSaving: boolean;
 	nextReportDate: string;
-	onAuthorNameChange: (value: string) => void;
+	onAuthorChange: (authorName: string, authorId: string | null) => void;
 	onClose: () => void;
 	onCreate: () => void;
 	onFilesChange: (files: File[]) => void;
 	onNextReportDateChange: (value: string) => void;
 	onTextChange: (value: string) => void;
 	text: string;
+	users: User[];
 }) => {
+	const authorOptions = getUserAutocompleteOptions(users);
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size="small">
 		<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
@@ -417,9 +445,22 @@ const ProjectReportCreateModal = ({
 					<span>Автор отчёта</span>
 					<input
 						type="text"
+						list="project-report-author-options"
 						value={authorName}
-						onChange={(event) => onAuthorNameChange(event.target.value)}
+						onChange={(event) => {
+							const value = event.target.value;
+							const selectedAuthor = authorOptions.find(
+								(option) => option.title === value,
+							);
+
+							onAuthorChange(value, selectedAuthor?.id ?? null);
+						}}
 					/>
+					<datalist id="project-report-author-options">
+						{authorOptions.map((option) => (
+							<option key={option.id} value={option.title} />
+						))}
+					</datalist>
 				</label>
 				<label>
 					<span>Текст отчёта</span>

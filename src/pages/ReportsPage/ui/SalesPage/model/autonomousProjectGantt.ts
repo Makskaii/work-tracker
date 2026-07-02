@@ -76,9 +76,9 @@ const buildEventRow = (
 		Boolean(stage?.dependsOnStageId) && dependencyDurationDays > 0;
 
 	if (hasDependencyDuration) {
-		const displayStart = planStart ?? factStart ?? dependencyStart;
+		const displayStart = dependencyStart ?? planStart ?? factStart;
 		const displayEnd =
-			planEnd ?? (displayStart ? addDays(displayStart, dependencyDurationDays) : null);
+			displayStart ? addDays(displayStart, dependencyDurationDays) : planEnd;
 
 		return {
 			displayDate: displayStart,
@@ -123,7 +123,7 @@ const getPaymentDisplayDate = (
 ) => {
 	const stageEvent = eventRowsByStageId.get(payment.stageId);
 
-	if (!stageEvent) {
+	if (!stageEvent || !payment.paymentAnchor) {
 		return parseGanttDate(payment.paymentDate);
 	}
 
@@ -253,7 +253,7 @@ export const getAutonomousEventStyle = (
 	event: AutonomousGanttEventRow,
 	timeline: GanttTimeline,
 ): CSSProperties | null => {
-	if (event.event.eventKind === "duration") {
+	if (event.isDependencyDuration || event.event.eventKind === "duration") {
 		return event.displayStart && event.displayEnd
 			? getSegmentStyle(event.displayStart, event.displayEnd, timeline)
 			: null;

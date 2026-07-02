@@ -177,7 +177,7 @@ export type AutonomousProjectPayment = {
 	projectId: string;
 	stageId: number;
 	status: AutonomousPaymentStatus;
-	paymentAnchor: AutonomousPaymentAnchor;
+	paymentAnchor: AutonomousPaymentAnchor | null;
 	paymentDate: string | null;
 	percent: number | null;
 	amount: number | null;
