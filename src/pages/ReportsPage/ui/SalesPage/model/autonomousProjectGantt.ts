@@ -253,7 +253,7 @@ export const getAutonomousEventStyle = (
 	event: AutonomousGanttEventRow,
 	timeline: GanttTimeline,
 ): CSSProperties | null => {
-	if (event.event.eventKind === "duration") {
+	if (event.isDependencyDuration || event.event.eventKind === "duration") {
 		return event.displayStart && event.displayEnd
 			? getSegmentStyle(event.displayStart, event.displayEnd, timeline)
 			: null;

@@ -759,8 +759,11 @@ export const AutonomousProjectGantt = ({
 								1,
 							)
 						: null;
+				const isTargetDuration =
+					targetEvent.isDependencyDuration ||
+					targetEvent.event.eventKind === "duration";
 				const endX =
-					(targetEvent.event.eventKind === "duration"
+					(isTargetDuration
 						? targetDateOffset !== null
 							? targetRect.left + targetRect.width * targetDateOffset
 							: isStageStartAnchor
@@ -897,8 +900,7 @@ export const AutonomousProjectGantt = ({
 				.find((rowEvent) => rowEvent.event.id === event.id);
 			const linkedStageIds = getDependentStageIds(event.stageId, stages);
 			const shouldMoveLinkedStages =
-				field.startsWith("fact") ||
-				(field === "planStartDate" && !event.factStartDate) ||
+				field === "factEndDate" ||
 				(field === "planEndDate" && !event.factEndDate);
 			const eventIdsToMove = new Set<number>();
 			events.forEach((currentEvent) => {
@@ -1368,8 +1370,7 @@ export const AutonomousProjectGantt = ({
 			: getStageEventKind(stageForm.stageType);
 		const eventPayload = {
 			eventKind,
-			factEndDate:
-				eventKind === "duration" ? stageForm.factEndDate || null : null,
+			factEndDate: eventKind === "duration" ? stageForm.factEndDate || null : null,
 			factStartDate: isDependencyStage ? null : stageForm.factStartDate || null,
 			planEndDate:
 				!isDependencyStage && eventKind === "duration"
@@ -1936,7 +1937,7 @@ const AutonomousEventItem = ({
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
 	}
 
-	if (event.event.eventKind === "duration") {
+	if (event.isDependencyDuration || event.event.eventKind === "duration") {
 		const safeFactEnd =
 			event.factEnd && event.displayStart && event.factEnd < event.displayStart
 				? event.displayStart
