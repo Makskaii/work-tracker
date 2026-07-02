@@ -470,11 +470,9 @@ const getAutonomousEventClassName = (
 export const AutonomousProjectGantt = ({
 	onPaymentsChanged,
 	project,
-	paymentsRefreshKey = 0,
 }: {
 	onPaymentsChanged?: () => void;
 	project: ReportProject | null;
-	paymentsRefreshKey?: number;
 }) => {
 	const [stages, setStages] = useState<ProjectGanttStage[]>([]);
 	const [events, setEvents] = useState<ProjectGanttEvent[]>([]);
@@ -578,8 +576,6 @@ export const AutonomousProjectGantt = ({
 	);
 
 	useEffect(() => {
-		void paymentsRefreshKey;
-
 		const controller = new AbortController();
 
 		setIsLoading(true);
@@ -597,7 +593,7 @@ export const AutonomousProjectGantt = ({
 			});
 
 		return () => controller.abort();
-	}, [refreshData, paymentsRefreshKey]);
+	}, [refreshData]);
 	useLayoutEffect(() => {
 		const board = ganttBoardRef.current;
 
@@ -871,10 +867,6 @@ export const AutonomousProjectGantt = ({
 						[field]: latestValue,
 					}),
 				)
-					.then(() => {
-						void refreshData();
-						onPaymentsChanged?.();
-					})
 					.catch(() => {
 						void refreshData();
 					});
@@ -950,7 +942,6 @@ export const AutonomousProjectGantt = ({
 					waitingDays: payment.waitingDays,
 				})
 					.then(() => {
-						void refreshData();
 						onPaymentsChanged?.();
 					})
 					.catch(() => {

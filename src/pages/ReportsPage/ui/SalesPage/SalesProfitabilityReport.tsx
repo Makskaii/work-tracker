@@ -1361,7 +1361,6 @@ export const SalesProfitabilityReport = ({
 								<ProjectsTab
 									bitrixProjects={selectedBitrixProjectsWithDetails}
 									onPaymentsChanged={refreshAutonomousPayments}
-									paymentsRefreshKey={paymentsRefreshKey}
 									projects={reportProjects}
 									selectedProjectId={effectiveSelectedProjectId}
 									users={users}
