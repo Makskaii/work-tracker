@@ -123,7 +123,7 @@ const getPaymentDisplayDate = (
 ) => {
 	const stageEvent = eventRowsByStageId.get(payment.stageId);
 
-	if (!stageEvent) {
+	if (!stageEvent || !payment.paymentAnchor) {
 		return parseGanttDate(payment.paymentDate);
 	}
 

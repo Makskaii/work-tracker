@@ -6,6 +6,7 @@
 	useRef,
 	useState,
 } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
@@ -20,6 +21,7 @@ import {
 	formatAutonomousEventTooltip,
 	formatAutonomousPaymentTooltip,
 	getAutonomousEventStyle,
+	resolveAutonomousPaymentDates,
 } from "../model/autonomousProjectGantt";
 import {
 	createProjectGanttEvent,
@@ -52,6 +54,7 @@ import type {
 	AutonomousPaymentStatus,
 	AutonomousProjectPayment,
 	ProjectGanttEvent,
+	ProjectGanttEventPayload,
 	ProjectGanttStage,
 	ProjectGanttStageType,
 	ReportProject,
@@ -158,6 +161,13 @@ const GANTT_ROW_HEIGHT = 74;
 const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+type EventDateField =
+	| "factEndDate"
+	| "factStartDate"
+	| "planEndDate"
+	| "planStartDate";
 
 const getScaleWeekStep = (weekTicksCount: number) => {
 	if (weekTicksCount > 36) return 4;
@@ -170,6 +180,115 @@ const getScaleWeekStep = (weekTicksCount: number) => {
 const getStageTypeLabel = (stageType: ProjectGanttStageType) =>
 	STAGE_TYPE_OPTIONS.find((option) => option.value === stageType)?.label ??
 	stageType;
+
+const formatInputDate = (date: Date) =>
+	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const getTrackDateFromClientX = (
+	clientX: number,
+	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"],
+	trackRect: DOMRect,
+) => {
+	const ratio = Math.min(
+		Math.max((clientX - trackRect.left) / Math.max(trackRect.width, 1), 0),
+		1,
+	);
+	const time =
+		timeline.start.getTime() +
+		ratio * (timeline.end.getTime() - timeline.start.getTime());
+	const date = new Date(Math.round(time / DAY_IN_MS) * DAY_IN_MS);
+
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
+const getGanttTrackFromPointerEvent = (
+	event: ReactPointerEvent<HTMLElement>,
+) =>
+	event.currentTarget.closest<HTMLElement>(
+		"[data-autonomous-gantt-track='true']",
+	);
+
+const getEventPayload = (
+	event: ProjectGanttEvent,
+	overrides: Partial<ProjectGanttEventPayload> = {},
+): ProjectGanttEventPayload => ({
+	eventKind: event.eventKind,
+	factEndDate: event.factEndDate,
+	factStartDate: event.factStartDate,
+	planEndDate: event.planEndDate,
+	planStartDate: event.planStartDate,
+	stageId: event.stageId,
+	title: event.title,
+	...overrides,
+});
+
+const getClampedEventDate = (
+	event: ProjectGanttEvent,
+	field: EventDateField,
+	date: Date,
+	minDate: Date | null = null,
+) => {
+	const pairDate =
+		field === "planStartDate"
+			? parseGanttDate(event.planEndDate)
+			: field === "planEndDate"
+				? parseGanttDate(event.planStartDate)
+				: field === "factStartDate"
+					? parseGanttDate(event.factEndDate)
+					: parseGanttDate(event.factStartDate);
+
+	if (minDate && dayjs(date).isBefore(minDate)) {
+		return minDate;
+	}
+
+	if (!pairDate) {
+		return date;
+	}
+
+	if (field.endsWith("StartDate") && dayjs(date).isAfter(pairDate)) {
+		return pairDate;
+	}
+
+	if (field.endsWith("EndDate") && dayjs(date).isBefore(pairDate)) {
+		return pairDate;
+	}
+
+	return date;
+};
+
+let shouldSuppressNextGanttClick = false;
+
+const markGanttDragClick = (target: HTMLElement) => {
+	const clickableNode = target.closest<HTMLElement>("button");
+
+	shouldSuppressNextGanttClick = true;
+	if (!clickableNode) {
+		window.setTimeout(() => {
+			shouldSuppressNextGanttClick = false;
+		}, 250);
+		return;
+	}
+
+	clickableNode.dataset.ganttDragging = "true";
+	window.setTimeout(() => {
+		shouldSuppressNextGanttClick = false;
+		delete clickableNode.dataset.ganttDragging;
+	}, 250);
+};
+
+const shouldSkipGanttClick = (target: HTMLElement) => {
+	const clickableNode = target.closest<HTMLElement>("button");
+	const shouldSkip =
+		shouldSuppressNextGanttClick ||
+		clickableNode?.dataset.ganttDragging === "true";
+
+	shouldSuppressNextGanttClick = false;
+	if (clickableNode) {
+		delete clickableNode.dataset.ganttDragging;
+	}
+
+	return shouldSkip;
+};
 
 const getStageEventKind = (
 	stageType: ProjectGanttStageType,
@@ -502,6 +621,10 @@ export const AutonomousProjectGantt = ({
 			}
 
 			const links = paymentsRow.payments.flatMap((payment) => {
+				if (!payment.paymentAnchor) {
+					return [];
+				}
+
 				const paymentNode = paymentMarkerRefs.current.get(payment.id);
 				const targetNode = eventRefsByStageId.current.get(payment.stageId);
 				const targetEvent = gantt.rows
@@ -662,6 +785,184 @@ export const AutonomousProjectGantt = ({
 		});
 		setIsPaymentModalOpen(true);
 	};
+
+	const handleEventDateDragStart = useCallback(
+		(
+			pointerEvent: ReactPointerEvent<HTMLElement>,
+			event: ProjectGanttEvent,
+			field: EventDateField,
+		) => {
+			const track = getGanttTrackFromPointerEvent(pointerEvent);
+
+			if (!track) {
+				return;
+			}
+
+			pointerEvent.preventDefault();
+			pointerEvent.stopPropagation();
+
+			const dragTarget = pointerEvent.currentTarget;
+			const trackRect = track.getBoundingClientRect();
+			const eventRow = gantt.rows
+				.flatMap((row) => row.events)
+				.find((rowEvent) => rowEvent.event.id === event.id);
+			const minDate =
+				field === "factEndDate" && eventRow?.isDependencyDuration
+					? eventRow.displayStart
+					: null;
+			let latestEvent = event;
+			let latestValue = event[field];
+			let hasMoved = false;
+
+			const applyDate = (clientX: number) => {
+				const nextDate = getTrackDateFromClientX(
+					clientX,
+					gantt.timeline,
+					trackRect,
+				);
+				const clampedDate = getClampedEventDate(
+					latestEvent,
+					field,
+					nextDate,
+					minDate,
+				);
+				const nextValue = formatInputDate(clampedDate);
+				const nextEvent = {
+					...latestEvent,
+					[field]: nextValue,
+				};
+
+				latestEvent = nextEvent;
+				latestValue = nextValue;
+
+				setEvents((currentEvents) => {
+					const nextEvents = currentEvents.map((currentEvent) =>
+						currentEvent.id === event.id ? nextEvent : currentEvent,
+					);
+
+					setPayments((currentPayments) =>
+						resolveAutonomousPaymentDates({
+							events: nextEvents,
+							payments: currentPayments,
+							stages,
+						}),
+					);
+
+					return nextEvents;
+				});
+			};
+			const handlePointerMove = (moveEvent: PointerEvent) => {
+				hasMoved = true;
+				markGanttDragClick(dragTarget);
+				applyDate(moveEvent.clientX);
+			};
+			const handlePointerUp = () => {
+				window.removeEventListener("pointermove", handlePointerMove);
+				window.removeEventListener("pointerup", handlePointerUp);
+
+				if (!hasMoved || latestValue === event[field]) {
+					return;
+				}
+
+				markGanttDragClick(dragTarget);
+				void updateProjectGanttEvent(
+					event.id,
+					getEventPayload(latestEvent, {
+						[field]: latestValue,
+					}),
+				)
+					.then(() => {
+						void refreshData();
+						onPaymentsChanged?.();
+					})
+					.catch(() => {
+						void refreshData();
+					});
+			};
+
+			window.addEventListener("pointermove", handlePointerMove);
+			window.addEventListener("pointerup", handlePointerUp, { once: true });
+		},
+		[gantt.timeline, onPaymentsChanged, refreshData, stages],
+	);
+
+	const handlePaymentDateDragStart = useCallback(
+		(
+			pointerEvent: ReactPointerEvent<HTMLElement>,
+			payment: AutonomousProjectPayment,
+		) => {
+			const track = getGanttTrackFromPointerEvent(pointerEvent);
+			const paymentsStageId =
+				stages.find((stage) => stage.code === "payments")?.id ?? payment.stageId;
+
+			if (!track) {
+				return;
+			}
+
+			pointerEvent.preventDefault();
+			pointerEvent.stopPropagation();
+
+			const dragTarget = pointerEvent.currentTarget;
+			const trackRect = track.getBoundingClientRect();
+			let latestValue = payment.paymentDate;
+			let hasMoved = false;
+
+			const applyDate = (clientX: number) => {
+				const nextValue = formatInputDate(
+					getTrackDateFromClientX(clientX, gantt.timeline, trackRect),
+				);
+
+				latestValue = nextValue;
+				setPayments((currentPayments) =>
+					currentPayments.map((currentPayment) =>
+						currentPayment.id === payment.id
+							? {
+									...currentPayment,
+									paymentAnchor: null,
+									paymentDate: nextValue,
+									stageId: paymentsStageId,
+								}
+							: currentPayment,
+					),
+				);
+			};
+			const handlePointerMove = (moveEvent: PointerEvent) => {
+				hasMoved = true;
+				markGanttDragClick(dragTarget);
+				applyDate(moveEvent.clientX);
+			};
+			const handlePointerUp = () => {
+				window.removeEventListener("pointermove", handlePointerMove);
+				window.removeEventListener("pointerup", handlePointerUp);
+
+				if (!hasMoved || !latestValue || latestValue === payment.paymentDate) {
+					return;
+				}
+
+				markGanttDragClick(dragTarget);
+				void updateAutonomousProjectPayment(payment.id, {
+					amount: payment.amount,
+					paymentAnchor: null,
+					paymentDate: latestValue,
+					percent: payment.percent,
+					stageId: paymentsStageId,
+					status: payment.status,
+					waitingDays: payment.waitingDays,
+				})
+					.then(() => {
+						void refreshData();
+						onPaymentsChanged?.();
+					})
+					.catch(() => {
+						void refreshData();
+					});
+			};
+
+			window.addEventListener("pointermove", handlePointerMove);
+			window.addEventListener("pointerup", handlePointerUp, { once: true });
+		},
+		[gantt.timeline, onPaymentsChanged, refreshData, stages],
+	);
 
 	const handleStageSubmit = async () => {
 		if (!project?.id) {
@@ -894,7 +1195,9 @@ export const AutonomousProjectGantt = ({
 							key={row.stage.id}
 							monthTicks={monthTicks}
 							onPaymentCreate={openPaymentCreateModal}
+							onPaymentDateDragStart={handlePaymentDateDragStart}
 							onPaymentEdit={openPaymentEditModal}
+							onEventDateDragStart={handleEventDateDragStart}
 							onStageEdit={openStageEditModal}
 							row={row}
 							setPaymentMarkerRef={setPaymentMarkerRef}
@@ -995,7 +1298,9 @@ const AutonomousPaymentLinksLayer = ({
 
 const AutonomousStageRow = ({
 	monthTicks,
+	onEventDateDragStart,
 	onPaymentCreate,
+	onPaymentDateDragStart,
 	onPaymentEdit,
 	onStageEdit,
 	row,
@@ -1007,7 +1312,16 @@ const AutonomousStageRow = ({
 	weekTicks,
 }: {
 	monthTicks: GanttMonthTick[];
+	onEventDateDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		ganttEvent: ProjectGanttEvent,
+		field: EventDateField,
+	) => void;
 	onPaymentCreate: () => void;
+	onPaymentDateDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		payment: AutonomousProjectPayment,
+	) => void;
 	onPaymentEdit: (payment: AutonomousProjectPayment) => void;
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
@@ -1062,6 +1376,7 @@ const AutonomousStageRow = ({
 			</div>
 			<div
 				className={styles.autonomousGanttTrack}
+				data-autonomous-gantt-track="true"
 				style={{ minHeight: rowHeight }}
 				onClick={isPaymentsStage ? onPaymentCreate : undefined}
 				onKeyDown={
@@ -1084,6 +1399,7 @@ const AutonomousStageRow = ({
 					<AutonomousEventItem
 						event={event}
 						key={event.event.id}
+						onDateDragStart={onEventDateDragStart}
 						onEdit={() => onStageEdit(row.stage)}
 						targetRef={setStageEventRef(row.stage.id)}
 						stageType={row.stage.stageType}
@@ -1095,6 +1411,7 @@ const AutonomousStageRow = ({
 					<AutonomousPaymentItem
 						key={payment.id}
 						markerRef={setPaymentMarkerRef(payment.id)}
+						onDateDragStart={onPaymentDateDragStart}
 						onEdit={onPaymentEdit}
 						payment={payment}
 						stageTitle={stageById.get(payment.stageId)?.title ?? "—"}
@@ -1111,6 +1428,7 @@ const AutonomousStageRow = ({
 
 const AutonomousEventItem = ({
 	event,
+	onDateDragStart,
 	onEdit,
 	stageType,
 	targetRef,
@@ -1118,6 +1436,11 @@ const AutonomousEventItem = ({
 	timeline,
 }: {
 	event: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number]["events"][number];
+	onDateDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		ganttEvent: ProjectGanttEvent,
+		field: EventDateField,
+	) => void;
 	onEdit: () => void;
 	stageType: ProjectGanttStage["stageType"];
 	targetRef: (node: HTMLButtonElement | null) => void;
@@ -1130,12 +1453,34 @@ const AutonomousEventItem = ({
 		stageType,
 		today,
 	);
+	const renderDateHandle = (
+		date: Date | null,
+		field: EventDateField,
+		shellStart: Date,
+		shellEnd: Date,
+		className = "",
+	) =>
+		date ? (
+			<span
+				className={`${styles.ganttDateDragHandle} ${className}`}
+				onPointerDown={(pointerEvent) =>
+					onDateDragStart(pointerEvent, event.event, field)
+				}
+				style={{
+					left: getInnerSegmentStyle(date, date, shellStart, shellEnd).left,
+				}}
+			/>
+		) : null;
 
 	if (!style) {
 		return <span className={styles.ganttNoDate}>Дата не заполнена</span>;
 	}
 
 	if (event.event.eventKind === "duration") {
+		const safeFactEnd =
+			event.factEnd && event.displayStart && event.factEnd < event.displayStart
+				? event.displayStart
+				: event.factEnd;
 		const planSegment =
 			event.planStart && event.planEnd
 				? {
@@ -1143,7 +1488,7 @@ const AutonomousEventItem = ({
 						start: event.planStart,
 					}
 				: null;
-		const factEnd = event.factEnd ?? (event.factStart ? today : null);
+		const factEnd = safeFactEnd ?? (event.factStart ? today : null);
 		const boundaryDates = [
 			event.planStart,
 			event.planEnd,
@@ -1158,21 +1503,36 @@ const AutonomousEventItem = ({
 			);
 		const fallbackSegments =
 			!planSegment && event.displayStart && event.displayEnd
-				? event.factEnd &&
-					event.factEnd > event.displayStart &&
-					event.factEnd < event.displayEnd
-					? [
-							{
-								className: eventClassName || styles.ganttAutonomousEventFact,
-								end: event.factEnd,
-								start: event.displayStart,
-							},
-							{
-								className: styles.ganttAutonomousEventReserve,
-								end: event.displayEnd,
-								start: event.factEnd,
-							},
-						]
+				? safeFactEnd &&
+					safeFactEnd > event.displayStart &&
+					safeFactEnd.getTime() !== event.displayEnd.getTime()
+					? safeFactEnd < event.displayEnd
+						? [
+								{
+									className:
+										eventClassName || styles.ganttAutonomousEventFact,
+									end: safeFactEnd,
+									start: event.displayStart,
+								},
+								{
+									className: styles.ganttAutonomousEventReserve,
+									end: event.displayEnd,
+									start: safeFactEnd,
+								},
+							]
+						: [
+								{
+									className:
+										eventClassName || styles.ganttAutonomousEventFact,
+									end: event.displayEnd,
+									start: event.displayStart,
+								},
+								{
+									className: styles.ganttAutonomousEventOverdue,
+									end: safeFactEnd,
+									start: event.displayEnd,
+								},
+							]
 					: [
 							{
 								className: eventClassName || styles.ganttAutonomousEventFact,
@@ -1257,6 +1617,10 @@ const AutonomousEventItem = ({
 				className={`${styles.ganttSegment} ${styles.ganttCustomEventSegmentShell}`}
 				onClick={(clickEvent) => {
 					clickEvent.stopPropagation();
+					if (shouldSkipGanttClick(clickEvent.currentTarget)) {
+						return;
+					}
+
 					onEdit();
 				}}
 				ref={targetRef}
@@ -1275,6 +1639,34 @@ const AutonomousEventItem = ({
 						)}
 					/>
 				))}
+				{renderDateHandle(
+					event.planStart,
+					"planStartDate",
+					shellStart,
+					shellEnd,
+					styles.ganttDateDragHandlePlan,
+				)}
+				{renderDateHandle(
+					event.planEnd,
+					"planEndDate",
+					shellStart,
+					shellEnd,
+					styles.ganttDateDragHandlePlan,
+				)}
+				{renderDateHandle(
+					event.factStart,
+					"factStartDate",
+					shellStart,
+					shellEnd,
+					styles.ganttDateDragHandleFact,
+				)}
+				{renderDateHandle(
+					event.factEnd,
+					"factEndDate",
+					shellStart,
+					shellEnd,
+					styles.ganttDateDragHandleFact,
+				)}
 			</button>
 		);
 	}
@@ -1298,6 +1690,10 @@ const AutonomousEventItem = ({
 				className={styles.ganttCustomEventOneTimeShell}
 				onClick={(clickEvent) => {
 					clickEvent.stopPropagation();
+					if (shouldSkipGanttClick(clickEvent.currentTarget)) {
+						return;
+					}
+
 					onEdit();
 				}}
 				ref={targetRef}
@@ -1307,6 +1703,9 @@ const AutonomousEventItem = ({
 				<span className={styles.ganttCustomEventOneTimePath} />
 				<span
 					className={`${styles.ganttCustomEventOneTimeDot} ${styles.ganttCustomEventOneTimePlanDot}`}
+					onPointerDown={(pointerEvent) =>
+						onDateDragStart(pointerEvent, event.event, "planStartDate")
+					}
 					style={{
 						left: getInnerSegmentStyle(
 							event.planStart,
@@ -1318,6 +1717,9 @@ const AutonomousEventItem = ({
 				/>
 				<span
 					className={`${styles.ganttCustomEventOneTimeDot} ${styles.ganttCustomEventOneTimeFactDot} ${factClassName}`}
+					onPointerDown={(pointerEvent) =>
+						onDateDragStart(pointerEvent, event.event, "factStartDate")
+					}
 					style={{
 						left: getInnerSegmentStyle(
 							event.factStart,
@@ -1337,13 +1739,25 @@ const AutonomousEventItem = ({
 			className={`${styles.ganttMilestone} ${styles.ganttCustomEventMarker} ${eventClassName}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
+				if (shouldSkipGanttClick(clickEvent.currentTarget)) {
+					return;
+				}
+
 				onEdit();
 			}}
 			ref={targetRef}
 			style={style}
 			title={formatAutonomousEventTooltip(event)}
 		>
-			<b />
+			<b
+				onPointerDown={(pointerEvent) =>
+					onDateDragStart(
+						pointerEvent,
+						event.event,
+						event.event.factStartDate ? "factStartDate" : "planStartDate",
+					)
+				}
+			/>
 			<small>
 				{event.event.title}
 				<br />
@@ -1355,6 +1769,7 @@ const AutonomousEventItem = ({
 
 const AutonomousPaymentItem = ({
 	markerRef,
+	onDateDragStart,
 	onEdit,
 	payment,
 	stageTitle,
@@ -1362,6 +1777,10 @@ const AutonomousPaymentItem = ({
 	top,
 }: {
 	markerRef: (node: HTMLButtonElement | null) => void;
+	onDateDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		payment: AutonomousProjectPayment,
+	) => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
 	payment: AutonomousProjectPayment;
 	stageTitle: string;
@@ -1386,13 +1805,21 @@ const AutonomousPaymentItem = ({
 			}`}
 			onClick={(clickEvent) => {
 				clickEvent.stopPropagation();
+				if (shouldSkipGanttClick(clickEvent.currentTarget)) {
+					return;
+				}
+
 				onEdit(payment);
 			}}
 			ref={markerRef}
 			style={style}
 			title={formatAutonomousPaymentTooltip(payment, stageTitle)}
 		>
-			<b>
+			<b
+				onPointerDown={(pointerEvent) =>
+					onDateDragStart(pointerEvent, payment)
+				}
+			>
 				<FaMoneyBillWave aria-hidden="true" />
 			</b>
 			<small>{formatMoney(payment.amount ?? 0)}</small>

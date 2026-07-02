@@ -1175,6 +1175,11 @@
 	filter: brightness(1.08);
 }
 
+.ganttCustomEventSegmentShell:hover .ganttDateDragHandle,
+.ganttCustomEventSegmentShell:focus-visible .ganttDateDragHandle {
+	opacity: 0.42;
+}
+
 .ganttCustomEventSegment {
 	position: absolute;
 	top: 0;
@@ -1183,6 +1188,30 @@
 	border: 0;
 	border-radius: 0;
 	pointer-events: none;
+}
+
+.ganttDateDragHandle {
+	position: absolute;
+	top: 50%;
+	z-index: 6;
+	width: 6px;
+	height: 16px;
+	border: 1px solid rgba(238, 245, 255, 0.32);
+	border-radius: 999px;
+	background: rgba(190, 202, 220, 0.28);
+	cursor: ew-resize;
+	opacity: 0;
+	transform: translate(-50%, -50%);
+	pointer-events: auto;
+}
+
+.ganttDateDragHandlePlan {
+	border-color: rgba(190, 202, 220, 0.34);
+}
+
+.ganttDateDragHandleFact {
+	border-color: rgba(38, 240, 233, 0.38);
+	background: rgba(38, 240, 233, 0.22);
 }
 
 .ganttCustomEventMarker {
@@ -1255,7 +1284,8 @@
 	border: 1px solid rgb(158, 156, 156);
 	border-radius: 50%;
 	transform: translate(-50%, -50%);
-	pointer-events: none;
+	cursor: ew-resize;
+	pointer-events: auto;
 	box-shadow: 0 3px 8px rgba(1, 8, 14, 0.24);
 }
 
