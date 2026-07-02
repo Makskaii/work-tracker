@@ -1370,6 +1370,10 @@ export const AutonomousProjectGantt = ({
 			? "duration"
 			: getStageEventKind(stageForm.stageType);
 		const durationDays = toNumberOrNull(stageForm.durationDays);
+		const existingStageEvent =
+			stageForm.eventId !== null
+				? (events.find((event) => event.id === stageForm.eventId) ?? null)
+				: null;
 		const dependencyEventRow = stageForm.dependsOnStageId
 			? (gantt.rows
 					.find((row) => row.stage.id === stageForm.dependsOnStageId)
@@ -1383,16 +1387,28 @@ export const AutonomousProjectGantt = ({
 			dependencyEventRow?.factStart ??
 			dependencyEventRow?.planStart ??
 			null;
-		const dependencyPlanEnd =
-			isDependencyStage && dependencyStart && durationDays
-				? addDays(dependencyStart, durationDays)
-				: null;
-		const hasDependencyPlanPeriod = Boolean(dependencyStart && dependencyPlanEnd);
 		const dependencyFactEnd = parseGanttDate(stageForm.factEndDate);
+		const dependencyFallbackStart =
+			parseGanttDate(stageForm.planStartDate) ??
+			parseGanttDate(existingStageEvent?.planStartDate ?? null) ??
+			parseGanttDate(stageForm.factStartDate) ??
+			parseGanttDate(existingStageEvent?.factStartDate ?? null) ??
+			(dependencyFactEnd && durationDays
+				? addDays(dependencyFactEnd, -durationDays)
+				: dependencyFactEnd);
+		const dependencyPlanStart = dependencyStart ?? dependencyFallbackStart;
+		const dependencyPlanEnd =
+			isDependencyStage && dependencyPlanStart
+				? durationDays
+					? addDays(dependencyPlanStart, durationDays)
+					: (parseGanttDate(stageForm.planEndDate) ??
+						parseGanttDate(existingStageEvent?.planEndDate ?? null) ??
+						dependencyPlanStart)
+				: null;
 		const dependencyFactStart =
-			dependencyStart && dependencyFactEnd
-				? getDateMin(dependencyStart, dependencyFactEnd)
-				: (dependencyStart ?? dependencyFactEnd);
+			dependencyPlanStart && dependencyFactEnd
+				? getDateMin(dependencyPlanStart, dependencyFactEnd)
+				: (dependencyPlanStart ?? dependencyFactEnd);
 		const eventPayload = {
 			eventKind,
 			factEndDate: eventKind === "duration" ? stageForm.factEndDate || null : null,
@@ -1404,14 +1420,14 @@ export const AutonomousProjectGantt = ({
 			planEndDate:
 				eventKind === "duration"
 					? isDependencyStage
-						? hasDependencyPlanPeriod && dependencyPlanEnd
+						? dependencyPlanEnd
 							? formatInputDate(dependencyPlanEnd)
 							: null
 						: stageForm.planEndDate || null
 					: null,
 			planStartDate: isDependencyStage
-				? hasDependencyPlanPeriod && dependencyStart
-					? formatInputDate(dependencyStart)
+				? dependencyPlanStart
+					? formatInputDate(dependencyPlanStart)
 					: null
 				: stageForm.planStartDate || null,
 			title,
