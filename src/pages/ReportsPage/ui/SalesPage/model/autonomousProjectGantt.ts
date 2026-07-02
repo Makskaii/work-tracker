@@ -76,9 +76,9 @@ const buildEventRow = (
 		Boolean(stage?.dependsOnStageId) && dependencyDurationDays > 0;
 
 	if (hasDependencyDuration) {
-		const displayStart = planStart ?? factStart ?? dependencyStart;
+		const displayStart = dependencyStart ?? planStart ?? factStart;
 		const displayEnd =
-			planEnd ?? (displayStart ? addDays(displayStart, dependencyDurationDays) : null);
+			displayStart ? addDays(displayStart, dependencyDurationDays) : planEnd;
 
 		return {
 			displayDate: displayStart,

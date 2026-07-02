@@ -41,6 +41,7 @@ import {
 } from "../model/projectPayments.api";
 import type { GanttMonthTick, GanttWeekTick } from "../model/ganttTypes";
 import {
+	addDays,
 	daysBetween,
 	formatDateShort,
 	getMilestoneStyle,
@@ -1368,20 +1369,56 @@ export const AutonomousProjectGantt = ({
 		const eventKind = isDependencyStage
 			? "duration"
 			: getStageEventKind(stageForm.stageType);
+		const durationDays = toNumberOrNull(stageForm.durationDays);
+		const dependencyEventRow = stageForm.dependsOnStageId
+			? (gantt.rows
+					.find((row) => row.stage.id === stageForm.dependsOnStageId)
+					?.events.at(0) ?? null)
+			: null;
+		const dependencyStart =
+			dependencyEventRow?.factEnd ??
+			dependencyEventRow?.displayEnd ??
+			dependencyEventRow?.planEnd ??
+			dependencyEventRow?.displayDate ??
+			dependencyEventRow?.factStart ??
+			dependencyEventRow?.planStart ??
+			null;
+		const dependencyPlanEnd =
+			isDependencyStage && dependencyStart && durationDays
+				? addDays(dependencyStart, durationDays)
+				: null;
+		const hasDependencyPlanPeriod = Boolean(dependencyStart && dependencyPlanEnd);
+		const dependencyFactEnd = parseGanttDate(stageForm.factEndDate);
+		const dependencyFactStart =
+			dependencyStart && dependencyFactEnd
+				? getDateMin(dependencyStart, dependencyFactEnd)
+				: (dependencyStart ?? dependencyFactEnd);
 		const eventPayload = {
 			eventKind,
 			factEndDate: eventKind === "duration" ? stageForm.factEndDate || null : null,
-			factStartDate: isDependencyStage ? null : stageForm.factStartDate || null,
+			factStartDate: isDependencyStage
+				? dependencyFactStart
+					? formatInputDate(dependencyFactStart)
+					: null
+				: stageForm.factStartDate || null,
 			planEndDate:
-				!isDependencyStage && eventKind === "duration"
-					? stageForm.planEndDate || null
+				eventKind === "duration"
+					? isDependencyStage
+						? hasDependencyPlanPeriod && dependencyPlanEnd
+							? formatInputDate(dependencyPlanEnd)
+							: null
+						: stageForm.planEndDate || null
 					: null,
-			planStartDate: isDependencyStage ? null : stageForm.planStartDate || null,
+			planStartDate: isDependencyStage
+				? hasDependencyPlanPeriod && dependencyStart
+					? formatInputDate(dependencyStart)
+					: null
+				: stageForm.planStartDate || null,
 			title,
 		};
 		const stagePayload = {
 			dependsOnStageId: stageForm.dependsOnStageId,
-			durationDays: toNumberOrNull(stageForm.durationDays),
+			durationDays,
 			stageType: stageForm.stageType,
 			title,
 		};
