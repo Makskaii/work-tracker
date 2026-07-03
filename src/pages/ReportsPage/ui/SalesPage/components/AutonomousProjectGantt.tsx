@@ -1330,98 +1330,6 @@ export const AutonomousProjectGantt = ({
 		[gantt.rows, refreshData, stages],
 	);
 
-	const handlePaymentDateDragStart = useCallback(
-		(
-			pointerEvent: ReactPointerEvent<HTMLElement>,
-			payment: AutonomousProjectPayment,
-		) => {
-			const track = getGanttTrackFromPointerEvent(pointerEvent);
-			const paymentsStageId =
-				stages.find((stage) => stage.code === "payments")?.id ?? payment.stageId;
-
-			if (!track) {
-				return;
-			}
-
-			pointerEvent.preventDefault();
-			pointerEvent.stopPropagation();
-
-			const dragTarget = pointerEvent.currentTarget;
-			const trackRect = track.getBoundingClientRect();
-			const boardRect =
-				ganttBoardRef.current?.getBoundingClientRect() ?? trackRect;
-			let latestValue = payment.paymentDate;
-			let hasMoved = false;
-
-			const applyDate = (clientX: number) => {
-				const nextDate = getTrackDateFromClientX(
-					clientX,
-					gantt.timeline,
-					trackRect,
-				);
-				const nextValue = formatInputDate(nextDate);
-
-				latestValue = nextValue;
-				setDragDateGuide({
-					label: formatDateShort(nextDate),
-					leftPx: getDragGuideLeftPx(
-						nextDate,
-						gantt.timeline,
-						trackRect,
-						boardRect,
-					),
-				});
-				setPayments((currentPayments) =>
-					currentPayments.map((currentPayment) =>
-						currentPayment.id === payment.id
-							? {
-									...currentPayment,
-									paymentAnchor: null,
-									paymentDate: nextValue,
-									stageId: paymentsStageId,
-								}
-							: currentPayment,
-					),
-				);
-			};
-			const handlePointerMove = (moveEvent: PointerEvent) => {
-				hasMoved = true;
-				markGanttDragClick(dragTarget);
-				applyDate(moveEvent.clientX);
-			};
-			const handlePointerUp = () => {
-				window.removeEventListener("pointermove", handlePointerMove);
-				window.removeEventListener("pointerup", handlePointerUp);
-				setDragDateGuide(null);
-
-				if (!hasMoved || !latestValue || latestValue === payment.paymentDate) {
-					return;
-				}
-
-				markGanttDragClick(dragTarget);
-				void updateAutonomousProjectPayment(payment.id, {
-					amount: payment.amount,
-					paymentAnchor: null,
-					paymentDate: latestValue,
-					percent: payment.percent,
-					stageId: paymentsStageId,
-					status: payment.status,
-					waitingDays: payment.waitingDays,
-				})
-					.then(() => {
-						onPaymentsChanged?.();
-					})
-					.catch(() => {
-						void refreshData();
-					});
-			};
-
-			window.addEventListener("pointermove", handlePointerMove);
-			window.addEventListener("pointerup", handlePointerUp, { once: true });
-		},
-		[gantt.timeline, onPaymentsChanged, refreshData, stages],
-	);
-
 	const handleStageSubmit = async () => {
 		if (!project?.id) {
 			return;
@@ -1721,7 +1629,6 @@ export const AutonomousProjectGantt = ({
 							key={row.stage.id}
 							monthTicks={monthTicks}
 							onPaymentCreate={openPaymentCreateModal}
-							onPaymentDateDragStart={handlePaymentDateDragStart}
 							onPaymentEdit={openPaymentEditModal}
 							onEventDateDragStart={handleEventDateDragStart}
 							onDependencyLinkDragStart={handleDependencyLinkDragStart}
@@ -1842,7 +1749,6 @@ const AutonomousStageRow = ({
 	onEventDateDragStart,
 	onEventMoveDragStart,
 	onPaymentCreate,
-	onPaymentDateDragStart,
 	onPaymentEdit,
 	onStageEdit,
 	row,
@@ -1869,10 +1775,6 @@ const AutonomousStageRow = ({
 		ganttEvent: ProjectGanttEvent,
 	) => void;
 	onPaymentCreate: () => void;
-	onPaymentDateDragStart: (
-		event: ReactPointerEvent<HTMLElement>,
-		payment: AutonomousProjectPayment,
-	) => void;
 	onPaymentEdit: (payment: AutonomousProjectPayment) => void;
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
@@ -1964,7 +1866,6 @@ const AutonomousStageRow = ({
 					<AutonomousPaymentItem
 						key={payment.id}
 						markerRef={setPaymentMarkerRef(payment.id)}
-						onDateDragStart={onPaymentDateDragStart}
 						onEdit={onPaymentEdit}
 						payment={payment}
 						stageTitle={stageById.get(payment.stageId)?.title ?? "—"}
@@ -2383,7 +2284,6 @@ const AutonomousEventItem = ({
 
 const AutonomousPaymentItem = ({
 	markerRef,
-	onDateDragStart,
 	onEdit,
 	payment,
 	stageTitle,
@@ -2391,10 +2291,6 @@ const AutonomousPaymentItem = ({
 	top,
 }: {
 	markerRef: (node: HTMLButtonElement | null) => void;
-	onDateDragStart: (
-		event: ReactPointerEvent<HTMLElement>,
-		payment: AutonomousProjectPayment,
-	) => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
 	payment: AutonomousProjectPayment;
 	stageTitle: string;
@@ -2429,11 +2325,7 @@ const AutonomousPaymentItem = ({
 			style={style}
 			title={formatAutonomousPaymentTooltip(payment, stageTitle)}
 		>
-			<b
-				onPointerDown={(pointerEvent) =>
-					onDateDragStart(pointerEvent, payment)
-				}
-			>
+			<b>
 				<FaMoneyBillWave aria-hidden="true" />
 			</b>
 			<small>{formatMoney(payment.amount ?? 0)}</small>
