@@ -119,6 +119,11 @@ type DependencyLinkDraft = {
 	startY: number;
 } | null;
 
+type DragDateGuide = {
+	label: string;
+	leftPx: number;
+} | null;
+
 type DependencyLinkSide = "left" | "right";
 
 type PaymentLayoutItem = {
@@ -226,6 +231,24 @@ const getGanttTrackFromPointerEvent = (
 	event.currentTarget.closest<HTMLElement>(
 		"[data-autonomous-gantt-track='true']",
 	);
+
+const getDragGuideLeftPx = (
+	date: Date,
+	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"],
+	trackRect: DOMRect,
+	boardRect: DOMRect,
+) => {
+	const totalTime = Math.max(
+		timeline.end.getTime() - timeline.start.getTime(),
+		DAY_IN_MS,
+	);
+	const ratio = Math.min(
+		Math.max((date.getTime() - timeline.start.getTime()) / totalTime, 0),
+		1,
+	);
+
+	return trackRect.left - boardRect.left + trackRect.width * ratio;
+};
 
 const getEventPayload = (
 	event: ProjectGanttEvent,
@@ -592,6 +615,7 @@ export const AutonomousProjectGantt = ({
 		});
 	const [dependencyLinkDraft, setDependencyLinkDraft] =
 		useState<DependencyLinkDraft>(null);
+	const [dragDateGuide, setDragDateGuide] = useState<DragDateGuide>(null);
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -896,6 +920,8 @@ export const AutonomousProjectGantt = ({
 
 			const dragTarget = pointerEvent.currentTarget;
 			const trackRect = track.getBoundingClientRect();
+			const boardRect =
+				ganttBoardRef.current?.getBoundingClientRect() ?? trackRect;
 			const eventRow = gantt.rows
 				.flatMap((row) => row.events)
 				.find((rowEvent) => rowEvent.event.id === event.id);
@@ -948,6 +974,15 @@ export const AutonomousProjectGantt = ({
 
 				latestEvent = nextEvent;
 				latestValue = nextValue;
+				setDragDateGuide({
+					label: formatDateShort(clampedDate),
+					leftPx: getDragGuideLeftPx(
+						clampedDate,
+						gantt.timeline,
+						trackRect,
+						boardRect,
+					),
+				});
 
 				setEvents((currentEvents) => {
 					const nextEvents = currentEvents.map((currentEvent) => {
@@ -991,6 +1026,7 @@ export const AutonomousProjectGantt = ({
 			const handlePointerUp = () => {
 				window.removeEventListener("pointermove", handlePointerMove);
 				window.removeEventListener("pointerup", handlePointerUp);
+				setDragDateGuide(null);
 
 				if (!hasMoved || latestValue === event[field]) {
 					return;
@@ -1051,6 +1087,8 @@ export const AutonomousProjectGantt = ({
 
 			const dragTarget = pointerEvent.currentTarget;
 			const trackRect = track.getBoundingClientRect();
+			const boardRect =
+				ganttBoardRef.current?.getBoundingClientRect() ?? trackRect;
 			const startClientX = pointerEvent.clientX;
 			const startDate = getTrackDateFromClientX(
 				startClientX,
@@ -1086,6 +1124,15 @@ export const AutonomousProjectGantt = ({
 				hasDragged = true;
 				latestDeltaDays = deltaDays;
 				markGanttDragClick(dragTarget);
+				setDragDateGuide({
+					label: formatDateShort(nextDate),
+					leftPx: getDragGuideLeftPx(
+						nextDate,
+						gantt.timeline,
+						trackRect,
+						boardRect,
+					),
+				});
 				setEvents((currentEvents) => {
 					const nextEvents = currentEvents.map((currentEvent) => {
 						if (!eventIdsToMove.has(currentEvent.id)) {
@@ -1127,6 +1174,7 @@ export const AutonomousProjectGantt = ({
 			const handlePointerUp = () => {
 				window.removeEventListener("pointermove", handlePointerMove);
 				window.removeEventListener("pointerup", handlePointerUp);
+				setDragDateGuide(null);
 
 				if (!hasDragged || latestDeltaDays === 0) {
 					return;
@@ -1300,15 +1348,29 @@ export const AutonomousProjectGantt = ({
 
 			const dragTarget = pointerEvent.currentTarget;
 			const trackRect = track.getBoundingClientRect();
+			const boardRect =
+				ganttBoardRef.current?.getBoundingClientRect() ?? trackRect;
 			let latestValue = payment.paymentDate;
 			let hasMoved = false;
 
 			const applyDate = (clientX: number) => {
-				const nextValue = formatInputDate(
-					getTrackDateFromClientX(clientX, gantt.timeline, trackRect),
+				const nextDate = getTrackDateFromClientX(
+					clientX,
+					gantt.timeline,
+					trackRect,
 				);
+				const nextValue = formatInputDate(nextDate);
 
 				latestValue = nextValue;
+				setDragDateGuide({
+					label: formatDateShort(nextDate),
+					leftPx: getDragGuideLeftPx(
+						nextDate,
+						gantt.timeline,
+						trackRect,
+						boardRect,
+					),
+				});
 				setPayments((currentPayments) =>
 					currentPayments.map((currentPayment) =>
 						currentPayment.id === payment.id
@@ -1330,6 +1392,7 @@ export const AutonomousProjectGantt = ({
 			const handlePointerUp = () => {
 				window.removeEventListener("pointermove", handlePointerMove);
 				window.removeEventListener("pointerup", handlePointerUp);
+				setDragDateGuide(null);
 
 				if (!hasMoved || !latestValue || latestValue === payment.paymentDate) {
 					return;
@@ -1639,6 +1702,20 @@ export const AutonomousProjectGantt = ({
 						dependencyLinkDraft={dependencyLinkDraft}
 						layout={paymentLinksLayout}
 					/>
+					{dragDateGuide ? (
+						<div className={styles.ganttDragDateGuide}>
+							<span
+								className={styles.ganttDragDateGuideLine}
+								style={{ left: dragDateGuide.leftPx }}
+							/>
+							<span
+								className={styles.ganttDragDateGuideLabel}
+								style={{ left: dragDateGuide.leftPx }}
+							>
+								{dragDateGuide.label}
+							</span>
+						</div>
+					) : null}
 					{gantt.rows.map((row) => (
 						<AutonomousStageRow
 							key={row.stage.id}
