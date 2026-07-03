@@ -123,8 +123,7 @@ type DependencyLinkDraft = {
 } | null;
 
 type DragDateGuide = {
-	label: string;
-	leftPercent: number;
+	date: Date;
 } | null;
 
 type DependencyLinkSide = "left" | "right";
@@ -645,6 +644,9 @@ export const AutonomousProjectGantt = ({
 
 		return weekTicks.filter((_, index) => index % step === 0);
 	}, [weekTicks]);
+	const dragDateGuidePercent = dragDateGuide
+		? getDragGuideLeftPercent(dragDateGuide.date, gantt.timeline)
+		: null;
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage])),
 		[stages],
@@ -989,11 +991,7 @@ export const AutonomousProjectGantt = ({
 				latestEvent = nextEvent;
 				latestValue = nextValue;
 				setDragDateGuide({
-					label: formatDateShort(clampedDate),
-					leftPercent: getDragGuideLeftPercent(
-						clampedDate,
-						gantt.timeline,
-					),
+					date: clampedDate,
 				});
 
 				setEvents((currentEvents) => {
@@ -1175,11 +1173,7 @@ export const AutonomousProjectGantt = ({
 						? nextEventRange?.start
 						: nextEventRange?.end) ?? nextDate;
 				setDragDateGuide({
-					label: formatDateShort(guideDate),
-					leftPercent: getDragGuideLeftPercent(
-						guideDate,
-						gantt.timeline,
-					),
+					date: guideDate,
 				});
 
 				latestEventsToSave = nextEvents.filter((currentEvent) =>
@@ -1685,12 +1679,12 @@ export const AutonomousProjectGantt = ({
 							monthTicks={monthTicks}
 							weekTicks={scaleWeekTicks}
 						/>
-						{dragDateGuide ? (
+						{dragDateGuide && dragDateGuidePercent !== null ? (
 							<div
 								className={styles.ganttDragDateGuideLabel}
-								style={{ left: `${dragDateGuide.leftPercent}%` }}
+								style={{ left: `${dragDateGuidePercent}%` }}
 							>
-								{dragDateGuide.label}
+								{formatDateShort(dragDateGuide.date)}
 							</div>
 						) : null}
 					</div>
@@ -1701,7 +1695,7 @@ export const AutonomousProjectGantt = ({
 					{gantt.rows.map((row) => (
 						<AutonomousStageRow
 							key={row.stage.id}
-							dragDateGuide={dragDateGuide}
+							dragDateGuidePercent={dragDateGuidePercent}
 							monthTicks={monthTicks}
 							onPaymentCreate={openPaymentCreateModal}
 							onPaymentEdit={openPaymentEditModal}
@@ -1732,10 +1726,10 @@ export const AutonomousProjectGantt = ({
 							monthTicks={monthTicks}
 							weekTicks={weekTicks}
 						/>
-						{dragDateGuide ? (
+						{dragDateGuidePercent !== null ? (
 							<span
 								className={styles.ganttDragDateGuideLine}
-								style={{ left: `${dragDateGuide.leftPercent}%` }}
+								style={{ left: `${dragDateGuidePercent}%` }}
 							/>
 						) : null}
 					</div>
@@ -1825,7 +1819,7 @@ const AutonomousPaymentLinksLayer = ({
 };
 
 const AutonomousStageRow = ({
-	dragDateGuide,
+	dragDateGuidePercent,
 	monthTicks,
 	onDependencyLinkDragStart,
 	onEventDateDragStart,
@@ -1841,7 +1835,7 @@ const AutonomousStageRow = ({
 	timeline,
 	weekTicks,
 }: {
-	dragDateGuide: DragDateGuide;
+	dragDateGuidePercent: number | null;
 	monthTicks: GanttMonthTick[];
 	onDependencyLinkDragStart: (
 		event: ReactPointerEvent<HTMLElement>,
@@ -1931,10 +1925,10 @@ const AutonomousStageRow = ({
 					monthTicks={monthTicks}
 					weekTicks={weekTicks}
 				/>
-				{dragDateGuide ? (
+				{dragDateGuidePercent !== null ? (
 					<span
 						className={styles.ganttDragDateGuideLine}
-						style={{ left: `${dragDateGuide.leftPercent}%` }}
+						style={{ left: `${dragDateGuidePercent}%` }}
 					/>
 				) : null}
 				{row.events.map((event) => (
