@@ -119,6 +119,7 @@ const paymentStatusLabels = {
 } as const;
 
 type PaymentsScope = "all" | "client" | "project";
+type PaymentChartScale = "year" | "halfYear" | "month";
 
 type AutonomousProjectData = {
 	events: ProjectGanttEvent[];
@@ -176,9 +177,19 @@ const isProjectReportDateOverdue = (date: string | null | undefined) => {
 const getPaymentMonthKey = (date: Date) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
+const getPaymentDayKey = (date: Date) =>
+	`${getPaymentMonthKey(date)}-${String(date.getDate()).padStart(2, "0")}`;
+
 const getPaymentMonthKeyTime = (key: string) => {
 	const [year, month] = key.split("-").map(Number);
 	const date = new Date(year, month - 1, 1);
+
+	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
+};
+
+const getPaymentDayKeyTime = (key: string) => {
+	const [year, month, day] = key.split("-").map(Number);
+	const date = new Date(year, month - 1, day);
 
 	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
 };
@@ -190,6 +201,25 @@ const formatPaymentMonthLabel = (date: Date) =>
 	})
 		.format(date)
 		.replace(".", "");
+
+const formatPaymentDayLabel = (date: Date) =>
+	new Intl.DateTimeFormat("ru-RU", {
+		day: "2-digit",
+		month: "2-digit",
+	}).format(date);
+
+const getPaymentMonthDate = (key: string) => {
+	const [year, month] = key.split("-").map(Number);
+	const date = new Date(year, month - 1, 1);
+
+	return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const paymentChartScaleLabels: Record<PaymentChartScale, string> = {
+	year: "Год",
+	halfYear: "Полгода",
+	month: "Месяц",
+};
 
 const getAutonomousPaymentStatusClassName = (
 	status: AutonomousProjectPayment["status"],
@@ -1515,6 +1545,10 @@ const AutonomousPaymentsTab = ({
 	scope: PaymentsScope;
 	stages: ProjectGanttStage[];
 }) => {
+	const [chartScale, setChartScale] = useState<PaymentChartScale>("year");
+	const [selectedChartMonthKey, setSelectedChartMonthKey] = useState<
+		string | null
+	>(null);
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage.title])),
 		[stages],
@@ -1556,14 +1590,61 @@ const AutonomousPaymentsTab = ({
 			}),
 		[paymentEvents, payments, stages],
 	);
-	const paymentsByMonth = useMemo(() => {
-		return paymentsWithDisplayDates.reduce(
-			(result, payment) => {
+	const paymentDateItems = useMemo(
+		() =>
+			paymentsWithDisplayDates.map((payment) => {
 				const date = payment.paymentDate ? new Date(payment.paymentDate) : null;
 				const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
-				const key = validDate ? getPaymentMonthKey(validDate) : "no-date";
+
+				return { date: validDate, payment };
+			}),
+		[paymentsWithDisplayDates],
+	);
+	const availableMonthKeys = useMemo(
+		() =>
+			Array.from(
+				new Set(
+					paymentDateItems
+						.map((item) => (item.date ? getPaymentMonthKey(item.date) : null))
+						.filter((key): key is string => Boolean(key)),
+				),
+			).sort(
+				(left, right) =>
+					getPaymentMonthKeyTime(left) - getPaymentMonthKeyTime(right),
+			),
+		[paymentDateItems],
+	);
+	const activeChartMonthKey =
+		selectedChartMonthKey && availableMonthKeys.includes(selectedChartMonthKey)
+			? selectedChartMonthKey
+			: (availableMonthKeys.at(-1) ?? null);
+	const chartColumns = useMemo(() => {
+		const groups = paymentDateItems.reduce(
+			(result, { date, payment }) => {
+				if (chartScale === "month") {
+					if (!date || getPaymentMonthKey(date) !== activeChartMonthKey) {
+						return result;
+					}
+				}
+
+				if (chartScale === "halfYear" && date) {
+					const monthIndex = availableMonthKeys.indexOf(getPaymentMonthKey(date));
+					const lastMonthIndex = Math.max(availableMonthKeys.length - 1, 0);
+					const firstMonthIndex = Math.max(lastMonthIndex - 5, 0);
+
+					if (monthIndex < firstMonthIndex || monthIndex > lastMonthIndex) {
+						return result;
+					}
+				}
+
+				const key =
+					date && chartScale === "month"
+						? getPaymentDayKey(date)
+						: date
+							? getPaymentMonthKey(date)
+							: "no-date";
 				const group = result.get(key) ?? {
-					date: validDate,
+					date,
 					items: [],
 				};
 
@@ -1577,9 +1658,7 @@ const AutonomousPaymentsTab = ({
 				{ date: Date | null; items: AutonomousProjectPayment[] }
 			>(),
 		);
-	}, [paymentsWithDisplayDates]);
-	const chartColumns = useMemo(() => {
-		const columns = Array.from(paymentsByMonth.entries()).map(([key, group]) => {
+		const columns = Array.from(groups.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(
 				(sum, payment) => sum + getAutonomousPaymentAmount(payment),
 				0,
@@ -1595,13 +1674,24 @@ const AutonomousPaymentsTab = ({
 				amount,
 				date: group.date,
 				key,
+				label:
+					group.date && chartScale === "month"
+						? formatPaymentDayLabel(group.date)
+						: group.date
+							? formatPaymentMonthLabel(group.date)
+							: "без даты",
 				segments,
 			};
 		});
 
-		columns.sort((left, right) =>
-			getPaymentMonthKeyTime(left.key) - getPaymentMonthKeyTime(right.key),
-		);
+		columns.sort((left, right) => {
+			if (left.key === "no-date") return 1;
+			if (right.key === "no-date") return -1;
+
+			return chartScale === "month"
+				? getPaymentDayKeyTime(left.key) - getPaymentDayKeyTime(right.key)
+				: getPaymentMonthKeyTime(left.key) - getPaymentMonthKeyTime(right.key);
+		});
 
 		const maxAmount = Math.max(...columns.map((column) => column.amount), 1);
 
@@ -1609,8 +1699,19 @@ const AutonomousPaymentsTab = ({
 			...column,
 			maxAmount,
 		}));
-	}, [paymentsByMonth]);
+	}, [
+		activeChartMonthKey,
+		availableMonthKeys,
+		chartScale,
+		paymentDateItems,
+	]);
 	const hasChartColumns = chartColumns.length > 0;
+	const chartMonthDate = activeChartMonthKey
+		? getPaymentMonthDate(activeChartMonthKey)
+		: null;
+	const chartMonthTitle = chartMonthDate
+		? formatPaymentMonthLabel(chartMonthDate)
+		: "";
 
 	if (!project) {
 		return (
@@ -1671,12 +1772,45 @@ const AutonomousPaymentsTab = ({
 			</div>
 
 			<div className={styles.marginalityCard}>
-				<h4>График оплат по датам</h4>
+				<div className={styles.paymentChartHeader}>
+					<div className={styles.paymentChartTitle}>
+						<div>
+							<h4>График оплат по датам</h4>
+							{chartScale === "month" && chartMonthTitle ? (
+								<span>{chartMonthTitle}</span>
+							) : null}
+						</div>
+					</div>
+					<div className={styles.paymentChartScaleButtons}>
+						{Object.entries(paymentChartScaleLabels).map(([scaleId, label]) => (
+							<button
+								key={scaleId}
+								type="button"
+								className={
+									chartScale === scaleId ? styles.activeChartScale : ""
+								}
+								onClick={() => setChartScale(scaleId as PaymentChartScale)}
+							>
+								{label}
+							</button>
+						))}
+					</div>
+				</div>
 				<div className={styles.paymentLegend}>
 					<span className={styles.paymentPaid}>оплачено</span>
 					<span className={styles.paymentCanceled}>неоплачено</span>
 				</div>
 				<div className={styles.paymentChart}>
+					{chartScale === "month" ? (
+						<button
+							type="button"
+							className={styles.paymentChartBackButton}
+							onClick={() => setChartScale("year")}
+							aria-label="Вернуться к месяцам"
+						>
+							←
+						</button>
+					) : null}
 					{hasChartColumns ? (
 						<div
 							className={`${styles.chartPlot} ${
@@ -1685,17 +1819,40 @@ const AutonomousPaymentsTab = ({
 						>
 							<div className={styles.chartAxisLabel}>к оплате</div>
 							{chartColumns.map(
-								({ amount: periodAmount, date, key, maxAmount, segments }) => {
+								({
+									amount: periodAmount,
+									date,
+									key,
+									label,
+									maxAmount,
+									segments,
+								}) => {
 									const columnHeight = periodAmount
 										? Math.max((periodAmount / maxAmount) * 150, 48)
 										: 0;
+									const columnMonthKey =
+										chartScale !== "month" && date
+											? getPaymentMonthKey(date)
+											: null;
 
 									return (
-										<div key={key} className={styles.periodColumn}>
+										<button
+											key={key}
+											type="button"
+											className={`${styles.periodColumn} ${
+												columnMonthKey ? styles.periodColumnClickable : ""
+											}`}
+											onClick={
+												columnMonthKey
+													? () => {
+															setSelectedChartMonthKey(columnMonthKey);
+															setChartScale("month");
+														}
+													: undefined
+											}
+										>
 											<div className={styles.periodHeader}>
-												<strong>
-													{date ? formatPaymentMonthLabel(date) : "без даты"}
-												</strong>
+												<strong>{label}</strong>
 												<small>{formatMoney(periodAmount)}</small>
 											</div>
 											<div
@@ -1724,7 +1881,7 @@ const AutonomousPaymentsTab = ({
 													<span className={styles.paymentZeroSegment} />
 												)}
 											</div>
-										</div>
+										</button>
 									);
 								},
 							)}
