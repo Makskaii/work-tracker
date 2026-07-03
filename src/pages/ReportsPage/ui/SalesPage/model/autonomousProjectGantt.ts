@@ -12,6 +12,7 @@ import {
 import type {
 	AutonomousProjectPayment,
 	ProjectGanttEvent,
+	ProjectGanttDependencyAnchor,
 	ProjectGanttStage,
 } from "./types";
 
@@ -39,6 +40,38 @@ export type AutonomousProjectGantt = {
 };
 
 const MIN_TIMELINE_DAYS = 56;
+const DEFAULT_DEPENDENCY_ANCHOR: ProjectGanttDependencyAnchor = "stage_end";
+
+export const getAutonomousEventAnchorDate = (
+	event: AutonomousGanttEventRow,
+	anchor: ProjectGanttDependencyAnchor | null | undefined,
+) => {
+	const dependencyAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+
+	if (dependencyAnchor === "stage_start") {
+		return (
+			event.factStart ??
+			event.displayStart ??
+			event.planStart ??
+			event.displayDate ??
+			event.factEnd ??
+			event.displayEnd ??
+			event.planEnd ??
+			null
+		);
+	}
+
+	return (
+		event.factEnd ??
+		event.displayEnd ??
+		event.planEnd ??
+		event.displayDate ??
+		event.factStart ??
+		event.displayStart ??
+		event.planStart ??
+		null
+	);
+};
 
 const buildEventRow = (
 	event: ProjectGanttEvent,
@@ -64,14 +97,9 @@ const buildEventRow = (
 			)
 		: null;
 	const dependencyDurationDays = stage?.durationDays ?? 0;
-	const dependencyStart =
-		dependencyRow?.factEnd ??
-		dependencyRow?.displayEnd ??
-		dependencyRow?.planEnd ??
-		dependencyRow?.displayDate ??
-		dependencyRow?.factStart ??
-		dependencyRow?.planStart ??
-		null;
+	const dependencyStart = dependencyRow
+		? getAutonomousEventAnchorDate(dependencyRow, stage?.dependencyAnchor)
+		: null;
 	const hasDependencyDuration =
 		Boolean(stage?.dependsOnStageId) && dependencyDurationDays > 0;
 

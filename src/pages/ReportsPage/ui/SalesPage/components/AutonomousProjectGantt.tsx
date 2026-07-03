@@ -20,6 +20,7 @@ import {
 	buildAutonomousProjectGantt,
 	formatAutonomousEventTooltip,
 	formatAutonomousPaymentTooltip,
+	getAutonomousEventAnchorDate,
 	getAutonomousEventStyle,
 	resolveAutonomousPaymentDates,
 } from "../model/autonomousProjectGantt";
@@ -55,6 +56,7 @@ import type {
 	AutonomousGanttEventKind,
 	AutonomousPaymentStatus,
 	AutonomousProjectPayment,
+	ProjectGanttDependencyAnchor,
 	ProjectGanttEvent,
 	ProjectGanttEventPayload,
 	ProjectGanttStage,
@@ -78,6 +80,7 @@ export { PaymentModal } from "./AutonomousPaymentModal";
 
 type StageFormState = {
 	dependsOnStageId: number | null;
+	dependencyAnchor: ProjectGanttDependencyAnchor;
 	durationDays: string;
 	eventId: number | null;
 	factEndDate: string;
@@ -133,6 +136,7 @@ type PaymentLayoutItem = {
 
 const DEFAULT_STAGE_FORM: StageFormState = {
 	dependsOnStageId: null,
+	dependencyAnchor: "stage_end",
 	durationDays: "",
 	eventId: null,
 	factEndDate: "",
@@ -178,6 +182,7 @@ const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
 const GANTT_DRAG_CLICK_THRESHOLD = 4;
+const GANTT_DEPENDENCY_TARGET_HITBOX_PADDING = 28;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type EventDateField =
@@ -304,11 +309,18 @@ const shiftEventDateValue = (value: string | null, deltaDays: number) =>
 const getDependentStageIds = (
 	stageId: number,
 	stages: ProjectGanttStage[],
+	dependencyAnchor?: ProjectGanttDependencyAnchor,
 ) => {
 	const dependentStageIds = new Set<number>();
-	const collectDependentStageIds = (currentStageId: number) => {
+	const collectDependentStageIds = (currentStageId: number, isRoot = false) => {
 		stages
-			.filter((stage) => stage.dependsOnStageId === currentStageId)
+			.filter(
+				(stage) =>
+					stage.dependsOnStageId === currentStageId &&
+					(!isRoot ||
+						!dependencyAnchor ||
+						(stage.dependencyAnchor ?? "stage_end") === dependencyAnchor),
+			)
 			.forEach((stage) => {
 				if (dependentStageIds.has(stage.id)) {
 					return;
@@ -319,7 +331,7 @@ const getDependentStageIds = (
 			});
 	};
 
-	collectDependentStageIds(stageId);
+	collectDependentStageIds(stageId, true);
 
 	return dependentStageIds;
 };
@@ -864,6 +876,7 @@ export const AutonomousProjectGantt = ({
 
 		setStageForm({
 			dependsOnStageId: stage.dependsOnStageId,
+			dependencyAnchor: stage.dependencyAnchor ?? "stage_end",
 			durationDays: stage.durationDays === null ? "" : String(stage.durationDays),
 			eventId: stageEvent?.id ?? null,
 			factEndDate: stageEvent?.factEndDate ?? "",
@@ -925,10 +938,19 @@ export const AutonomousProjectGantt = ({
 			const eventRow = gantt.rows
 				.flatMap((row) => row.events)
 				.find((rowEvent) => rowEvent.event.id === event.id);
-			const linkedStageIds = getDependentStageIds(event.stageId, stages);
+			const dependencyAnchor: ProjectGanttDependencyAnchor | null =
+				field === "factStartDate" ||
+				(field === "planStartDate" && !event.factStartDate)
+					? "stage_start"
+					: field === "factEndDate" ||
+							(field === "planEndDate" && !event.factEndDate)
+						? "stage_end"
+						: null;
+			const linkedStageIds = dependencyAnchor
+				? getDependentStageIds(event.stageId, stages, dependencyAnchor)
+				: new Set<number>();
 			const shouldMoveLinkedStages =
-				field === "factEndDate" ||
-				(field === "planEndDate" && !event.factEndDate);
+				dependencyAnchor !== null;
 			const eventIdsToMove = new Set<number>();
 			events.forEach((currentEvent) => {
 				if (
@@ -1203,7 +1225,6 @@ export const AutonomousProjectGantt = ({
 		(
 			pointerEvent: ReactPointerEvent<HTMLElement>,
 			sourceStageId: number,
-			side: DependencyLinkSide,
 		) => {
 			if (pointerEvent.button !== 0) {
 				return;
@@ -1228,25 +1249,86 @@ export const AutonomousProjectGantt = ({
 				handleRect.left + handleRect.width / 2,
 				handleRect.top + handleRect.height / 2,
 			);
-			const getTargetStageId = (clientX: number, clientY: number) => {
-				for (const [stageId, node] of eventRefsByStageId.current.entries()) {
-					if (stageId === sourceStageId) {
-						continue;
-					}
-
-					const rect = node.getBoundingClientRect();
-
+			const initialStages = stages;
+			const initialTargetRects = Array.from(
+				eventRefsByStageId.current.entries(),
+			)
+				.filter(([stageId]) => stageId !== sourceStageId)
+				.map(([stageId, node]) => ({
+					rect: node.getBoundingClientRect(),
+					stageId,
+				}));
+			const getTargetStage = (clientX: number, clientY: number) => {
+				for (const { rect, stageId } of initialTargetRects) {
 					if (
-						clientX >= rect.left &&
-						clientX <= rect.right &&
-						clientY >= rect.top &&
-						clientY <= rect.bottom
+						clientX >=
+							rect.left - GANTT_DEPENDENCY_TARGET_HITBOX_PADDING &&
+						clientX <=
+							rect.right + GANTT_DEPENDENCY_TARGET_HITBOX_PADDING &&
+						clientY >=
+							rect.top - GANTT_DEPENDENCY_TARGET_HITBOX_PADDING &&
+						clientY <=
+							rect.bottom + GANTT_DEPENDENCY_TARGET_HITBOX_PADDING
 					) {
-						return stageId;
+						return {
+							dependencyAnchor:
+								clientX <= rect.left + rect.width / 2
+									? "stage_start"
+									: "stage_end",
+							stageId,
+						} satisfies {
+							dependencyAnchor: ProjectGanttDependencyAnchor;
+							stageId: number;
+						};
 					}
 				}
 
 				return null;
+			};
+			const getDependencyCandidate = (
+				targetStage: {
+					dependencyAnchor: ProjectGanttDependencyAnchor;
+					stageId: number;
+				} | null,
+			) => {
+				if (!targetStage) {
+					return null;
+				}
+
+				const dependentStageId = sourceStageId;
+				const dependencyStageId = targetStage.stageId;
+				const dependencyAnchor = targetStage.dependencyAnchor;
+
+				if (
+					wouldCreateDependencyCycle(
+						dependentStageId,
+						dependencyStageId,
+						initialStages,
+					)
+				) {
+					return null;
+				}
+
+				const dependentStage = initialStages.find(
+					(stage) => stage.id === dependentStageId,
+				);
+				const dependentEventRow = gantt.rows
+					.flatMap((row) => row.events)
+					.find((eventRow) => eventRow.event.stageId === dependentStageId);
+				const dependentRange = dependentEventRow
+					? getEventVisualRange(dependentEventRow)
+					: null;
+				const durationDays =
+					dependentRange?.start && dependentRange.end
+						? Math.max(daysBetween(dependentRange.start, dependentRange.end), 1)
+						: (dependentStage?.durationDays ?? null);
+
+				return {
+					dependencyAnchor,
+					dependencyStageId,
+					dependentStageId,
+					durationDays,
+				};
 			};
 			const updateDraft = (clientX: number, clientY: number) => {
 				const endPoint = getBoardPoint(clientX, clientY);
@@ -1267,57 +1349,31 @@ export const AutonomousProjectGantt = ({
 				window.removeEventListener("pointerup", handlePointerUp);
 				setDependencyLinkDraft(null);
 
-				const targetStageId = getTargetStageId(upEvent.clientX, upEvent.clientY);
-
-				if (!targetStageId) {
-					return;
-				}
-
-				const dependentStageId =
-					side === "right" ? targetStageId : sourceStageId;
-				const dependencyStageId =
-					side === "right" ? sourceStageId : targetStageId;
-
-				if (
-					wouldCreateDependencyCycle(
-						dependentStageId,
-						dependencyStageId,
-						stages,
-					)
-				) {
-					return;
-				}
-
-				const dependentStage = stages.find(
-					(stage) => stage.id === dependentStageId,
+				const candidate = getDependencyCandidate(
+					getTargetStage(upEvent.clientX, upEvent.clientY),
 				);
-				const dependentEventRow = gantt.rows
-					.flatMap((row) => row.events)
-					.find((eventRow) => eventRow.event.stageId === dependentStageId);
-				const dependentRange = dependentEventRow
-					? getEventVisualRange(dependentEventRow)
-					: null;
-				const durationDays =
-					dependentStage?.durationDays ??
-					(dependentRange?.start && dependentRange.end
-						? Math.max(daysBetween(dependentRange.start, dependentRange.end), 1)
-						: null);
+
+				if (!candidate) {
+					return;
+				}
 
 				setStages((currentStages) =>
 					currentStages.map((stage) =>
-						stage.id === dependentStageId
+						stage.id === candidate.dependentStageId
 							? {
 									...stage,
-									dependsOnStageId: dependencyStageId,
-									durationDays,
+									dependsOnStageId: candidate.dependencyStageId,
+									dependencyAnchor: candidate.dependencyAnchor,
+									durationDays: candidate.durationDays,
 								}
 							: stage,
 					),
 				);
 
-				void updateProjectGanttStage(dependentStageId, {
-					dependsOnStageId: dependencyStageId,
-					durationDays,
+				void updateProjectGanttStage(candidate.dependentStageId, {
+					dependsOnStageId: candidate.dependencyStageId,
+					dependencyAnchor: candidate.dependencyAnchor,
+					durationDays: candidate.durationDays,
 				}).catch(() => {
 					void refreshData();
 				});
@@ -1350,14 +1406,12 @@ export const AutonomousProjectGantt = ({
 					.find((row) => row.stage.id === stageForm.dependsOnStageId)
 					?.events.at(0) ?? null)
 			: null;
-		const dependencyStart =
-			dependencyEventRow?.factEnd ??
-			dependencyEventRow?.displayEnd ??
-			dependencyEventRow?.planEnd ??
-			dependencyEventRow?.displayDate ??
-			dependencyEventRow?.factStart ??
-			dependencyEventRow?.planStart ??
-			null;
+		const dependencyStart = dependencyEventRow
+			? getAutonomousEventAnchorDate(
+					dependencyEventRow,
+					stageForm.dependencyAnchor,
+				)
+			: null;
 		const dependencyFactEnd = parseGanttDate(stageForm.factEndDate);
 		const dependencyFallbackStart =
 			parseGanttDate(stageForm.planStartDate) ??
@@ -1405,6 +1459,9 @@ export const AutonomousProjectGantt = ({
 		};
 		const stagePayload = {
 			dependsOnStageId: stageForm.dependsOnStageId,
+			dependencyAnchor: stageForm.dependsOnStageId
+				? stageForm.dependencyAnchor
+				: null,
 			durationDays,
 			stageType: stageForm.stageType,
 			title,
@@ -1969,22 +2026,29 @@ const AutonomousEventItem = ({
 	}
 
 	if (event.isDependencyDuration || event.event.eventKind === "duration") {
+		const planStart = event.isDependencyDuration
+			? event.displayStart
+			: event.planStart;
+		const planEnd = event.isDependencyDuration ? event.displayEnd : event.planEnd;
+		const factStart = event.isDependencyDuration
+			? event.displayStart
+			: event.factStart;
 		const safeFactEnd =
 			event.factEnd && event.displayStart && event.factEnd < event.displayStart
 				? event.displayStart
 				: event.factEnd;
 		const planSegment =
-			event.planStart && event.planEnd
+			planStart && planEnd
 				? {
-						end: event.planEnd,
-						start: event.planStart,
+						end: planEnd,
+						start: planStart,
 					}
 				: null;
-		const factEnd = safeFactEnd ?? (event.factStart ? today : null);
+		const factEnd = safeFactEnd ?? (factStart ? today : null);
 		const boundaryDates = [
-			event.planStart,
-			event.planEnd,
-			event.factStart,
+			planStart,
+			planEnd,
+			factStart,
 			factEnd,
 		]
 			.filter((date): date is Date => Boolean(date))
@@ -2040,25 +2104,25 @@ const AutonomousEventItem = ({
 						const end = boundaryDates[index + 1];
 						const isInsidePlan = start >= planSegment.start && end <= planSegment.end;
 						const isInsideFact =
-							Boolean(event.factStart && factEnd) &&
-							start >= (event.factStart ?? start) &&
+							Boolean(factStart && factEnd) &&
+							start >= (factStart ?? start) &&
 							end <= (factEnd ?? end);
 						const isEarlyStart =
-							Boolean(event.factStart && event.planStart) &&
-							start < (event.planStart ?? start) &&
-							end <= (event.planStart ?? end);
+							Boolean(factStart && planStart) &&
+							start < (planStart ?? start) &&
+							end <= (planStart ?? end);
 						const isLateStart =
-							Boolean(event.factStart) &&
+							Boolean(factStart) &&
 							isInsidePlan &&
-							start < (event.factStart ?? start);
+							start < (factStart ?? start);
 						const isOverdue =
-							Boolean(event.planEnd) &&
-							start >= (event.planEnd ?? start) &&
+							Boolean(planEnd) &&
+							start >= (planEnd ?? start) &&
 							Boolean(factEnd);
 						const isReserve =
-							Boolean(event.factEnd && event.planEnd) &&
+							Boolean(event.factEnd && planEnd) &&
 							start >= (event.factEnd ?? start) &&
-							end <= (event.planEnd ?? end);
+							end <= (planEnd ?? end);
 
 						if (!isInsidePlan && !isInsideFact && !isEarlyStart && !isOverdue) {
 							return null;
@@ -2143,21 +2207,21 @@ const AutonomousEventItem = ({
 					/>
 				))}
 				{renderDateHandle(
-					event.planStart,
+					planStart,
 					"planStartDate",
 					shellStart,
 					shellEnd,
 					styles.ganttDateDragHandlePlan,
 				)}
 				{renderDateHandle(
-					event.planEnd,
+					planEnd,
 					"planEndDate",
 					shellStart,
 					shellEnd,
 					styles.ganttDateDragHandlePlan,
 				)}
 				{renderDateHandle(
-					event.factStart,
+					factStart,
 					"factStartDate",
 					shellStart,
 					shellEnd,
@@ -2401,7 +2465,7 @@ const StageModal = ({
 					/>
 				</label>
 				<label>
-					<span>Привязка к этапу</span>
+					<span>Этап привязки</span>
 					<select
 						value={form.dependsOnStageId ?? ""}
 						onChange={(event) =>
@@ -2410,19 +2474,38 @@ const StageModal = ({
 								dependsOnStageId: event.target.value
 									? Number(event.target.value)
 									: null,
+								dependencyAnchor: event.target.value
+									? form.dependencyAnchor
+									: "stage_end",
 							})
 						}
 					>
 						<option value="">Без привязки</option>
 						{availableDependencyStages.map((item) => (
 							<option key={item.id} value={item.id}>
-								После этапа: {item.title}
+								{item.title}
 							</option>
 						))}
 					</select>
 				</label>
 				{isDependencyStage ? (
 					<>
+						<label>
+							<span>Точка привязки</span>
+							<select
+								value={form.dependencyAnchor}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										dependencyAnchor: event.target
+											.value as ProjectGanttDependencyAnchor,
+									})
+								}
+							>
+								<option value="stage_start">К началу этапа</option>
+								<option value="stage_end">К концу этапа</option>
+							</select>
+						</label>
 						<label>
 							<span>Длительность, дней</span>
 							<input
