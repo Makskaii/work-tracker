@@ -3157,25 +3157,20 @@
 	overflow: visible;
 }
 
-.ganttDragDateGuide {
-	position: absolute;
-	inset: 0;
-	z-index: 8;
-	pointer-events: none;
-}
-
 .ganttDragDateGuideLine {
 	position: absolute;
-	top: 38px;
+	top: 0;
 	bottom: 0;
 	width: 0;
 	border-left: 2px dashed rgba(180, 192, 208, 0.92);
 	transform: translateX(-1px);
+	z-index: 8;
+	pointer-events: none;
 }
 
 .ganttDragDateGuideLabel {
 	position: absolute;
-	top: 14px;
+	top: 2px;
 	padding: 2px 6px;
 	border-radius: 6px;
 	background: rgba(15, 28, 44, 0.94);
@@ -3184,6 +3179,8 @@
 	font-weight: 950;
 	white-space: nowrap;
 	transform: translateX(-50%);
+	z-index: 8;
+	pointer-events: none;
 }
 
 .ganttPaymentLinkLine {
