@@ -994,39 +994,36 @@ export const AutonomousProjectGantt = ({
 					date: clampedDate,
 				});
 
-				setEvents((currentEvents) => {
-					const nextEvents = currentEvents.map((currentEvent) => {
-						if (currentEvent.id === event.id) {
-							return nextEvent;
-						}
+				const nextEvents = events.map((currentEvent) => {
+					if (currentEvent.id === event.id) {
+						return nextEvent;
+					}
 
-						if (!eventIdsToMove.has(currentEvent.id)) {
-							return currentEvent;
-						}
+					if (!eventIdsToMove.has(currentEvent.id)) {
+						return currentEvent;
+					}
 
-						const initialEvent =
-							initialEventById.get(currentEvent.id) ?? currentEvent;
+					const initialEvent =
+						initialEventById.get(currentEvent.id) ?? currentEvent;
 
-						return shiftEventDates(initialEvent, deltaDays);
-					});
-
-					latestEventsToSave = nextEvents.filter(
-						(currentEvent) =>
-							currentEvent.id === event.id ||
-							(eventIdsToMove.has(currentEvent.id) &&
-								EVENT_DATE_FIELDS.some((item) => currentEvent[item])),
-					);
-
-					setPayments((currentPayments) =>
-						resolveAutonomousPaymentDates({
-							events: nextEvents,
-							payments: currentPayments,
-							stages,
-						}),
-					);
-
-					return nextEvents;
+					return shiftEventDates(initialEvent, deltaDays);
 				});
+
+				latestEventsToSave = nextEvents.filter(
+					(currentEvent) =>
+						currentEvent.id === event.id ||
+						(eventIdsToMove.has(currentEvent.id) &&
+							EVENT_DATE_FIELDS.some((item) => currentEvent[item])),
+				);
+
+				setEvents(nextEvents);
+				setPayments((currentPayments) =>
+					resolveAutonomousPaymentDates({
+						events: nextEvents,
+						payments: currentPayments,
+						stages,
+					}),
+				);
 			};
 			const handlePointerMove = (moveEvent: PointerEvent) => {
 				hasMoved = true;

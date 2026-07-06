@@ -26,6 +26,7 @@ export const ProjectReportsTab = ({
 	onAuthorChange,
 	onCloseModal,
 	onCreate,
+	onDelete,
 	onFileDelete,
 	onFileDownload,
 	onFilesChange,
@@ -48,6 +49,7 @@ export const ProjectReportsTab = ({
 	onAuthorChange: (authorName: string, authorId: string | null) => void;
 	onCloseModal: () => void;
 	onCreate: () => void;
+	onDelete: (reportEntry: ProjectReportEntry) => Promise<void>;
 	onFileDelete: (
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
@@ -171,6 +173,10 @@ export const ProjectReportsTab = ({
 			<ProjectReportViewModal
 				reportEntry={selectedReportEntry}
 				onClose={() => setSelectedReportEntryId(null)}
+				onDelete={async (reportEntry) => {
+					await onDelete(reportEntry);
+					setSelectedReportEntryId(null);
+				}}
 				onFileDelete={onFileDelete}
 				onFileDownload={onFileDownload}
 				onUpdate={onUpdate}
@@ -182,6 +188,7 @@ export const ProjectReportsTab = ({
 
 const ProjectReportViewModal = ({
 	onClose,
+	onDelete,
 	onFileDelete,
 	onFileDownload,
 	onUpdate,
@@ -189,6 +196,7 @@ const ProjectReportViewModal = ({
 	users,
 }: {
 	onClose: () => void;
+	onDelete: (reportEntry: ProjectReportEntry) => Promise<void>;
 	onFileDelete: (
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
@@ -205,7 +213,11 @@ const ProjectReportViewModal = ({
 	users: User[];
 }) => {
 	const [isEditing, setIsEditing] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
+	const [deleteConfirmationId, setDeleteConfirmationId] = useState<
+		number | null
+	>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState({
 		authorId: null as string | null,
@@ -227,6 +239,7 @@ const ProjectReportViewModal = ({
 		});
 		setError(null);
 		setIsEditing(false);
+		setDeleteConfirmationId(null);
 	}, [reportEntry]);
 
 	const handleSubmit = async () => {
@@ -259,6 +272,53 @@ const ProjectReportViewModal = ({
 			setIsSaving(false);
 		}
 	};
+
+	const handleDelete = async () => {
+		if (!reportEntry) {
+			return;
+		}
+
+		if (deleteConfirmationId !== reportEntry.id) {
+			setDeleteConfirmationId(reportEntry.id);
+			return;
+		}
+
+		setIsDeleting(true);
+		setError(null);
+
+		try {
+			await onDelete(reportEntry);
+			setDeleteConfirmationId(null);
+		} catch {
+			setError("Не удалось удалить отчёт");
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
+	const handleEditCancel = () => {
+		if (!reportEntry) {
+			return;
+		}
+
+		setDraft({
+			authorId: reportEntry.authorId,
+			authorName: reportEntry.authorName,
+			nextReportDate: reportEntry.nextReportDate ?? "",
+			text: reportEntry.text,
+		});
+		setError(null);
+		setIsEditing(false);
+	};
+
+	let deleteButtonText = "Удалить";
+
+	if (isDeleting) {
+		deleteButtonText = "Удаление...";
+	} else if (deleteConfirmationId === reportEntry?.id) {
+		deleteButtonText = "Подтвердить удаление";
+	}
+
 	const authorOptions = getUserAutocompleteOptions(users);
 
 	return (
@@ -269,8 +329,11 @@ const ProjectReportViewModal = ({
 						<h3>Отчёт по проекту</h3>
 						<button
 							type="button"
-							disabled={isSaving}
-							onClick={() => setIsEditing((prev) => !prev)}
+							className={
+								isEditing ? styles.projectReportHiddenAction : undefined
+							}
+							disabled={isSaving || isDeleting || isEditing}
+							onClick={() => setIsEditing(true)}
 						>
 							{isEditing ? "Отменить" : "Редактировать"}
 						</button>
@@ -333,7 +396,7 @@ const ProjectReportViewModal = ({
 								<button
 									type="button"
 									disabled={isSaving}
-									onClick={() => setIsEditing(false)}
+									onClick={handleEditCancel}
 								>
 									Отмена
 								</button>
@@ -396,6 +459,16 @@ const ProjectReportViewModal = ({
 						) : (
 							<small>Файлы не прикреплены</small>
 						)}
+					</div>
+					<div className={styles.ganttFormActions}>
+						<button
+							type="button"
+							className={styles.ganttFormDeleteButton}
+							disabled={isSaving || isDeleting}
+							onClick={handleDelete}
+						>
+							{deleteButtonText}
+						</button>
 					</div>
 				</div>
 			) : null}

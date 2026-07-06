@@ -34,6 +34,7 @@ import {
 	createProjectReportEntry,
 	deleteReportProject,
 	deleteReportProjectFile,
+	deleteProjectReportEntry,
 	deleteProjectReportEntryFile,
 	downloadProjectReportEntryFile,
 	downloadReportProjectFile,
@@ -904,6 +905,21 @@ export const SalesProfitabilityReport = ({
 		updateProjectNextReportDate(selectedReportProject.id, reports);
 	};
 
+	const handleProjectReportDelete = async (reportEntry: ProjectReportEntry) => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		await deleteProjectReportEntry(selectedReportProject.id, reportEntry.id);
+
+		const reports = projectReportEntries.filter(
+			(entry) => entry.id !== reportEntry.id,
+		);
+
+		setProjectReportEntries(reports);
+		updateProjectNextReportDate(selectedReportProject.id, reports);
+	};
+
 	const refreshAutonomousPayments = () => {
 		autonomousProjectDataCacheRef.current.clear();
 		setPaymentsRefreshKey((prev) => prev + 1);
@@ -1453,6 +1469,7 @@ export const SalesProfitabilityReport = ({
 									}}
 									onCloseModal={() => setIsProjectReportModalOpen(false)}
 									onCreate={handleProjectReportCreate}
+									onDelete={handleProjectReportDelete}
 									onFileDelete={deleteProjectReportFile}
 									onFileDownload={downloadProjectReportFile}
 									onFilesChange={setProjectReportFileDrafts}
