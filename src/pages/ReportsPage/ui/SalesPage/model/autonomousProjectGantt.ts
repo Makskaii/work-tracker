@@ -73,6 +73,21 @@ export const getAutonomousEventAnchorDate = (
 	);
 };
 
+export const getAutonomousPlanAnchorDate = (
+	event: AutonomousGanttEventRow,
+	anchor: ProjectGanttDependencyAnchor | null | undefined,
+) => {
+	const dependencyAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+
+	if (dependencyAnchor === "stage_start") {
+		return (
+			event.planStart ?? (event.isDependencyDuration ? event.displayStart : null)
+		);
+	}
+
+	return event.planEnd ?? (event.isDependencyDuration ? event.displayEnd : null);
+};
+
 const buildEventRow = (
 	event: ProjectGanttEvent,
 	stageById: Map<number, ProjectGanttStage>,
@@ -98,7 +113,7 @@ const buildEventRow = (
 		: null;
 	const dependencyDurationDays = stage?.durationDays ?? 0;
 	const dependencyStart = dependencyRow
-		? getAutonomousEventAnchorDate(dependencyRow, stage?.dependencyAnchor)
+		? getAutonomousPlanAnchorDate(dependencyRow, stage?.dependencyAnchor)
 		: null;
 	const hasDependencyDuration =
 		Boolean(stage?.dependsOnStageId) &&

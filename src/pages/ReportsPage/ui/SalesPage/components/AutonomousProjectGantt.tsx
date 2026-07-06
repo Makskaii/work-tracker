@@ -22,6 +22,7 @@ import {
 	formatAutonomousPaymentTooltip,
 	getAutonomousEventAnchorDate,
 	getAutonomousEventStyle,
+	getAutonomousPlanAnchorDate,
 	resolveAutonomousPaymentDates,
 } from "../model/autonomousProjectGantt";
 import {
@@ -375,6 +376,18 @@ const shiftEventDates = (
 			[field]: shiftedValue,
 		};
 	}, event);
+
+const shiftEventPlanDates = (
+	event: ProjectGanttEvent,
+	deltaDays: number,
+) => ({
+	...event,
+	planEndDate: shiftEventDateValue(event.planEndDate, deltaDays),
+	planStartDate: shiftEventDateValue(event.planStartDate, deltaDays),
+});
+
+const hasEventFactDates = (event: ProjectGanttEvent) =>
+	Boolean(event.factStartDate || event.factEndDate);
 
 let shouldSuppressNextGanttClick = false;
 
@@ -927,17 +940,24 @@ export const AutonomousProjectGantt = ({
 			pointerEvent.preventDefault();
 			pointerEvent.stopPropagation();
 
+			if (
+				(field === "factStartDate" || field === "factEndDate") &&
+				!window.confirm(
+					"Это действие изменит фактические даты этапа. Продолжить?",
+				)
+			) {
+				return;
+			}
+
 			const dragTarget = pointerEvent.currentTarget;
 			const trackRect = track.getBoundingClientRect();
 			const eventRow = gantt.rows
 				.flatMap((row) => row.events)
 				.find((rowEvent) => rowEvent.event.id === event.id);
 			const dependencyAnchor: ProjectGanttDependencyAnchor | null =
-				field === "factStartDate" ||
-				(field === "planStartDate" && !event.factStartDate)
+				field === "planStartDate"
 					? "stage_start"
-					: field === "factEndDate" ||
-							(field === "planEndDate" && !event.factEndDate)
+					: field === "planEndDate"
 						? "stage_end"
 						: null;
 			const linkedStageIds = dependencyAnchor
@@ -1006,7 +1026,7 @@ export const AutonomousProjectGantt = ({
 					const initialEvent =
 						initialEventById.get(currentEvent.id) ?? currentEvent;
 
-					return shiftEventDates(initialEvent, deltaDays);
+					return shiftEventPlanDates(initialEvent, deltaDays);
 				});
 
 				latestEventsToSave = nextEvents.filter(
@@ -1113,6 +1133,9 @@ export const AutonomousProjectGantt = ({
 						? "start"
 						: "end"
 					: "start";
+			const shouldAskFactMoveConfirmation = hasEventFactDates(event);
+			let shouldMoveSelectedFactDates = !shouldAskFactMoveConfirmation;
+			let hasResolvedFactMoveConfirmation = !shouldAskFactMoveConfirmation;
 			let latestEventsToSave: ProjectGanttEvent[] = [event];
 			let latestDeltaDays = 0;
 			let hasDragged = false;
@@ -1136,6 +1159,13 @@ export const AutonomousProjectGantt = ({
 					return;
 				}
 
+				if (!hasResolvedFactMoveConfirmation) {
+					shouldMoveSelectedFactDates = window.confirm(
+						"Это действие изменит фактические даты этапа. Продолжить?",
+					);
+					hasResolvedFactMoveConfirmation = true;
+				}
+
 				hasDragged = true;
 				latestDeltaDays = deltaDays;
 				markGanttDragClick(dragTarget);
@@ -1147,11 +1177,11 @@ export const AutonomousProjectGantt = ({
 					const initialEvent =
 						initialEventById.get(currentEvent.id) ?? currentEvent;
 
-					return shiftEventDates(
-						initialEvent,
-						deltaDays,
-						currentEvent.id === event.id ? eventRow : undefined,
-					);
+					if (currentEvent.id === event.id && shouldMoveSelectedFactDates) {
+						return shiftEventDates(initialEvent, deltaDays, eventRow);
+					}
+
+					return shiftEventPlanDates(initialEvent, deltaDays);
 				});
 				const nextGantt = buildAutonomousProjectGantt({
 					events: nextEvents,
@@ -1419,20 +1449,14 @@ export const AutonomousProjectGantt = ({
 					?.events.at(0) ?? null)
 			: null;
 		const dependencyStart = dependencyEventRow
-			? getAutonomousEventAnchorDate(
+			? getAutonomousPlanAnchorDate(
 					dependencyEventRow,
 					stageForm.dependencyAnchor,
 				)
 			: null;
-		const dependencyFactEnd = parseGanttDate(stageForm.factEndDate);
 		const dependencyFallbackStart =
 			parseGanttDate(stageForm.planStartDate) ??
-			parseGanttDate(existingStageEvent?.planStartDate ?? null) ??
-			parseGanttDate(stageForm.factStartDate) ??
-			parseGanttDate(existingStageEvent?.factStartDate ?? null) ??
-			(dependencyFactEnd && durationDays
-				? addDays(dependencyFactEnd, -durationDays)
-				: dependencyFactEnd);
+			parseGanttDate(existingStageEvent?.planStartDate ?? null);
 		const dependencyPlanStart = dependencyStart ?? dependencyFallbackStart;
 		const dependencyPlanEnd =
 			isDependencyDurationStage && dependencyPlanStart
@@ -1442,20 +1466,13 @@ export const AutonomousProjectGantt = ({
 						parseGanttDate(existingStageEvent?.planEndDate ?? null) ??
 						dependencyPlanStart)
 				: null;
-		const dependencyFactStart =
-			dependencyPlanStart && dependencyFactEnd
-				? getDateMin(dependencyPlanStart, dependencyFactEnd)
-				: (dependencyPlanStart ?? dependencyFactEnd);
 		const eventPayload = {
 			eventKind,
 			factEndDate: eventKind === "duration" ? stageForm.factEndDate || null : null,
-			factStartDate: isDependencyStage
-				? eventKind === "duration"
-					? dependencyFactStart
-						? formatInputDate(dependencyFactStart)
-						: null
-					: stageForm.factEndDate || null
-				: stageForm.factStartDate || null,
+			factStartDate:
+				eventKind === "duration"
+					? stageForm.factStartDate || null
+					: stageForm.factStartDate || stageForm.factEndDate || null,
 			planEndDate:
 				eventKind === "duration"
 					? isDependencyStage
