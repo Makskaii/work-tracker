@@ -143,7 +143,13 @@ export const SalesCard = ({
 						<div
 							onClick={() => openTask(item.id, EntityTypeIds.default, "common")}
 						>
-							<SalesItem key={item.id} deal={item} />
+							<SalesItem
+								key={item.id}
+								deal={item}
+								onTitleClick={() =>
+									openTask(item.id, EntityTypeIds.default, "common")
+								}
+							/>
 						</div>
 					))}
 				</div>

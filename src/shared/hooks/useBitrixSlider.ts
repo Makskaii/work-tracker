@@ -11,7 +11,9 @@ export const useBitrixSlider = () => {
 	) => {
 		const path = `/crm/${type === "task" ? `type/${entityId}` : "deal"}/details/${itemId}/`;
 
-		if (!b24) return null;
+		if (!b24) {
+			return window.open(path, "_blank", "noopener,noreferrer");
+		}
 
 		const url = b24.slider.getUrl(path);
 		return b24.slider.openPath(url, 1100);

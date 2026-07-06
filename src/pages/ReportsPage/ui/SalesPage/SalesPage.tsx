@@ -75,23 +75,25 @@ const headersForSales: Header<SalesTableFields>[] = [
 		key: "id",
 		render: (_value, additionalData) => {
 			const row = additionalData?.row as SalesTableFields | undefined;
+			const handleDetailsClick = () => {
+				if (!row) return;
+
+				if (!row.items?.length) {
+					notify({
+						message: `${row.title}: 0`,
+						type: "warning",
+					});
+					return;
+				}
+
+				additionalData?.setSelectedRowId?.(row.id);
+			};
 
 			return (
 				<button
 					type="button"
 					className={cls.detailsButton}
-					onClick={() => {
-						if (!row) return;
-
-						additionalData?.setSelectedRowId?.(row.id);
-
-						if (!row.items?.length) {
-							notify({
-								message: `${row.title} равно 0`,
-								type: "warning",
-							});
-						}
-					}}
+					onClick={handleDetailsClick}
 				>
 					подробнее
 				</button>
