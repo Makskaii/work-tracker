@@ -2,7 +2,13 @@ import type { Deal } from "@/pages/ReportsPage/types/deals.types";
 import { SalesCodes } from "@/pages/ReportsPage/types/types";
 import { convertToDate } from "@/shared/utils";
 
-export const SalesItem = ({ deal }: { deal: Deal }) => {
+export const SalesItem = ({
+	deal,
+	onTitleClick,
+}: {
+	deal: Deal;
+	onTitleClick?: () => void;
+}) => {
 	return (
 		<div
 			key={deal.id}
@@ -25,16 +31,28 @@ export const SalesItem = ({ deal }: { deal: Deal }) => {
 					gap: "12px",
 				}}
 			>
-				<div
+				<button
+					type="button"
 					style={{
+						padding: 0,
+						border: 0,
+						background: "transparent",
 						fontSize: "15px",
 						fontWeight: 600,
 						color: "var(--color-text)",
+						cursor: onTitleClick ? "pointer" : "default",
 						lineHeight: 1.4,
+						textAlign: "left",
+					}}
+					onClick={(event) => {
+						if (!onTitleClick) return;
+
+						event.stopPropagation();
+						onTitleClick();
 					}}
 				>
 					{deal.title}
-				</div>
+				</button>
 
 				{deal.opportunity ? (
 					<div
