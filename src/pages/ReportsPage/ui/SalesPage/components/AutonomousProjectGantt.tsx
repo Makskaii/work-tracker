@@ -182,6 +182,7 @@ const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
 const GANTT_DRAG_CLICK_THRESHOLD = 4;
+const GANTT_STAGE_REORDER_THRESHOLD = 8;
 const GANTT_DEPENDENCY_TARGET_HITBOX_PADDING = 28;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -365,6 +366,48 @@ const DEPENDENCY_FACT_DATES_CONFIRM_MESSAGE =
 const getInclusiveDurationDays = (start: Date, end: Date) =>
 	Math.max(daysBetween(start, end) + 1, 1);
 
+const getInclusiveDurationFromValues = (startValue: string, endValue: string) => {
+	const start = parseGanttDate(startValue);
+	const end = parseGanttDate(endValue);
+
+	return start && end ? String(getInclusiveDurationDays(start, end)) : "";
+};
+
+const getPlanEndFromDuration = (planStartValue: string, durationValue: string) => {
+	const planStart = parseGanttDate(planStartValue);
+	const durationDays = toNumberOrNull(durationValue);
+
+	return planStart && durationDays
+		? formatInputDate(addDays(planStart, durationDays - 1))
+		: "";
+};
+
+const getStageFormDerivedDuration = (form: StageFormState) =>
+	getInclusiveDurationFromValues(form.factStartDate, form.factEndDate) ||
+	getInclusiveDurationFromValues(form.planStartDate, form.planEndDate) ||
+	form.durationDays;
+
+const withDerivedStageDuration = (form: StageFormState): StageFormState => ({
+	...form,
+	durationDays: getStageFormDerivedDuration(form),
+});
+
+const withPlanEndFromStageDuration = (
+	form: StageFormState,
+): StageFormState => {
+	const planEndDate = getPlanEndFromDuration(
+		form.planStartDate,
+		form.durationDays,
+	);
+
+	return planEndDate
+		? {
+				...form,
+				planEndDate,
+			}
+		: form;
+};
+
 const getPlanAnchorDateFromEvent = (
 	event: ProjectGanttEvent | null | undefined,
 	anchor: ProjectGanttDependencyAnchor | null | undefined,
@@ -398,9 +441,13 @@ const getDependencyDurationDays = (
 const recalculateDependencyEventDates = (
 	sourceEvents: ProjectGanttEvent[],
 	sourceStages: ProjectGanttStage[],
+	previousEvents: ProjectGanttEvent[] = sourceEvents,
 ) => {
 	const eventByStageId = new Map(
 		sourceEvents.map((event) => [event.stageId, event]),
+	);
+	const previousEventByStageId = new Map(
+		previousEvents.map((event) => [event.stageId, event]),
 	);
 	const stageById = new Map(sourceStages.map((stage) => [stage.id, stage]));
 	let nextEvents = sourceEvents;
@@ -419,12 +466,19 @@ const recalculateDependencyEventDates = (
 			}
 
 			const parentEvent = eventByStageId.get(stage.dependsOnStageId);
-			const planStart = getPlanAnchorDateFromEvent(
+			const previousParentEvent = previousEventByStageId.get(
+				stage.dependsOnStageId,
+			);
+			const parentAnchorDate = getPlanAnchorDateFromEvent(
 				parentEvent,
 				stage.dependencyAnchor,
 			);
+			const previousParentAnchorDate = getPlanAnchorDateFromEvent(
+				previousParentEvent,
+				stage.dependencyAnchor,
+			);
 
-			if (!planStart) {
+			if (!parentAnchorDate) {
 				return event;
 			}
 
@@ -433,6 +487,12 @@ const recalculateDependencyEventDates = (
 				eventKind === "duration"
 					? getDependencyDurationDays(stage, event)
 					: null;
+			const currentPlanStart = parseGanttDate(event.planStartDate);
+			const offsetDays =
+				currentPlanStart && previousParentAnchorDate
+					? daysBetween(previousParentAnchorDate, currentPlanStart)
+					: 0;
+			const planStart = addDays(parentAnchorDate, offsetDays);
 			const planStartDate = formatInputDate(planStart);
 			const planEndDate =
 				eventKind === "duration" && durationDays
@@ -707,6 +767,7 @@ export const AutonomousProjectGantt = ({
 	const [dependencyLinkDraft, setDependencyLinkDraft] =
 		useState<DependencyLinkDraft>(null);
 	const [dragDateGuide, setDragDateGuide] = useState<DragDateGuide>(null);
+	const [draggingStageId, setDraggingStageId] = useState<number | null>(null);
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -955,8 +1016,7 @@ export const AutonomousProjectGantt = ({
 	const openStageEditModal = (stage: ProjectGanttStage) => {
 		const stageEvent = events.find((event) => event.stageId === stage.id);
 		const stageType = getStageTypeFromStage(stage);
-
-		setStageForm({
+		const nextForm: StageFormState = {
 			dependsOnStageId: stage.dependsOnStageId,
 			dependencyAnchor: stage.dependencyAnchor ?? "stage_end",
 			durationDays: stage.durationDays === null ? "" : String(stage.durationDays),
@@ -968,7 +1028,9 @@ export const AutonomousProjectGantt = ({
 			planStartDate: stageEvent?.planStartDate ?? "",
 			stageType,
 			title: stage.title,
-		});
+		};
+
+		setStageForm(withDerivedStageDuration(nextForm));
 		setIsStageModalOpen(true);
 	};
 
@@ -998,6 +1060,128 @@ export const AutonomousProjectGantt = ({
 		setIsPaymentModalOpen(true);
 	};
 
+	const handleStageReorderDragStart = useCallback(
+		(
+			pointerEvent: ReactPointerEvent<HTMLElement>,
+			stage: ProjectGanttStage,
+		) => {
+			if (
+				pointerEvent.button !== 0 ||
+				stage.code === "payments" ||
+				(pointerEvent.target as HTMLElement).closest("button")
+			) {
+				return;
+			}
+
+			const initialEditableStages = stages
+				.filter((item) => item.code !== "payments")
+				.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+			const initialIndex = initialEditableStages.findIndex(
+				(item) => item.id === stage.id,
+			);
+
+			if (initialIndex < 0) {
+				return;
+			}
+
+			pointerEvent.preventDefault();
+
+			const dragTarget = pointerEvent.currentTarget;
+			const startClientY = pointerEvent.clientY;
+			let latestStages = stages;
+			let latestTargetIndex = initialIndex;
+			let hasDragged = false;
+
+			const getNextStages = (targetIndex: number) => {
+				const nextEditableStages = [...initialEditableStages];
+				const [draggedStage] = nextEditableStages.splice(initialIndex, 1);
+
+				nextEditableStages.splice(targetIndex, 0, draggedStage);
+
+				const sortOrderByStageId = new Map(
+					nextEditableStages.map((item, index) => [item.id, index + 1]),
+				);
+
+				return stages.map((item) => {
+					const sortOrder = sortOrderByStageId.get(item.id);
+
+					return sortOrder === undefined
+						? item
+						: {
+								...item,
+								sortOrder,
+							};
+				});
+			};
+			const applyReorder = (clientY: number) => {
+				const deltaY = clientY - startClientY;
+
+				if (!hasDragged && Math.abs(deltaY) < GANTT_STAGE_REORDER_THRESHOLD) {
+					return;
+				}
+
+				const targetIndex = Math.min(
+					Math.max(
+						initialIndex + Math.round(deltaY / GANTT_ROW_HEIGHT),
+						0,
+					),
+					initialEditableStages.length - 1,
+				);
+
+				if (hasDragged && targetIndex === latestTargetIndex) {
+					return;
+				}
+
+				hasDragged = true;
+				latestTargetIndex = targetIndex;
+				latestStages = getNextStages(targetIndex);
+				setDraggingStageId(stage.id);
+				setStages(latestStages);
+				markGanttDragClick(dragTarget);
+			};
+			const handlePointerMove = (moveEvent: PointerEvent) => {
+				applyReorder(moveEvent.clientY);
+
+				if (hasDragged) {
+					moveEvent.preventDefault();
+				}
+			};
+			const handlePointerUp = () => {
+				window.removeEventListener("pointermove", handlePointerMove);
+				window.removeEventListener("pointerup", handlePointerUp);
+				setDraggingStageId(null);
+
+				if (!hasDragged || latestTargetIndex === initialIndex) {
+					return;
+				}
+
+				const initialSortOrderByStageId = new Map(
+					stages.map((item) => [item.id, item.sortOrder]),
+				);
+				const stagesToSave = latestStages.filter(
+					(item) =>
+						item.code !== "payments" &&
+						item.sortOrder !== initialSortOrderByStageId.get(item.id),
+				);
+
+				markGanttDragClick(dragTarget);
+				void Promise.all(
+					stagesToSave.map((item) =>
+						updateProjectGanttStage(item.id, {
+							sortOrder: item.sortOrder,
+						}),
+					),
+				).catch(() => {
+					void refreshData();
+				});
+			};
+
+			window.addEventListener("pointermove", handlePointerMove);
+			window.addEventListener("pointerup", handlePointerUp, { once: true });
+		},
+		[refreshData, stages],
+	);
+
 	const handleEventDateDragStart = useCallback(
 		(
 			pointerEvent: ReactPointerEvent<HTMLElement>,
@@ -1012,15 +1196,6 @@ export const AutonomousProjectGantt = ({
 
 			pointerEvent.preventDefault();
 			pointerEvent.stopPropagation();
-
-			if (
-				(field === "factStartDate" || field === "factEndDate") &&
-				!window.confirm(
-					"Это действие изменит фактические даты этапа. Продолжить?",
-				)
-			) {
-				return;
-			}
 
 			const dragTarget = pointerEvent.currentTarget;
 			const trackRect = track.getBoundingClientRect();
@@ -1067,6 +1242,7 @@ export const AutonomousProjectGantt = ({
 						currentEvent.id === event.id ? nextEvent : currentEvent,
 					),
 					stages,
+					events,
 				);
 
 				latestEventsToSave = nextEvents.filter(
@@ -1169,9 +1345,7 @@ export const AutonomousProjectGantt = ({
 						? "start"
 						: "end"
 					: "start";
-			const shouldAskFactMoveConfirmation = hasEventFactDates(event);
-			let shouldMoveSelectedFactDates = !shouldAskFactMoveConfirmation;
-			let hasResolvedFactMoveConfirmation = !shouldAskFactMoveConfirmation;
+			const shouldMoveSelectedFactDates = true;
 			let latestEventsToSave: ProjectGanttEvent[] = [event];
 			let latestDeltaDays = 0;
 			let hasDragged = false;
@@ -1195,13 +1369,6 @@ export const AutonomousProjectGantt = ({
 					return;
 				}
 
-				if (!hasResolvedFactMoveConfirmation) {
-					shouldMoveSelectedFactDates = window.confirm(
-						"Это действие изменит фактические даты этапа. Продолжить?",
-					);
-					hasResolvedFactMoveConfirmation = true;
-				}
-
 				hasDragged = true;
 				latestDeltaDays = deltaDays;
 				markGanttDragClick(dragTarget);
@@ -1221,6 +1388,7 @@ export const AutonomousProjectGantt = ({
 						return shiftEventPlanDates(initialEvent, deltaDays);
 					}),
 					stages,
+					events,
 				);
 				const nextGantt = buildAutonomousProjectGantt({
 					events: nextEvents,
@@ -1443,20 +1611,6 @@ export const AutonomousProjectGantt = ({
 					return;
 				}
 
-				const dependentEvent = events.find(
-					(event) => event.stageId === candidate.dependentStageId,
-				);
-
-				if (dependentEvent && hasEventFactDates(dependentEvent)) {
-					const shouldContinue = window.confirm(
-						DEPENDENCY_FACT_DATES_CONFIRM_MESSAGE,
-					);
-
-					if (!shouldContinue) {
-						return;
-					}
-				}
-
 				const nextStages = stages.map((stage) =>
 					stage.id === candidate.dependentStageId
 						? {
@@ -1467,7 +1621,11 @@ export const AutonomousProjectGantt = ({
 							}
 						: stage,
 				);
-				const nextEvents = recalculateDependencyEventDates(events, nextStages);
+				const nextEvents = recalculateDependencyEventDates(
+					events,
+					nextStages,
+					events,
+				);
 				const eventById = new Map(events.map((event) => [event.id, event]));
 				const eventsToSave = nextEvents.filter((event) =>
 					EVENT_DATE_FIELDS.some(
@@ -1556,17 +1714,17 @@ export const AutonomousProjectGantt = ({
 					stageForm.dependencyAnchor,
 				)
 			: null;
-		const dependencyFallbackStart =
+		const dependencyPlanStart =
 			parseGanttDate(stageForm.planStartDate) ??
+			dependencyStart ??
 			parseGanttDate(existingStageEvent?.planStartDate ?? null);
-		const dependencyPlanStart = dependencyStart ?? dependencyFallbackStart;
 		const dependencyPlanEnd =
 			isDependencyDurationStage && dependencyPlanStart
-				? durationDays
-					? addDays(dependencyPlanStart, durationDays - 1)
-					: (parseGanttDate(stageForm.planEndDate) ??
-						parseGanttDate(existingStageEvent?.planEndDate ?? null) ??
-						dependencyPlanStart)
+				? (parseGanttDate(stageForm.planEndDate) ??
+					(durationDays
+						? addDays(dependencyPlanStart, durationDays - 1)
+						: (parseGanttDate(existingStageEvent?.planEndDate ?? null) ??
+							dependencyPlanStart)))
 				: null;
 		const eventPayload = {
 			eventKind,
@@ -1678,6 +1836,7 @@ export const AutonomousProjectGantt = ({
 			const recalculatedEvents = recalculateDependencyEventDates(
 				baseEvents,
 				nextStages,
+				events,
 			);
 			const baseEventById = new Map(
 				baseEvents.map((event) => [event.id, event]),
@@ -1869,6 +2028,7 @@ export const AutonomousProjectGantt = ({
 							onEventDateDragStart={handleEventDateDragStart}
 							onDependencyLinkDragStart={handleDependencyLinkDragStart}
 							onEventMoveDragStart={handleEventMoveDragStart}
+							onStageReorderDragStart={handleStageReorderDragStart}
 							onStageEdit={openStageEditModal}
 							row={row}
 							setPaymentMarkerRef={setPaymentMarkerRef}
@@ -1876,6 +2036,7 @@ export const AutonomousProjectGantt = ({
 							stageById={stageById}
 							today={today}
 							timeline={gantt.timeline}
+							draggingStageId={draggingStageId}
 							weekTicks={weekTicks}
 						/>
 					))}
@@ -1905,6 +2066,7 @@ export const AutonomousProjectGantt = ({
 			<AutonomousGanttLegend />
 			<StageModal
 				deletingStageId={deletingStageId}
+				events={events}
 				form={stageForm}
 				isOpen={isStageModalOpen}
 				onClose={() => {
@@ -1987,12 +2149,14 @@ const AutonomousPaymentLinksLayer = ({
 
 const AutonomousStageRow = ({
 	dragDateGuidePercent,
+	draggingStageId,
 	monthTicks,
 	onDependencyLinkDragStart,
 	onEventDateDragStart,
 	onEventMoveDragStart,
 	onPaymentCreate,
 	onPaymentEdit,
+	onStageReorderDragStart,
 	onStageEdit,
 	row,
 	setPaymentMarkerRef,
@@ -2003,6 +2167,7 @@ const AutonomousStageRow = ({
 	weekTicks,
 }: {
 	dragDateGuidePercent: number | null;
+	draggingStageId: number | null;
 	monthTicks: GanttMonthTick[];
 	onDependencyLinkDragStart: (
 		event: ReactPointerEvent<HTMLElement>,
@@ -2020,6 +2185,10 @@ const AutonomousStageRow = ({
 	) => void;
 	onPaymentCreate: () => void;
 	onPaymentEdit: (payment: AutonomousProjectPayment) => void;
+	onStageReorderDragStart: (
+		event: ReactPointerEvent<HTMLElement>,
+		stage: ProjectGanttStage,
+	) => void;
 	onStageEdit: (stage: ProjectGanttStage) => void;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
 	setPaymentMarkerRef: (
@@ -2034,6 +2203,8 @@ const AutonomousStageRow = ({
 	weekTicks: GanttWeekTick[];
 }) => {
 	const isPaymentsStage = row.stage.code === "payments";
+	const canReorderStage = !isPaymentsStage;
+	const isDraggingStage = draggingStageId === row.stage.id;
 	const paymentLayoutItems = isPaymentsStage
 		? getPaymentLayoutItems(row.payments, timeline)
 		: [];
@@ -2052,7 +2223,15 @@ const AutonomousStageRow = ({
 
 	return (
 		<>
-			<div className={styles.ganttRowInfo} style={{ minHeight: rowHeight }}>
+			<div
+				className={`${styles.ganttRowInfo} ${canReorderStage ? styles.ganttRowInfoReorderable : ""} ${isDraggingStage ? styles.ganttRowInfoDragging : ""}`}
+				style={{ minHeight: rowHeight }}
+				onPointerDown={
+					canReorderStage
+						? (event) => onStageReorderDragStart(event, row.stage)
+						: undefined
+				}
+			>
 				<div className={styles.ganttCustomEventHeader}>
 					<strong>{row.stage.title}</strong>
 					{!row.stage.isDefault && row.stage.code !== "payments" ? (
@@ -2594,6 +2773,7 @@ const AutonomousPaymentItem = ({
 
 const StageModal = ({
 	deletingStageId,
+	events,
 	form,
 	isOpen,
 	onClose,
@@ -2604,6 +2784,7 @@ const StageModal = ({
 	stages,
 }: {
 	deletingStageId: number | null;
+	events: ProjectGanttEvent[];
 	form: StageFormState;
 	isOpen: boolean;
 	onClose: () => void;
@@ -2616,6 +2797,103 @@ const StageModal = ({
 	const isDurationStage = DURATION_STAGE_TYPES.has(form.stageType);
 	const isDependencyStage = Boolean(form.dependsOnStageId);
 	const availableDependencyStages = stages.filter((item) => item.id !== form.id);
+	const getDependencyPlanStartDate = (
+		dependsOnStageId: number | null,
+		dependencyAnchor: ProjectGanttDependencyAnchor,
+	) => {
+		const dependencyEvent = events.find(
+			(event) => event.stageId === dependsOnStageId,
+		);
+		const dependencyStart = getPlanAnchorDateFromEvent(
+			dependencyEvent,
+			dependencyAnchor,
+		);
+
+		return dependencyStart ? formatInputDate(dependencyStart) : "";
+	};
+	const withDependencyPlanStartFallback = (
+		nextForm: StageFormState,
+	): StageFormState => {
+		if (!nextForm.dependsOnStageId || nextForm.planStartDate) {
+			return nextForm;
+		}
+
+		const planStartDate = getDependencyPlanStartDate(
+			nextForm.dependsOnStageId,
+			nextForm.dependencyAnchor,
+		);
+
+		return planStartDate
+			? {
+					...nextForm,
+					planStartDate,
+				}
+			: nextForm;
+	};
+	const handleDependencyStageChange = (dependsOnStageId: number | null) => {
+		const nextForm = withDependencyPlanStartFallback({
+			...form,
+			dependsOnStageId,
+			dependencyAnchor: dependsOnStageId ? form.dependencyAnchor : "stage_end",
+		});
+
+		onFormChange(withPlanEndFromStageDuration(nextForm));
+	};
+	const handleDependencyAnchorChange = (
+		dependencyAnchor: ProjectGanttDependencyAnchor,
+	) => {
+		const nextForm = withDependencyPlanStartFallback({
+			...form,
+			dependencyAnchor,
+		});
+
+		onFormChange(withPlanEndFromStageDuration(nextForm));
+	};
+	const handleDurationDaysChange = (durationDays: string) => {
+		const nextForm = withDependencyPlanStartFallback({
+			...form,
+			durationDays,
+		});
+
+		onFormChange(withPlanEndFromStageDuration(nextForm));
+	};
+	const handlePlanStartDateChange = (planStartDate: string) => {
+		const nextForm = {
+			...form,
+			planStartDate,
+		};
+
+		if (nextForm.planEndDate) {
+			onFormChange(withDerivedStageDuration(nextForm));
+			return;
+		}
+
+		onFormChange(withPlanEndFromStageDuration(nextForm));
+	};
+	const handlePlanEndDateChange = (planEndDate: string) => {
+		onFormChange(
+			withDerivedStageDuration({
+				...form,
+				planEndDate,
+			}),
+		);
+	};
+	const handleFactStartDateChange = (factStartDate: string) => {
+		onFormChange(
+			withDerivedStageDuration({
+				...form,
+				factStartDate,
+			}),
+		);
+	};
+	const handleFactEndDateChange = (factEndDate: string) => {
+		onFormChange(
+			withDerivedStageDuration({
+				...form,
+				factEndDate,
+			}),
+		);
+	};
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size="small">
@@ -2664,15 +2942,9 @@ const StageModal = ({
 					<select
 						value={form.dependsOnStageId ?? ""}
 						onChange={(event) =>
-							onFormChange({
-								...form,
-								dependsOnStageId: event.target.value
-									? Number(event.target.value)
-									: null,
-								dependencyAnchor: event.target.value
-									? form.dependencyAnchor
-									: "stage_end",
-							})
+							handleDependencyStageChange(
+								event.target.value ? Number(event.target.value) : null,
+							)
 						}
 					>
 						<option value="">Без привязки</option>
@@ -2690,11 +2962,9 @@ const StageModal = ({
 							<select
 								value={form.dependencyAnchor}
 								onChange={(event) =>
-									onFormChange({
-										...form,
-										dependencyAnchor: event.target
-											.value as ProjectGanttDependencyAnchor,
-									})
+									handleDependencyAnchorChange(
+										event.target.value as ProjectGanttDependencyAnchor,
+									)
 								}
 							>
 								<option value="stage_start">К началу этапа</option>
@@ -2707,94 +2977,58 @@ const StageModal = ({
 								<input
 									value={form.durationDays}
 									onChange={(event) =>
-										onFormChange({
-											...form,
-											durationDays: event.target.value,
-										})
+										handleDurationDaysChange(event.target.value)
 									}
 								/>
 							</label>
 						) : null}
-						<label>
-							<span>
-								{isDurationStage
-									? "Фактическая дата завершения"
-									: "Фактическая дата"}
-							</span>
-							<input
-								type="date"
-								value={form.factEndDate}
-								onChange={(event) =>
-									onFormChange({
-										...form,
-										factEndDate: event.target.value,
-									})
-								}
-							/>
-						</label>
 					</>
 				) : null}
 				<div className={styles.ganttFormGrid}>
-					{!isDependencyStage ? (
-						<label>
-							<span>
-								{isDurationStage ? "Плановая дата начала" : "Плановая дата"}
-							</span>
-							<input
-								type="date"
-								value={form.planStartDate}
-								onChange={(event) =>
-									onFormChange({
-										...form,
-										planStartDate: event.target.value,
-									})
-								}
-							/>
-						</label>
-					) : null}
-					{!isDependencyStage && isDurationStage ? (
+					<label>
+						<span>
+							{isDurationStage ? "Плановая дата начала" : "Плановая дата"}
+						</span>
+						<input
+							type="date"
+							value={form.planStartDate}
+							onChange={(event) =>
+								handlePlanStartDateChange(event.target.value)
+							}
+						/>
+					</label>
+					{isDurationStage ? (
 						<label>
 							<span>Плановая дата завершения</span>
 							<input
 								type="date"
 								value={form.planEndDate}
 								onChange={(event) =>
-									onFormChange({
-										...form,
-										planEndDate: event.target.value,
-									})
+									handlePlanEndDateChange(event.target.value)
 								}
 							/>
 						</label>
 					) : null}
-					{!isDependencyStage ? (
-						<label>
-							<span>
-								{isDurationStage ? "Фактическая дата начала" : "Фактическая дата"}
-							</span>
-							<input
-								type="date"
-								value={form.factStartDate}
-								onChange={(event) =>
-									onFormChange({
-										...form,
-										factStartDate: event.target.value,
-									})
-								}
-							/>
-						</label>
-					) : null}
-					{!isDependencyStage && isDurationStage ? (
+					<label>
+						<span>
+							{isDurationStage ? "Фактическая дата начала" : "Фактическая дата"}
+						</span>
+						<input
+							type="date"
+							value={form.factStartDate}
+							onChange={(event) =>
+								handleFactStartDateChange(event.target.value)
+							}
+						/>
+					</label>
+					{isDurationStage ? (
 						<label>
 							<span>Фактическая дата завершения</span>
 							<input
 								type="date"
 								value={form.factEndDate}
 								onChange={(event) =>
-									onFormChange({
-										...form,
-										factEndDate: event.target.value,
-									})
+									handleFactEndDateChange(event.target.value)
 								}
 							/>
 						</label>
