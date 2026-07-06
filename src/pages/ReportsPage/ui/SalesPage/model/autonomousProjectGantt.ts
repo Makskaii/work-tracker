@@ -156,11 +156,9 @@ const buildEventRow = (
 		dependencyDurationDays > 0;
 
 	if (hasDependencyDuration) {
-		const displayStart = dependencyStart ?? planStart ?? factStart;
+		const displayStart = planStart ?? dependencyStart ?? factStart;
 		const displayEnd =
-			(dependencyStart && dependencyDurationDays > 0
-				? addDays(dependencyStart, dependencyDurationDays - 1)
-				: planEnd) ??
+			planEnd ??
 			(displayStart ? addDays(displayStart, dependencyDurationDays - 1) : null);
 		const eventRow = {
 			displayDate: displayStart,
@@ -170,8 +168,8 @@ const buildEventRow = (
 			factEnd,
 			factStart,
 			isDependencyDuration: true,
-			planEnd: dependencyStart ? displayEnd : planEnd,
-			planStart: dependencyStart ?? planStart,
+			planEnd: displayEnd,
+			planStart: displayStart,
 		};
 
 		eventRowsByStageId.set(event.stageId, eventRow);
@@ -259,8 +257,18 @@ const getDependencyEventDurationDays = (
 export const recalculateAutonomousDependencyEvents = (
 	sourceEvents: ProjectGanttEvent[],
 	sourceStages: ProjectGanttStage[],
+	previousEvents: ProjectGanttEvent[] = sourceEvents,
+	previousStages: ProjectGanttStage[] = sourceStages,
 ) => {
 	const stageById = new Map(sourceStages.map((stage) => [stage.id, stage]));
+	const previousStageById = new Map(
+		previousStages.map((stage) => [stage.id, stage]),
+	);
+	const previousEventById = new Map(
+		previousEvents.map((event) => [event.id, event]),
+	);
+	const { eventRowsByStageId: previousEventRowsByStageId } =
+		resolveAutonomousGanttSchedule(previousStages, previousEvents);
 	let nextEvents = sourceEvents;
 	let hasChanged = true;
 	let guard = 0;
@@ -290,14 +298,41 @@ export const recalculateAutonomousDependencyEvents = (
 				return event;
 			}
 
+			const previousStage = previousStageById.get(stage.id);
+			const previousParentRow =
+				previousStage?.dependsOnStageId === stage.dependsOnStageId
+					? previousEventRowsByStageId.get(stage.dependsOnStageId)
+					: null;
+			const previousPlanStart = previousEventById.get(event.id)?.planStartDate
+				? parseGanttDate(previousEventById.get(event.id)?.planStartDate)
+				: null;
+			const currentPlanStart = parseGanttDate(event.planStartDate);
+			const previousParentPlanStart = previousParentRow
+				? getAutonomousPlanAnchorDate(
+						previousParentRow,
+						previousStage?.dependencyAnchor,
+					)
+				: null;
+			const hasManualPlanStartChange =
+				Boolean(currentPlanStart && previousPlanStart) &&
+				currentPlanStart?.getTime() !== previousPlanStart?.getTime();
+			const nextPlanStart =
+				hasManualPlanStartChange && currentPlanStart
+					? currentPlanStart
+					: previousParentPlanStart && previousPlanStart
+						? addDays(
+								previousPlanStart,
+								daysBetween(previousParentPlanStart, planStart),
+							)
+						: planStart;
 			const durationDays =
 				event.eventKind === "duration"
 					? getDependencyEventDurationDays(stage, event)
 					: null;
-			const planStartDate = formatInputDate(planStart);
+			const planStartDate = formatInputDate(nextPlanStart);
 			const planEndDate =
 				event.eventKind === "duration" && durationDays
-					? formatInputDate(addDays(planStart, durationDays - 1))
+					? formatInputDate(addDays(nextPlanStart, durationDays - 1))
 					: null;
 
 			if (
