@@ -73,6 +73,19 @@ export const getAutonomousEventAnchorDate = (
 	);
 };
 
+export const getAutonomousPaymentAnchorDate = (
+	event: AutonomousGanttEventRow,
+	anchor: ProjectGanttDependencyAnchor | null | undefined,
+) => {
+	const paymentAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+
+	if (paymentAnchor === "stage_start") {
+		return event.factStart ?? event.planStart ?? null;
+	}
+
+	return event.factEnd ?? event.planEnd ?? null;
+};
+
 export const getAutonomousPlanAnchorDate = (
 	event: AutonomousGanttEventRow,
 	anchor: ProjectGanttDependencyAnchor | null | undefined,
@@ -123,7 +136,7 @@ const buildEventRow = (
 	if (hasDependencyDuration) {
 		const displayStart = dependencyStart ?? planStart ?? factStart;
 		const displayEnd =
-			displayStart ? addDays(displayStart, dependencyDurationDays) : planEnd;
+			displayStart ? addDays(displayStart, dependencyDurationDays - 1) : planEnd;
 
 		return {
 			displayDate: displayStart,
@@ -146,7 +159,7 @@ const buildEventRow = (
 	const displayStart = event.eventKind === "duration" ? displayDate : null;
 	const displayEnd =
 		event.eventKind === "duration"
-			? (resolvedFactEnd ?? resolvedPlanEnd ?? displayStart)
+			? (resolvedPlanEnd ?? resolvedFactEnd ?? displayStart)
 			: null;
 
 	return {
@@ -172,7 +185,7 @@ const getPaymentDisplayDate = (
 		return parseGanttDate(payment.paymentDate);
 	}
 
-	return getAutonomousEventAnchorDate(stageEvent, payment.paymentAnchor);
+	return getAutonomousPaymentAnchorDate(stageEvent, payment.paymentAnchor);
 };
 
 const formatInputDate = (date: Date) =>
