@@ -73,6 +73,34 @@ export const getAutonomousEventAnchorDate = (
 	);
 };
 
+export const getAutonomousPaymentAnchorDate = (
+	event: AutonomousGanttEventRow,
+	anchor: ProjectGanttDependencyAnchor | null | undefined,
+) => {
+	const paymentAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+
+	if (paymentAnchor === "stage_start") {
+		return event.factStart ?? event.planStart ?? null;
+	}
+
+	return event.factEnd ?? event.planEnd ?? null;
+};
+
+export const getAutonomousPlanAnchorDate = (
+	event: AutonomousGanttEventRow,
+	anchor: ProjectGanttDependencyAnchor | null | undefined,
+) => {
+	const dependencyAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+
+	if (dependencyAnchor === "stage_start") {
+		return (
+			event.planStart ?? (event.isDependencyDuration ? event.displayStart : null)
+		);
+	}
+
+	return event.planEnd ?? (event.isDependencyDuration ? event.displayEnd : null);
+};
+
 const buildEventRow = (
 	event: ProjectGanttEvent,
 	stageById: Map<number, ProjectGanttStage>,
@@ -98,7 +126,7 @@ const buildEventRow = (
 		: null;
 	const dependencyDurationDays = stage?.durationDays ?? 0;
 	const dependencyStart = dependencyRow
-		? getAutonomousEventAnchorDate(dependencyRow, stage?.dependencyAnchor)
+		? getAutonomousPlanAnchorDate(dependencyRow, stage?.dependencyAnchor)
 		: null;
 	const hasDependencyDuration =
 		Boolean(stage?.dependsOnStageId) &&
@@ -106,9 +134,10 @@ const buildEventRow = (
 		dependencyDurationDays > 0;
 
 	if (hasDependencyDuration) {
-		const displayStart = dependencyStart ?? planStart ?? factStart;
+		const displayStart = planStart ?? dependencyStart ?? factStart;
 		const displayEnd =
-			displayStart ? addDays(displayStart, dependencyDurationDays) : planEnd;
+			planEnd ??
+			(displayStart ? addDays(displayStart, dependencyDurationDays - 1) : null);
 
 		return {
 			displayDate: displayStart,
@@ -123,7 +152,7 @@ const buildEventRow = (
 		};
 	}
 
-	const resolvedPlanStart = dependencyStart ?? planStart;
+	const resolvedPlanStart = planStart ?? dependencyStart;
 	const resolvedPlanEnd = planEnd;
 	const resolvedFactStart = factStart;
 	const resolvedFactEnd = factEnd;
@@ -131,7 +160,7 @@ const buildEventRow = (
 	const displayStart = event.eventKind === "duration" ? displayDate : null;
 	const displayEnd =
 		event.eventKind === "duration"
-			? (resolvedFactEnd ?? resolvedPlanEnd ?? displayStart)
+			? (resolvedPlanEnd ?? resolvedFactEnd ?? displayStart)
 			: null;
 
 	return {
@@ -157,7 +186,7 @@ const getPaymentDisplayDate = (
 		return parseGanttDate(payment.paymentDate);
 	}
 
-	return getAutonomousEventAnchorDate(stageEvent, payment.paymentAnchor);
+	return getAutonomousPaymentAnchorDate(stageEvent, payment.paymentAnchor);
 };
 
 const formatInputDate = (date: Date) =>

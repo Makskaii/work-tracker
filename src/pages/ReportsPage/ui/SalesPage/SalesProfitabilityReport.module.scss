@@ -2559,6 +2559,10 @@
 	}
 }
 
+.projectReportHiddenAction {
+	display: none;
+}
+
 .projectReportEditForm {
 	display: flex;
 	flex-direction: column;
@@ -3264,6 +3268,23 @@
 		font-size: 11px;
 		line-height: 1.25;
 	}
+}
+
+.ganttRowInfoReorderable {
+	cursor: grab;
+	user-select: none;
+}
+
+.ganttRowInfoDragging {
+	position: relative;
+	z-index: 2;
+	background: rgba(20, 74, 92, 0.72);
+	box-shadow:
+		inset 3px 0 0 var(--color-accent),
+		0 0 0 1px rgba(44, 238, 235, 0.28),
+		0 10px 24px rgba(0, 0, 0, 0.24);
+	cursor: grabbing;
+	transform: translateY(-1px);
 }
 
 .ganttTrack {
