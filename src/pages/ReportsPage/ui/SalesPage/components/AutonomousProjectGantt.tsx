@@ -809,6 +809,10 @@ export const AutonomousProjectGantt = ({
 					paymentNode.querySelector("b")?.getBoundingClientRect() ??
 					paymentNode.getBoundingClientRect();
 				const targetRect = targetNode.getBoundingClientRect();
+				const targetTrackRect =
+					targetNode
+						.closest<HTMLElement>("[data-autonomous-gantt-track='true']")
+						?.getBoundingClientRect() ?? targetRect;
 				const startX =
 					paymentIconRect.left +
 					paymentIconRect.width / 2 -
@@ -823,34 +827,26 @@ export const AutonomousProjectGantt = ({
 					targetEvent,
 					payment.paymentAnchor,
 				);
-				const targetRange = getEventVisualRange(targetEvent);
-				const targetRangeStart = targetRange.start;
-				const targetRangeEnd = targetRange.end;
-				const targetDateOffset =
-					targetDate && targetRangeStart && targetRangeEnd
-						? Math.min(
-								Math.max(
-									(targetDate.getTime() - targetRangeStart.getTime()) /
-										Math.max(
-											targetRangeEnd.getTime() - targetRangeStart.getTime(),
-											1,
-										),
-									0,
-								),
-								1,
-							)
-						: null;
 				const isTargetDuration =
 					targetEvent.isDependencyDuration ||
 					targetEvent.event.eventKind === "duration";
 				const endX =
-					(isTargetDuration
-						? targetDateOffset !== null
-							? targetRect.left + targetRect.width * targetDateOffset
-							: payment.paymentAnchor === "stage_start"
+					(targetDate
+						? targetTrackRect.left +
+							targetTrackRect.width *
+								Math.min(
+									Math.max(
+										daysBetween(gantt.timeline.start, targetDate) /
+											gantt.timeline.totalDays,
+										0,
+									),
+									1,
+								)
+						: isTargetDuration
+							? payment.paymentAnchor === "stage_start"
 								? targetRect.left
 								: targetRect.right
-						: targetRect.left + targetRect.width / 2) -
+							: targetRect.left + targetRect.width / 2) -
 					boardRect.left +
 					board.scrollLeft;
 				const endY =

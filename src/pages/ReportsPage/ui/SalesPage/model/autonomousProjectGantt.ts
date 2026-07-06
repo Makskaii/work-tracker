@@ -83,12 +83,14 @@ export const getAutonomousPaymentAnchorDate = (
 	anchor: ProjectGanttDependencyAnchor | null | undefined,
 ) => {
 	const paymentAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+	const fallbackPoint =
+		event.factStart ?? event.planStart ?? event.displayDate ?? null;
 
 	if (paymentAnchor === "stage_start") {
-		return event.factStart ?? event.planStart ?? null;
+		return fallbackPoint;
 	}
 
-	return event.factEnd ?? event.planEnd ?? null;
+	return event.factEnd ?? event.planEnd ?? fallbackPoint;
 };
 
 export const getAutonomousPlanAnchorDate = (
@@ -99,11 +101,18 @@ export const getAutonomousPlanAnchorDate = (
 
 	if (dependencyAnchor === "stage_start") {
 		return (
-			event.planStart ?? (event.isDependencyDuration ? event.displayStart : null)
+			event.planStart ??
+			(event.isDependencyDuration ? event.displayStart : null) ??
+			event.displayDate
 		);
 	}
 
-	return event.planEnd ?? (event.isDependencyDuration ? event.displayEnd : null);
+	return (
+		event.planEnd ??
+		(event.isDependencyDuration ? event.displayEnd : null) ??
+		event.planStart ??
+		event.displayDate
+	);
 };
 
 const buildEventRow = (
