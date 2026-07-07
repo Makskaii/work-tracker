@@ -115,6 +115,31 @@ export const getAutonomousPlanAnchorDate = (
 	);
 };
 
+export const getAutonomousDependencyAnchorDate = (
+	event: AutonomousGanttEventRow,
+	anchor: ProjectGanttDependencyAnchor | null | undefined,
+) => {
+	const dependencyAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
+
+	if (dependencyAnchor === "stage_start") {
+		return (
+			event.factStart ??
+			event.planStart ??
+			(event.isDependencyDuration ? event.displayStart : null) ??
+			event.displayDate
+		);
+	}
+
+	return (
+		event.factEnd ??
+		event.planEnd ??
+		(event.isDependencyDuration ? event.displayEnd : null) ??
+		event.factStart ??
+		event.planStart ??
+		event.displayDate
+	);
+};
+
 const buildEventRow = (
 	event: ProjectGanttEvent,
 	stageById: Map<number, ProjectGanttStage>,
@@ -148,6 +173,9 @@ const buildEventRow = (
 		: null;
 	const dependencyDurationDays = stage?.durationDays ?? 0;
 	const dependencyStart = dependencyRow
+		? getAutonomousDependencyAnchorDate(dependencyRow, stage?.dependencyAnchor)
+		: null;
+	const dependencyPlanStart = dependencyRow
 		? getAutonomousPlanAnchorDate(dependencyRow, stage?.dependencyAnchor)
 		: null;
 	const hasDependencyDuration =
@@ -156,9 +184,17 @@ const buildEventRow = (
 		dependencyDurationDays > 0;
 
 	if (hasDependencyDuration) {
-		const displayStart = planStart ?? dependencyStart ?? factStart;
+		const isAlignedToDependencyPlan =
+			Boolean(planStart && dependencyPlanStart) &&
+			planStart?.getTime() === dependencyPlanStart?.getTime();
+		const displayStart =
+			isAlignedToDependencyPlan || !planStart
+				? (dependencyStart ?? planStart ?? factStart)
+				: planStart;
 		const displayEnd =
-			planEnd ??
+			(isAlignedToDependencyPlan || !planEnd
+				? null
+				: planEnd) ??
 			(displayStart ? addDays(displayStart, dependencyDurationDays - 1) : null);
 		const eventRow = {
 			displayDate: displayStart,
@@ -291,7 +327,7 @@ export const recalculateAutonomousDependencyEvents = (
 
 			const parentRow = eventRowsByStageId.get(stage.dependsOnStageId);
 			const planStart = parentRow
-				? getAutonomousPlanAnchorDate(parentRow, stage.dependencyAnchor)
+				? getAutonomousDependencyAnchorDate(parentRow, stage.dependencyAnchor)
 				: null;
 
 			if (!planStart) {
@@ -308,6 +344,12 @@ export const recalculateAutonomousDependencyEvents = (
 				: null;
 			const currentPlanStart = parseGanttDate(event.planStartDate);
 			const previousParentPlanStart = previousParentRow
+				? getAutonomousDependencyAnchorDate(
+						previousParentRow,
+						previousStage?.dependencyAnchor,
+					)
+				: null;
+			const previousParentPlanAnchor = previousParentRow
 				? getAutonomousPlanAnchorDate(
 						previousParentRow,
 						previousStage?.dependencyAnchor,
@@ -316,9 +358,14 @@ export const recalculateAutonomousDependencyEvents = (
 			const hasManualPlanStartChange =
 				Boolean(currentPlanStart && previousPlanStart) &&
 				currentPlanStart?.getTime() !== previousPlanStart?.getTime();
+			const wasAlignedToParentPlan =
+				Boolean(previousPlanStart && previousParentPlanAnchor) &&
+				previousPlanStart?.getTime() === previousParentPlanAnchor?.getTime();
 			const nextPlanStart =
 				hasManualPlanStartChange && currentPlanStart
 					? currentPlanStart
+					: wasAlignedToParentPlan
+						? planStart
 					: previousParentPlanStart && previousPlanStart
 						? addDays(
 								previousPlanStart,
