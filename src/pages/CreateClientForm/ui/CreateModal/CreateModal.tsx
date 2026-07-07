@@ -12,6 +12,20 @@ type ClientFormProps = {
 	email: string;
 };
 
+const inputStyle = {
+	border: "1px solid var(--color-border)",
+	borderRadius: "0.5rem",
+	height: "2rem",
+	minWidth: "20rem",
+	padding: "0.5rem",
+	width: "stretch",
+};
+
+const labelTitleStyle = {
+	textAlign: "left" as const,
+	margin: 0,
+};
+
 export const CreateModal = ({
 	clientForm,
 	setClientForm,
@@ -26,6 +40,7 @@ export const CreateModal = ({
 	const [companySearch, setCompanySearch] = useState("");
 	const [companies, setCompanies] = useState<CompanyOption[]>([]);
 	const [isCompanySearchLoading, setIsCompanySearchLoading] = useState(false);
+	const [isManualCrmIdInput, setIsManualCrmIdInput] = useState(false);
 	const {
 		handleSubmit,
 		register,
@@ -40,6 +55,12 @@ export const CreateModal = ({
 	});
 
 	useEffect(() => {
+		if (isManualCrmIdInput) {
+			setCompanies([]);
+			setIsCompanySearchLoading(false);
+			return;
+		}
+
 		const search = companySearch.trim();
 
 		if (search.length < 2) {
@@ -76,7 +97,7 @@ export const CreateModal = ({
 			isActual = false;
 			window.clearTimeout(timeoutId);
 		};
-	}, [companySearch, searchCompanies]);
+	}, [companySearch, isManualCrmIdInput, searchCompanies]);
 
 	const onSubmit = handleSubmit(async (data) => {
 		try {
@@ -89,10 +110,9 @@ export const CreateModal = ({
 			});
 		} catch (error) {
 			const err = error as Error;
-			const message = err.message;
 
 			notify({
-				message: message ?? "Ошибка при создании клиента",
+				message: err.message ?? "Ошибка при создании клиента",
 				type: "error",
 			});
 		} finally {
@@ -126,26 +146,12 @@ export const CreateModal = ({
 						}}
 					>
 						<div>
-							<h5
-								style={{
-									textAlign: "left",
-									margin: 0,
-								}}
-							>
-								Название компании
-							</h5>
+							<h5 style={labelTitleStyle}>Название компании</h5>
 							<input
 								{...register("name", {
 									required: "Обязательное поле",
 								})}
-								style={{
-									border: "1px solid var(--color-border)",
-									borderRadius: "0.5rem",
-									minWidth: "20rem",
-									padding: "0.5rem",
-									height: "2rem",
-									width: "stretch",
-								}}
+								style={inputStyle}
 								type="text"
 								placeholder="Клиент"
 								autoComplete="off"
@@ -159,21 +165,10 @@ export const CreateModal = ({
 									justifyContent: "space-between",
 								}}
 							>
-								<p
-									style={{
-										textAlign: "left",
-										margin: 0,
-									}}
-								>
-									Эл. почта
-								</p>
-								{errors.email && errors.email.type === "validate" && (
-									<span
-										style={{
-											color: "var(--color-danger)",
-										}}
-									>
-										{errors.email?.message}
+								<p style={labelTitleStyle}>Эл. почта</p>
+								{errors.email && (
+									<span style={{ color: "var(--color-danger)" }}>
+										{errors.email.message}
 									</span>
 								)}
 							</div>
@@ -187,16 +182,11 @@ export const CreateModal = ({
 										if (!regExp.test(value)) {
 											return "Неверный формат email";
 										}
+
+										return true;
 									},
 								})}
-								style={{
-									border: "1px solid var(--color-border)",
-									borderRadius: "0.5rem",
-									minWidth: "20rem",
-									padding: "0.5rem",
-									height: "2rem",
-									width: "stretch",
-								}}
+								style={inputStyle}
 								type="text"
 								placeholder="Почта клиента"
 								autoComplete="off"
@@ -210,21 +200,10 @@ export const CreateModal = ({
 									justifyContent: "space-between",
 								}}
 							>
-								<p
-									style={{
-										textAlign: "left",
-										margin: 0,
-									}}
-								>
-									Пароль
-								</p>
-								{errors.password && errors.password.type === "minLength" && (
-									<span
-										style={{
-											color: "var(--color-danger)",
-										}}
-									>
-										{errors.password?.message}
+								<p style={labelTitleStyle}>Пароль</p>
+								{errors.password && (
+									<span style={{ color: "var(--color-danger)" }}>
+										{errors.password.message}
 									</span>
 								)}
 							</div>
@@ -237,14 +216,7 @@ export const CreateModal = ({
 										value: 8,
 									},
 								})}
-								style={{
-									border: "1px solid var(--color-border)",
-									borderRadius: "0.5rem",
-									minWidth: "20rem",
-									padding: "0.5rem",
-									height: "2rem",
-									width: "stretch",
-								}}
+								style={inputStyle}
 								type="text"
 								placeholder="Введите пароль"
 								autoComplete="off"
@@ -252,68 +224,112 @@ export const CreateModal = ({
 						</div>
 
 						<div>
-							<h5
-								style={{
-									textAlign: "left",
-									margin: 0,
-								}}
-							>
-								Выбeрите клиента для привязки
-							</h5>
+							<h5 style={labelTitleStyle}>Выберите клиента для привязки</h5>
 							<input
 								value={companySearch}
 								onChange={(event) => {
 									setCompanySearch(event.target.value);
-									setValue("crmId", "", {
-										shouldDirty: true,
-										shouldValidate: true,
-									});
+
+									if (!isManualCrmIdInput) {
+										setValue("crmId", "", {
+											shouldDirty: true,
+											shouldValidate: true,
+										});
+									}
 								}}
 								style={{
-									border: "1px solid var(--color-border)",
-									borderRadius: "0.5rem",
-									minWidth: "20rem",
-									padding: "0.5rem",
-									height: "2rem",
-									width: "stretch",
+									...inputStyle,
 									marginBottom: "0.5rem",
 								}}
 								type="text"
 								placeholder="Начните вводить название компании"
 								autoComplete="off"
 							/>
-							{isCompanySearchLoading && (
-								<div style={{ marginBottom: "0.5rem" }}>Поиск...</div>
-							)}
-							{companySearch.trim().length === 1 && (
-								<div style={{ marginBottom: "0.5rem" }}>
-									Введите минимум 2 символа
-								</div>
-							)}
-							{companySearch.trim().length >= 2 &&
-								!isCompanySearchLoading &&
-								companies.length === 0 && (
-									<div style={{ marginBottom: "0.5rem" }}>
-										Компании не найдены
-									</div>
-								)}
-							<select
-								{...register("crmId", {
-									required: "Обязательное поле",
-								})}
+							<button
+								type="button"
 								style={{
-									width: "100%",
-									padding: "1rem",
-									borderRadius: "10px",
+									background: "transparent",
+									border: 0,
+									color: "var(--color-accent)",
+									cursor: "pointer",
+									marginBottom: "0.5rem",
+									padding: 0,
+								}}
+								onClick={() => {
+									setIsManualCrmIdInput((current) => !current);
+									setValue("crmId", "", {
+										shouldDirty: true,
+										shouldValidate: true,
+									});
 								}}
 							>
-								<option value="">Выберите компанию</option>
-								{companies.map((item) => (
-									<option value={item.id ?? item.id} key={item.id}>
-										{item.name}
-									</option>
-								))}
-							</select>
+								{isManualCrmIdInput
+									? "Вернуться к выбору из Bitrix"
+									: "Ввести ID вручную для теста"}
+							</button>
+
+							{isManualCrmIdInput ? (
+								<input
+									{...register("crmId", {
+										required: "Обязательное поле",
+										validate: (value) => {
+											const parsedValue = Number(value);
+
+											if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+												return "Введите положительный числовой ID";
+											}
+
+											return true;
+										},
+									})}
+									style={inputStyle}
+									type="text"
+									inputMode="numeric"
+									placeholder="Bitrix ID компании"
+									autoComplete="off"
+								/>
+							) : (
+								<>
+									{isCompanySearchLoading && (
+										<div style={{ marginBottom: "0.5rem" }}>Поиск...</div>
+									)}
+									{companySearch.trim().length === 1 && (
+										<div style={{ marginBottom: "0.5rem" }}>
+											Введите минимум 2 символа
+										</div>
+									)}
+									{companySearch.trim().length >= 2 &&
+										!isCompanySearchLoading &&
+										companies.length === 0 && (
+											<div style={{ marginBottom: "0.5rem" }}>
+												Компании не найдены
+											</div>
+										)}
+									<select
+										{...register("crmId", {
+											required: "Обязательное поле",
+										})}
+										style={{
+											width: "100%",
+											padding: "1rem",
+											borderRadius: "10px",
+										}}
+									>
+										<option value="">Выберите компанию</option>
+										{companies.map((item) => (
+											<option value={item.id} key={item.id}>
+												{item.name}
+											</option>
+										))}
+									</select>
+								</>
+							)}
+
+							{errors.crmId && (
+								<span style={{ color: "var(--color-danger)" }}>
+									{errors.crmId.message}
+								</span>
+							)}
 						</div>
 
 						<button

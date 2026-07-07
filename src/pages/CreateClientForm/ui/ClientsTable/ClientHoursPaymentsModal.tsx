@@ -221,8 +221,17 @@ export const ClientHoursPaymentsModal = ({
 				isOpen={Boolean(client)}
 				onClose={onClose}
 				closeOnBackdropClick={false}
+				size="covered"
 			>
-				<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						gap: "1rem",
+						height: "100%",
+						minWidth: "min(86vw, 1100px)",
+					}}
+				>
 					<div
 						style={{
 							alignItems: "center",
@@ -248,7 +257,7 @@ export const ClientHoursPaymentsModal = ({
 						</button>
 					</div>
 
-					<div style={{ overflowX: "auto" }}>
+					<div style={{ flex: 1, overflow: "auto" }}>
 						<table
 							style={{
 								borderCollapse: "collapse",
