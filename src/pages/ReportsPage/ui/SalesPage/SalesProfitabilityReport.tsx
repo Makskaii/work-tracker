@@ -1598,6 +1598,16 @@ const AutonomousPaymentsTab = ({
 			: scope === "client"
 				? (project?.clientCompany || project?.title || "Компания клиента")
 			: "Все проекты";
+	const getPaymentSegmentTooltip = (
+		payment: AutonomousProjectPayment,
+		amount: number,
+	) =>
+		[
+			`Проект: ${
+				projectById.get(String(payment.projectId))?.title ?? "Проект"
+			}`,
+			`Сумма: ${formatMoney(amount)}`,
+		].join("\n");
 	const paymentsWithDisplayDates = useMemo(
 		() =>
 			resolveAutonomousPaymentDates({
@@ -1889,7 +1899,7 @@ const AutonomousPaymentsTab = ({
 																	16,
 																)}px`,
 															}}
-															title={formatMoney(amount)}
+															title={getPaymentSegmentTooltip(payment, amount)}
 														>
 															{formatMoney(amount)}
 														</span>
