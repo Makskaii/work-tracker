@@ -10,6 +10,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 import {
 	calculatePaymentFields,
 	DEFAULT_PAYMENT_FORM,
@@ -364,6 +365,24 @@ const hasEventFactDates = (event: ProjectGanttEvent) =>
 
 const DEPENDENCY_FACT_DATES_CONFIRM_MESSAGE =
 	"У этапа есть фактические даты. Привязка изменит только плановые даты, фактические даты останутся без изменений. Продолжить?";
+
+const getApiErrorMessage = (error: unknown, fallbackMessage: string) => {
+	const responseData =
+		typeof error === "object" && error && "response" in error
+			? (error as { response?: { data?: { message?: unknown } } }).response?.data
+			: null;
+	const message = responseData?.message;
+
+	if (Array.isArray(message)) {
+		return message.filter(Boolean).join("\n") || fallbackMessage;
+	}
+
+	if (typeof message === "string" && message.trim()) {
+		return message;
+	}
+
+	return fallbackMessage;
+};
 
 const getInclusiveDurationDays = (start: Date, end: Date) =>
 	Math.max(daysBetween(start, end) + 1, 1);
@@ -1619,6 +1638,7 @@ export const AutonomousProjectGantt = ({
 			return;
 		}
 
+		try {
 		const title = stageForm.title.trim() || getStageTypeLabel(stageForm.stageType);
 		const isDependencyStage = Boolean(stageForm.dependsOnStageId);
 		const eventKind = getStageEventKind(stageForm.stageType);
@@ -1805,6 +1825,13 @@ export const AutonomousProjectGantt = ({
 		setIsStageModalOpen(false);
 		await refreshData();
 		onPaymentsChanged?.();
+		} catch (error) {
+			notify({
+				duration: 5000,
+				message: getApiErrorMessage(error, "Не удалось сохранить этап"),
+				type: "error",
+			});
+		}
 	};
 
 	const handleStageDelete = async () => {
@@ -1817,10 +1844,18 @@ export const AutonomousProjectGantt = ({
 			return;
 		}
 
-		await deleteProjectGanttStage(stageForm.id);
-		setDeletingStageId(null);
-		setIsStageModalOpen(false);
-		await refreshData();
+		try {
+			await deleteProjectGanttStage(stageForm.id);
+			setDeletingStageId(null);
+			setIsStageModalOpen(false);
+			await refreshData();
+		} catch (error) {
+			notify({
+				duration: 5000,
+				message: getApiErrorMessage(error, "Не удалось удалить этап"),
+				type: "error",
+			});
+		}
 	};
 
 	const handleEventSubmit = async () => {
