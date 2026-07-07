@@ -23,6 +23,7 @@ import {
 	getAutonomousDependencyAnchorDate,
 	getAutonomousEventStyle,
 	getAutonomousPaymentAnchorDate,
+	isAutonomousPaymentDueByCompletedStage,
 	recalculateAutonomousDependencyEvents,
 	resolveAutonomousPaymentDates,
 } from "../model/autonomousProjectGantt";
@@ -698,6 +699,10 @@ export const AutonomousProjectGantt = ({
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage])),
 		[stages],
+	);
+	const eventByStageId = useMemo(
+		() => new Map(events.map((event) => [event.stageId, event])),
+		[events],
 	);
 	const editableStages = useMemo(
 		() => stages.filter((stage) => stage.code !== "payments"),
@@ -1974,6 +1979,7 @@ export const AutonomousProjectGantt = ({
 							onStageReorderDragStart={handleStageReorderDragStart}
 							onStageEdit={openStageEditModal}
 							row={row}
+							eventByStageId={eventByStageId}
 							setPaymentMarkerRef={setPaymentMarkerRef}
 							setStageEventRef={setStageEventRef}
 							stageById={stageById}
@@ -2093,6 +2099,7 @@ const AutonomousPaymentLinksLayer = ({
 const AutonomousStageRow = ({
 	dragDateGuidePercent,
 	draggingStageId,
+	eventByStageId,
 	monthTicks,
 	onDependencyLinkDragStart,
 	onEventDateDragStart,
@@ -2111,6 +2118,7 @@ const AutonomousStageRow = ({
 }: {
 	dragDateGuidePercent: number | null;
 	draggingStageId: number | null;
+	eventByStageId: Map<number, ProjectGanttEvent>;
 	monthTicks: GanttMonthTick[];
 	onDependencyLinkDragStart: (
 		event: ReactPointerEvent<HTMLElement>,
@@ -2239,6 +2247,10 @@ const AutonomousStageRow = ({
 						key={payment.id}
 						markerRef={setPaymentMarkerRef(payment.id)}
 						onEdit={onPaymentEdit}
+						isDueByCompletedStage={isAutonomousPaymentDueByCompletedStage(
+							payment,
+							eventByStageId,
+						)}
 						payment={payment}
 						stageTitle={stageById.get(payment.stageId)?.title ?? "—"}
 						timeline={timeline}
@@ -2660,6 +2672,7 @@ const AutonomousEventItem = ({
 };
 
 const AutonomousPaymentItem = ({
+	isDueByCompletedStage,
 	markerRef,
 	onEdit,
 	payment,
@@ -2667,6 +2680,7 @@ const AutonomousPaymentItem = ({
 	timeline,
 	top,
 }: {
+	isDueByCompletedStage: boolean;
 	markerRef: (node: HTMLButtonElement | null) => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
 	payment: AutonomousProjectPayment;
@@ -2692,6 +2706,8 @@ const AutonomousPaymentItem = ({
 			className={`${styles.ganttMilestone} ${styles.autonomousPaymentMarker} ${
 				isPaymentPaid(payment)
 					? styles.autonomousPaymentPaid
+					: isDueByCompletedStage
+						? styles.autonomousPaymentDue
 					: styles.autonomousPaymentUnpaid
 			}`}
 			onClick={(clickEvent) => {

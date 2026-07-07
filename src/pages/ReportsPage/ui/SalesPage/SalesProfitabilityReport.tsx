@@ -28,7 +28,10 @@ import {
 	fetchAutonomousProjectPayments,
 	updateAutonomousProjectPayment,
 } from "./model/projectPayments.api";
-import { resolveAutonomousPaymentDates } from "./model/autonomousProjectGantt";
+import {
+	isAutonomousPaymentDueByCompletedStage,
+	resolveAutonomousPaymentDates,
+} from "./model/autonomousProjectGantt";
 import {
 	createReportProject,
 	createProjectReportEntry,
@@ -224,8 +227,10 @@ const paymentChartScaleLabels: Record<PaymentChartScale, string> = {
 
 const getAutonomousPaymentStatusClassName = (
 	status: AutonomousProjectPayment["status"],
+	isDueByCompletedStage = false,
 ) => {
 	if (status === "paid") return styles.paymentPaid;
+	if (isDueByCompletedStage) return styles.paymentDue;
 
 	return styles.paymentCanceled;
 };
@@ -1574,6 +1579,10 @@ const AutonomousPaymentsTab = ({
 		() => new Map(projects.map((item) => [String(item.id), item])),
 		[projects],
 	);
+	const paymentEventByStageId = useMemo(
+		() => new Map(paymentEvents.map((event) => [event.stageId, event])),
+		[paymentEvents],
+	);
 	const projectAmount = projects.reduce(
 		(sum, item) => sum + (item.projectAmount ?? 0),
 		0,
@@ -1892,6 +1901,10 @@ const AutonomousPaymentsTab = ({
 															key={payment.id}
 															className={`${styles.paymentSegment} ${getAutonomousPaymentStatusClassName(
 																payment.status,
+																isAutonomousPaymentDueByCompletedStage(
+																	payment,
+																	paymentEventByStageId,
+																),
 															)}`}
 															style={{
 																height: `${Math.max(
