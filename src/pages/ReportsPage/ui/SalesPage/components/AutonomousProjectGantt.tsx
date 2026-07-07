@@ -20,9 +20,9 @@ import {
 	buildAutonomousProjectGantt,
 	formatAutonomousEventTooltip,
 	formatAutonomousPaymentTooltip,
+	getAutonomousDependencyAnchorDate,
 	getAutonomousEventStyle,
 	getAutonomousPaymentAnchorDate,
-	getAutonomousPlanAnchorDate,
 	recalculateAutonomousDependencyEvents,
 	resolveAutonomousPaymentDates,
 } from "../model/autonomousProjectGantt";
@@ -1651,7 +1651,7 @@ export const AutonomousProjectGantt = ({
 					?.events.at(0) ?? null)
 			: null;
 		const dependencyStart = dependencyEventRow
-			? getAutonomousPlanAnchorDate(
+			? getAutonomousDependencyAnchorDate(
 					dependencyEventRow,
 					stageForm.dependencyAnchor,
 				)
