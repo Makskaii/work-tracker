@@ -28,7 +28,10 @@ import {
 	fetchAutonomousProjectPayments,
 	updateAutonomousProjectPayment,
 } from "./model/projectPayments.api";
-import { resolveAutonomousPaymentDates } from "./model/autonomousProjectGantt";
+import {
+	isAutonomousPaymentDueByCompletedStage,
+	resolveAutonomousPaymentDates,
+} from "./model/autonomousProjectGantt";
 import {
 	createReportProject,
 	createProjectReportEntry,
@@ -224,8 +227,10 @@ const paymentChartScaleLabels: Record<PaymentChartScale, string> = {
 
 const getAutonomousPaymentStatusClassName = (
 	status: AutonomousProjectPayment["status"],
+	isDueByCompletedStage = false,
 ) => {
 	if (status === "paid") return styles.paymentPaid;
+	if (isDueByCompletedStage) return styles.paymentDue;
 
 	return styles.paymentCanceled;
 };
@@ -1574,6 +1579,10 @@ const AutonomousPaymentsTab = ({
 		() => new Map(projects.map((item) => [String(item.id), item])),
 		[projects],
 	);
+	const paymentEventByStageId = useMemo(
+		() => new Map(paymentEvents.map((event) => [event.stageId, event])),
+		[paymentEvents],
+	);
 	const projectAmount = projects.reduce(
 		(sum, item) => sum + (item.projectAmount ?? 0),
 		0,
@@ -1598,6 +1607,16 @@ const AutonomousPaymentsTab = ({
 			: scope === "client"
 				? (project?.clientCompany || project?.title || "Компания клиента")
 			: "Все проекты";
+	const getPaymentSegmentTooltip = (
+		payment: AutonomousProjectPayment,
+		amount: number,
+	) =>
+		[
+			`Проект: ${
+				projectById.get(String(payment.projectId))?.title ?? "Проект"
+			}`,
+			`Сумма: ${formatMoney(amount)}`,
+		].join("\n");
 	const paymentsWithDisplayDates = useMemo(
 		() =>
 			resolveAutonomousPaymentDates({
@@ -1882,6 +1901,10 @@ const AutonomousPaymentsTab = ({
 															key={payment.id}
 															className={`${styles.paymentSegment} ${getAutonomousPaymentStatusClassName(
 																payment.status,
+																isAutonomousPaymentDueByCompletedStage(
+																	payment,
+																	paymentEventByStageId,
+																),
 															)}`}
 															style={{
 																height: `${Math.max(
@@ -1889,7 +1912,7 @@ const AutonomousPaymentsTab = ({
 																	16,
 																)}px`,
 															}}
-															title={formatMoney(amount)}
+															title={getPaymentSegmentTooltip(payment, amount)}
 														>
 															{formatMoney(amount)}
 														</span>

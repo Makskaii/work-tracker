@@ -1130,6 +1130,10 @@
 	background: linear-gradient(180deg, #64e89f, #42d782);
 }
 
+.stackedBar .paymentDue {
+	background: linear-gradient(180deg, #ffd45a, #f2a51f);
+}
+
 .stackedBar .paymentPlanned {
 	background: linear-gradient(180deg, #ff7676, #ff626a);
 }
@@ -1706,6 +1710,10 @@
 
 .autonomousPaymentUnpaid b {
 	background: var(--color-payment-unpaid);
+}
+
+.autonomousPaymentDue b {
+	background: #f2a51f;
 }
 
 .autonomousPaymentMarker {

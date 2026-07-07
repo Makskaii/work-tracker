@@ -10,6 +10,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 import {
 	calculatePaymentFields,
 	DEFAULT_PAYMENT_FORM,
@@ -23,6 +24,7 @@ import {
 	getAutonomousDependencyAnchorDate,
 	getAutonomousEventStyle,
 	getAutonomousPaymentAnchorDate,
+	isAutonomousPaymentDueByCompletedStage,
 	recalculateAutonomousDependencyEvents,
 	resolveAutonomousPaymentDates,
 } from "../model/autonomousProjectGantt";
@@ -364,6 +366,24 @@ const hasEventFactDates = (event: ProjectGanttEvent) =>
 const DEPENDENCY_FACT_DATES_CONFIRM_MESSAGE =
 	"У этапа есть фактические даты. Привязка изменит только плановые даты, фактические даты останутся без изменений. Продолжить?";
 
+const getApiErrorMessage = (error: unknown, fallbackMessage: string) => {
+	const responseData =
+		typeof error === "object" && error && "response" in error
+			? (error as { response?: { data?: { message?: unknown } } }).response?.data
+			: null;
+	const message = responseData?.message;
+
+	if (Array.isArray(message)) {
+		return message.filter(Boolean).join("\n") || fallbackMessage;
+	}
+
+	if (typeof message === "string" && message.trim()) {
+		return message;
+	}
+
+	return fallbackMessage;
+};
+
 const getInclusiveDurationDays = (start: Date, end: Date) =>
 	Math.max(daysBetween(start, end) + 1, 1);
 
@@ -698,6 +718,10 @@ export const AutonomousProjectGantt = ({
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage])),
 		[stages],
+	);
+	const eventByStageId = useMemo(
+		() => new Map(events.map((event) => [event.stageId, event])),
+		[events],
 	);
 	const editableStages = useMemo(
 		() => stages.filter((stage) => stage.code !== "payments"),
@@ -1614,6 +1638,7 @@ export const AutonomousProjectGantt = ({
 			return;
 		}
 
+		try {
 		const title = stageForm.title.trim() || getStageTypeLabel(stageForm.stageType);
 		const isDependencyStage = Boolean(stageForm.dependsOnStageId);
 		const eventKind = getStageEventKind(stageForm.stageType);
@@ -1800,6 +1825,13 @@ export const AutonomousProjectGantt = ({
 		setIsStageModalOpen(false);
 		await refreshData();
 		onPaymentsChanged?.();
+		} catch (error) {
+			notify({
+				duration: 5000,
+				message: getApiErrorMessage(error, "Не удалось сохранить этап"),
+				type: "error",
+			});
+		}
 	};
 
 	const handleStageDelete = async () => {
@@ -1812,10 +1844,18 @@ export const AutonomousProjectGantt = ({
 			return;
 		}
 
-		await deleteProjectGanttStage(stageForm.id);
-		setDeletingStageId(null);
-		setIsStageModalOpen(false);
-		await refreshData();
+		try {
+			await deleteProjectGanttStage(stageForm.id);
+			setDeletingStageId(null);
+			setIsStageModalOpen(false);
+			await refreshData();
+		} catch (error) {
+			notify({
+				duration: 5000,
+				message: getApiErrorMessage(error, "Не удалось удалить этап"),
+				type: "error",
+			});
+		}
 	};
 
 	const handleEventSubmit = async () => {
@@ -1974,6 +2014,7 @@ export const AutonomousProjectGantt = ({
 							onStageReorderDragStart={handleStageReorderDragStart}
 							onStageEdit={openStageEditModal}
 							row={row}
+							eventByStageId={eventByStageId}
 							setPaymentMarkerRef={setPaymentMarkerRef}
 							setStageEventRef={setStageEventRef}
 							stageById={stageById}
@@ -2093,6 +2134,7 @@ const AutonomousPaymentLinksLayer = ({
 const AutonomousStageRow = ({
 	dragDateGuidePercent,
 	draggingStageId,
+	eventByStageId,
 	monthTicks,
 	onDependencyLinkDragStart,
 	onEventDateDragStart,
@@ -2111,6 +2153,7 @@ const AutonomousStageRow = ({
 }: {
 	dragDateGuidePercent: number | null;
 	draggingStageId: number | null;
+	eventByStageId: Map<number, ProjectGanttEvent>;
 	monthTicks: GanttMonthTick[];
 	onDependencyLinkDragStart: (
 		event: ReactPointerEvent<HTMLElement>,
@@ -2239,6 +2282,10 @@ const AutonomousStageRow = ({
 						key={payment.id}
 						markerRef={setPaymentMarkerRef(payment.id)}
 						onEdit={onPaymentEdit}
+						isDueByCompletedStage={isAutonomousPaymentDueByCompletedStage(
+							payment,
+							eventByStageId,
+						)}
 						payment={payment}
 						stageTitle={stageById.get(payment.stageId)?.title ?? "—"}
 						timeline={timeline}
@@ -2660,6 +2707,7 @@ const AutonomousEventItem = ({
 };
 
 const AutonomousPaymentItem = ({
+	isDueByCompletedStage,
 	markerRef,
 	onEdit,
 	payment,
@@ -2667,6 +2715,7 @@ const AutonomousPaymentItem = ({
 	timeline,
 	top,
 }: {
+	isDueByCompletedStage: boolean;
 	markerRef: (node: HTMLButtonElement | null) => void;
 	onEdit: (payment: AutonomousProjectPayment) => void;
 	payment: AutonomousProjectPayment;
@@ -2692,6 +2741,8 @@ const AutonomousPaymentItem = ({
 			className={`${styles.ganttMilestone} ${styles.autonomousPaymentMarker} ${
 				isPaymentPaid(payment)
 					? styles.autonomousPaymentPaid
+					: isDueByCompletedStage
+						? styles.autonomousPaymentDue
 					: styles.autonomousPaymentUnpaid
 			}`}
 			onClick={(clickEvent) => {

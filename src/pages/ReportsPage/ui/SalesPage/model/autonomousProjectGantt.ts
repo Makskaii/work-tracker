@@ -271,6 +271,27 @@ const getPaymentDisplayDate = (
 	return getAutonomousPaymentAnchorDate(stageEvent, payment.paymentAnchor);
 };
 
+export const isAutonomousPaymentDueByCompletedStage = (
+	payment: AutonomousProjectPayment,
+	eventByStageId: Map<number, ProjectGanttEvent>,
+) => {
+	const event = payment.stageId ? eventByStageId.get(payment.stageId) : null;
+
+	if (payment.status === "paid" || !event) {
+		return false;
+	}
+
+	if (event.eventKind === "one_time") {
+		return Boolean(event.factStartDate || event.factEndDate);
+	}
+
+	if (payment.paymentAnchor === "stage_start") {
+		return Boolean(event.factStartDate);
+	}
+
+	return Boolean(event.factEndDate);
+};
+
 const formatInputDate = (date: Date) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 

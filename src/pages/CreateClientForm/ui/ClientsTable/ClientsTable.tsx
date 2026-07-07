@@ -11,6 +11,7 @@ import { $backendApi } from "@/shared/config/axios/axios.config";
 import type { Header } from "@/shared/types/table";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { convertToDate } from "@/shared/utils";
+import { ClientHoursPaymentsModal } from "./ClientHoursPaymentsModal";
 
 export type ClientsTable = {
 	id: string;
@@ -45,12 +46,14 @@ type ClientsTableAdditionalData = {
 	row?: ClientsTable;
 	onEditClient?: (client: ClientsTable) => void;
 	onDeleteClient?: () => Promise<void> | void;
+	onOpenPayments?: (client: ClientsTable) => void;
 };
 
 type ClientRowActionsProps = {
 	client: ClientsTable;
 	onEditClient?: (client: ClientsTable) => void;
 	onDeleteClient?: () => Promise<void> | void;
+	onOpenPayments?: (client: ClientsTable) => void;
 };
 
 const actionsStyle: CSSProperties = {
@@ -161,6 +164,7 @@ const ClientRowActions = ({
 	client,
 	onEditClient,
 	onDeleteClient,
+	onOpenPayments,
 }: ClientRowActionsProps) => {
 	const [pendingAction, setPendingAction] = useState<ClientAction | null>(null);
 	const isPending = pendingAction !== null;
@@ -171,6 +175,14 @@ const ClientRowActions = ({
 		if (isPending) return;
 
 		onEditClient?.(client);
+	};
+
+	const handleOpenPayments = (event: MouseEvent<HTMLButtonElement>) => {
+		event.stopPropagation();
+
+		if (isPending) return;
+
+		onOpenPayments?.(client);
 	};
 
 	const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -203,6 +215,18 @@ const ClientRowActions = ({
 
 	return (
 		<div style={actionsStyle}>
+			<button
+				type="button"
+				style={{
+					...editButtonStyle,
+					...(isPending ? disabledButtonStyle : {}),
+				}}
+				onClick={handleOpenPayments}
+				disabled={isPending}
+			>
+				Оплаты
+			</button>
+
 			<button
 				type="button"
 				style={{
@@ -458,6 +482,7 @@ const headers: Header<ClientsTable>[] = [
 					client={row}
 					onEditClient={tableAdditionalData?.onEditClient}
 					onDeleteClient={tableAdditionalData?.onDeleteClient}
+					onOpenPayments={tableAdditionalData?.onOpenPayments}
 				/>
 			);
 		},
@@ -474,6 +499,7 @@ export const ClientsTable = ({
 	onClientUpdated?: () => Promise<void> | void;
 }) => {
 	const [editingClient, setEditingClient] = useState<ClientsTable | null>(null);
+	const [paymentsClient, setPaymentsClient] = useState<ClientsTable | null>(null);
 
 	return (
 		<div>
@@ -482,6 +508,7 @@ export const ClientsTable = ({
 				additionalData={{
 					onEditClient: setEditingClient,
 					onDeleteClient,
+					onOpenPayments: setPaymentsClient,
 				}}
 				headers={headers}
 			/>
@@ -489,6 +516,12 @@ export const ClientsTable = ({
 			<EditClientModal
 				client={editingClient}
 				onClose={() => setEditingClient(null)}
+				onClientUpdated={onClientUpdated}
+			/>
+
+			<ClientHoursPaymentsModal
+				client={paymentsClient}
+				onClose={() => setPaymentsClient(null)}
 				onClientUpdated={onClientUpdated}
 			/>
 		</div>
