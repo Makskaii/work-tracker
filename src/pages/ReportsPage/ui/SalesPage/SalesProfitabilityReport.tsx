@@ -168,6 +168,28 @@ const getProjectResponsibleUser = (
 	);
 };
 
+const getProjectResponsibleGroup = (project: ReportProject, users: User[]) => {
+	const responsibleUser = getProjectResponsibleUser(project, users);
+	const fallbackTitle = String(project.responsible ?? "").trim();
+	const title = responsibleUser?.title?.trim() || fallbackTitle;
+
+	if (!title) {
+		return {
+			isEmpty: true,
+			key: "empty",
+			sortTitle: "",
+			title: "Без ответственного",
+		};
+	}
+
+	return {
+		isEmpty: false,
+		key: normalizeProjectId(responsibleUser?.id) || normalizeResponsibleName(title),
+		sortTitle: title,
+		title,
+	};
+};
+
 const isProjectResponsibleMatched = (
 	project: ReportProject,
 	user: User | undefined,
@@ -675,6 +697,36 @@ export const SalesProfitabilityReport = ({
 			: true;
 
 		return matchesResponsible && matchesSearch;
+	});
+	const visibleReportProjectGroups = Array.from(
+		visibleReportProjects
+			.reduce(
+				(groups, project) => {
+					const group = getProjectResponsibleGroup(project, users);
+					const existingGroup = groups.get(group.key);
+
+					if (existingGroup) {
+						existingGroup.projects.push(project);
+					} else {
+						groups.set(group.key, { ...group, projects: [project] });
+					}
+
+					return groups;
+				},
+				new Map<
+					string,
+					ReturnType<typeof getProjectResponsibleGroup> & {
+						projects: ReportProject[];
+					}
+				>(),
+			)
+			.values(),
+	).sort((left, right) => {
+		if (left.isEmpty !== right.isEmpty) {
+			return left.isEmpty ? 1 : -1;
+		}
+
+		return left.sortTitle.localeCompare(right.sortTitle, "ru");
 	});
 	const companyOptions = useMemo(
 		() =>
@@ -1393,61 +1445,73 @@ export const SalesProfitabilityReport = ({
 							<ProjectListSkeleton />
 						) : null}
 						{!isReportProjectsLoading &&
-							visibleReportProjects.map((project) => {
-								const responsibleUser = getProjectResponsibleUser(project, users);
+							visibleReportProjectGroups.map((group) => (
+								<div key={group.key} className={styles.reportProjectGroup}>
+									<div className={styles.reportProjectGroupTitle}>
+										{group.title}
+									</div>
+									{group.projects.map((project) => {
+										const responsibleUser = getProjectResponsibleUser(
+											project,
+											users,
+										);
 
-								return (
-									<button
-										key={project.id}
-										type="button"
-										title={project.title}
-										className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
-											getDbProjectId(project) === selectedProjectId
-												? styles.activeProject
-												: ""
-										}`}
-										onClick={() => selectReportProject(project)}
-									>
-										<span className={styles.dealProjectIcon}>
-											{responsibleUser?.photo ? (
-												<img src={responsibleUser.photo} alt="" />
-											) : (
-												project.title.trim().charAt(0) || "P"
-											)}
-										</span>
-										<span className={styles.reportProjectText}>
-											<strong className={styles.reportProjectTitle}>
-												{project.title}
-											</strong>
-											<small className={styles.reportProjectMeta}>
-												<span>Проект</span>
-												<span
-													className={`${styles.reportProjectNextReportDate} ${
-														isProjectReportDateOverdue(
-															project.nextProjectReportDate,
-														)
-															? styles.reportProjectNextReportDateOverdue
-															: ""
-													}`}
-												>
-													{formatProjectReportDate(project.nextProjectReportDate)}
+										return (
+											<button
+												key={project.id}
+												type="button"
+												title={project.title}
+												className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
+													getDbProjectId(project) === selectedProjectId
+														? styles.activeProject
+														: ""
+												}`}
+												onClick={() => selectReportProject(project)}
+											>
+												<span className={styles.dealProjectIcon}>
+													{responsibleUser?.photo ? (
+														<img src={responsibleUser.photo} alt="" />
+													) : (
+														project.title.trim().charAt(0) || "P"
+													)}
 												</span>
-											</small>
-										</span>
-										<span
-											className={styles.reportProjectMenuButton}
-											onClick={(event) => {
-												event.stopPropagation();
-												openReportProjectEditModal(project);
-											}}
-										>
-											<span aria-hidden="true" />
-											<span aria-hidden="true" />
-											<span aria-hidden="true" />
-										</span>
-									</button>
-								);
-							})}
+												<span className={styles.reportProjectText}>
+													<strong className={styles.reportProjectTitle}>
+														{project.title}
+													</strong>
+													<small className={styles.reportProjectMeta}>
+														<span>Проект</span>
+														<span
+															className={`${styles.reportProjectNextReportDate} ${
+																isProjectReportDateOverdue(
+																	project.nextProjectReportDate,
+																)
+																	? styles.reportProjectNextReportDateOverdue
+																	: ""
+															}`}
+														>
+															{formatProjectReportDate(
+																project.nextProjectReportDate,
+															)}
+														</span>
+													</small>
+												</span>
+												<span
+													className={styles.reportProjectMenuButton}
+													onClick={(event) => {
+														event.stopPropagation();
+														openReportProjectEditModal(project);
+													}}
+												>
+													<span aria-hidden="true" />
+													<span aria-hidden="true" />
+													<span aria-hidden="true" />
+												</span>
+											</button>
+										);
+									})}
+								</div>
+							))}
 						<button
 							type="button"
 							className={styles.dealProjectAddButton}
