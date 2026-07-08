@@ -179,6 +179,7 @@ export const ReportProjectInput = ({
 	const value = form[name];
 	const query = isMultiple ? getMultiValueQuery(value) : value;
 	const matchingOptions = options ? getMatchingOptions(options, query) : [];
+	const idFieldName = employeeIdFieldByName[name];
 	const fieldClassName =
 		variant === "details"
 			? textarea
@@ -219,10 +220,16 @@ export const ReportProjectInput = ({
 						}}
 						onChange={(event) => {
 							setIsOptionsOpen(true);
-							onFormChange({
+							const nextForm = {
 								...form,
 								[name]: event.target.value,
-							});
+							};
+
+							if (idFieldName) {
+								nextForm[idFieldName] = "";
+							}
+
+							onFormChange(nextForm);
 						}}
 					/>
 					{isOptionsOpen && matchingOptions.length ? (
@@ -233,12 +240,20 @@ export const ReportProjectInput = ({
 									type="button"
 									onMouseDown={(event) => event.preventDefault()}
 									onClick={() => {
-										onFormChange({
+										const nextForm = {
 											...form,
 											[name]: isMultiple
 												? appendMultiValue(value, option.value ?? option.title)
 												: (option.value ?? option.title),
-										});
+										};
+
+										if (idFieldName) {
+											nextForm[idFieldName] = isMultiple
+												? appendMultiValue(form[idFieldName], option.id)
+												: option.id;
+										}
+
+										onFormChange(nextForm);
 										setIsOptionsOpen(false);
 									}}
 								>
@@ -296,6 +311,16 @@ const appendMultiValue = (value: string, selectedValue: string) => {
 	return nextParts.join(", ");
 };
 
+const employeeIdFieldByName: Partial<
+	Record<keyof ReportProjectFormState, keyof ReportProjectFormState>
+> = {
+	analyst: "analystId",
+	developmentTeam: "developmentTeamIds",
+	qa: "qaId",
+	responsible: "responsibleId",
+	salesManager: "salesManagerId",
+};
+
 export const ReportProjectAutocompleteInput = ({
 	form,
 	label,
@@ -320,11 +345,35 @@ export const ReportProjectAutocompleteInput = ({
 		variant === "details"
 			? styles.reportProjectDetailsField
 			: styles.reportProjectField;
+	const idFieldName = employeeIdFieldByName[name];
 
 	const selectOption = (option: ReportProjectAutocompleteOption) => {
-		onFormChange({
+		const nextForm = {
 			...form,
 			[name]: multiple ? appendMultiValue(value, option.title) : option.title,
+		};
+
+		if (idFieldName) {
+			nextForm[idFieldName] = multiple
+				? appendMultiValue(form[idFieldName], option.id)
+				: option.id;
+		}
+
+		onFormChange(nextForm);
+	};
+
+	const handleChange = (nextValue: string) => {
+		const nextForm = {
+			...form,
+			[name]: nextValue,
+		};
+
+		if (idFieldName) {
+			nextForm[idFieldName] = "";
+		}
+
+		onFormChange({
+			...nextForm,
 		});
 	};
 
@@ -334,12 +383,7 @@ export const ReportProjectAutocompleteInput = ({
 			<input
 				type="text"
 				value={value}
-				onChange={(event) =>
-					onFormChange({
-						...form,
-						[name]: event.target.value,
-					})
-				}
+				onChange={(event) => handleChange(event.target.value)}
 			/>
 			{matchingOptions.length ? (
 				<div className={styles.reportProjectAutocompleteOptions}>

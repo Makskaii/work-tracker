@@ -142,6 +142,52 @@ const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
 const normalizeProjectTitle = (title: string) => title.trim().toLowerCase();
 const normalizeProjectId = (value: string | number | null | undefined) =>
 	String(value ?? "").trim();
+const normalizeResponsibleName = (value: string | null | undefined) =>
+	String(value ?? "")
+		.trim()
+		.toLowerCase();
+
+const getProjectResponsibleUser = (
+	project: ReportProject,
+	users: User[],
+): User | undefined => {
+	const responsibleId = normalizeProjectId(project.responsibleId);
+
+	if (responsibleId) {
+		return users.find((user) => normalizeProjectId(user.id) === responsibleId);
+	}
+
+	const responsible = normalizeResponsibleName(project.responsible);
+
+	if (!responsible) {
+		return undefined;
+	}
+
+	return users.find(
+		(user) => normalizeResponsibleName(user.title) === responsible,
+	);
+};
+
+const isProjectResponsibleMatched = (
+	project: ReportProject,
+	user: User | undefined,
+	selectedUserId: string,
+) => {
+	if (!selectedUserId || !user) {
+		return true;
+	}
+
+	const responsibleId = normalizeProjectId(project.responsibleId);
+
+	if (responsibleId) {
+		return responsibleId === selectedUserId;
+	}
+
+	return (
+		normalizeResponsibleName(project.responsible) ===
+		normalizeResponsibleName(user.title)
+	);
+};
 
 const mergeReportProjectFiles = (
 	files: ReportProjectFile[] = [],
@@ -370,6 +416,9 @@ export const SalesProfitabilityReport = ({
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
 	const [projectSearchQuery, setProjectSearchQuery] = useState("");
+	const [selectedResponsibleFilter, setSelectedResponsibleFilter] =
+		useState<string>("");
+	const [isResponsibleFilterOpen, setIsResponsibleFilterOpen] = useState(false);
 	const [deletingReportProjectId, setDeletingReportProjectId] = useState<
 		number | null
 	>(null);
@@ -607,11 +656,26 @@ export const SalesProfitabilityReport = ({
 		project.reports.map((report) => ({ project, report })),
 	);
 	const normalizedProjectSearchQuery = projectSearchQuery.trim().toLowerCase();
-	const visibleReportProjects = normalizedProjectSearchQuery
-		? reportProjects.filter((project) =>
-				project.title.toLowerCase().includes(normalizedProjectSearchQuery),
+	const responsibleFilterUsers = users.filter((user) =>
+		String(user.title ?? "").trim(),
+	);
+	const selectedResponsibleUser = selectedResponsibleFilter
+		? responsibleFilterUsers.find(
+				(user) => normalizeProjectId(user.id) === selectedResponsibleFilter,
 			)
-		: reportProjects;
+		: undefined;
+	const visibleReportProjects = reportProjects.filter((project) => {
+		const matchesResponsible = isProjectResponsibleMatched(
+			project,
+			selectedResponsibleUser,
+			selectedResponsibleFilter,
+		);
+		const matchesSearch = normalizedProjectSearchQuery
+			? project.title.toLowerCase().includes(normalizedProjectSearchQuery)
+			: true;
+
+		return matchesResponsible && matchesSearch;
+	});
 	const companyOptions = useMemo(
 		() =>
 			Array.from(companyTitleById.entries()).map(([id, title]) => ({
@@ -1281,57 +1345,109 @@ export const SalesProfitabilityReport = ({
 							value={projectSearchQuery}
 							onChange={(event) => setProjectSearchQuery(event.target.value)}
 						/>
+						<div className={styles.responsibleFilter}>
+							<button
+								type="button"
+								className={styles.responsibleFilterButton}
+								onClick={() => setIsResponsibleFilterOpen((prev) => !prev)}
+								title="Фильтр по ответственному"
+							>
+								<span>Ответственный</span>
+								<strong>{selectedResponsibleUser?.title ?? "Все"}</strong>
+							</button>
+							{isResponsibleFilterOpen ? (
+								<div className={styles.responsibleFilterOptions}>
+									<button
+										type="button"
+										onClick={() => {
+											setSelectedResponsibleFilter("");
+											setIsResponsibleFilterOpen(false);
+										}}
+									>
+										<span className={styles.responsibleFilterAvatar}>Все</span>
+										<span>Все ответственные</span>
+									</button>
+									{responsibleFilterUsers.map((user) => (
+										<button
+											key={user.id}
+											type="button"
+											onClick={() => {
+												setSelectedResponsibleFilter(normalizeProjectId(user.id));
+												setIsResponsibleFilterOpen(false);
+											}}
+										>
+											<span className={styles.responsibleFilterAvatar}>
+												{user.photo ? (
+													<img src={user.photo} alt="" />
+												) : (
+													user.title.trim().charAt(0) || "?"
+												)}
+											</span>
+											<span>{user.title}</span>
+										</button>
+									))}
+								</div>
+							) : null}
+						</div>
 						{isReportProjectsLoading ? (
 							<ProjectListSkeleton />
 						) : null}
 						{!isReportProjectsLoading &&
-							visibleReportProjects.map((project) => (
-								<button
-									key={project.id}
-									type="button"
-									title={project.title}
-									className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
-										getDbProjectId(project) === selectedProjectId
-											? styles.activeProject
-											: ""
-									}`}
-									onClick={() => selectReportProject(project)}
-								>
-									<span className={styles.dealProjectIcon}>
-										{project.title.trim().charAt(0) || "P"}
-									</span>
-									<span className={styles.reportProjectText}>
-										<strong className={styles.reportProjectTitle}>
-											{project.title}
-										</strong>
-										<small className={styles.reportProjectMeta}>
-											<span>Проект</span>
-											<span
-												className={`${styles.reportProjectNextReportDate} ${
-													isProjectReportDateOverdue(
-														project.nextProjectReportDate,
-													)
-														? styles.reportProjectNextReportDateOverdue
-														: ""
-												}`}
-											>
-												{formatProjectReportDate(project.nextProjectReportDate)}
-											</span>
-										</small>
-									</span>
-									<span
-										className={styles.reportProjectMenuButton}
-										onClick={(event) => {
-											event.stopPropagation();
-											openReportProjectEditModal(project);
-										}}
+							visibleReportProjects.map((project) => {
+								const responsibleUser = getProjectResponsibleUser(project, users);
+
+								return (
+									<button
+										key={project.id}
+										type="button"
+										title={project.title}
+										className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
+											getDbProjectId(project) === selectedProjectId
+												? styles.activeProject
+												: ""
+										}`}
+										onClick={() => selectReportProject(project)}
 									>
-										<span aria-hidden="true" />
-										<span aria-hidden="true" />
-										<span aria-hidden="true" />
-									</span>
-								</button>
-							))}
+										<span className={styles.dealProjectIcon}>
+											{responsibleUser?.photo ? (
+												<img src={responsibleUser.photo} alt="" />
+											) : (
+												project.title.trim().charAt(0) || "P"
+											)}
+										</span>
+										<span className={styles.reportProjectText}>
+											<strong className={styles.reportProjectTitle}>
+												{project.title}
+											</strong>
+											<small className={styles.reportProjectMeta}>
+												<span>Проект</span>
+												<span
+													className={`${styles.reportProjectNextReportDate} ${
+														isProjectReportDateOverdue(
+															project.nextProjectReportDate,
+														)
+															? styles.reportProjectNextReportDateOverdue
+															: ""
+													}`}
+												>
+													{formatProjectReportDate(project.nextProjectReportDate)}
+												</span>
+											</small>
+										</span>
+										<span
+											className={styles.reportProjectMenuButton}
+											onClick={(event) => {
+												event.stopPropagation();
+												openReportProjectEditModal(project);
+											}}
+										>
+											<span aria-hidden="true" />
+											<span aria-hidden="true" />
+											<span aria-hidden="true" />
+										</span>
+									</button>
+								);
+							})}
 						<button
 							type="button"
 							className={styles.dealProjectAddButton}
