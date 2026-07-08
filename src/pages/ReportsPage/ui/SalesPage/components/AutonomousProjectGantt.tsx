@@ -1978,72 +1978,74 @@ export const AutonomousProjectGantt = ({
 			{isLoading ? (
 				<div className={styles.emptyState}>Загрузка Ганта...</div>
 			) : (
-				<div
-					ref={ganttBoardRef}
-					className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
-				>
-					<div className={styles.ganttScaleLabel}>Этапы проекта</div>
-					<div className={styles.ganttScale}>
-						<AutonomousGanttScale
-							monthTicks={monthTicks}
-							weekTicks={scaleWeekTicks}
-						/>
-						{dragDateGuide && dragDateGuidePercent !== null ? (
-							<div
-								className={styles.ganttDragDateGuideLabel}
-								style={{ left: `${dragDateGuidePercent}%` }}
-							>
-								{formatDateShort(dragDateGuide.date)}
-							</div>
-						) : null}
-					</div>
-					<AutonomousPaymentLinksLayer
-						dependencyLinkDraft={dependencyLinkDraft}
-						layout={paymentLinksLayout}
-					/>
-					{gantt.rows.map((row) => (
-						<AutonomousStageRow
-							key={row.stage.id}
-							dragDateGuidePercent={dragDateGuidePercent}
-							monthTicks={monthTicks}
-							onPaymentCreate={openPaymentCreateModal}
-							onPaymentEdit={openPaymentEditModal}
-							onEventDateDragStart={handleEventDateDragStart}
-							onDependencyLinkDragStart={handleDependencyLinkDragStart}
-							onEventMoveDragStart={handleEventMoveDragStart}
-							onStageReorderDragStart={handleStageReorderDragStart}
-							onStageEdit={openStageEditModal}
-							row={row}
-							eventByStageId={eventByStageId}
-							setPaymentMarkerRef={setPaymentMarkerRef}
-							setStageEventRef={setStageEventRef}
-							stageById={stageById}
-							today={today}
-							timeline={gantt.timeline}
-							draggingStageId={draggingStageId}
-							weekTicks={weekTicks}
-						/>
-					))}
-					<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
-						<button
-							type="button"
-							className={styles.ganttAddEventButton}
-							onClick={openStageCreateModal}
-						>
-							+
-						</button>
-					</div>
-					<div className={styles.ganttTrack}>
-						<AutonomousGanttTrackGrid
-							monthTicks={monthTicks}
-							weekTicks={weekTicks}
-						/>
-						{dragDateGuidePercent !== null ? (
-							<span
-								className={styles.ganttDragDateGuideLine}
-								style={{ left: `${dragDateGuidePercent}%` }}
+				<div className={styles.ganttBoardScroll}>
+					<div
+						ref={ganttBoardRef}
+						className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
+					>
+						<div className={styles.ganttScaleLabel}>Этапы проекта</div>
+						<div className={styles.ganttScale}>
+							<AutonomousGanttScale
+								monthTicks={monthTicks}
+								weekTicks={scaleWeekTicks}
 							/>
-						) : null}
+							{dragDateGuide && dragDateGuidePercent !== null ? (
+								<div
+									className={styles.ganttDragDateGuideLabel}
+									style={{ left: `${dragDateGuidePercent}%` }}
+								>
+									{formatDateShort(dragDateGuide.date)}
+								</div>
+							) : null}
+						</div>
+						<AutonomousPaymentLinksLayer
+							dependencyLinkDraft={dependencyLinkDraft}
+							layout={paymentLinksLayout}
+						/>
+						{gantt.rows.map((row) => (
+							<AutonomousStageRow
+								key={row.stage.id}
+								dragDateGuidePercent={dragDateGuidePercent}
+								monthTicks={monthTicks}
+								onPaymentCreate={openPaymentCreateModal}
+								onPaymentEdit={openPaymentEditModal}
+								onEventDateDragStart={handleEventDateDragStart}
+								onDependencyLinkDragStart={handleDependencyLinkDragStart}
+								onEventMoveDragStart={handleEventMoveDragStart}
+								onStageReorderDragStart={handleStageReorderDragStart}
+								onStageEdit={openStageEditModal}
+								row={row}
+								eventByStageId={eventByStageId}
+								setPaymentMarkerRef={setPaymentMarkerRef}
+								setStageEventRef={setStageEventRef}
+								stageById={stageById}
+								today={today}
+								timeline={gantt.timeline}
+								draggingStageId={draggingStageId}
+								weekTicks={weekTicks}
+							/>
+						))}
+						<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
+							<button
+								type="button"
+								className={styles.ganttAddEventButton}
+								onClick={openStageCreateModal}
+							>
+								+
+							</button>
+						</div>
+						<div className={styles.ganttTrack}>
+							<AutonomousGanttTrackGrid
+								monthTicks={monthTicks}
+								weekTicks={weekTicks}
+							/>
+							{dragDateGuidePercent !== null ? (
+								<span
+									className={styles.ganttDragDateGuideLine}
+									style={{ left: `${dragDateGuidePercent}%` }}
+								/>
+							) : null}
+						</div>
 					</div>
 				</div>
 			)}
