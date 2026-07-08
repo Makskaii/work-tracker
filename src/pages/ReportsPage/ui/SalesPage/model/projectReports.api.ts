@@ -16,6 +16,7 @@ const normalizeReportProject = (project: ReportProject): ReportProject => ({
 	developmentTeamIds: project.developmentTeamIds ?? null,
 	files: project.files ?? [],
 	nextProjectReportDate: project.nextProjectReportDate ?? null,
+	projectType: project.projectType ?? "none",
 	qaId: project.qaId ?? null,
 	responsibleId: project.responsibleId ?? null,
 	salesManagerId: project.salesManagerId ?? null,

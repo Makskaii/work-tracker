@@ -6,6 +6,7 @@ import type {
 	ReportProjectFileKind,
 } from "../model/types";
 import {
+	projectTypeOptions,
 	reportProjectFileLabels,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
@@ -80,6 +81,24 @@ export const ReportProjectModal = ({
 					onFormChange={onFormChange}
 					textarea
 				/>
+				<label className={styles.reportProjectField}>
+					<span>Тип проекта</span>
+					<select
+						value={form.projectType}
+						onChange={(event) =>
+							onFormChange({
+								...form,
+								projectType: event.target.value,
+							})
+						}
+					>
+						{projectTypeOptions.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</select>
+				</label>
 				<ReportProjectInput
 					form={form}
 					label="Сумма проекта"
