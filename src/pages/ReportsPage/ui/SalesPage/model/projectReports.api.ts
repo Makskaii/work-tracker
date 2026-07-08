@@ -12,8 +12,13 @@ import type {
 
 const normalizeReportProject = (project: ReportProject): ReportProject => ({
 	...project,
+	analystId: project.analystId ?? null,
+	developmentTeamIds: project.developmentTeamIds ?? null,
 	files: project.files ?? [],
 	nextProjectReportDate: project.nextProjectReportDate ?? null,
+	qaId: project.qaId ?? null,
+	responsibleId: project.responsibleId ?? null,
+	salesManagerId: project.salesManagerId ?? null,
 });
 
 const normalizeProjectReportEntry = (

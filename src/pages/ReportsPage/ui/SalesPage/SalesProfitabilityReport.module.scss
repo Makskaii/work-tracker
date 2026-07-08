@@ -122,6 +122,112 @@
 	display: none;
 }
 
+.responsibleFilter {
+	position: relative;
+	width: 100%;
+}
+
+.responsibleFilterButton {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	width: 100%;
+	min-height: 40px;
+	padding: 8px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: rgba(9, 20, 36, 0.72);
+	color: var(--color-text);
+	cursor: pointer;
+	text-align: left;
+
+	span {
+		color: rgba(238, 245, 255, 0.66);
+		font-size: 11px;
+		font-weight: 800;
+		text-transform: uppercase;
+	}
+
+	strong {
+		min-width: 0;
+		overflow: hidden;
+		color: var(--color-accent);
+		font-size: 12px;
+		font-weight: 900;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+
+.responsibleFilterButton:hover {
+	border-color: var(--color-border-active);
+	background: rgba(46, 197, 173, 0.08);
+}
+
+.responsibleFilterOptions {
+	position: absolute;
+	z-index: 20;
+	top: calc(100% + 6px);
+	right: 0;
+	left: 0;
+	display: grid;
+	max-height: 260px;
+	overflow: auto;
+	padding: 6px;
+	border: 1px solid var(--color-border);
+	border-radius: 12px;
+	background: #0f1d30;
+	box-shadow: 0 16px 36px rgba(1, 8, 14, 0.34);
+
+	button {
+		display: grid;
+		grid-template-columns: 28px minmax(0, 1fr);
+		align-items: center;
+		gap: 9px;
+		width: 100%;
+		padding: 7px 8px;
+		border: 0;
+		border-radius: 9px;
+		background: transparent;
+		color: var(--color-text);
+		cursor: pointer;
+		text-align: left;
+
+		span:last-child {
+			overflow: hidden;
+			font-size: 12px;
+			font-weight: 800;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+	}
+
+	button:hover {
+		background: rgba(46, 197, 173, 0.12);
+	}
+}
+
+.responsibleFilterAvatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	overflow: hidden;
+	border-radius: 999px;
+	background: rgba(46, 197, 173, 0.12);
+	color: var(--color-accent);
+	font-size: 9px;
+	font-weight: 900;
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+}
+
 .dealGroup {
 	display: flex;
 	flex-direction: column;
@@ -321,6 +427,23 @@
 	background: rgba(46, 197, 173, 0.08);
 }
 
+.reportProjectGroup {
+	display: grid;
+	gap: 7px;
+}
+
+.reportProjectGroupTitle {
+	overflow: hidden;
+	padding: 4px 2px 0;
+	color: rgba(238, 245, 255, 0.54);
+	font-size: 10px;
+	font-weight: 900;
+	letter-spacing: 0.04em;
+	text-overflow: ellipsis;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
 .reportProjectButton {
 	grid-template-columns: 28px minmax(0, 1fr) 28px;
 	align-items: center;
@@ -422,12 +545,19 @@
 	justify-content: center;
 	width: 26px;
 	height: 26px;
+	overflow: hidden;
 	border-radius: 999px;
 	background: rgba(46, 197, 173, 0.12);
 	color: var(--color-accent);
 	font-size: 12px;
 	font-weight: 900;
 	text-transform: uppercase;
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
 }
 
 .activeProject {
@@ -578,6 +708,11 @@
 	align-items: center;
 	width: 100%;
 	padding: 0;
+}
+
+.layoutCollapsed .responsibleFilter,
+.layoutCollapsed .projectSearchInput {
+	display: none;
 }
 
 .layoutCollapsed .dealButton {
