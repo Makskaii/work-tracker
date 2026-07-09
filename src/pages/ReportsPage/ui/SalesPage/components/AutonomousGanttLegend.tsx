@@ -6,7 +6,7 @@ export const AutonomousGanttLegend = () => (
 			<i className={styles.legendPlan} /> Плановый период
 		</span>
 		<span>
-			<i className={styles.legendFact} /> Фактическая работа
+			<i className={styles.legendFact} /> Факт
 		</span>
 		<span>
 			<i className={styles.legendLate} /> Поздний старт

@@ -2637,9 +2637,34 @@ const AutonomousEventItem = ({
 			end: Date;
 			start: Date;
 		} => Boolean(segment));
+		const splitSegments = [
+			planSegment
+				? {
+						className: styles.ganttAutonomousEventPlan,
+						end: planSegment.end,
+						laneClassName: styles.ganttCustomEventSegmentPlanLane,
+						start: planSegment.start,
+					}
+				: null,
+			factStart && factEnd
+				? {
+						className: styles.ganttAutonomousEventFact,
+						end: factEnd,
+						laneClassName: styles.ganttCustomEventSegmentFactLane,
+						start: factStart,
+					}
+				: null,
+		].filter((segment): segment is {
+			className: string;
+			end: Date;
+			laneClassName: string;
+			start: Date;
+		} => Boolean(segment));
+		const visualSegments =
+			splitSegments.length > 0 ? splitSegments : normalizedSegments;
 
-		const segmentStarts = normalizedSegments.map((segment) => segment.start);
-		const segmentEnds = normalizedSegments.map((segment) => segment.end);
+		const segmentStarts = visualSegments.map((segment) => segment.start);
+		const segmentEnds = visualSegments.map((segment) => segment.end);
 		const shellStart = segmentStarts.reduce<Date | null>(
 			(minDate, date) => getDateMin(minDate, date),
 			null,
@@ -2672,10 +2697,12 @@ const AutonomousEventItem = ({
 				style={getSegmentStyle(shellStart, shellEnd, timeline)}
 				title={formatAutonomousEventTooltip(event)}
 			>
-				{normalizedSegments.map((segment) => (
+				{visualSegments.map((segment) => (
 					<span
 						key={`${segment.className}-${segment.start.toISOString()}-${segment.end.toISOString()}`}
 						className={`${styles.ganttCustomEventSegment} ${segment.className} ${
+							"laneClassName" in segment ? segment.laneClassName : ""
+						} ${
 							segment.start.getTime() === shellStart.getTime()
 								? styles.ganttCustomEventSegmentStart
 								: ""

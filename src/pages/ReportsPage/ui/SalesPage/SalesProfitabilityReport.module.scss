@@ -1391,17 +1391,16 @@
 
 .ganttCustomEventSegmentShell {
 	position: absolute;
-	height: 20px;
+	height: 38px;
 	padding: 0;
-	border: 1px solid rgba(142, 111, 255, 0.7);
-	border-radius: 999px;
-	background: linear-gradient(90deg, rgba(142, 111, 255, 0.86), rgba(94, 151, 255, 0.82));
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
 	color: #f7f9ff;
 	font: inherit;
 	cursor: pointer;
 	appearance: none;
 	overflow: visible;
-	box-shadow: 0 4px 10px rgba(1, 8, 14, 0.22);
 }
 
 .ganttCustomEventSegmentShell:hover {
@@ -1432,22 +1431,40 @@
 	pointer-events: none;
 }
 
+.ganttCustomEventSegmentPlanLane,
+.ganttCustomEventSegmentFactLane {
+	bottom: auto;
+	height: 18px;
+	border-radius: 6px;
+	box-shadow: 0 3px 8px rgba(1, 8, 14, 0.18);
+}
+
+.ganttCustomEventSegmentPlanLane {
+	top: 16px;
+	z-index: 3;
+}
+
+.ganttCustomEventSegmentFactLane {
+	top: 6px;
+	z-index: 2;
+}
+
 .ganttCustomEventSegmentStart {
-	border-top-left-radius: 999px;
-	border-bottom-left-radius: 999px;
+	border-top-left-radius: 6px;
+	border-bottom-left-radius: 6px;
 }
 
 .ganttCustomEventSegmentEnd {
-	border-top-right-radius: 999px;
-	border-bottom-right-radius: 999px;
+	border-top-right-radius: 6px;
+	border-bottom-right-radius: 6px;
 }
 
 .ganttDateDragHandle {
 	position: absolute;
 	top: 50%;
-	z-index: 6;
-	width: 6px;
-	height: 16px;
+	z-index: 8;
+	width: 8px;
+	height: 30px;
 	border: 1px solid rgba(238, 245, 255, 0.32);
 	border-radius: 999px;
 	background: rgba(190, 202, 220, 0.28);
@@ -1458,10 +1475,14 @@
 }
 
 .ganttDateDragHandlePlan {
+	top: 25px;
+	z-index: 10;
 	border-color: rgba(190, 202, 220, 0.34);
 }
 
 .ganttDateDragHandleFact {
+	top: 15px;
+	z-index: 9;
 	border-color: rgba(38, 240, 233, 0.38);
 	background: rgba(38, 240, 233, 0.22);
 }
@@ -1613,8 +1634,8 @@
 
 .ganttAutonomousEventPlan {
 	z-index: 1;
-	border-color: rgba(111, 168, 255, 0.52);
-	background: rgba(111, 168, 255, 0.2);
+	border-color: rgba(239, 126, 42, 0.72);
+	background: #ef7e2a;
 }
 
 .ganttAutonomousEventFact {
@@ -3245,7 +3266,7 @@
 }
 
 .legendPlan {
-	background: rgba(111, 168, 255, 0.26);
+	background: #ef7e2a;
 }
 
 .legendFact {
