@@ -130,6 +130,16 @@ type DragDateGuide = {
 	date: Date;
 } | null;
 
+type FloatingScaleState = {
+	labelWidth: number;
+	left: number;
+	scrollLeft: number;
+	timelineWidth: number;
+	top: number;
+	visible: boolean;
+	width: number;
+};
+
 type DependencyLinkSide = "left" | "right";
 
 type PaymentLayoutItem = {
@@ -676,9 +686,20 @@ export const AutonomousProjectGantt = ({
 	const [deletingStageId, setDeletingStageId] = useState<number | null>(null);
 	const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
 	const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
+	const ganttBoardScrollRef = useRef<HTMLDivElement | null>(null);
 	const ganttBoardRef = useRef<HTMLDivElement | null>(null);
+	const ganttScaleRef = useRef<HTMLDivElement | null>(null);
 	const paymentMarkerRefs = useRef(new Map<number, HTMLButtonElement>());
 	const eventRefsByStageId = useRef(new Map<number, HTMLButtonElement>());
+	const [floatingScale, setFloatingScale] = useState<FloatingScaleState>({
+		labelWidth: 0,
+		left: 0,
+		scrollLeft: 0,
+		timelineWidth: 0,
+		top: 0,
+		visible: false,
+		width: 0,
+	});
 	const [paymentLinksLayout, setPaymentLinksLayout] =
 		useState<PaymentLinkLayout>({
 			height: 0,
@@ -712,6 +733,78 @@ export const AutonomousProjectGantt = ({
 
 		return weekTicks.filter((_, index) => index % step === 0);
 	}, [weekTicks]);
+	const updateFloatingScale = useCallback(() => {
+		const scrollNode = ganttBoardScrollRef.current;
+		const boardNode = ganttBoardRef.current;
+		const scaleNode = ganttScaleRef.current;
+
+		if (!scrollNode || !boardNode || !scaleNode) {
+			setFloatingScale((current) =>
+				current.visible ? { ...current, visible: false } : current,
+			);
+			return;
+		}
+
+		const scrollRect = scrollNode.getBoundingClientRect();
+		const boardRect = boardNode.getBoundingClientRect();
+		const scaleRect = scaleNode.getBoundingClientRect();
+		const labelWidth =
+			boardNode.firstElementChild?.getBoundingClientRect().width ?? 190;
+		const scaleHeight = scaleRect.height || 54;
+		const top = Math.max(scrollRect.top, 0);
+		const visible =
+			scaleRect.top < top &&
+			boardRect.bottom > top + scaleHeight &&
+			scrollRect.bottom > top;
+		const nextState: FloatingScaleState = {
+			labelWidth,
+			left: scrollRect.left,
+			scrollLeft: scrollNode.scrollLeft,
+			timelineWidth: Math.max(
+				scaleNode.scrollWidth,
+				scaleNode.getBoundingClientRect().width,
+				720,
+			),
+			top,
+			visible,
+			width: scrollRect.width,
+		};
+
+		setFloatingScale((current) => {
+			const isSame =
+				current.visible === nextState.visible &&
+				Math.abs(current.left - nextState.left) < 1 &&
+				Math.abs(current.top - nextState.top) < 1 &&
+				Math.abs(current.width - nextState.width) < 1 &&
+				Math.abs(current.scrollLeft - nextState.scrollLeft) < 1 &&
+				Math.abs(current.labelWidth - nextState.labelWidth) < 1 &&
+				Math.abs(current.timelineWidth - nextState.timelineWidth) < 1;
+
+			return isSame ? current : nextState;
+		});
+	}, []);
+
+	useEffect(() => {
+		const scrollNode = ganttBoardScrollRef.current;
+		let animationFrameId = window.requestAnimationFrame(updateFloatingScale);
+
+		const handleUpdate = () => {
+			window.cancelAnimationFrame(animationFrameId);
+			animationFrameId = window.requestAnimationFrame(updateFloatingScale);
+		};
+
+		window.addEventListener("scroll", handleUpdate, true);
+		window.addEventListener("resize", handleUpdate);
+		scrollNode?.addEventListener("scroll", handleUpdate);
+
+		return () => {
+			window.cancelAnimationFrame(animationFrameId);
+			window.removeEventListener("scroll", handleUpdate, true);
+			window.removeEventListener("resize", handleUpdate);
+			scrollNode?.removeEventListener("scroll", handleUpdate);
+		};
+	}, [isLoading, updateFloatingScale]);
+
 	const dragDateGuidePercent = dragDateGuide
 		? getDragGuideLeftPercent(dragDateGuide.date, gantt.timeline)
 		: null;
@@ -1978,76 +2071,107 @@ export const AutonomousProjectGantt = ({
 			{isLoading ? (
 				<div className={styles.emptyState}>Загрузка Ганта...</div>
 			) : (
-				<div className={styles.ganttBoardScroll}>
-					<div
-						ref={ganttBoardRef}
-						className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
-					>
-						<div className={styles.ganttScaleLabel}>Этапы проекта</div>
-						<div className={styles.ganttScale}>
-							<AutonomousGanttScale
-								monthTicks={monthTicks}
-								weekTicks={scaleWeekTicks}
-							/>
-							{dragDateGuide && dragDateGuidePercent !== null ? (
+				<>
+					{floatingScale.visible ? (
+						<div
+							className={styles.ganttFloatingScale}
+							style={{
+								gridTemplateColumns: `${floatingScale.labelWidth}px minmax(720px, 1fr)`,
+								left: floatingScale.left,
+								top: floatingScale.top,
+								width: floatingScale.width,
+							}}
+						>
+							<div className={styles.ganttFloatingScaleLabel}>
+								Этапы проекта
+							</div>
+							<div className={styles.ganttFloatingScaleViewport}>
 								<div
-									className={styles.ganttDragDateGuideLabel}
-									style={{ left: `${dragDateGuidePercent}%` }}
+									className={styles.ganttFloatingScaleInner}
+									style={{
+										transform: `translateX(-${floatingScale.scrollLeft}px)`,
+										width: floatingScale.timelineWidth,
+									}}
 								>
-									{formatDateShort(dragDateGuide.date)}
+									<AutonomousGanttScale
+										monthTicks={monthTicks}
+										weekTicks={scaleWeekTicks}
+									/>
 								</div>
-							) : null}
+							</div>
 						</div>
-						<AutonomousPaymentLinksLayer
-							dependencyLinkDraft={dependencyLinkDraft}
-							layout={paymentLinksLayout}
-						/>
-						{gantt.rows.map((row) => (
-							<AutonomousStageRow
-								key={row.stage.id}
-								dragDateGuidePercent={dragDateGuidePercent}
-								monthTicks={monthTicks}
-								onPaymentCreate={openPaymentCreateModal}
-								onPaymentEdit={openPaymentEditModal}
-								onEventDateDragStart={handleEventDateDragStart}
-								onDependencyLinkDragStart={handleDependencyLinkDragStart}
-								onEventMoveDragStart={handleEventMoveDragStart}
-								onStageReorderDragStart={handleStageReorderDragStart}
-								onStageEdit={openStageEditModal}
-								row={row}
-								eventByStageId={eventByStageId}
-								setPaymentMarkerRef={setPaymentMarkerRef}
-								setStageEventRef={setStageEventRef}
-								stageById={stageById}
-								today={today}
-								timeline={gantt.timeline}
-								draggingStageId={draggingStageId}
-								weekTicks={weekTicks}
-							/>
-						))}
-						<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
-							<button
-								type="button"
-								className={styles.ganttAddEventButton}
-								onClick={openStageCreateModal}
-							>
-								+
-							</button>
-						</div>
-						<div className={styles.ganttTrack}>
-							<AutonomousGanttTrackGrid
-								monthTicks={monthTicks}
-								weekTicks={weekTicks}
-							/>
-							{dragDateGuidePercent !== null ? (
-								<span
-									className={styles.ganttDragDateGuideLine}
-									style={{ left: `${dragDateGuidePercent}%` }}
+					) : null}
+					<div ref={ganttBoardScrollRef} className={styles.ganttBoardScroll}>
+						<div
+							ref={ganttBoardRef}
+							className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
+						>
+							<div className={styles.ganttScaleLabel}>Этапы проекта</div>
+							<div ref={ganttScaleRef} className={styles.ganttScale}>
+								<AutonomousGanttScale
+									monthTicks={monthTicks}
+									weekTicks={scaleWeekTicks}
 								/>
-							) : null}
+								{dragDateGuide && dragDateGuidePercent !== null ? (
+									<div
+										className={styles.ganttDragDateGuideLabel}
+										style={{ left: `${dragDateGuidePercent}%` }}
+									>
+										{formatDateShort(dragDateGuide.date)}
+									</div>
+								) : null}
+							</div>
+							<AutonomousPaymentLinksLayer
+								dependencyLinkDraft={dependencyLinkDraft}
+								layout={paymentLinksLayout}
+							/>
+							{gantt.rows.map((row) => (
+								<AutonomousStageRow
+									key={row.stage.id}
+									dragDateGuidePercent={dragDateGuidePercent}
+									monthTicks={monthTicks}
+									onPaymentCreate={openPaymentCreateModal}
+									onPaymentEdit={openPaymentEditModal}
+									onEventDateDragStart={handleEventDateDragStart}
+									onDependencyLinkDragStart={handleDependencyLinkDragStart}
+									onEventMoveDragStart={handleEventMoveDragStart}
+									onStageReorderDragStart={handleStageReorderDragStart}
+									onStageEdit={openStageEditModal}
+									row={row}
+									eventByStageId={eventByStageId}
+									setPaymentMarkerRef={setPaymentMarkerRef}
+									setStageEventRef={setStageEventRef}
+									stageById={stageById}
+									today={today}
+									timeline={gantt.timeline}
+									draggingStageId={draggingStageId}
+									weekTicks={weekTicks}
+								/>
+							))}
+							<div className={`${styles.ganttRowInfo} ${styles.ganttAddEventCell}`}>
+								<button
+									type="button"
+									className={styles.ganttAddEventButton}
+									onClick={openStageCreateModal}
+								>
+									+
+								</button>
+							</div>
+							<div className={styles.ganttTrack}>
+								<AutonomousGanttTrackGrid
+									monthTicks={monthTicks}
+									weekTicks={weekTicks}
+								/>
+								{dragDateGuidePercent !== null ? (
+									<span
+										className={styles.ganttDragDateGuideLine}
+										style={{ left: `${dragDateGuidePercent}%` }}
+									/>
+								) : null}
+							</div>
 						</div>
 					</div>
-				</div>
+				</>
 			)}
 			<AutonomousGanttLegend />
 			<StageModal

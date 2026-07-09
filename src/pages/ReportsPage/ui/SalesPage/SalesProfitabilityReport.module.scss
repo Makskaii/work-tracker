@@ -3376,12 +3376,10 @@
 }
 
 .ganttScale {
-	position: sticky;
-	top: 0;
-	z-index: 17;
+	position: relative;
+	z-index: 7;
 	min-width: 720px;
 	background: rgba(15, 28, 44, 0.98);
-	box-shadow: 0 8px 18px rgba(3, 10, 20, 0.22);
 
 	span {
 		position: absolute;
@@ -4183,11 +4181,52 @@ input[type="date"].dealSummaryDateInput {
 
 .ganttScaleLabel {
 	position: sticky;
-	top: 0;
 	left: 0;
 	z-index: 18;
 	min-height: 54px;
 	background: rgba(15, 28, 44, 0.96);
+}
+
+.ganttFloatingScale {
+	position: fixed;
+	display: grid;
+	height: 54px;
+	border: 0;
+	border-bottom: 1px solid var(--color-border);
+	border-radius: 0;
+	background: rgba(15, 28, 44, 0.98);
+	box-shadow: 0 8px 16px rgba(3, 10, 20, 0.18);
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 80;
+}
+
+.ganttFloatingScaleLabel {
+	display: flex;
+	align-items: center;
+	min-height: 54px;
+	padding: 0 12px;
+	border-right: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(15, 28, 44, 0.98);
+	color: rgba(238, 245, 255, 0.68);
+	font-size: 12px;
+	font-weight: 900;
+}
+
+.ganttFloatingScaleViewport {
+	min-width: 0;
+	background: rgba(15, 28, 44, 0.98);
+	overflow: hidden;
+}
+
+.ganttFloatingScaleInner {
+	min-width: 720px;
+	height: 54px;
+}
+
+.ganttFloatingScaleInner .ganttScaleHeader {
+	border-bottom: 0;
 }
 
 .ganttScaleHeader {
