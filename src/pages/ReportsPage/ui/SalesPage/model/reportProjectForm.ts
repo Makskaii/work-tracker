@@ -77,8 +77,8 @@ export const projectTypeOptions: Array<{
 	value: ReportProjectType;
 }> = [
 	{ label: "Не выбрано", value: "none" },
-	{ label: "Финансовый вотерфол проект", value: "waterfall" },
-	{ label: "Финансовый техпод проект", value: "support" },
+	{ label: "Вотерфол", value: "waterfall" },
+	{ label: "Техпод", value: "support" },
 ];
 
 export const reportProjectFileLabels: Record<ReportProjectFileKind, string> = {
