@@ -2,18 +2,18 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/modal/Modal";
 import type { User } from "@/shared/types/types";
 import projectReportsStyles from "../../ProjectReports/ProjectsReports.module.scss";
+import {
+	formatFileSize,
+	formatProjectReportDate,
+} from "../model/reportProjectFormat";
 import type {
 	ProjectReportEntry,
 	ProjectReportEntryFile,
 	ReportProject,
 	UpdateProjectReportEntryPayload,
 } from "../model/types";
-import {
-	formatFileSize,
-	formatProjectReportDate,
-} from "../model/reportProjectFormat";
-import { getUserAutocompleteOptions } from "./ReportProjectFileInput";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { getUserAutocompleteOptions } from "./ReportProjectFileInput";
 
 export const ProjectReportsTab = ({
 	authorName,
@@ -33,6 +33,7 @@ export const ProjectReportsTab = ({
 	onFilesChange,
 	onNextReportDateChange,
 	onOpenModal,
+	onRefreshReports,
 	onTextChange,
 	onUpdate,
 	project,
@@ -59,10 +60,14 @@ export const ProjectReportsTab = ({
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
 	) => void;
-	onFileUpload: (reportEntry: ProjectReportEntry, files: File[]) => Promise<void>;
+	onFileUpload: (
+		reportEntry: ProjectReportEntry,
+		files: File[],
+	) => Promise<void>;
 	onFilesChange: (files: File[]) => void;
 	onNextReportDateChange: (value: string) => void;
 	onOpenModal: () => void;
+	onRefreshReports: () => Promise<void>;
 	onTextChange: (value: string) => void;
 	onUpdate: (
 		reportEntry: ProjectReportEntry,
@@ -147,7 +152,12 @@ export const ProjectReportsTab = ({
 									key={reportEntry.id}
 									type="button"
 									className={styles.projectReportTableRow}
-									onClick={() => setSelectedReportEntryId(reportEntry.id)}
+									onClick={() => {
+										void (async () => {
+											await onRefreshReports();
+											setSelectedReportEntryId(reportEntry.id);
+										})();
+									}}
 								>
 									<span className={styles.projectReportAuthor}>
 										{reportEntry.authorName}
@@ -209,7 +219,10 @@ const ProjectReportViewModal = ({
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
 	) => void;
-	onFileUpload: (reportEntry: ProjectReportEntry, files: File[]) => Promise<void>;
+	onFileUpload: (
+		reportEntry: ProjectReportEntry,
+		files: File[],
+	) => Promise<void>;
 	onUpdate: (
 		reportEntry: ProjectReportEntry,
 		payload: UpdateProjectReportEntryPayload,
@@ -347,7 +360,9 @@ const ProjectReportViewModal = ({
 	return (
 		<Modal isOpen={Boolean(reportEntry)} onClose={onClose} size="covered">
 			{reportEntry ? (
-				<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
+				<div
+					className={`${styles.ganttFormModal} ${styles.projectReportModal}`}
+				>
 					<div className={styles.projectReportViewHeader}>
 						<h3>Отчёт по проекту</h3>
 						<button
@@ -565,85 +580,83 @@ const ProjectReportCreateModal = ({
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size="small">
-		<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
-			<h3>Создать отчёт по проекту</h3>
-			<div className={styles.projectReportComposer}>
-				<label>
-					<span>Автор отчёта</span>
-					<input
-						type="text"
-						list="project-report-author-options"
-						value={authorName}
-						onChange={(event) => {
-							const value = event.target.value;
-							const selectedAuthor = authorOptions.find(
-								(option) => option.title === value,
-							);
-
-							onAuthorChange(value, selectedAuthor?.id ?? null);
-						}}
-					/>
-					<datalist id="project-report-author-options">
-						{authorOptions.map((option) => (
-							<option key={option.id} value={option.title} />
-						))}
-					</datalist>
-				</label>
-				<label>
-					<span>Текст отчёта</span>
-					<textarea
-						className={styles.projectReportTextarea}
-						value={text}
-						onChange={(event) => onTextChange(event.target.value)}
-					/>
-				</label>
-				<div className={styles.projectReportMetaRow}>
+			<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
+				<h3>Создать отчёт по проекту</h3>
+				<div className={styles.projectReportComposer}>
 					<label>
-						<span>Дата следующего отчёта</span>
+						<span>Автор отчёта</span>
 						<input
-							type="date"
-							value={nextReportDate}
-							onClick={(event) => event.currentTarget.showPicker?.()}
-							onChange={(event) =>
-								onNextReportDateChange(event.target.value)
-							}
+							type="text"
+							list="project-report-author-options"
+							value={authorName}
+							onChange={(event) => {
+								const value = event.target.value;
+								const selectedAuthor = authorOptions.find(
+									(option) => option.title === value,
+								);
+
+								onAuthorChange(value, selectedAuthor?.id ?? null);
+							}}
+						/>
+						<datalist id="project-report-author-options">
+							{authorOptions.map((option) => (
+								<option key={option.id} value={option.title} />
+							))}
+						</datalist>
+					</label>
+					<label>
+						<span>Текст отчёта</span>
+						<textarea
+							className={styles.projectReportTextarea}
+							value={text}
+							onChange={(event) => onTextChange(event.target.value)}
 						/>
 					</label>
-					<div className={styles.projectReportFilePicker}>
-						<span>Файлы</span>
-						<label
-							className={`${projectReportsStyles.projectFileField} ${styles.projectReportCreateFileField}`}
-						>
+					<div className={styles.projectReportMetaRow}>
+						<label>
+							<span>Дата следующего отчёта</span>
 							<input
-								type="file"
-								multiple
-								className={projectReportsStyles.projectFileInput}
-								onChange={(event) =>
-									onFilesChange(Array.from(event.target.files ?? []))
-								}
+								type="date"
+								value={nextReportDate}
+								onClick={(event) => event.currentTarget.showPicker?.()}
+								onChange={(event) => onNextReportDateChange(event.target.value)}
 							/>
-							<strong className={projectReportsStyles.projectFileButton}>
-								Выбрать файлы
-							</strong>
-							<em className={projectReportsStyles.projectFileName}>
-								{fileDrafts.length
-									? `Выбрано файлов: ${fileDrafts.length}`
-									: "Файлы не выбраны"}
-							</em>
 						</label>
+						<div className={styles.projectReportFilePicker}>
+							<span>Файлы</span>
+							<label
+								className={`${projectReportsStyles.projectFileField} ${styles.projectReportCreateFileField}`}
+							>
+								<input
+									type="file"
+									multiple
+									className={projectReportsStyles.projectFileInput}
+									onChange={(event) =>
+										onFilesChange(Array.from(event.target.files ?? []))
+									}
+								/>
+								<strong className={projectReportsStyles.projectFileButton}>
+									Выбрать файлы
+								</strong>
+								<em className={projectReportsStyles.projectFileName}>
+									{fileDrafts.length
+										? `Выбрано файлов: ${fileDrafts.length}`
+										: "Файлы не выбраны"}
+								</em>
+							</label>
+						</div>
+					</div>
+					{error ? <p className={styles.ganttFormError}>{error}</p> : null}
+					<div className={styles.ganttFormActions}>
+						<button type="button" disabled={isSaving} onClick={onClose}>
+							Отмена
+						</button>
+						<button type="button" disabled={isSaving} onClick={onCreate}>
+							{isSaving ? "Создание..." : "Создать отчёт"}
+						</button>
 					</div>
 				</div>
-				{error ? <p className={styles.ganttFormError}>{error}</p> : null}
-				<div className={styles.ganttFormActions}>
-					<button type="button" disabled={isSaving} onClick={onClose}>
-						Отмена
-					</button>
-					<button type="button" disabled={isSaving} onClick={onCreate}>
-						{isSaving ? "Создание..." : "Создать отчёт"}
-					</button>
-				</div>
 			</div>
-		</div>
 		</Modal>
 	);
 };
