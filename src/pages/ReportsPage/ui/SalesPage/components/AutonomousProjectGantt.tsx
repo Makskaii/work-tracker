@@ -2460,6 +2460,14 @@ const AutonomousEventItem = ({
 		date ? (
 			<span
 				className={`${styles.ganttDateDragHandle} ${className}`}
+				onClick={(clickEvent) => {
+					clickEvent.stopPropagation();
+					if (shouldSkipGanttClick(clickEvent.currentTarget)) {
+						return;
+					}
+
+					onEdit();
+				}}
 				onPointerDown={(pointerEvent) => {
 					pointerEvent.stopPropagation();
 					onDateDragStart(pointerEvent, event.event, field);
@@ -2467,6 +2475,7 @@ const AutonomousEventItem = ({
 				style={{
 					left: getInnerSegmentStyle(date, date, shellStart, shellEnd).left,
 				}}
+				title={formatAutonomousEventTooltip(event)}
 			/>
 		) : null;
 	const renderDependencyHandles = () => (
@@ -2668,7 +2677,7 @@ const AutonomousEventItem = ({
 		return (
 			<button
 				type="button"
-				className={`${styles.ganttSegment} ${styles.ganttCustomEventSegmentShell}`}
+				className={styles.ganttCustomEventSegmentShell}
 				onClick={(clickEvent) => {
 					clickEvent.stopPropagation();
 					if (shouldSkipGanttClick(clickEvent.currentTarget)) {
