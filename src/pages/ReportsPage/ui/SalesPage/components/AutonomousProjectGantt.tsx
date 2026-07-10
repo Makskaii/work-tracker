@@ -790,6 +790,13 @@ export const AutonomousProjectGantt = ({
 	const dragDateGuidePercent = dragDateGuide
 		? getDragGuideLeftPercent(dragDateGuide.date, gantt.timeline)
 		: null;
+	const todayLinePercent = useMemo(() => {
+		if (today < gantt.timeline.start || today > gantt.timeline.end) {
+			return null;
+		}
+
+		return getDragGuideLeftPercent(today, gantt.timeline);
+	}, [gantt.timeline, today]);
 	const stageById = useMemo(
 		() => new Map(stages.map((stage) => [stage.id, stage])),
 		[stages],
@@ -2064,6 +2071,14 @@ export const AutonomousProjectGantt = ({
 								monthTicks={monthTicks}
 								weekTicks={scaleWeekTicks}
 							/>
+							{todayLinePercent !== null ? (
+								<span
+									className={styles.ganttTodayLineLabel}
+									style={{ left: `${todayLinePercent}%` }}
+								>
+									{formatDateShort(today)}
+								</span>
+							) : null}
 							{dragDateGuide && dragDateGuidePercent !== null ? (
 								<div
 									className={styles.ganttDragDateGuideLabel}
@@ -2077,6 +2092,14 @@ export const AutonomousProjectGantt = ({
 							dependencyLinkDraft={dependencyLinkDraft}
 							layout={paymentLinksLayout}
 						/>
+						{todayLinePercent !== null ? (
+							<div className={styles.ganttTodayLineLayer}>
+								<span
+									className={styles.ganttTodayLine}
+									style={{ left: `${todayLinePercent}%` }}
+								/>
+							</div>
+						) : null}
 						{gantt.rows.map((row) => (
 							<AutonomousStageRow
 								key={row.stage.id}
