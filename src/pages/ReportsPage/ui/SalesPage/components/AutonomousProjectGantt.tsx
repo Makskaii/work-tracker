@@ -753,6 +753,10 @@ export const AutonomousProjectGantt = ({
 			"--gantt-header-translate-y",
 			`${translateY}px`,
 		);
+		boardNode.style.setProperty(
+			"--gantt-timeline-left",
+			`${scaleNode.offsetLeft}px`,
+		);
 
 		if (isGanttHeaderPinnedRef.current !== isPinned) {
 			boardNode.classList.toggle(styles.ganttBoardHeaderPinned, isPinned);
@@ -766,6 +770,7 @@ export const AutonomousProjectGantt = ({
 
 			boardNode?.classList.remove(styles.ganttBoardHeaderPinned);
 			boardNode?.style.removeProperty("--gantt-header-translate-y");
+			boardNode?.style.removeProperty("--gantt-timeline-left");
 			isGanttHeaderPinnedRef.current = false;
 			return;
 		}
@@ -1280,6 +1285,7 @@ export const AutonomousProjectGantt = ({
 					nextStages,
 					events,
 					stages,
+					today,
 				);
 
 				latestEventsToSave = nextEvents.filter(
@@ -1298,6 +1304,7 @@ export const AutonomousProjectGantt = ({
 						events: nextEvents,
 						payments: currentPayments,
 						stages: nextStages,
+						today,
 					}),
 				);
 			};
@@ -1436,6 +1443,7 @@ export const AutonomousProjectGantt = ({
 					stages,
 					events,
 					stages,
+					today,
 				);
 				const nextGantt = buildAutonomousProjectGantt({
 					events: nextEvents,
@@ -1471,6 +1479,7 @@ export const AutonomousProjectGantt = ({
 						events: nextEvents,
 						payments: currentPayments,
 						stages,
+						today,
 					}),
 				);
 
@@ -1673,6 +1682,7 @@ export const AutonomousProjectGantt = ({
 					nextStages,
 					events,
 					stages,
+					today,
 				);
 				const eventById = new Map(events.map((event) => [event.id, event]));
 				const eventsToSave = nextEvents.filter((event) =>
@@ -1688,6 +1698,7 @@ export const AutonomousProjectGantt = ({
 						events: nextEvents,
 						payments: currentPayments,
 						stages: nextStages,
+						today,
 					}),
 				);
 
@@ -1761,6 +1772,7 @@ export const AutonomousProjectGantt = ({
 			? getAutonomousDependencyAnchorDate(
 					dependencyEventRow,
 					stageForm.dependencyAnchor,
+					today,
 				)
 			: null;
 		const dependencyPlanStart =
@@ -1887,6 +1899,7 @@ export const AutonomousProjectGantt = ({
 				nextStages,
 				events,
 				stages,
+				today,
 			);
 			const baseEventById = new Map(
 				baseEvents.map((event) => [event.id, event]),

@@ -3370,14 +3370,14 @@
 	font-weight: 950;
 	line-height: 1.2;
 	white-space: nowrap;
-	transform: translateX(10px);
+	transform: translateX(-50%);
 	z-index: 12;
 	pointer-events: none;
 }
 
 .ganttTodayLineLayer {
 	position: absolute;
-	inset: 0 0 0 190px;
+	inset: 0 0 0 var(--gantt-timeline-left, 190px);
 	min-width: 720px;
 	z-index: 9;
 	pointer-events: none;
@@ -3466,6 +3466,7 @@
 	color: #26f0e9;
 	font-size: 11px;
 	line-height: 1.2;
+	transform: translateX(-50%);
 	text-transform: none;
 }
 

@@ -47,6 +47,28 @@ type AutonomousGanttSchedule = {
 const MIN_TIMELINE_DAYS = 56;
 const DEFAULT_DEPENDENCY_ANCHOR: ProjectGanttDependencyAnchor = "stage_end";
 
+const normalizeDateStart = (date: Date) =>
+	new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const getDependencyFallbackDate = (
+	planDate: Date | null | undefined,
+	today?: Date,
+) => {
+	if (!planDate) {
+		return null;
+	}
+
+	if (!today) {
+		return planDate;
+	}
+
+	const normalizedToday = normalizeDateStart(today);
+
+	return normalizedToday.getTime() > planDate.getTime()
+		? normalizedToday
+		: planDate;
+};
+
 export const getAutonomousEventAnchorDate = (
 	event: AutonomousGanttEventRow,
 	anchor: ProjectGanttDependencyAnchor | null | undefined,
@@ -118,26 +140,32 @@ export const getAutonomousPlanAnchorDate = (
 export const getAutonomousDependencyAnchorDate = (
 	event: AutonomousGanttEventRow,
 	anchor: ProjectGanttDependencyAnchor | null | undefined,
+	today?: Date,
 ) => {
 	const dependencyAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
 
 	if (dependencyAnchor === "stage_start") {
-		return (
+		const factDate =
 			event.factStart ??
+			(event.event.eventKind === "one_time" ? event.factEnd : null);
+		const planDate =
 			event.planStart ??
 			(event.isDependencyDuration ? event.displayStart : null) ??
-			event.displayDate
-		);
+			event.displayDate;
+
+		return factDate ?? getDependencyFallbackDate(planDate, today);
 	}
 
-	return (
+	const factDate =
 		event.factEnd ??
+		(event.event.eventKind === "one_time" ? event.factStart : null);
+	const planDate =
 		event.planEnd ??
 		(event.isDependencyDuration ? event.displayEnd : null) ??
-		event.factStart ??
 		event.planStart ??
-		event.displayDate
-	);
+		event.displayDate;
+
+	return factDate ?? getDependencyFallbackDate(planDate, today);
 };
 
 const buildEventRow = (
@@ -145,6 +173,7 @@ const buildEventRow = (
 	stageById: Map<number, ProjectGanttStage>,
 	eventByStageId: Map<number, ProjectGanttEvent>,
 	eventRowsByStageId: Map<number, AutonomousGanttEventRow>,
+	today?: Date,
 	visitedStageIds = new Set<number>(),
 ): AutonomousGanttEventRow => {
 	const cachedRow = eventRowsByStageId.get(event.stageId);
@@ -168,12 +197,17 @@ const buildEventRow = (
 				stageById,
 				eventByStageId,
 				eventRowsByStageId,
+				today,
 				new Set([...visitedStageIds, event.stageId]),
 			)
 		: null;
 	const dependencyDurationDays = stage?.durationDays ?? 0;
 	const dependencyStart = dependencyRow
-		? getAutonomousDependencyAnchorDate(dependencyRow, stage?.dependencyAnchor)
+		? getAutonomousDependencyAnchorDate(
+				dependencyRow,
+				stage?.dependencyAnchor,
+				today,
+			)
 		: null;
 	const dependencyPlanStart = dependencyRow
 		? getAutonomousPlanAnchorDate(dependencyRow, stage?.dependencyAnchor)
@@ -244,12 +278,13 @@ const buildEventRow = (
 export const resolveAutonomousGanttSchedule = (
 	stages: ProjectGanttStage[],
 	events: ProjectGanttEvent[],
+	today?: Date,
 ): AutonomousGanttSchedule => {
 	const stageById = new Map(stages.map((stage) => [stage.id, stage]));
 	const eventByStageId = new Map(events.map((event) => [event.stageId, event]));
 	const eventRowsByStageId = new Map<number, AutonomousGanttEventRow>();
 	const eventRows = events.map((event) =>
-		buildEventRow(event, stageById, eventByStageId, eventRowsByStageId),
+		buildEventRow(event, stageById, eventByStageId, eventRowsByStageId, today),
 	);
 
 	return {
@@ -316,6 +351,7 @@ export const recalculateAutonomousDependencyEvents = (
 	sourceStages: ProjectGanttStage[],
 	previousEvents: ProjectGanttEvent[] = sourceEvents,
 	previousStages: ProjectGanttStage[] = sourceStages,
+	today?: Date,
 ) => {
 	const stageById = new Map(sourceStages.map((stage) => [stage.id, stage]));
 	const previousStageById = new Map(
@@ -325,7 +361,7 @@ export const recalculateAutonomousDependencyEvents = (
 		previousEvents.map((event) => [event.id, event]),
 	);
 	const { eventRowsByStageId: previousEventRowsByStageId } =
-		resolveAutonomousGanttSchedule(previousStages, previousEvents);
+		resolveAutonomousGanttSchedule(previousStages, previousEvents, today);
 	let nextEvents = sourceEvents;
 	let hasChanged = true;
 	let guard = 0;
@@ -337,6 +373,7 @@ export const recalculateAutonomousDependencyEvents = (
 		const { eventRowsByStageId } = resolveAutonomousGanttSchedule(
 			sourceStages,
 			nextEvents,
+			today,
 		);
 
 		nextEvents = nextEvents.map((event) => {
@@ -348,7 +385,11 @@ export const recalculateAutonomousDependencyEvents = (
 
 			const parentRow = eventRowsByStageId.get(stage.dependsOnStageId);
 			const planStart = parentRow
-				? getAutonomousDependencyAnchorDate(parentRow, stage.dependencyAnchor)
+				? getAutonomousDependencyAnchorDate(
+						parentRow,
+						stage.dependencyAnchor,
+						today,
+					)
 				: null;
 
 			if (!planStart) {
@@ -368,6 +409,7 @@ export const recalculateAutonomousDependencyEvents = (
 				? getAutonomousDependencyAnchorDate(
 						previousParentRow,
 						previousStage?.dependencyAnchor,
+						today,
 					)
 				: null;
 			const previousParentPlanAnchor = previousParentRow
@@ -474,12 +516,18 @@ export const resolveAutonomousPaymentDates = ({
 	events,
 	payments,
 	stages,
+	today,
 }: {
 	events: ProjectGanttEvent[];
 	payments: AutonomousProjectPayment[];
 	stages: ProjectGanttStage[];
+	today?: Date;
 }) => {
-	const { eventRowsByStageId } = resolveAutonomousGanttSchedule(stages, events);
+	const { eventRowsByStageId } = resolveAutonomousGanttSchedule(
+		stages,
+		events,
+		today,
+	);
 
 	return applyPaymentDisplayDates(payments, eventRowsByStageId);
 };
@@ -498,6 +546,7 @@ export const buildAutonomousProjectGantt = ({
 	const { eventRows, eventRowsByStageId } = resolveAutonomousGanttSchedule(
 		stages,
 		events,
+		today,
 	);
 	const paymentsWithDisplayDates = applyPaymentDisplayDates(
 		payments,

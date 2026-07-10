@@ -224,18 +224,27 @@ const mergeReportProjectFiles = (
 };
 
 const getNextProjectReportDate = (reports: ProjectReportEntry[]) => {
-	const today = new Date().toISOString().slice(0, 10);
-	const dates = reports
-		.map((report) => report.nextReportDate)
-		.filter((date): date is string => Boolean(date));
-	const futureDate = dates
-		.filter((date) => date >= today)
-		.sort((left, right) => left.localeCompare(right))[0];
-	const pastDate = dates
-		.filter((date) => date < today)
-		.sort((left, right) => right.localeCompare(left))[0];
+	const latestReport = [...reports].sort((left, right) => {
+		const reportDateCompare = String(right.reportDate ?? "").localeCompare(
+			String(left.reportDate ?? ""),
+		);
 
-	return futureDate ?? pastDate ?? null;
+		if (reportDateCompare !== 0) {
+			return reportDateCompare;
+		}
+
+		const createdAtCompare = String(right.createdAt ?? "").localeCompare(
+			String(left.createdAt ?? ""),
+		);
+
+		if (createdAtCompare !== 0) {
+			return createdAtCompare;
+		}
+
+		return Number(right.id) - Number(left.id);
+	})[0];
+
+	return latestReport?.nextReportDate ?? null;
 };
 
 const isProjectReportDateOverdue = (date: string | null | undefined) => {
