@@ -7,17 +7,22 @@ import type { ActivityListItem } from "../../types/types";
 import {
 	calculatePaymentFields,
 	DEFAULT_PAYMENT_FORM,
-	PaymentModal,
 	type PaymentFormState,
+	PaymentModal,
 } from "./components/AutonomousProjectGantt";
 import { ProfitabilitySkeleton } from "./components/ProfitabilitySkeleton";
-import { ProjectsTab } from "./components/ProjectsTab";
 import { ProjectReportsTab } from "./components/ProjectReportsTab";
-import { ReportsTab } from "./components/ReportsTab";
+import { ProjectsTab } from "./components/ProjectsTab";
 import { ReportProjectDetailsTab } from "./components/ReportProjectDetailsTab";
 import { ReportProjectModal } from "./components/ReportProjectModal";
+import { ReportsTab } from "./components/ReportsTab";
 import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
+import {
+	isAutonomousPaymentDueByCompletedStage,
+	resolveAutonomousPaymentDates,
+} from "./model/autonomousProjectGantt";
+import { formatMoney } from "./model/profitabilityUtils";
 import {
 	fetchProjectGanttEvents,
 	fetchProjectGanttStages,
@@ -29,40 +34,21 @@ import {
 	updateAutonomousProjectPayment,
 } from "./model/projectPayments.api";
 import {
-	isAutonomousPaymentDueByCompletedStage,
-	resolveAutonomousPaymentDates,
-} from "./model/autonomousProjectGantt";
-import {
-	createReportProject,
 	createProjectReportEntry,
-	deleteReportProject,
-	deleteReportProjectFile,
+	createReportProject,
 	deleteProjectReportEntry,
 	deleteProjectReportEntryFile,
+	deleteReportProject,
+	deleteReportProjectFile,
 	downloadProjectReportEntryFile,
 	downloadReportProjectFile,
-	fetchReportProjects,
 	fetchProjectReportEntries,
-	updateReportProject,
+	fetchReportProjects,
 	updateProjectReportEntry,
+	updateReportProject,
 	uploadProjectReportEntryFile,
 	uploadReportProjectFile,
 } from "./model/projectReports.api";
-import type {
-	AutonomousProjectPayment,
-	CreateProjectReportEntryPayload,
-	FinancialProjectSummary,
-	ProjectGanttEvent,
-	ProjectGanttStage,
-	ProjectReportEntry,
-	ProjectReportEntryFile,
-	ProfitabilityProject,
-	ReportProject,
-	ReportProjectFile,
-	ReportProjectFileKind,
-	SalesProfitabilityTab,
-	UpdateProjectReportEntryPayload,
-} from "./model/types";
 import {
 	DEFAULT_REPORT_PROJECT_FORM,
 	getProjectSummaryForm,
@@ -75,7 +61,21 @@ import {
 	type ReportProjectFormState,
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
-import { formatMoney } from "./model/profitabilityUtils";
+import type {
+	AutonomousProjectPayment,
+	CreateProjectReportEntryPayload,
+	FinancialProjectSummary,
+	ProfitabilityProject,
+	ProjectGanttEvent,
+	ProjectGanttStage,
+	ProjectReportEntry,
+	ProjectReportEntryFile,
+	ReportProject,
+	ReportProjectFile,
+	ReportProjectFileKind,
+	SalesProfitabilityTab,
+	UpdateProjectReportEntryPayload,
+} from "./model/types";
 import {
 	fetchProfitabilityProjectDetails,
 	useCompanyProjects,
@@ -184,7 +184,9 @@ const getProjectResponsibleGroup = (project: ReportProject, users: User[]) => {
 
 	return {
 		isEmpty: false,
-		key: normalizeProjectId(responsibleUser?.id) || normalizeResponsibleName(title),
+		key:
+			normalizeProjectId(responsibleUser?.id) ||
+			normalizeResponsibleName(title),
 		sortTitle: title,
 		title,
 	};
@@ -265,14 +267,18 @@ const getPaymentMonthKeyTime = (key: string) => {
 	const [year, month] = key.split("-").map(Number);
 	const date = new Date(year, month - 1, 1);
 
-	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
+	return Number.isNaN(date.getTime())
+		? Number.POSITIVE_INFINITY
+		: date.getTime();
 };
 
 const getPaymentDayKeyTime = (key: string) => {
 	const [year, month, day] = key.split("-").map(Number);
 	const date = new Date(year, month - 1, day);
 
-	return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
+	return Number.isNaN(date.getTime())
+		? Number.POSITIVE_INFINITY
+		: date.getTime();
 };
 
 const formatPaymentMonthLabel = (date: Date) =>
@@ -383,7 +389,7 @@ export const SalesProfitabilityReport = ({
 		useState<ReportProjectFileDrafts>({});
 
 	const [detailsProjectForm, setDetailsProjectForm] =
-	useState<ReportProjectFormState>(DEFAULT_REPORT_PROJECT_FORM);
+		useState<ReportProjectFormState>(DEFAULT_REPORT_PROJECT_FORM);
 
 	const [detailsFileDrafts, setDetailsFileDrafts] =
 		useState<ReportProjectFileDrafts>({});
@@ -411,9 +417,9 @@ export const SalesProfitabilityReport = ({
 	const [projectReportAuthorName, setProjectReportAuthorName] = useState("");
 	const [projectReportText, setProjectReportText] = useState("");
 	const [projectReportNextDate, setProjectReportNextDate] = useState("");
-	const [projectReportFileDrafts, setProjectReportFileDrafts] = useState<File[]>(
-		[],
-	);
+	const [projectReportFileDrafts, setProjectReportFileDrafts] = useState<
+		File[]
+	>([]);
 	const [isProjectReportModalOpen, setIsProjectReportModalOpen] =
 		useState(false);
 	const [isProjectReportSaving, setIsProjectReportSaving] = useState(false);
@@ -442,7 +448,8 @@ export const SalesProfitabilityReport = ({
 	const autonomousProjectDataCacheRef = useRef(
 		new Map<string, AutonomousProjectData>(),
 	);
-	const [isReportProjectModalOpen, setIsReportProjectModalOpen] = useState(false);
+	const [isReportProjectModalOpen, setIsReportProjectModalOpen] =
+		useState(false);
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
@@ -464,33 +471,60 @@ export const SalesProfitabilityReport = ({
 		projects: bitrixProjects,
 		isLoadingDetails: isBitrixProjectsLoading,
 	} = useCompanyProjects();
-	const selectedReportProject = reportProjects.find(
-		(project) => getDbProjectId(project) === selectedProjectId,
-	) ?? reportProjects[0] ?? null;
+	const selectedReportProject =
+		reportProjects.find(
+			(project) => getDbProjectId(project) === selectedProjectId,
+		) ??
+		reportProjects[0] ??
+		null;
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
 	const paymentsScopeProjects = useMemo(
 		() =>
-			getPaymentsScopeProjects(reportProjects, paymentsScope, selectedReportProject),
+			getPaymentsScopeProjects(
+				reportProjects,
+				paymentsScope,
+				selectedReportProject,
+			),
 		[paymentsScope, reportProjects, selectedReportProject],
 	);
 
-	const updateProjectNextReportDate = useCallback((
-		projectId: number,
-		reports: ProjectReportEntry[],
-	) => {
-		const nextProjectReportDate = getNextProjectReportDate(reports);
+	const updateProjectNextReportDate = useCallback(
+		(projectId: number, reports: ProjectReportEntry[]) => {
+			const nextProjectReportDate = getNextProjectReportDate(reports);
 
-		setReportProjects((prev) =>
-			prev.map((project) =>
-				project.id === projectId
-					? {
-							...project,
-							nextProjectReportDate,
-						}
-					: project,
-			),
-		);
-	}, []);
+			setReportProjects((prev) =>
+				prev.map((project) =>
+					project.id === projectId
+						? {
+								...project,
+								nextProjectReportDate,
+							}
+						: project,
+				),
+			);
+		},
+		[],
+	);
+
+	const loadProjectReportEntries = useCallback(
+		async (projectId: number, signal?: AbortSignal) => {
+			const reports = await fetchProjectReportEntries(projectId, signal);
+
+			setProjectReportEntries(reports);
+			updateProjectNextReportDate(projectId, reports);
+
+			return reports;
+		},
+		[updateProjectNextReportDate],
+	);
+
+	const refreshSelectedProjectReports = useCallback(async () => {
+		if (!selectedReportProjectId) {
+			return;
+		}
+
+		await loadProjectReportEntries(selectedReportProjectId);
+	}, [loadProjectReportEntries, selectedReportProjectId]);
 
 	useEffect(() => {
 		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
@@ -508,7 +542,7 @@ export const SalesProfitabilityReport = ({
 		setProjectReportFileDrafts([]);
 		setProjectReportsError(null);
 
-		if (!selectedReportProjectId) {
+		if (activeTab !== "projectReports" || !selectedReportProjectId) {
 			setProjectReportEntries([]);
 			return;
 		}
@@ -516,11 +550,7 @@ export const SalesProfitabilityReport = ({
 		const controller = new AbortController();
 
 		setIsProjectReportsLoading(true);
-		fetchProjectReportEntries(selectedReportProjectId, controller.signal)
-			.then((reports) => {
-				setProjectReportEntries(reports);
-				updateProjectNextReportDate(selectedReportProjectId, reports);
-			})
+		loadProjectReportEntries(selectedReportProjectId, controller.signal)
 			.catch(() => {
 				if (!controller.signal.aborted) {
 					setProjectReportsError("Не удалось загрузить отчёты проекта");
@@ -533,7 +563,7 @@ export const SalesProfitabilityReport = ({
 			});
 
 		return () => controller.abort();
-	}, [selectedReportProjectId, updateProjectNextReportDate]);
+	}, [activeTab, loadProjectReportEntries, selectedReportProjectId]);
 
 	useEffect(() => {
 		void paymentsRefreshKey;
@@ -563,8 +593,12 @@ export const SalesProfitabilityReport = ({
 
 		if (!missingProjectIds.length) {
 			setAutonomousPayments(cachedProjectData.flatMap((item) => item.payments));
-			setAutonomousPaymentStages(cachedProjectData.flatMap((item) => item.stages));
-			setAutonomousPaymentEvents(cachedProjectData.flatMap((item) => item.events));
+			setAutonomousPaymentStages(
+				cachedProjectData.flatMap((item) => item.stages),
+			);
+			setAutonomousPaymentEvents(
+				cachedProjectData.flatMap((item) => item.events),
+			);
 			setIsAutonomousPaymentsLoading(false);
 			return;
 		}
@@ -591,12 +625,18 @@ export const SalesProfitabilityReport = ({
 				});
 
 				const nextProjectData = paymentProjectIds
-					.map((projectId) => autonomousProjectDataCacheRef.current.get(projectId))
+					.map((projectId) =>
+						autonomousProjectDataCacheRef.current.get(projectId),
+					)
 					.filter((item): item is AutonomousProjectData => Boolean(item));
 
 				setAutonomousPayments(nextProjectData.flatMap((item) => item.payments));
-				setAutonomousPaymentStages(nextProjectData.flatMap((item) => item.stages));
-				setAutonomousPaymentEvents(nextProjectData.flatMap((item) => item.events));
+				setAutonomousPaymentStages(
+					nextProjectData.flatMap((item) => item.stages),
+				);
+				setAutonomousPaymentEvents(
+					nextProjectData.flatMap((item) => item.events),
+				);
 			})
 			.catch(() => {
 				if (!controller.signal.aborted) {
@@ -645,20 +685,22 @@ export const SalesProfitabilityReport = ({
 		() =>
 			selectedReportProject
 				? bitrixProjects.filter((project) => {
-				const bitrixProjectId = normalizeProjectId(project.projectId ?? project.id);
-				const selectedBitrixProjectId = normalizeProjectId(
-					selectedReportProject.bitrixProjectId,
-				);
+						const bitrixProjectId = normalizeProjectId(
+							project.projectId ?? project.id,
+						);
+						const selectedBitrixProjectId = normalizeProjectId(
+							selectedReportProject.bitrixProjectId,
+						);
 
-				if (selectedBitrixProjectId) {
-					return bitrixProjectId === selectedBitrixProjectId;
-				}
+						if (selectedBitrixProjectId) {
+							return bitrixProjectId === selectedBitrixProjectId;
+						}
 
-				return (
-					normalizeProjectTitle(project.title ?? "") ===
-					normalizeProjectTitle(selectedReportProject.title)
-				);
-			})
+						return (
+							normalizeProjectTitle(project.title ?? "") ===
+							normalizeProjectTitle(selectedReportProject.title)
+						);
+					})
 				: [],
 		[bitrixProjects, selectedReportProject],
 	);
@@ -670,7 +712,9 @@ export const SalesProfitabilityReport = ({
 		[selectedBitrixProjects],
 	);
 	const shouldLoadBitrixProjectDetails =
-		activeTab === "projects" || activeTab === "tasks" || activeTab === "reports";
+		activeTab === "projects" ||
+		activeTab === "tasks" ||
+		activeTab === "reports";
 	const selectedBitrixProjectsWithDetails = useMemo(
 		() =>
 			selectedBitrixProjects.map((project) => {
@@ -813,7 +857,9 @@ export const SalesProfitabilityReport = ({
 					const next = new Map(prev);
 
 					projects.forEach((project) => {
-						const projectId = normalizeProjectId(project.projectId ?? project.id);
+						const projectId = normalizeProjectId(
+							project.projectId ?? project.id,
+						);
 
 						if (projectId) {
 							next.set(projectId, project);
@@ -825,7 +871,10 @@ export const SalesProfitabilityReport = ({
 			})
 			.catch((error) => {
 				if (!controller.signal.aborted) {
-					console.error("Failed to fetch selected Bitrix project details", error);
+					console.error(
+						"Failed to fetch selected Bitrix project details",
+						error,
+					);
 				}
 			})
 			.finally(() => {
@@ -884,10 +933,9 @@ export const SalesProfitabilityReport = ({
 		const entries = Object.entries(projectFileDrafts) as Array<
 			[ReportProjectFileKind, File | undefined]
 		>;
-		const selectedEntries = entries.filter((entry): entry is [
-			ReportProjectFileKind,
-			File,
-		] => Boolean(entry[1]));
+		const selectedEntries = entries.filter(
+			(entry): entry is [ReportProjectFileKind, File] => Boolean(entry[1]),
+		);
 
 		if (!selectedEntries.length) {
 			return [];
@@ -997,10 +1045,7 @@ export const SalesProfitabilityReport = ({
 				),
 			);
 
-			const reports = await fetchProjectReportEntries(selectedReportProject.id);
-
-			setProjectReportEntries(reports);
-			updateProjectNextReportDate(selectedReportProject.id, reports);
+			await loadProjectReportEntries(selectedReportProject.id);
 			setProjectReportAuthorId(null);
 			setProjectReportText("");
 			setProjectReportNextDate("");
@@ -1021,18 +1066,13 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
-		const updatedReport = await updateProjectReportEntry(
+		await updateProjectReportEntry(
 			selectedReportProject.id,
 			reportEntry.id,
 			payload,
 		);
 
-		const reports = projectReportEntries.map((entry) =>
-			entry.id === updatedReport.id ? updatedReport : entry,
-		);
-
-		setProjectReportEntries(reports);
-		updateProjectNextReportDate(selectedReportProject.id, reports);
+		await loadProjectReportEntries(selectedReportProject.id);
 	};
 
 	const handleProjectReportDelete = async (reportEntry: ProjectReportEntry) => {
@@ -1042,12 +1082,7 @@ export const SalesProfitabilityReport = ({
 
 		await deleteProjectReportEntry(selectedReportProject.id, reportEntry.id);
 
-		const reports = projectReportEntries.filter(
-			(entry) => entry.id !== reportEntry.id,
-		);
-
-		setProjectReportEntries(reports);
-		updateProjectNextReportDate(selectedReportProject.id, reports);
+		await loadProjectReportEntries(selectedReportProject.id);
 	};
 
 	const refreshAutonomousPayments = () => {
@@ -1085,7 +1120,9 @@ export const SalesProfitabilityReport = ({
 		setIsPaymentModalOpen(true);
 	};
 
-	const handlePaymentSubmit = async (submittedPaymentForm: PaymentFormState) => {
+	const handlePaymentSubmit = async (
+		submittedPaymentForm: PaymentFormState,
+	) => {
 		setPaymentForm(submittedPaymentForm);
 
 		if (!selectedReportProjectId || !submittedPaymentForm.stageId) {
@@ -1113,7 +1150,8 @@ export const SalesProfitabilityReport = ({
 			await updateAutonomousProjectPayment(submittedPaymentForm.id, payload);
 		} else {
 			const selectedProjectPaymentsCount = autonomousPayments.filter(
-				(payment) => String(payment.projectId) === String(selectedReportProjectId),
+				(payment) =>
+					String(payment.projectId) === String(selectedReportProjectId),
 			).length;
 
 			await createAutonomousProjectPayment(String(selectedReportProjectId), {
@@ -1177,16 +1215,8 @@ export const SalesProfitabilityReport = ({
 			reportEntry.id,
 			file.id,
 		);
-		setProjectReportEntries((prev) =>
-			prev.map((entry) =>
-				entry.id === reportEntry.id
-					? {
-							...entry,
-							files: entry.files.filter((item) => item.id !== file.id),
-						}
-					: entry,
-			),
-		);
+
+		await loadProjectReportEntries(selectedReportProject.id);
 	};
 
 	const uploadProjectReportFiles = async (
@@ -1207,10 +1237,7 @@ export const SalesProfitabilityReport = ({
 			),
 		);
 
-		const reports = await fetchProjectReportEntries(selectedReportProject.id);
-
-		setProjectReportEntries(reports);
-		updateProjectNextReportDate(selectedReportProject.id, reports);
+		await loadProjectReportEntries(selectedReportProject.id);
 	};
 
 	const handleReportProjectSubmit = async () => {
@@ -1242,7 +1269,9 @@ export const SalesProfitabilityReport = ({
 				savedProject = await createReportProject(payload);
 			}
 
-			const uploadedFiles = await uploadSelectedReportProjectFiles(savedProject.id);
+			const uploadedFiles = await uploadSelectedReportProjectFiles(
+				savedProject.id,
+			);
 
 			if (uploadedFiles.length) {
 				savedProject = {
@@ -1303,10 +1332,9 @@ export const SalesProfitabilityReport = ({
 				[ReportProjectFileKind, File | undefined]
 			>;
 
-			const selectedEntries = entries.filter((entry): entry is [
-				ReportProjectFileKind,
-				File,
-			] => Boolean(entry[1]));
+			const selectedEntries = entries.filter(
+				(entry): entry is [ReportProjectFileKind, File] => Boolean(entry[1]),
+			);
 
 			if (selectedEntries.length) {
 				const uploadedFiles = await Promise.all(
@@ -1400,358 +1428,362 @@ export const SalesProfitabilityReport = ({
 
 	return (
 		<>
-		<section className={styles.section}>
-			<div
-				className={`${styles.layout} ${
-					isStructureCollapsed ? styles.layoutCollapsed : ""
-				}`}
-			>
-				<aside className={styles.structure}>
-					<div className={styles.structureHeader}>
-						<button
-							type="button"
-							className={styles.structureToggle}
-							onClick={() => setIsStructureCollapsed((prev) => !prev)}
-							title={
-								isStructureCollapsed
-									? "Развернуть структуру"
-									: "Свернуть структуру"
-							}
-						>
-							{isStructureCollapsed ? "⇥" : "⇤"}
-						</button>
-						<h3>Структура</h3>
-					</div>
-					<div className={styles.dealsList}>
-						<input
-							type="search"
-							className={styles.projectSearchInput}
-							placeholder="Поиск по проектам"
-							value={projectSearchQuery}
-							onChange={(event) => setProjectSearchQuery(event.target.value)}
-						/>
-						<div className={styles.responsibleFilter}>
+			<section className={styles.section}>
+				<div
+					className={`${styles.layout} ${
+						isStructureCollapsed ? styles.layoutCollapsed : ""
+					}`}
+				>
+					<aside className={styles.structure}>
+						<div className={styles.structureHeader}>
 							<button
 								type="button"
-								className={styles.responsibleFilterButton}
-								onClick={() => setIsResponsibleFilterOpen((prev) => !prev)}
-								title="Фильтр по ответственному"
+								className={styles.structureToggle}
+								onClick={() => setIsStructureCollapsed((prev) => !prev)}
+								title={
+									isStructureCollapsed
+										? "Развернуть структуру"
+										: "Свернуть структуру"
+								}
 							>
-								<span>Ответственный</span>
-								<strong>{selectedResponsibleUser?.title ?? "Все"}</strong>
+								{isStructureCollapsed ? "⇥" : "⇤"}
 							</button>
-							{isResponsibleFilterOpen ? (
-								<div className={styles.responsibleFilterOptions}>
-									<button
-										type="button"
-										onClick={() => {
-											setSelectedResponsibleFilter("");
-											setIsResponsibleFilterOpen(false);
-										}}
-									>
-										<span className={styles.responsibleFilterAvatar}>Все</span>
-										<span>Все ответственные</span>
-									</button>
-									{responsibleFilterUsers.map((user) => (
+							<h3>Структура</h3>
+						</div>
+						<div className={styles.dealsList}>
+							<input
+								type="search"
+								className={styles.projectSearchInput}
+								placeholder="Поиск по проектам"
+								value={projectSearchQuery}
+								onChange={(event) => setProjectSearchQuery(event.target.value)}
+							/>
+							<div className={styles.responsibleFilter}>
+								<button
+									type="button"
+									className={styles.responsibleFilterButton}
+									onClick={() => setIsResponsibleFilterOpen((prev) => !prev)}
+									title="Фильтр по ответственному"
+								>
+									<span>Ответственный</span>
+									<strong>{selectedResponsibleUser?.title ?? "Все"}</strong>
+								</button>
+								{isResponsibleFilterOpen ? (
+									<div className={styles.responsibleFilterOptions}>
 										<button
-											key={user.id}
 											type="button"
 											onClick={() => {
-												setSelectedResponsibleFilter(normalizeProjectId(user.id));
+												setSelectedResponsibleFilter("");
 												setIsResponsibleFilterOpen(false);
 											}}
 										>
 											<span className={styles.responsibleFilterAvatar}>
-												{user.photo ? (
-													<img src={user.photo} alt="" />
-												) : (
-													user.title.trim().charAt(0) || "?"
-												)}
+												Все
 											</span>
-											<span>{user.title}</span>
+											<span>Все ответственные</span>
 										</button>
-									))}
-								</div>
-							) : null}
-						</div>
-						{isReportProjectsLoading ? (
-							<ProjectListSkeleton />
-						) : null}
-						{!isReportProjectsLoading &&
-							visibleReportProjectGroups.map((group) => (
-								<div key={group.key} className={styles.reportProjectGroup}>
-									<div className={styles.reportProjectGroupTitle}>
-										{group.title}
-									</div>
-									{group.projects.map((project) => {
-										const responsibleUser = getProjectResponsibleUser(
-											project,
-											users,
-										);
-
-										return (
+										{responsibleFilterUsers.map((user) => (
 											<button
-												key={project.id}
+												key={user.id}
 												type="button"
-												title={project.title}
-												className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
-													getDbProjectId(project) === selectedProjectId
-														? styles.activeProject
-														: ""
-												}`}
-												onClick={() => selectReportProject(project)}
+												onClick={() => {
+													setSelectedResponsibleFilter(
+														normalizeProjectId(user.id),
+													);
+													setIsResponsibleFilterOpen(false);
+												}}
 											>
-												<span className={styles.dealProjectIcon}>
-													{responsibleUser?.photo ? (
-														<img src={responsibleUser.photo} alt="" />
+												<span className={styles.responsibleFilterAvatar}>
+													{user.photo ? (
+														<img src={user.photo} alt="" />
 													) : (
-														project.title.trim().charAt(0) || "P"
+														user.title.trim().charAt(0) || "?"
 													)}
 												</span>
-												<span className={styles.reportProjectText}>
-													<strong className={styles.reportProjectTitle}>
-														{project.title}
-													</strong>
-													<small className={styles.reportProjectMeta}>
-														<span>Проект</span>
-														<span
-															className={`${styles.reportProjectNextReportDate} ${
-																isProjectReportDateOverdue(
-																	project.nextProjectReportDate,
-																)
-																	? styles.reportProjectNextReportDateOverdue
-																	: ""
-															}`}
-														>
-															{formatProjectReportDate(
-																project.nextProjectReportDate,
-															)}
-														</span>
-													</small>
-												</span>
-												<span
-													className={styles.reportProjectMenuButton}
-													onClick={(event) => {
-														event.stopPropagation();
-														openReportProjectEditModal(project);
-													}}
-												>
-													<span aria-hidden="true" />
-													<span aria-hidden="true" />
-													<span aria-hidden="true" />
-												</span>
+												<span>{user.title}</span>
 											</button>
-										);
-									})}
-								</div>
-							))}
-						<button
-							type="button"
-							className={styles.dealProjectAddButton}
-							onClick={openReportProjectCreateModal}
-							title="Добавить проект"
-						>
-							+
-						</button>
-					</div>
-				</aside>
+										))}
+									</div>
+								) : null}
+							</div>
+							{isReportProjectsLoading ? <ProjectListSkeleton /> : null}
+							{!isReportProjectsLoading &&
+								visibleReportProjectGroups.map((group) => (
+									<div key={group.key} className={styles.reportProjectGroup}>
+										<div className={styles.reportProjectGroupTitle}>
+											{group.title}
+										</div>
+										{group.projects.map((project) => {
+											const responsibleUser = getProjectResponsibleUser(
+												project,
+												users,
+											);
 
-				<div className={styles.content}>
-					<div className={styles.tabs}>
-						{tabs.map((tab) => (
+											return (
+												<button
+													key={project.id}
+													type="button"
+													title={project.title}
+													className={`${styles.dealProjectButton} ${styles.reportProjectButton} ${
+														getDbProjectId(project) === selectedProjectId
+															? styles.activeProject
+															: ""
+													}`}
+													onClick={() => selectReportProject(project)}
+												>
+													<span className={styles.dealProjectIcon}>
+														{responsibleUser?.photo ? (
+															<img src={responsibleUser.photo} alt="" />
+														) : (
+															project.title.trim().charAt(0) || "P"
+														)}
+													</span>
+													<span className={styles.reportProjectText}>
+														<strong className={styles.reportProjectTitle}>
+															{project.title}
+														</strong>
+														<small className={styles.reportProjectMeta}>
+															<span>Проект</span>
+															<span
+																className={`${styles.reportProjectNextReportDate} ${
+																	isProjectReportDateOverdue(
+																		project.nextProjectReportDate,
+																	)
+																		? styles.reportProjectNextReportDateOverdue
+																		: ""
+																}`}
+															>
+																{formatProjectReportDate(
+																	project.nextProjectReportDate,
+																)}
+															</span>
+														</small>
+													</span>
+													<span
+														className={styles.reportProjectMenuButton}
+														onClick={(event) => {
+															event.stopPropagation();
+															openReportProjectEditModal(project);
+														}}
+													>
+														<span aria-hidden="true" />
+														<span aria-hidden="true" />
+														<span aria-hidden="true" />
+													</span>
+												</button>
+											);
+										})}
+									</div>
+								))}
 							<button
-								key={tab.id}
 								type="button"
-								className={activeTab === tab.id ? styles.activeTab : ""}
-								onClick={() => setActiveTab(tab.id)}
+								className={styles.dealProjectAddButton}
+								onClick={openReportProjectCreateModal}
+								title="Добавить проект"
 							>
-								{tab.title}
+								+
 							</button>
-						))}
-						<button
-							type="button"
-							className={`${styles.marginalityTabButton} ${
-								activeTab === "marginality" ? styles.activeTab : ""
-							}`}
-							onClick={() => setActiveTab("marginality")}
-						>
-							Список оплат
-						</button>
+						</div>
+					</aside>
+
+					<div className={styles.content}>
+						<div className={styles.tabs}>
+							{tabs.map((tab) => (
+								<button
+									key={tab.id}
+									type="button"
+									className={activeTab === tab.id ? styles.activeTab : ""}
+									onClick={() => setActiveTab(tab.id)}
+								>
+									{tab.title}
+								</button>
+							))}
+							<button
+								type="button"
+								className={`${styles.marginalityTabButton} ${
+									activeTab === "marginality" ? styles.activeTab : ""
+								}`}
+								onClick={() => setActiveTab("marginality")}
+							>
+								Список оплат
+							</button>
+						</div>
+
+						{isBusy ? (
+							<ProfitabilitySkeleton />
+						) : (
+							<>
+								{activeTab === "projects" && (
+									<SummaryCards
+										form={summaryForm}
+										isEditing={isSummaryEditing}
+										isSaving={isSummarySaving}
+										onCancel={() => {
+											setSummaryForm(
+												getProjectSummaryForm(selectedReportProject),
+											);
+											setIsSummaryEditing(false);
+											setSummaryError(null);
+										}}
+										onChange={setSummaryForm}
+										onEdit={() => setIsSummaryEditing(true)}
+										onSave={handleSummarySave}
+										projectTitle={
+											selectedReportProject?.title ?? "Проект не выбран"
+										}
+										saveError={summaryError}
+										summary={summary}
+									/>
+								)}
+
+								{activeTab === "marginality" && (
+									<AutonomousPaymentsTab
+										error={autonomousPaymentsError}
+										isLoading={isAutonomousPaymentsLoading}
+										onCreate={openPaymentCreateModal}
+										onEdit={openPaymentEditModal}
+										onScopeChange={setPaymentsScope}
+										payments={autonomousPayments}
+										paymentEvents={autonomousPaymentEvents}
+										project={selectedReportProject}
+										projects={paymentsScopeProjects}
+										scope={paymentsScope}
+										stages={autonomousPaymentStages}
+									/>
+								)}
+
+								{activeTab === "projects" && (
+									<ProjectsTab
+										bitrixProjects={selectedBitrixProjectsWithDetails}
+										onPaymentsChanged={refreshAutonomousPayments}
+										projects={reportProjects}
+										selectedProjectId={effectiveSelectedProjectId}
+										users={users}
+									/>
+								)}
+
+								{activeTab === "projectDetails" && (
+									<ReportProjectDetailsTab
+										bitrixProjectOptions={bitrixProjectOptions}
+										companyOptions={companyOptions}
+										detailsFileDrafts={detailsFileDrafts}
+										detailsProjectError={detailsProjectError}
+										form={detailsProjectForm}
+										isSaving={isDetailsProjectSaving}
+										onFileDelete={deleteProjectFile}
+										onFileDownload={downloadProjectFile}
+										onFileDraftChange={(fileKind, file) =>
+											setDetailsFileDrafts((prev) => ({
+												...prev,
+												[fileKind]: file,
+											}))
+										}
+										onFormChange={setDetailsProjectForm}
+										onSave={handleDetailsProjectSave}
+										project={selectedReportProject}
+										shouldShowSave={shouldShowDetailsSave}
+										users={users}
+									/>
+								)}
+
+								{activeTab === "tasks" && (
+									<TasksTab
+										items={allTasks}
+										users={users}
+										openTask={(id) => openTask(id, EntityTypeIds.tasks)}
+									/>
+								)}
+
+								{activeTab === "reports" && (
+									<ReportsTab
+										activities={activities}
+										items={allReports}
+										users={users}
+										openReport={(id) => openTask(id, EntityTypeIds.reports)}
+									/>
+								)}
+
+								{activeTab === "projectReports" && (
+									<ProjectReportsTab
+										authorName={projectReportAuthorName}
+										error={projectReportsError}
+										fileDrafts={projectReportFileDrafts}
+										isLoading={isProjectReportsLoading}
+										isModalOpen={isProjectReportModalOpen}
+										isSaving={isProjectReportSaving}
+										nextReportDate={projectReportNextDate}
+										onAuthorChange={(authorName, authorId) => {
+											setProjectReportAuthorName(authorName);
+											setProjectReportAuthorId(authorId);
+										}}
+										onCloseModal={() => setIsProjectReportModalOpen(false)}
+										onCreate={handleProjectReportCreate}
+										onDelete={handleProjectReportDelete}
+										onFileDelete={deleteProjectReportFile}
+										onFileDownload={downloadProjectReportFile}
+										onFileUpload={uploadProjectReportFiles}
+										onFilesChange={setProjectReportFileDrafts}
+										onNextReportDateChange={setProjectReportNextDate}
+										onOpenModal={() => {
+											setProjectReportsError(null);
+											setIsProjectReportModalOpen(true);
+										}}
+										onRefreshReports={refreshSelectedProjectReports}
+										onTextChange={setProjectReportText}
+										onUpdate={handleProjectReportUpdate}
+										project={selectedReportProject}
+										reports={projectReportEntries}
+										text={projectReportText}
+										users={users}
+									/>
+								)}
+							</>
+						)}
 					</div>
-
-					{isBusy ? (
-						<ProfitabilitySkeleton />
-					) : (
-						<>
-							{activeTab === "projects" && (
-								<SummaryCards
-									form={summaryForm}
-									isEditing={isSummaryEditing}
-									isSaving={isSummarySaving}
-									onCancel={() => {
-										setSummaryForm(getProjectSummaryForm(selectedReportProject));
-										setIsSummaryEditing(false);
-										setSummaryError(null);
-									}}
-									onChange={setSummaryForm}
-									onEdit={() => setIsSummaryEditing(true)}
-									onSave={handleSummarySave}
-									projectTitle={
-										selectedReportProject?.title ??
-										"Проект не выбран"
-									}
-									saveError={summaryError}
-									summary={summary}
-								/>
-							)}
-
-							{activeTab === "marginality" && (
-								<AutonomousPaymentsTab
-									error={autonomousPaymentsError}
-									isLoading={isAutonomousPaymentsLoading}
-									onCreate={openPaymentCreateModal}
-									onEdit={openPaymentEditModal}
-									onScopeChange={setPaymentsScope}
-									payments={autonomousPayments}
-									paymentEvents={autonomousPaymentEvents}
-									project={selectedReportProject}
-									projects={paymentsScopeProjects}
-									scope={paymentsScope}
-									stages={autonomousPaymentStages}
-								/>
-							)}
-
-							{activeTab === "projects" && (
-								<ProjectsTab
-									bitrixProjects={selectedBitrixProjectsWithDetails}
-									onPaymentsChanged={refreshAutonomousPayments}
-									projects={reportProjects}
-									selectedProjectId={effectiveSelectedProjectId}
-									users={users}
-								/>
-							)}
-
-							{activeTab === "projectDetails" && (
-								<ReportProjectDetailsTab
-									bitrixProjectOptions={bitrixProjectOptions}
-									companyOptions={companyOptions}
-									detailsFileDrafts={detailsFileDrafts}
-									detailsProjectError={detailsProjectError}
-									form={detailsProjectForm}
-									isSaving={isDetailsProjectSaving}
-									onFileDelete={deleteProjectFile}
-									onFileDownload={downloadProjectFile}
-									onFileDraftChange={(fileKind, file) =>
-										setDetailsFileDrafts((prev) => ({
-											...prev,
-											[fileKind]: file,
-										}))
-									}
-									onFormChange={setDetailsProjectForm}
-									onSave={handleDetailsProjectSave}
-									project={selectedReportProject}
-									shouldShowSave={shouldShowDetailsSave}
-									users={users}
-								/>
-							)}
-
-							{activeTab === "tasks" && (
-								<TasksTab
-									items={allTasks}
-									users={users}
-									openTask={(id) => openTask(id, EntityTypeIds.tasks)}
-								/>
-							)}
-
-							{activeTab === "reports" && (
-								<ReportsTab
-									activities={activities}
-									items={allReports}
-									users={users}
-									openReport={(id) => openTask(id, EntityTypeIds.reports)}
-								/>
-							)}
-
-							{activeTab === "projectReports" && (
-								<ProjectReportsTab
-									authorName={projectReportAuthorName}
-									error={projectReportsError}
-									fileDrafts={projectReportFileDrafts}
-									isLoading={isProjectReportsLoading}
-									isModalOpen={isProjectReportModalOpen}
-									isSaving={isProjectReportSaving}
-									nextReportDate={projectReportNextDate}
-									onAuthorChange={(authorName, authorId) => {
-										setProjectReportAuthorName(authorName);
-										setProjectReportAuthorId(authorId);
-									}}
-									onCloseModal={() => setIsProjectReportModalOpen(false)}
-									onCreate={handleProjectReportCreate}
-									onDelete={handleProjectReportDelete}
-									onFileDelete={deleteProjectReportFile}
-									onFileDownload={downloadProjectReportFile}
-									onFileUpload={uploadProjectReportFiles}
-									onFilesChange={setProjectReportFileDrafts}
-									onNextReportDateChange={setProjectReportNextDate}
-									onOpenModal={() => {
-										setProjectReportsError(null);
-										setIsProjectReportModalOpen(true);
-									}}
-									onTextChange={setProjectReportText}
-									onUpdate={handleProjectReportUpdate}
-									project={selectedReportProject}
-									reports={projectReportEntries}
-									text={projectReportText}
-									users={users}
-								/>
-							)}
-						</>
-					)}
 				</div>
-			</div>
-		</section>
-		<ReportProjectModal
-			bitrixProjectOptions={bitrixProjectOptions}
-			companyOptions={companyOptions}
-			deletingReportProjectId={deletingReportProjectId}
-			fileDrafts={projectFileDrafts}
-			form={projectForm}
-			isOpen={isReportProjectModalOpen}
-			onClose={() => {
-				setDeletingReportProjectId(null);
-				setProjectFileDrafts({});
-				setIsReportProjectModalOpen(false);
-			}}
-			onDelete={handleReportProjectDelete}
-			onFileDelete={deleteProjectFile}
-			onFileDownload={downloadProjectFile}
-			onFileDraftChange={(fileKind, file) =>
-				setProjectFileDrafts((prev) => ({
-					...prev,
-					[fileKind]: file,
-				}))
-			}
-			onFormChange={setProjectForm}
-			onSubmit={handleReportProjectSubmit}
-			project={editingReportProject}
-			projectFormError={projectFormError}
-			saving={isReportProjectSaving}
-			users={users}
-		/>
-		<PaymentModal
-			deletingPaymentId={deletingPaymentId}
-			form={paymentForm}
-			isOpen={isPaymentModalOpen}
-			onClose={() => {
-				setDeletingPaymentId(null);
-				setIsPaymentModalOpen(false);
-			}}
-			onDelete={handlePaymentDelete}
-			onFormChange={setPaymentForm}
-			onSubmit={handlePaymentSubmit}
-			projectAmount={selectedReportProject?.projectAmount}
-			stages={autonomousPaymentStages}
-		/>
+			</section>
+			<ReportProjectModal
+				bitrixProjectOptions={bitrixProjectOptions}
+				companyOptions={companyOptions}
+				deletingReportProjectId={deletingReportProjectId}
+				fileDrafts={projectFileDrafts}
+				form={projectForm}
+				isOpen={isReportProjectModalOpen}
+				onClose={() => {
+					setDeletingReportProjectId(null);
+					setProjectFileDrafts({});
+					setIsReportProjectModalOpen(false);
+				}}
+				onDelete={handleReportProjectDelete}
+				onFileDelete={deleteProjectFile}
+				onFileDownload={downloadProjectFile}
+				onFileDraftChange={(fileKind, file) =>
+					setProjectFileDrafts((prev) => ({
+						...prev,
+						[fileKind]: file,
+					}))
+				}
+				onFormChange={setProjectForm}
+				onSubmit={handleReportProjectSubmit}
+				project={editingReportProject}
+				projectFormError={projectFormError}
+				saving={isReportProjectSaving}
+				users={users}
+			/>
+			<PaymentModal
+				deletingPaymentId={deletingPaymentId}
+				form={paymentForm}
+				isOpen={isPaymentModalOpen}
+				onClose={() => {
+					setDeletingPaymentId(null);
+					setIsPaymentModalOpen(false);
+				}}
+				onDelete={handlePaymentDelete}
+				onFormChange={setPaymentForm}
+				onSubmit={handlePaymentSubmit}
+				projectAmount={selectedReportProject?.projectAmount}
+				stages={autonomousPaymentStages}
+			/>
 		</>
 	);
 };
@@ -1803,12 +1835,16 @@ const AutonomousPaymentsTab = ({
 	);
 	const paidAmount = payments.reduce(
 		(sum, payment) =>
-			payment.status === "paid" ? sum + getAutonomousPaymentAmount(payment) : sum,
+			payment.status === "paid"
+				? sum + getAutonomousPaymentAmount(payment)
+				: sum,
 		0,
 	);
 	const debtAmount = payments.reduce(
 		(sum, payment) =>
-			payment.status === "debt" ? sum + getAutonomousPaymentAmount(payment) : sum,
+			payment.status === "debt"
+				? sum + getAutonomousPaymentAmount(payment)
+				: sum,
 		0,
 	);
 	const requestAmount = Math.max(projectAmount - paidAmount, 0);
@@ -1819,8 +1855,8 @@ const AutonomousPaymentsTab = ({
 		scope === "project"
 			? (project?.title ?? "Проект")
 			: scope === "client"
-				? (project?.clientCompany || project?.title || "Компания клиента")
-			: "Все проекты";
+				? project?.clientCompany || project?.title || "Компания клиента"
+				: "Все проекты";
 	const getPaymentSegmentTooltip = (
 		payment: AutonomousProjectPayment,
 		amount: number,
@@ -1869,45 +1905,42 @@ const AutonomousPaymentsTab = ({
 			? selectedChartMonthKey
 			: (availableMonthKeys.at(-1) ?? null);
 	const chartColumns = useMemo(() => {
-		const groups = paymentDateItems.reduce(
-			(result, { date, payment }) => {
-				if (chartScale === "month") {
-					if (!date || getPaymentMonthKey(date) !== activeChartMonthKey) {
-						return result;
-					}
+		const groups = paymentDateItems.reduce((result, { date, payment }) => {
+			if (chartScale === "month") {
+				if (!date || getPaymentMonthKey(date) !== activeChartMonthKey) {
+					return result;
 				}
+			}
 
-				if (chartScale === "halfYear" && date) {
-					const monthIndex = availableMonthKeys.indexOf(getPaymentMonthKey(date));
-					const lastMonthIndex = Math.max(availableMonthKeys.length - 1, 0);
-					const firstMonthIndex = Math.max(lastMonthIndex - 5, 0);
+			if (chartScale === "halfYear" && date) {
+				const monthIndex = availableMonthKeys.indexOf(getPaymentMonthKey(date));
+				const lastMonthIndex = Math.max(availableMonthKeys.length - 1, 0);
+				const firstMonthIndex = Math.max(lastMonthIndex - 5, 0);
 
-					if (monthIndex < firstMonthIndex || monthIndex > lastMonthIndex) {
-						return result;
-					}
+				if (monthIndex < firstMonthIndex || monthIndex > lastMonthIndex) {
+					return result;
 				}
+			}
 
-				const key =
-					date && chartScale === "month"
-						? getPaymentDayKey(date)
-						: date
-							? getPaymentMonthKey(date)
-							: "no-date";
-				const group = result.get(key) ?? {
-					date,
-					items: [],
-				};
+			const key =
+				date && chartScale === "month"
+					? getPaymentDayKey(date)
+					: date
+						? getPaymentMonthKey(date)
+						: "no-date";
+			const group = result.get(key) ?? {
+				date,
+				items: [],
+			};
 
-				group.items.push(payment);
-				result.set(key, group);
+			group.items.push(payment);
+			result.set(key, group);
 
-				return result;
-			},
-			new Map<
-				string,
-				{ date: Date | null; items: AutonomousProjectPayment[] }
-			>(),
-		);
+			return result;
+		}, new Map<
+			string,
+			{ date: Date | null; items: AutonomousProjectPayment[] }
+		>());
 		const columns = Array.from(groups.entries()).map(([key, group]) => {
 			const amount = group.items.reduce(
 				(sum, payment) => sum + getAutonomousPaymentAmount(payment),
@@ -1949,12 +1982,7 @@ const AutonomousPaymentsTab = ({
 			...column,
 			maxAmount,
 		}));
-	}, [
-		activeChartMonthKey,
-		availableMonthKeys,
-		chartScale,
-		paymentDateItems,
-	]);
+	}, [activeChartMonthKey, availableMonthKeys, chartScale, paymentDateItems]);
 	const hasChartColumns = chartColumns.length > 0;
 	const chartMonthDate = activeChartMonthKey
 		? getPaymentMonthDate(activeChartMonthKey)
@@ -2009,16 +2037,22 @@ const AutonomousPaymentsTab = ({
 				</div>
 				<div>
 					<span>Оплачено</span>
-					<strong className={styles.successText}>{formatMoney(paidAmount)}</strong>
+					<strong className={styles.successText}>
+						{formatMoney(paidAmount)}
+					</strong>
 				</div>
 				<div>
 					<span>Дебиторка</span>
-					<strong className={styles.warningText}>{formatMoney(debtAmount)}</strong>
+					<strong className={styles.warningText}>
+						{formatMoney(debtAmount)}
+					</strong>
 				</div>
 			</div>
 			<div className={styles.requestCard}>
 				<span>Запросить</span>
-				<strong className={styles.requestText}>{formatMoney(requestAmount)}</strong>
+				<strong className={styles.requestText}>
+					{formatMoney(requestAmount)}
+				</strong>
 			</div>
 
 			<div className={styles.marginalityCard}>
@@ -2181,8 +2215,7 @@ const AutonomousPaymentsTab = ({
 									· Платёж
 								</strong>
 								<span>
-									Дата платежа:{" "}
-									{formatProjectReportDate(payment.paymentDate)}
+									Дата платежа: {formatProjectReportDate(payment.paymentDate)}
 								</span>
 								<small className={styles.paymentStageBinding}>
 									Привязка к этапу:{" "}
@@ -2190,7 +2223,9 @@ const AutonomousPaymentsTab = ({
 								</small>
 							</span>
 							<b>{formatMoney(payment.amount ?? 0)}</b>
-							<em className={getAutonomousPaymentStatusClassName(payment.status)}>
+							<em
+								className={getAutonomousPaymentStatusClassName(payment.status)}
+							>
 								{paymentStatusLabels[payment.status]}
 							</em>
 						</button>
