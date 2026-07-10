@@ -1159,6 +1159,12 @@
 	padding-left: 150px;
 }
 
+.supportHoursPlot {
+	gap: 42px;
+	min-height: 340px;
+	padding: 54px 28px 24px;
+}
+
 .chartAxisLabel {
 	position: absolute;
 	left: 32px;
@@ -1207,6 +1213,15 @@
 		0 0 0 2px rgba(38, 236, 236, 0.32);
 }
 
+.supportHoursColumn {
+	flex-basis: 112px;
+	min-width: 112px;
+}
+
+.supportHoursColumn:not(:last-child)::after {
+	right: -21px;
+}
+
 .periodHeader {
 	display: flex;
 	flex-direction: column;
@@ -1241,6 +1256,11 @@
 	border-radius: 12px;
 	background: rgba(22, 36, 55, 0.06);
 	box-shadow: 0 10px 22px rgba(1, 8, 14, 0.22);
+}
+
+.supportHoursBar {
+	width: 112px;
+	border-radius: 6px;
 }
 
 .paymentSegment {
@@ -1391,6 +1411,7 @@
 
 .ganttCustomEventSegmentShell {
 	position: absolute;
+	top: 27px;
 	height: 38px;
 	padding: 0;
 	border: 0;
@@ -3301,7 +3322,7 @@
 
 .ganttBoardScroll {
 	margin: 0 0 16px;
-	overflow-x: auto;
+	overflow: visible;
 }
 
 .ganttBoard {
@@ -3340,6 +3361,46 @@
 	border-left: 2px dashed rgba(180, 192, 208, 0.92);
 	transform: translateX(-1px);
 	z-index: 8;
+	pointer-events: none;
+}
+
+.ganttTodayLine {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 0;
+	border-left: 2px solid rgba(38, 240, 233, 0.9);
+	box-shadow:
+		0 0 0 1px rgba(255, 255, 255, 0.12),
+		0 0 14px rgba(38, 240, 233, 0.36);
+	transform: translateX(-1px);
+	z-index: 1;
+	pointer-events: none;
+}
+
+.ganttTodayLineLabel {
+	position: absolute;
+	top: 50px;
+	padding: 2px 7px;
+	border: 1px solid rgba(38, 240, 233, 0.55);
+	border-radius: 6px;
+	background: rgb(15, 28, 44);
+	box-shadow: 0 4px 12px rgba(3, 10, 20, 0.28);
+	color: #26f0e9;
+	font-size: 11px;
+	font-weight: 950;
+	line-height: 1.2;
+	white-space: nowrap;
+	transform: translateX(-50%);
+	z-index: 12;
+	pointer-events: none;
+}
+
+.ganttTodayLineLayer {
+	position: absolute;
+	inset: 54px 0 0 var(--gantt-timeline-left, 190px);
+	min-width: 720px;
+	z-index: 9;
 	pointer-events: none;
 }
 
@@ -3383,7 +3444,7 @@
 
 .ganttScaleLabel,
 .ganttScale {
-	min-height: 38px;
+	min-height: 54px;
 	border-bottom: 1px solid var(--color-border);
 }
 
@@ -3391,18 +3452,27 @@
 	display: flex;
 	align-items: center;
 	padding: 0 12px;
+	position: sticky;
+	top: 0;
+	left: 0;
+	z-index: 72;
+	background: rgb(15, 28, 44);
 	color: rgba(238, 245, 255, 0.68);
 	font-size: 12px;
 	font-weight: 900;
 }
 
 .ganttScale {
-	position: relative;
-	z-index: 7;
+	position: sticky;
+	top: 0;
+	z-index: 71;
 	min-width: 720px;
-	background: rgba(15, 28, 44, 0.98);
+	height: 54px;
+	overflow: visible;
+	background: rgb(15, 28, 44);
+	box-shadow: 0 5px 10px rgba(3, 10, 20, 0.18);
 
-	span {
+	> span {
 		position: absolute;
 		top: 0;
 		bottom: 0;
@@ -3414,6 +3484,19 @@
 		font-weight: 900;
 		text-transform: lowercase;
 	}
+}
+
+.ganttScale .ganttTodayLineLabel {
+	top: 55px;
+	bottom: auto;
+	display: inline-flex;
+	min-height: auto;
+	align-items: center;
+	color: #26f0e9;
+	font-size: 11px;
+	line-height: 1.2;
+	transform: translateX(-50%);
+	text-transform: none;
 }
 
 .ganttRowInfo {
@@ -4200,60 +4283,11 @@ input[type="date"].dealSummaryDateInput {
 	height: 14px;
 }
 
-.ganttScaleLabel {
-	position: sticky;
-	left: 0;
-	z-index: 18;
-	min-height: 54px;
-	background: rgba(15, 28, 44, 0.96);
-}
-
-.ganttFloatingScale {
-	position: fixed;
-	display: grid;
-	height: 54px;
-	border: 0;
-	border-bottom: 1px solid var(--color-border);
-	border-radius: 0;
-	background: rgba(15, 28, 44, 0.98);
-	box-shadow: 0 8px 16px rgba(3, 10, 20, 0.18);
-	overflow: hidden;
-	pointer-events: none;
-	z-index: 80;
-}
-
-.ganttFloatingScaleLabel {
-	display: flex;
-	align-items: center;
-	min-height: 54px;
-	padding: 0 12px;
-	border-right: 1px solid var(--color-border);
-	border-bottom: 1px solid var(--color-border);
-	background: rgba(15, 28, 44, 0.98);
-	color: rgba(238, 245, 255, 0.68);
-	font-size: 12px;
-	font-weight: 900;
-}
-
-.ganttFloatingScaleViewport {
-	min-width: 0;
-	background: rgba(15, 28, 44, 0.98);
-	overflow: hidden;
-}
-
-.ganttFloatingScaleInner {
-	min-width: 720px;
-	height: 54px;
-}
-
-.ganttFloatingScaleInner .ganttScaleHeader {
-	border-bottom: 0;
-}
-
 .ganttScaleHeader {
 	position: relative;
 	min-width: 720px;
 	min-height: 54px;
+	overflow: visible;
 	border-bottom: 1px solid var(--color-border);
 	background: rgba(15, 28, 44, 0.98);
 }
@@ -4265,12 +4299,12 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .ganttMonthScale {
-	height: 25px;
+	height: 24px;
 	border-bottom: 1px solid rgba(93, 141, 206, 0.18);
 }
 
 .ganttWeekScale {
-	height: 28px;
+	height: 29px;
 }
 
 .ganttMonthScale span,
@@ -4285,16 +4319,24 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .ganttMonthScale span {
+	top: 0;
+	bottom: auto;
+	align-items: center;
 	justify-content: flex-start;
 	transform: translateX(6px);
 	font-size: 12px;
+	line-height: 1;
 	text-transform: lowercase;
 }
 
 .ganttWeekScale span {
+	top: 0;
+	bottom: auto;
+	align-items: center;
 	justify-content: center;
 	transform: translateX(-50%);
 	font-size: 10px;
+	line-height: 1;
 	color: rgba(238, 245, 255, 0.46);
 }
 
