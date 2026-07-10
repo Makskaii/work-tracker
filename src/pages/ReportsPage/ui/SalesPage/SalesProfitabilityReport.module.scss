@@ -1159,6 +1159,12 @@
 	padding-left: 150px;
 }
 
+.supportHoursPlot {
+	gap: 42px;
+	min-height: 340px;
+	padding: 54px 28px 24px;
+}
+
 .chartAxisLabel {
 	position: absolute;
 	left: 32px;
@@ -1207,6 +1213,15 @@
 		0 0 0 2px rgba(38, 236, 236, 0.32);
 }
 
+.supportHoursColumn {
+	flex-basis: 112px;
+	min-width: 112px;
+}
+
+.supportHoursColumn:not(:last-child)::after {
+	right: -21px;
+}
+
 .periodHeader {
 	display: flex;
 	flex-direction: column;
@@ -1241,6 +1256,11 @@
 	border-radius: 12px;
 	background: rgba(22, 36, 55, 0.06);
 	box-shadow: 0 10px 22px rgba(1, 8, 14, 0.22);
+}
+
+.supportHoursBar {
+	width: 112px;
+	border-radius: 6px;
 }
 
 .paymentSegment {

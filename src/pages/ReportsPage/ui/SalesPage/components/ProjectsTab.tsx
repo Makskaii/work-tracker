@@ -100,37 +100,41 @@ const SupportPurchasedHoursChart = ({
 
 			<div className={styles.metricsGrid}>
 				<div className={styles.metric}>
-					<span>Куплено часов</span>
+					<span>Куплено часов </span>
 					<strong>{formatHours(purchasedHours)}</strong>
 				</div>
 				<div className={styles.metric}>
-					<span>Использовано</span>
+					<span>Использовано </span>
 					<strong>{formatHours(usedHours)}</strong>
 				</div>
 				<div className={styles.metric}>
-					<span>Остаток</span>
+					<span>Остаток </span>
 					<strong>{formatHours(remainingHours)}</strong>
 				</div>
 				<div className={styles.metric}>
-					<span>Среднее за период</span>
+					<span>Среднее за период </span>
 					<strong>{formatHours(averageHours)}</strong>
 				</div>
 			</div>
 
 			<div className={styles.paymentChart}>
-				<div className={styles.chartPlot}>
+				<div className={`${styles.chartPlot} ${styles.supportHoursPlot}`}>
 					<span className={styles.chartAxisLabel}>Тестовая шкала часов</span>
 					{buckets.map((bucket, index) => {
-						const height = 34 + Math.round((bucket.hours / maxBucketHours) * 170);
+						const height = 42 + Math.round((bucket.hours / maxBucketHours) * 230);
+						const segmentHeight = Math.max(24, height);
 
 						return (
-							<div key={bucket.label} className={styles.periodColumn}>
+							<div
+								key={bucket.label}
+								className={`${styles.periodColumn} ${styles.supportHoursColumn}`}
+							>
 								<div className={styles.periodHeader}>
 									<strong>{bucket.label}</strong>
 									<small>{formatHours(bucket.hours)}</small>
 								</div>
 								<div
-									className={styles.stackedBar}
+									className={`${styles.stackedBar} ${styles.supportHoursBar}`}
 									style={{
 										height: `${height}px`,
 									}}
@@ -139,6 +143,7 @@ const SupportPurchasedHoursChart = ({
 										className={`${styles.paymentSegment} ${
 											supportBarClasses[index % supportBarClasses.length]
 										}`}
+										style={{ height: `${segmentHeight}px` }}
 									>
 										{formatHours(bucket.hours)}
 									</span>
