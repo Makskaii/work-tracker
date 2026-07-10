@@ -6,10 +6,7 @@
 	useRef,
 	useState,
 } from "react";
-import type {
-	CSSProperties,
-	PointerEvent as ReactPointerEvent,
-} from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import dayjs from "dayjs";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
@@ -132,11 +129,6 @@ type DependencyLinkDraft = {
 type DragDateGuide = {
 	date: Date;
 } | null;
-
-type GanttHeaderPinState = {
-	isPinned: boolean;
-	translateY: number;
-};
 
 type DependencyLinkSide = "left" | "right";
 
@@ -686,12 +678,9 @@ export const AutonomousProjectGantt = ({
 	const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
 	const ganttBoardRef = useRef<HTMLDivElement | null>(null);
 	const ganttScaleRef = useRef<HTMLDivElement | null>(null);
+	const isGanttHeaderPinnedRef = useRef(false);
 	const paymentMarkerRefs = useRef(new Map<number, HTMLButtonElement>());
 	const eventRefsByStageId = useRef(new Map<number, HTMLButtonElement>());
-	const [ganttHeaderPin, setGanttHeaderPin] = useState<GanttHeaderPinState>({
-		isPinned: false,
-		translateY: 0,
-	});
 	const [paymentLinksLayout, setPaymentLinksLayout] =
 		useState<PaymentLinkLayout>({
 			height: 0,
@@ -730,9 +719,7 @@ export const AutonomousProjectGantt = ({
 		const scaleNode = ganttScaleRef.current;
 
 		if (!boardNode || !scaleNode) {
-			setGanttHeaderPin((current) =>
-				current.isPinned ? { isPinned: false, translateY: 0 } : current,
-			);
+			isGanttHeaderPinnedRef.current = false;
 			return;
 		}
 
@@ -760,25 +747,26 @@ export const AutonomousProjectGantt = ({
 			Math.max(0, clipTop - boardRect.top),
 			maxTranslateY,
 		);
-		const nextState = {
-			isPinned: translateY > 0 && translateY < maxTranslateY,
-			translateY,
-		};
+		const isPinned = translateY > 0 && translateY < maxTranslateY;
 
-		setGanttHeaderPin((current) => {
-			const isSame =
-				current.isPinned === nextState.isPinned &&
-				Math.abs(current.translateY - nextState.translateY) < 1;
+		boardNode.style.setProperty(
+			"--gantt-header-translate-y",
+			`${translateY}px`,
+		);
 
-			return isSame ? current : nextState;
-		});
+		if (isGanttHeaderPinnedRef.current !== isPinned) {
+			boardNode.classList.toggle(styles.ganttBoardHeaderPinned, isPinned);
+			isGanttHeaderPinnedRef.current = isPinned;
+		}
 	}, []);
 
 	useEffect(() => {
 		if (isLoading) {
-			setGanttHeaderPin((current) =>
-				current.isPinned ? { isPinned: false, translateY: 0 } : current,
-			);
+			const boardNode = ganttBoardRef.current;
+
+			boardNode?.classList.remove(styles.ganttBoardHeaderPinned);
+			boardNode?.style.removeProperty("--gantt-header-translate-y");
+			isGanttHeaderPinnedRef.current = false;
 			return;
 		}
 
@@ -2059,13 +2047,6 @@ export const AutonomousProjectGantt = ({
 		return <div className={styles.emptyState}>Проект не выбран</div>;
 	}
 
-	const ganttBoardClassName = `${styles.ganttBoard} ${styles.autonomousGanttBoard} ${
-		ganttHeaderPin.isPinned ? styles.ganttBoardHeaderPinned : ""
-	}`;
-	const ganttBoardStyle = {
-		"--gantt-header-translate-y": `${ganttHeaderPin.translateY}px`,
-	} as CSSProperties;
-
 	return (
 		<>
 			{error ? <div className={styles.emptyState}>{error}</div> : null}
@@ -2075,8 +2056,7 @@ export const AutonomousProjectGantt = ({
 				<div className={styles.ganttBoardScroll}>
 					<div
 						ref={ganttBoardRef}
-						className={ganttBoardClassName}
-						style={ganttBoardStyle}
+						className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
 					>
 						<div className={styles.ganttScaleLabel}>Этапы проекта</div>
 						<div ref={ganttScaleRef} className={styles.ganttScale}>

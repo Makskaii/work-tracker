@@ -4212,7 +4212,7 @@ input[type="date"].dealSummaryDateInput {
 .ganttBoardHeaderPinned .ganttScale {
 	position: relative;
 	background: rgb(15, 28, 44);
-	box-shadow: 0 8px 14px rgba(3, 10, 20, 0.28);
+	box-shadow: 0 5px 10px rgba(3, 10, 20, 0.18);
 	transform: translateY(var(--gantt-header-translate-y, 0));
 	will-change: transform;
 	z-index: 60;
