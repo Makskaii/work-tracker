@@ -678,7 +678,6 @@ export const AutonomousProjectGantt = ({
 	const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
 	const ganttBoardRef = useRef<HTMLDivElement | null>(null);
 	const ganttScaleRef = useRef<HTMLDivElement | null>(null);
-	const isGanttHeaderPinnedRef = useRef(false);
 	const paymentMarkerRefs = useRef(new Map<number, HTMLButtonElement>());
 	const eventRefsByStageId = useRef(new Map<number, HTMLButtonElement>());
 	const [paymentLinksLayout, setPaymentLinksLayout] =
@@ -714,83 +713,42 @@ export const AutonomousProjectGantt = ({
 
 		return weekTicks.filter((_, index) => index % step === 0);
 	}, [weekTicks]);
-	const updateGanttHeaderPin = useCallback(() => {
+	const updateGanttTimelineOffset = useCallback(() => {
 		const boardNode = ganttBoardRef.current;
 		const scaleNode = ganttScaleRef.current;
 
 		if (!boardNode || !scaleNode) {
-			isGanttHeaderPinnedRef.current = false;
 			return;
 		}
 
-		const boardRect = boardNode.getBoundingClientRect();
-		const scaleHeight = scaleNode.getBoundingClientRect().height || 54;
-		let clipTop = 0;
-		let parentNode = boardNode.parentElement;
-
-		while (parentNode) {
-			const style = window.getComputedStyle(parentNode);
-			const hasVerticalScroll =
-				/(auto|scroll|overlay)/.test(style.overflowY) &&
-				parentNode.scrollHeight > parentNode.clientHeight;
-
-			if (hasVerticalScroll) {
-				clipTop = Math.max(0, parentNode.getBoundingClientRect().top);
-				break;
-			}
-
-			parentNode = parentNode.parentElement;
-		}
-
-		const maxTranslateY = Math.max(boardRect.height - scaleHeight, 0);
-		const translateY = Math.min(
-			Math.max(0, clipTop - boardRect.top),
-			maxTranslateY,
-		);
-		const isPinned = translateY > 0 && translateY < maxTranslateY;
-
-		boardNode.style.setProperty(
-			"--gantt-header-translate-y",
-			`${translateY}px`,
-		);
 		boardNode.style.setProperty(
 			"--gantt-timeline-left",
 			`${scaleNode.offsetLeft}px`,
 		);
-
-		if (isGanttHeaderPinnedRef.current !== isPinned) {
-			boardNode.classList.toggle(styles.ganttBoardHeaderPinned, isPinned);
-			isGanttHeaderPinnedRef.current = isPinned;
-		}
 	}, []);
 
 	useEffect(() => {
 		if (isLoading) {
-			const boardNode = ganttBoardRef.current;
-
-			boardNode?.classList.remove(styles.ganttBoardHeaderPinned);
-			boardNode?.style.removeProperty("--gantt-header-translate-y");
-			boardNode?.style.removeProperty("--gantt-timeline-left");
-			isGanttHeaderPinnedRef.current = false;
+			ganttBoardRef.current?.style.removeProperty("--gantt-timeline-left");
 			return;
 		}
 
-		let animationFrameId = window.requestAnimationFrame(updateGanttHeaderPin);
+		let animationFrameId = window.requestAnimationFrame(
+			updateGanttTimelineOffset,
+		);
 
 		const handleUpdate = () => {
 			window.cancelAnimationFrame(animationFrameId);
-			animationFrameId = window.requestAnimationFrame(updateGanttHeaderPin);
+			animationFrameId = window.requestAnimationFrame(updateGanttTimelineOffset);
 		};
 
-		window.addEventListener("scroll", handleUpdate, true);
 		window.addEventListener("resize", handleUpdate);
 
 		return () => {
 			window.cancelAnimationFrame(animationFrameId);
-			window.removeEventListener("scroll", handleUpdate, true);
 			window.removeEventListener("resize", handleUpdate);
 		};
-	}, [isLoading, updateGanttHeaderPin]);
+	}, [isLoading, updateGanttTimelineOffset]);
 
 	const dragDateGuidePercent = dragDateGuide
 		? getDragGuideLeftPercent(dragDateGuide.date, gantt.timeline)
