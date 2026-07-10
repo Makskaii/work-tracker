@@ -29,6 +29,7 @@ export const ProjectReportsTab = ({
 	onDelete,
 	onFileDelete,
 	onFileDownload,
+	onFileUpload,
 	onFilesChange,
 	onNextReportDateChange,
 	onOpenModal,
@@ -58,6 +59,7 @@ export const ProjectReportsTab = ({
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
 	) => void;
+	onFileUpload: (reportEntry: ProjectReportEntry, files: File[]) => Promise<void>;
 	onFilesChange: (files: File[]) => void;
 	onNextReportDateChange: (value: string) => void;
 	onOpenModal: () => void;
@@ -179,6 +181,7 @@ export const ProjectReportsTab = ({
 				}}
 				onFileDelete={onFileDelete}
 				onFileDownload={onFileDownload}
+				onFileUpload={onFileUpload}
 				onUpdate={onUpdate}
 				users={users}
 			/>
@@ -191,6 +194,7 @@ const ProjectReportViewModal = ({
 	onDelete,
 	onFileDelete,
 	onFileDownload,
+	onFileUpload,
 	onUpdate,
 	reportEntry,
 	users,
@@ -205,6 +209,7 @@ const ProjectReportViewModal = ({
 		reportEntry: ProjectReportEntry,
 		file: ProjectReportEntryFile,
 	) => void;
+	onFileUpload: (reportEntry: ProjectReportEntry, files: File[]) => Promise<void>;
 	onUpdate: (
 		reportEntry: ProjectReportEntry,
 		payload: UpdateProjectReportEntryPayload,
@@ -215,6 +220,7 @@ const ProjectReportViewModal = ({
 	const [isEditing, setIsEditing] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
+	const [isFileUploading, setIsFileUploading] = useState(false);
 	const [deleteConfirmationId, setDeleteConfirmationId] = useState<
 		number | null
 	>(null);
@@ -293,6 +299,23 @@ const ProjectReportViewModal = ({
 			setError("Не удалось удалить отчёт");
 		} finally {
 			setIsDeleting(false);
+		}
+	};
+
+	const handleFilesChange = async (files: File[]) => {
+		if (!reportEntry || !files.length) {
+			return;
+		}
+
+		setIsFileUploading(true);
+		setError(null);
+
+		try {
+			await onFileUpload(reportEntry, files);
+		} catch {
+			setError("Не удалось загрузить файлы");
+		} finally {
+			setIsFileUploading(false);
 		}
 	};
 
@@ -391,16 +414,47 @@ const ProjectReportViewModal = ({
 									}
 								/>
 							</label>
+							<div className={styles.projectReportFilePicker}>
+								<span>Файлы</span>
+								<label
+									className={`${projectReportsStyles.projectFileField} ${styles.projectReportCreateFileField}`}
+								>
+									<input
+										type="file"
+										multiple
+										className={projectReportsStyles.projectFileInput}
+										disabled={isSaving || isDeleting || isFileUploading}
+										onChange={(event) => {
+											const selectedFiles = Array.from(
+												event.target.files ?? [],
+											);
+
+											event.target.value = "";
+											void handleFilesChange(selectedFiles);
+										}}
+									/>
+									<strong className={projectReportsStyles.projectFileButton}>
+										{isFileUploading ? "Загрузка..." : "Выбрать файлы"}
+									</strong>
+									<em className={projectReportsStyles.projectFileName}>
+										Можно добавить новые файлы к отчёту
+									</em>
+								</label>
+							</div>
 							{error ? <p className={styles.ganttFormError}>{error}</p> : null}
 							<div className={styles.ganttFormActions}>
 								<button
 									type="button"
-									disabled={isSaving}
+									disabled={isSaving || isFileUploading}
 									onClick={handleEditCancel}
 								>
 									Отмена
 								</button>
-								<button type="button" disabled={isSaving} onClick={handleSubmit}>
+								<button
+									type="button"
+									disabled={isSaving || isFileUploading}
+									onClick={handleSubmit}
+								>
 									{isSaving ? "Сохранение..." : "Сохранить"}
 								</button>
 							</div>

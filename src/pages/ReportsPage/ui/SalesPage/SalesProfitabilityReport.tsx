@@ -1189,6 +1189,30 @@ export const SalesProfitabilityReport = ({
 		);
 	};
 
+	const uploadProjectReportFiles = async (
+		reportEntry: ProjectReportEntry,
+		files: File[],
+	) => {
+		if (!selectedReportProject || !files.length) {
+			return;
+		}
+
+		await Promise.all(
+			files.map((file) =>
+				uploadProjectReportEntryFile(
+					selectedReportProject.id,
+					reportEntry.id,
+					file,
+				),
+			),
+		);
+
+		const reports = await fetchProjectReportEntries(selectedReportProject.id);
+
+		setProjectReportEntries(reports);
+		updateProjectNextReportDate(selectedReportProject.id, reports);
+	};
+
 	const handleReportProjectSubmit = async () => {
 		if (!projectForm.title.trim()) {
 			setProjectFormError("Заполните название проекта");
@@ -1666,6 +1690,7 @@ export const SalesProfitabilityReport = ({
 									onDelete={handleProjectReportDelete}
 									onFileDelete={deleteProjectReportFile}
 									onFileDownload={downloadProjectReportFile}
+									onFileUpload={uploadProjectReportFiles}
 									onFilesChange={setProjectReportFileDrafts}
 									onNextReportDateChange={setProjectReportNextDate}
 									onOpenModal={() => {
