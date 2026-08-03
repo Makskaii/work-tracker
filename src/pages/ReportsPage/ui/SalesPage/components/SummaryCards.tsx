@@ -158,28 +158,6 @@ export const SummaryCards = ({
 					)}
 				</div>
 				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Маржа:</span>
-					{isEditing ? (
-						<SummaryInlineValue
-							className={`${styles.dealSummaryValue} ${styles.dealSummaryMarginInline}`}
-							unit="%"
-						>
-							<SummaryInput
-								form={form}
-								name="summaryMarginPercent"
-								onChange={onChange}
-								type="number"
-							/>
-						</SummaryInlineValue>
-					) : (
-						<strong
-							className={`${styles.dealSummaryValue} ${styles.dealSummaryMarginInline}`}
-						>
-							{summary.marginPercent}%
-						</strong>
-					)}
-				</div>
-				<div className={styles.dealSummaryStat}>
 					<span className={styles.dealSummaryLabel}>План:</span>
 					{isEditing ? (
 						<SummaryInlineValue className={styles.dealSummaryValue} unit="ч">
