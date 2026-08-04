@@ -4121,6 +4121,114 @@ input[type="date"].dealSummaryDateInput {
 	color: rgba(238, 245, 255, 0.72);
 }
 
+.projectHoursSection {
+	margin: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+	background: var(--color-surface);
+	overflow: hidden;
+}
+
+.projectHoursHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 16px 18px;
+	border-bottom: 1px solid var(--color-border);
+
+	h3 {
+		margin: 0;
+		font-size: 16px;
+	}
+
+	p {
+		margin: 4px 0 0;
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 700;
+	}
+}
+
+.projectHoursTable {
+	overflow-x: auto;
+}
+
+.projectHoursTableHead,
+.projectHoursRow {
+	display: grid;
+	grid-template-columns: minmax(160px, 1.2fr) repeat(3, minmax(100px, 0.7fr)) minmax(220px, 1.4fr);
+	align-items: center;
+	gap: 14px;
+	min-width: 820px;
+	padding: 12px 18px;
+}
+
+.projectHoursTableHead {
+	background: var(--color-surface-soft);
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 11px;
+	font-weight: 900;
+	text-transform: uppercase;
+}
+
+.projectHoursRow {
+	min-height: 58px;
+	border-top: 1px solid var(--color-border);
+	font-size: 13px;
+
+	> strong {
+		font-size: 14px;
+	}
+
+	> span {
+		font-weight: 850;
+	}
+}
+
+.projectHoursInput {
+	width: 94px;
+	height: 34px;
+	padding: 0 9px;
+	border: 1px solid rgba(57, 214, 238, 0.42);
+	border-radius: 6px;
+	background: rgba(7, 22, 39, 0.72);
+	color: var(--color-text);
+	font: inherit;
+	font-weight: 850;
+}
+
+.projectHoursInput:focus {
+	border-color: var(--color-accent);
+	outline: 2px solid rgba(57, 214, 238, 0.14);
+}
+
+.projectHoursProgress {
+	display: grid;
+	grid-template-columns: minmax(120px, 1fr) 46px;
+	align-items: center;
+	gap: 10px;
+
+	> div {
+		height: 10px;
+		border-radius: 4px;
+		background: rgba(158, 176, 199, 0.16);
+		overflow: hidden;
+	}
+
+	> div > span {
+		display: block;
+		height: 100%;
+		border-radius: inherit;
+		background: var(--color-success);
+		transition: width 180ms ease;
+	}
+
+	> strong {
+		text-align: right;
+	}
+}
+
 .skeletonWrap {
 	display: flex;
 	flex-direction: column;

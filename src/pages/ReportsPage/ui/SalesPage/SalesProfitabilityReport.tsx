@@ -1655,6 +1655,9 @@ export const SalesProfitabilityReport = ({
 								{activeTab === "projects" && (
 									<ProjectsTab
 										bitrixProjects={selectedBitrixProjectsWithDetails}
+										form={summaryForm}
+										isEditing={isSummaryEditing}
+										onFormChange={setSummaryForm}
 										onPaymentsChanged={refreshAutonomousPayments}
 										projects={reportProjects}
 										selectedProjectId={effectiveSelectedProjectId}

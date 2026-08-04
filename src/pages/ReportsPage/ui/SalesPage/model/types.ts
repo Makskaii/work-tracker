@@ -263,6 +263,13 @@ export type ReportProject = {
 	summaryPurchasedHours: number | null;
 	summaryPlanHours: number | null;
 	summaryFactHours: number | null;
+	tzPurchasedHours: number | null;
+	tzPlanHours: number | null;
+	tzFactHours: number | null;
+	developmentPurchasedHours: number | null;
+	educationPurchasedHours: number | null;
+	educationPlanHours: number | null;
+	educationFactHours: number | null;
 	summaryLossHours: number | null;
 	summaryPlanCompletionDate: string | null;
 	summaryFactCompletionDate: string | null;
@@ -316,6 +323,13 @@ export type ReportProjectPayload = {
 	summaryPurchasedHours?: number | null;
 	summaryPlanHours?: number | null;
 	summaryFactHours?: number | null;
+	tzPurchasedHours?: number | null;
+	tzPlanHours?: number | null;
+	tzFactHours?: number | null;
+	developmentPurchasedHours?: number | null;
+	educationPurchasedHours?: number | null;
+	educationPlanHours?: number | null;
+	educationFactHours?: number | null;
 	summaryLossHours?: number | null;
 	summaryPlanCompletionDate?: string | null;
 	summaryFactCompletionDate?: string | null;

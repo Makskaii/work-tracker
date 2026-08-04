@@ -1,18 +1,8 @@
 import type { ReactNode } from "react";
 import { formatHours, formatMoney } from "../model/profitabilityUtils";
+import type { ProjectSummaryFormState } from "../model/reportProjectForm";
 import type { FinancialProjectSummary } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
-
-type ProjectSummaryFormState = {
-	projectAmount: string;
-	summaryFactCompletionDate: string;
-	summaryFactHours: string;
-	summaryLossHours: string;
-	summaryMarginPercent: string;
-	summaryPlanCompletionDate: string;
-	summaryPlanHours: string;
-	summaryPurchasedHours: string;
-};
 
 type SummaryCardsProps = {
 	form: ProjectSummaryFormState;

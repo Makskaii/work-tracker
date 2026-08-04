@@ -19,6 +19,13 @@ export type ProjectSummaryFormState = Pick<
 	| "summaryPlanCompletionDate"
 	| "summaryPlanHours"
 	| "summaryPurchasedHours"
+	| "tzPurchasedHours"
+	| "tzPlanHours"
+	| "tzFactHours"
+	| "developmentPurchasedHours"
+	| "educationPurchasedHours"
+	| "educationPlanHours"
+	| "educationFactHours"
 >;
 
 export type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File>>;
@@ -36,6 +43,7 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	developmentFactStartDate: "",
 	developmentPlanEndDate: "",
 	developmentPlanStartDate: "",
+	developmentPurchasedHours: "",
 	developmentTeam: "",
 	developmentTeamIds: "",
 	developmentWeeks: "",
@@ -43,6 +51,9 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	educationFactStartDate: "",
 	educationPlanEndDate: "",
 	educationPlanStartDate: "",
+	educationPurchasedHours: "",
+	educationPlanHours: "",
+	educationFactHours: "",
 	educationWeeks: "",
 	nextReportDate: "",
 	projectAmount: "",
@@ -66,6 +77,9 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	summaryPurchasedHours: "",
 	title: "",
 	tzFactEndDate: "",
+	tzPurchasedHours: "",
+	tzPlanHours: "",
+	tzFactHours: "",
 	tzPlanEndDate: "",
 	tzSignDate: "",
 	tzStartDate: "",
@@ -126,6 +140,10 @@ export const getReportProjectForm = (
 		developmentFactStartDate: project.developmentFactStartDate ?? "",
 		developmentPlanEndDate: project.developmentPlanEndDate ?? "",
 		developmentPlanStartDate: project.developmentPlanStartDate ?? "",
+		developmentPurchasedHours:
+			project.developmentPurchasedHours == null
+				? ""
+				: String(project.developmentPurchasedHours),
 		developmentTeam: project.developmentTeam ?? "",
 		developmentTeamIds: project.developmentTeamIds ?? "",
 		developmentWeeks:
@@ -134,6 +152,18 @@ export const getReportProjectForm = (
 		educationFactStartDate: project.educationFactStartDate ?? "",
 		educationPlanEndDate: project.educationPlanEndDate ?? "",
 		educationPlanStartDate: project.educationPlanStartDate ?? "",
+		educationPurchasedHours:
+			project.educationPurchasedHours == null
+				? ""
+				: String(project.educationPurchasedHours),
+		educationPlanHours:
+			project.educationPlanHours == null
+				? ""
+				: String(project.educationPlanHours),
+		educationFactHours:
+			project.educationFactHours == null
+				? ""
+				: String(project.educationFactHours),
 		educationWeeks:
 			project.educationWeeks === null ? "" : String(project.educationWeeks),
 		nextReportDate: project.nextReportDate ?? "",
@@ -168,6 +198,12 @@ export const getReportProjectForm = (
 				: String(project.summaryPurchasedHours),
 		title: project.title,
 		tzFactEndDate: project.tzFactEndDate ?? "",
+		tzPurchasedHours:
+			project.tzPurchasedHours == null ? "" : String(project.tzPurchasedHours),
+		tzPlanHours:
+			project.tzPlanHours == null ? "" : String(project.tzPlanHours),
+		tzFactHours:
+			project.tzFactHours == null ? "" : String(project.tzFactHours),
 		tzPlanEndDate: project.tzPlanEndDate ?? "",
 		tzSignDate: project.tzSignDate ?? "",
 		tzStartDate: project.tzStartDate ?? "",
@@ -190,6 +226,7 @@ export const getReportProjectPayload = (
 	developmentFactStartDate: dateOrNull(form.developmentFactStartDate),
 	developmentPlanEndDate: dateOrNull(form.developmentPlanEndDate),
 	developmentPlanStartDate: dateOrNull(form.developmentPlanStartDate),
+	developmentPurchasedHours: numberOrNull(form.developmentPurchasedHours),
 	developmentTeam: textOrNull(form.developmentTeam),
 	developmentTeamIds: textOrNull(form.developmentTeamIds),
 	developmentWeeks: numberOrNull(form.developmentWeeks),
@@ -197,6 +234,9 @@ export const getReportProjectPayload = (
 	educationFactStartDate: dateOrNull(form.educationFactStartDate),
 	educationPlanEndDate: dateOrNull(form.educationPlanEndDate),
 	educationPlanStartDate: dateOrNull(form.educationPlanStartDate),
+	educationPurchasedHours: numberOrNull(form.educationPurchasedHours),
+	educationPlanHours: numberOrNull(form.educationPlanHours),
+	educationFactHours: numberOrNull(form.educationFactHours),
 	educationWeeks: numberOrNull(form.educationWeeks),
 	nextReportDate: dateOrNull(form.nextReportDate),
 	projectAmount: numberOrNull(form.projectAmount),
@@ -220,6 +260,9 @@ export const getReportProjectPayload = (
 	summaryPurchasedHours: numberOrNull(form.summaryPurchasedHours),
 	title: form.title.trim(),
 	tzFactEndDate: dateOrNull(form.tzFactEndDate),
+	tzPurchasedHours: numberOrNull(form.tzPurchasedHours),
+	tzPlanHours: numberOrNull(form.tzPlanHours),
+	tzFactHours: numberOrNull(form.tzFactHours),
 	tzPlanEndDate: dateOrNull(form.tzPlanEndDate),
 	tzSignDate: dateOrNull(form.tzSignDate),
 	tzStartDate: dateOrNull(form.tzStartDate),
@@ -257,6 +300,36 @@ export const getProjectSummaryForm = (
 		project?.summaryPurchasedHours === undefined
 			? ""
 			: String(project.summaryPurchasedHours),
+	tzPurchasedHours:
+		project?.tzPurchasedHours === null || project?.tzPurchasedHours === undefined
+			? ""
+			: String(project.tzPurchasedHours),
+	tzPlanHours:
+		project?.tzPlanHours === null || project?.tzPlanHours === undefined
+			? ""
+			: String(project.tzPlanHours),
+	tzFactHours:
+		project?.tzFactHours === null || project?.tzFactHours === undefined
+			? ""
+			: String(project.tzFactHours),
+	developmentPurchasedHours:
+		project?.developmentPurchasedHours === null ||
+		project?.developmentPurchasedHours === undefined
+			? ""
+			: String(project.developmentPurchasedHours),
+	educationPurchasedHours:
+		project?.educationPurchasedHours === null ||
+		project?.educationPurchasedHours === undefined
+			? ""
+			: String(project.educationPurchasedHours),
+	educationPlanHours:
+		project?.educationPlanHours === null || project?.educationPlanHours === undefined
+			? ""
+			: String(project.educationPlanHours),
+	educationFactHours:
+		project?.educationFactHours === null || project?.educationFactHours === undefined
+			? ""
+			: String(project.educationFactHours),
 });
 
 export const getProjectSummaryPayload = (
@@ -270,4 +343,11 @@ export const getProjectSummaryPayload = (
 	summaryPlanCompletionDate: dateOrNull(form.summaryPlanCompletionDate),
 	summaryPlanHours: numberOrNull(form.summaryPlanHours),
 	summaryPurchasedHours: numberOrNull(form.summaryPurchasedHours),
+	tzPurchasedHours: numberOrNull(form.tzPurchasedHours),
+	tzPlanHours: numberOrNull(form.tzPlanHours),
+	tzFactHours: numberOrNull(form.tzFactHours),
+	developmentPurchasedHours: numberOrNull(form.developmentPurchasedHours),
+	educationPurchasedHours: numberOrNull(form.educationPurchasedHours),
+	educationPlanHours: numberOrNull(form.educationPlanHours),
+	educationFactHours: numberOrNull(form.educationFactHours),
 });
