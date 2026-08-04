@@ -109,104 +109,11 @@ export const SummaryCards = ({
 			<h3>{projectTitle}</h3>
 			<div className={styles.dealSummaryPrimaryStats}>
 				<div>
-					<span className={styles.dealSummaryLabel}>Сумма проекта</span>
+					<span className={styles.dealSummaryLabel}>Дата завершения</span>
 					{isEditing ? (
-						<SummaryInlineValue className={styles.dealSummaryAmount} unit="₽">
-							<SummaryInput
-								className={styles.dealSummaryPrimaryInput}
-								form={form}
-								name="projectAmount"
-								onChange={onChange}
-								type="number"
-							/>
-						</SummaryInlineValue>
-					) : (
-						<strong className={styles.dealSummaryAmount}>
-							{formatMoney(summary.revenue)}
-						</strong>
-					)}
-				</div>
-			</div>
-		</div>
-		<div className={styles.dealSummarySide}>
-			<div className={styles.dealSummaryStats}>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Куплено:</span>
-					{isEditing ? (
-						<SummaryInlineValue className={styles.dealSummaryValue} unit="ч">
-							<SummaryInput
-								form={form}
-								name="summaryPurchasedHours"
-								onChange={onChange}
-								type="number"
-							/>
-						</SummaryInlineValue>
-					) : (
-						<strong className={styles.dealSummaryValue}>
-							{formatHours(summary.purchasedHours)}
-						</strong>
-					)}
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>План:</span>
-					{isEditing ? (
-						<SummaryInlineValue className={styles.dealSummaryValue} unit="ч">
-							<SummaryInput
-								form={form}
-								name="summaryPlanHours"
-								onChange={onChange}
-								type="number"
-							/>
-						</SummaryInlineValue>
-					) : (
-						<strong className={styles.dealSummaryValue}>
-							{formatHours(summary.planHours)}
-						</strong>
-					)}
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Факт:</span>
-					{isEditing ? (
-						<SummaryInlineValue className={styles.dealSummaryValue} unit="ч">
-							<SummaryInput
-								form={form}
-								name="summaryFactHours"
-								onChange={onChange}
-								type="number"
-							/>
-						</SummaryInlineValue>
-					) : (
-						<strong className={styles.dealSummaryValue}>
-							{formatHours(summary.factHours)}
-						</strong>
-					)}
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Потери:</span>
-					{isEditing ? (
-						<SummaryInlineValue
-							className={`${styles.dealSummaryValue} ${styles.dealSummaryDanger}`}
-							unit="ч"
-						>
-							<SummaryInput
-								form={form}
-								name="summaryLossHours"
-								onChange={onChange}
-								type="number"
-							/>
-						</SummaryInlineValue>
-					) : (
 						<strong
-							className={`${styles.dealSummaryValue} ${styles.dealSummaryDanger}`}
+							className={`${styles.dealSummaryAmount} ${styles.dealSummaryCompletionDate}`}
 						>
-							{formatHours(summary.lossHours)}
-						</strong>
-					)}
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>План. заверш.:</span>
-					{isEditing ? (
-						<strong className={styles.dealSummaryValue}>
 							<SummaryInput
 								className={styles.dealSummaryDateInput}
 								form={form}
@@ -216,28 +123,59 @@ export const SummaryCards = ({
 							/>
 						</strong>
 					) : (
-						<strong className={styles.dealSummaryValue}>
+						<strong
+							className={`${styles.dealSummaryAmount} ${styles.dealSummaryCompletionDate}`}
+						>
 							{formatSummaryDate(form.summaryPlanCompletionDate)}
 						</strong>
 					)}
 				</div>
+			</div>
+		</div>
+		<div className={styles.dealSummarySide}>
+			<div className={styles.dealSummaryStats}>
 				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Факт. заверш.:</span>
+					<span className={styles.dealSummaryLabel}>Куплено:</span>
+					<strong
+						className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
+					>
+						{formatHours(summary.purchasedHours)}
+					</strong>
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Сумма проекта:</span>
 					{isEditing ? (
-						<strong className={styles.dealSummaryValue}>
+						<SummaryInlineValue
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectAmount}`}
+							unit="₽"
+						>
 							<SummaryInput
-								className={styles.dealSummaryDateInput}
+								className={styles.dealSummaryPrimaryInput}
 								form={form}
-								name="summaryFactCompletionDate"
+								name="projectAmount"
 								onChange={onChange}
-								type="date"
+								type="number"
 							/>
-						</strong>
+						</SummaryInlineValue>
 					) : (
-						<strong className={styles.dealSummaryValue}>
-							{formatSummaryDate(form.summaryFactCompletionDate)}
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectAmount}`}
+						>
+							{formatMoney(summary.revenue)}
 						</strong>
 					)}
+				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Факт:</span>
+					<strong
+						className={`${styles.dealSummaryValue} ${
+							summary.factHours > summary.planHours
+								? styles.dealSummaryFactOverPlan
+								: styles.dealSummaryFactWithinPlan
+						}`}
+					>
+						{formatHours(summary.factHours)}
+					</strong>
 				</div>
 			</div>
 			{saveError ? <p className={styles.dealSummaryError}>{saveError}</p> : null}

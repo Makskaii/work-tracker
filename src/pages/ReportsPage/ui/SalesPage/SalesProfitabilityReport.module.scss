@@ -3936,11 +3936,11 @@
 }
 
 .dealSummaryPrimaryStats>div:first-child input {
-	color: var(--color-accent-blue);
+	color: var(--color-warning);
 }
 
 .dealSummaryPrimaryInput {
-	width: 5.8ch !important;
+	width: 10ch !important;
 }
 
 .dealSummaryMarginInline {
@@ -3952,20 +3952,20 @@
 }
 
 input[type="date"].dealSummaryDateInput {
-	width: 10ch;
+	width: 14ch;
 	color-scheme: dark;
 }
 
 .dealSummarySide {
 	min-width: 0;
-	max-width: 560px;
+	max-width: 720px;
 	justify-self: end;
 	width: 100%;
 }
 
 .dealSummaryStats {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(150px, 1fr));
+	grid-template-columns: minmax(0, 1fr);
 	gap: 12px 28px;
 	min-width: 0;
 }
@@ -3993,6 +3993,26 @@ input[type="date"].dealSummaryDateInput {
 	font-weight: 950;
 	line-height: 1.2;
 	white-space: nowrap;
+}
+
+.dealSummaryCompletionDate {
+	color: var(--color-warning);
+}
+
+.dealSummaryPurchased {
+	color: #9b6cff;
+}
+
+.dealSummaryProjectAmount {
+	color: var(--color-accent-blue);
+}
+
+.dealSummaryFactWithinPlan {
+	color: var(--color-success);
+}
+
+.dealSummaryFactOverPlan {
+	color: var(--color-danger);
 }
 
 .dealSummaryDanger {
