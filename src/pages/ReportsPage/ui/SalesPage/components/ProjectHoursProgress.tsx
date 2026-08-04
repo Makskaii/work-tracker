@@ -1,8 +1,5 @@
 import type { ProjectSummaryFormState } from "../model/reportProjectForm";
-import {
-	getHoursProgress,
-	getProjectAutomaticHours,
-} from "../model/projectHours";
+import { getProjectAutomaticHours } from "../model/projectHours";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
@@ -80,6 +77,11 @@ export const ProjectHoursProgress = ({
 		toHours(form.summaryPlanHours) + automaticHours.developmentPlanHours;
 	const summaryFactHours =
 		toHours(form.summaryFactHours) + automaticHours.developmentFactHours;
+	const progress = automaticHours.taskProgress;
+	const progressLabel = `${progress.toLocaleString("ru-RU", {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1,
+	})}%`;
 	const rows: ProjectHoursRow[] = [
 		{
 			id: "summary",
@@ -136,9 +138,6 @@ export const ProjectHoursProgress = ({
 					<span>Прогресс</span>
 				</div>
 				{rows.map((row) => {
-					const progress = getHoursProgress(row.plan, row.fact);
-					const progressLabel = `${Math.round(progress)}%`;
-
 					return (
 						<div key={row.id} className={styles.projectHoursRow}>
 							<strong>{row.label}</strong>
@@ -177,7 +176,7 @@ export const ProjectHoursProgress = ({
 							</span>
 							<div className={styles.projectHoursProgress}>
 								<div>
-									<span style={{ width: `${Math.min(progress, 100)}%` }} />
+									<span style={{ width: `${progress}%` }} />
 								</div>
 								<strong>{progressLabel}</strong>
 							</div>

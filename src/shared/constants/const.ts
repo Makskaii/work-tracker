@@ -33,6 +33,12 @@ export const EntityTypeIds = {
 	companies: 4,
 };
 
+export const TaskStageIds = {
+	done: "DT1072_18:UC_6JNSDG",
+	testing: "DT1072_18:UC_5GG9S1",
+	cancelled: "DT1072_18:UC_JP9WR1",
+} as const;
+
 export const TASK_SELECT_FIELDS = [
 	"id",
 	"title",
@@ -68,7 +74,7 @@ export const statsFields: {
 	{
 		title: "Выполнено задач",
 		key: "completed",
-		filterFn: (task: TaskProps) => task.stageId === "DT1072_18:UC_6JNSDG",
+		filterFn: (task: TaskProps) => task.stageId === TaskStageIds.done,
 	},
 	{
 		title: "Просрочено задач",
