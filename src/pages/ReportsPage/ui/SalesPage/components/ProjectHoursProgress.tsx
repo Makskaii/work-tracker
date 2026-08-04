@@ -5,29 +5,16 @@ import styles from "../SalesProfitabilityReport.module.scss";
 
 type ProjectHoursProgressProps = {
 	form: ProjectSummaryFormState;
-	isEditing: boolean;
-	onChange: (value: ProjectSummaryFormState) => void;
 	projects: ProfitabilityProject[];
 };
-
-type EditableHoursField =
-	| "tzPurchasedHours"
-	| "tzPlanHours"
-	| "tzFactHours"
-	| "developmentPurchasedHours"
-	| "educationPurchasedHours"
-	| "educationPlanHours"
-	| "educationFactHours";
 
 type ProjectHoursRow = {
 	id: string;
 	label: string;
 	purchased: number;
-	purchasedField?: EditableHoursField;
 	plan: number;
-	planField?: EditableHoursField;
 	fact: number;
-	factField?: EditableHoursField;
+	progress: number;
 };
 
 const toHours = (value: string | number | null | undefined) => {
@@ -39,37 +26,8 @@ const toHours = (value: string | number | null | undefined) => {
 const formatHours = (value: number) =>
 	`${value.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ч`;
 
-const HoursInput = ({
-	field,
-	form,
-	onChange,
-}: {
-	field: EditableHoursField;
-	form: ProjectSummaryFormState;
-	onChange: (value: ProjectSummaryFormState) => void;
-}) => (
-	<input
-		className={styles.projectHoursInput}
-		min="0"
-		step="0.1"
-		type="number"
-		value={form[field]}
-		onChange={(event) => {
-			const nextValue = event.target.value;
-
-			if (nextValue && Number(nextValue) < 0) {
-				return;
-			}
-
-			onChange({ ...form, [field]: nextValue });
-		}}
-	/>
-);
-
 export const ProjectHoursProgress = ({
 	form,
-	isEditing,
-	onChange,
 	projects,
 }: ProjectHoursProgressProps) => {
 	const automaticHours = getProjectAutomaticHours(projects);
@@ -77,46 +35,38 @@ export const ProjectHoursProgress = ({
 		toHours(form.summaryPlanHours) + automaticHours.developmentPlanHours;
 	const summaryFactHours =
 		toHours(form.summaryFactHours) + automaticHours.developmentFactHours;
-	const progress = automaticHours.taskProgress;
-	const progressLabel = `${progress.toLocaleString("ru-RU", {
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1,
-	})}%`;
 	const rows: ProjectHoursRow[] = [
 		{
 			id: "summary",
 			label: "Общее",
-			purchased: toHours(form.summaryPurchasedHours),
+			purchased: automaticHours.developmentPurchasedHours,
 			plan: summaryPlanHours,
 			fact: summaryFactHours,
+			progress: automaticHours.overallTaskProgress,
 		},
 		{
 			id: "tz",
 			label: "ТЗ",
 			purchased: toHours(form.tzPurchasedHours),
-			purchasedField: "tzPurchasedHours",
 			plan: toHours(form.tzPlanHours),
-			planField: "tzPlanHours",
 			fact: toHours(form.tzFactHours),
-			factField: "tzFactHours",
+			progress: automaticHours.overallTaskProgress,
 		},
 		{
 			id: "development",
 			label: "Разработка",
-			purchased: toHours(form.developmentPurchasedHours),
-			purchasedField: "developmentPurchasedHours",
+			purchased: automaticHours.developmentPurchasedHours,
 			plan: automaticHours.developmentPlanHours,
 			fact: automaticHours.developmentFactHours,
+			progress: automaticHours.developmentTaskProgress,
 		},
 		{
 			id: "education",
 			label: "Обучение / Сдача",
 			purchased: toHours(form.educationPurchasedHours),
-			purchasedField: "educationPurchasedHours",
 			plan: toHours(form.educationPlanHours),
-			planField: "educationPlanHours",
 			fact: toHours(form.educationFactHours),
-			factField: "educationFactHours",
+			progress: automaticHours.overallTaskProgress,
 		},
 	];
 
@@ -138,45 +88,24 @@ export const ProjectHoursProgress = ({
 					<span>Прогресс</span>
 				</div>
 				{rows.map((row) => {
+					const progressLabel = `${row.progress.toLocaleString("ru-RU", {
+						minimumFractionDigits: 1,
+						maximumFractionDigits: 1,
+					})}%`;
+
 					return (
 						<div key={row.id} className={styles.projectHoursRow}>
 							<strong>{row.label}</strong>
+							<span>{formatHours(row.purchased)}</span>
 							<span>
-								{isEditing && row.purchasedField ? (
-									<HoursInput
-										field={row.purchasedField}
-										form={form}
-										onChange={onChange}
-									/>
-								) : (
-									formatHours(row.purchased)
-								)}
+								{formatHours(row.plan)}
 							</span>
 							<span>
-								{isEditing && row.planField ? (
-									<HoursInput
-										field={row.planField}
-										form={form}
-										onChange={onChange}
-									/>
-								) : (
-									formatHours(row.plan)
-								)}
-							</span>
-							<span>
-								{isEditing && row.factField ? (
-									<HoursInput
-										field={row.factField}
-										form={form}
-										onChange={onChange}
-									/>
-								) : (
-									formatHours(row.fact)
-								)}
+								{formatHours(row.fact)}
 							</span>
 							<div className={styles.projectHoursProgress}>
 								<div>
-									<span style={{ width: `${progress}%` }} />
+									<span style={{ width: `${row.progress}%` }} />
 								</div>
 								<strong>{progressLabel}</strong>
 							</div>

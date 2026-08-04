@@ -11,15 +11,20 @@ import type { ProfitabilityProject } from "./types";
 export type ProjectAutomaticHours = {
 	developmentFactHours: number;
 	developmentPlanHours: number;
-	taskProgress: number;
+	developmentPurchasedHours: number;
+	developmentTaskProgress: number;
+	overallTaskProgress: number;
 };
 
 const getTaskStageId = (task: TaskProps) =>
-	String(task[TaskCodes.stage] ?? task.stageId ?? "")
+	String(task.stageId ?? task[TaskCodes.stage] ?? "")
 		.trim()
 		.toUpperCase();
 
-const getTaskProgress = (projects: ProfitabilityProject[]) => {
+const getTaskProgress = (
+	projects: ProfitabilityProject[],
+	completedStageId: string,
+) => {
 	const tasks = projects.flatMap((project) => project.tasks);
 	const weightedTasks = tasks.filter((task) => {
 		const stageId = getTaskStageId(task);
@@ -38,33 +43,51 @@ const getTaskProgress = (projects: ProfitabilityProject[]) => {
 
 	const completedEstimateHours = weightedTasks.reduce(
 		(total, task) =>
-			getTaskStageId(task) === TaskStageIds.done
+			getTaskStageId(task) === completedStageId
 				? total + toNumber(task[TaskCodes.estimateTime])
 				: total,
 		0,
 	);
 
-	return Math.min(100, Math.max(0, (completedEstimateHours / totalEstimateHours) * 100));
+	return Math.min(
+		100,
+		Math.max(0, (completedEstimateHours / totalEstimateHours) * 100),
+	);
 };
 
 export const getProjectAutomaticHours = (
 	projects: ProfitabilityProject[],
 ): ProjectAutomaticHours => {
-	const hours = projects.reduce<Omit<ProjectAutomaticHours, "taskProgress">>(
+	const hours = projects.reduce<
+		Pick<
+			ProjectAutomaticHours,
+			| "developmentFactHours"
+			| "developmentPlanHours"
+			| "developmentPurchasedHours"
+		>
+	>(
 		(total, project) => ({
 			developmentFactHours:
 				total.developmentFactHours + getProjectFactHours(project.reports),
 			developmentPlanHours:
 				total.developmentPlanHours + getProjectPlanHours(project.tasks),
+			developmentPurchasedHours:
+				total.developmentPurchasedHours +
+				project.tasks.reduce(
+					(hoursTotal, task) => hoursTotal + toNumber(task[TaskCodes.hours]),
+					0,
+				),
 		}),
 		{
 			developmentFactHours: 0,
 			developmentPlanHours: 0,
+			developmentPurchasedHours: 0,
 		},
 	);
 
 	return {
 		...hours,
-		taskProgress: getTaskProgress(projects),
+		developmentTaskProgress: getTaskProgress(projects, TaskStageIds.testing),
+		overallTaskProgress: getTaskProgress(projects, TaskStageIds.done),
 	};
 };

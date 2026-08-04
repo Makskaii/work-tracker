@@ -4186,23 +4186,6 @@ input[type="date"].dealSummaryDateInput {
 	}
 }
 
-.projectHoursInput {
-	width: 94px;
-	height: 34px;
-	padding: 0 9px;
-	border: 1px solid rgba(57, 214, 238, 0.42);
-	border-radius: 6px;
-	background: rgba(7, 22, 39, 0.72);
-	color: var(--color-text);
-	font: inherit;
-	font-weight: 850;
-}
-
-.projectHoursInput:focus {
-	border-color: var(--color-accent);
-	outline: 2px solid rgba(57, 214, 238, 0.14);
-}
-
 .projectHoursProgress {
 	display: grid;
 	grid-template-columns: minmax(120px, 1fr) 46px;

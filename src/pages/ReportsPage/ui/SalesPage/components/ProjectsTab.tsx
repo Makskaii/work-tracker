@@ -11,8 +11,6 @@ import { ProjectHoursProgress } from "./ProjectHoursProgress";
 type ProjectsTabProps = {
 	bitrixProjects: ProfitabilityProject[];
 	form: ProjectSummaryFormState;
-	isEditing: boolean;
-	onFormChange: (value: ProjectSummaryFormState) => void;
 	onPaymentsChanged?: () => void;
 	projects: ReportProject[];
 	selectedProjectId: string | null;
@@ -165,8 +163,6 @@ const SupportPurchasedHoursChart = ({
 export const ProjectsTab = ({
 	bitrixProjects,
 	form,
-	isEditing,
-	onFormChange,
 	onPaymentsChanged,
 	projects,
 	selectedProjectId,
@@ -193,8 +189,6 @@ export const ProjectsTab = ({
 					{isWaterfallProject && (
 						<ProjectHoursProgress
 							form={form}
-							isEditing={isEditing}
-							onChange={onFormChange}
 							projects={bitrixProjects}
 						/>
 					)}
