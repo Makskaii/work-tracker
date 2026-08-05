@@ -31,6 +31,7 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 	const location = useLocation();
 	const navItems = useMemo(
 		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
@@ -38,12 +39,24 @@ export const AppHeader = () => {
 	);
 
 	const activeTopKey = useMemo(() => {
+		if (location.pathname.startsWith("/reports/calendar")) {
+			return "departments-reports";
+		}
+
 		const activeItem = navItems.find((item) =>
 			isSectionActive(location.pathname, item),
 		);
 
 		return activeItem?.key ?? null;
 	}, [location.pathname, navItems]);
+
+	const activeSectionTitle = useMemo(() => {
+		return (
+			NAVIGATION_GROUPS.find((group) =>
+				group.items.some((item) => item.key === activeTopKey),
+			)?.title ?? null
+		);
+	}, [activeTopKey]);
 
 	useEffect(() => {
 		const activeDropdown = navItems.find(
@@ -55,6 +68,21 @@ export const AppHeader = () => {
 			setOpenedKey(activeDropdown.key);
 		}
 	}, [location.pathname, navItems]);
+
+	useEffect(() => {
+		if (!activeSectionTitle) {
+			return;
+		}
+
+		setCollapsedSections((prev) =>
+			prev[activeSectionTitle]
+				? {
+					...prev,
+					[activeSectionTitle]: false,
+				}
+				: prev,
+		);
+	}, [activeSectionTitle]);
 
 	useEffect(() => {
 		document.documentElement.style.setProperty(
@@ -92,9 +120,30 @@ export const AppHeader = () => {
 			<nav className={styles.nav}>
 				{NAVIGATION_GROUPS.map((group) => (
 					<div key={group.title} className={styles.reportsSection}>
-						<div className={styles.navSectionTitle}>{group.title}</div>
-						{group.items.map((item) => {
-							const isActive = activeTopKey === item.key;
+					<button
+						type="button"
+						className={styles.navSectionButton}
+						aria-label={collapsedSections[group.title] ? "Expand section" : "Collapse section"}
+						aria-expanded={!collapsedSections[group.title]}
+						onClick={() => {
+							if (activeSectionTitle === group.title) {
+								return;
+							}
+
+							setCollapsedSections((prev) => ({
+								...prev,
+								[group.title]: !prev[group.title],
+							}));
+						}}
+					>
+						<span>{group.title}</span>
+						<span className={styles.sectionToggleIcon}>
+							{collapsedSections[group.title] ? "⌄" : "⌃"}
+						</span>
+					</button>
+						{!collapsedSections[group.title] &&
+							group.items.map((item) => {
+								const isActive = activeTopKey === item.key;
 							const icon = getNavIcon(item);
 
 							if (item.type === "link") {

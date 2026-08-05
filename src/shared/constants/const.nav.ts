@@ -44,11 +44,11 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 		title: "Разделы отчётов",
 		items: [
 			{
-				key: "calendar",
+				key: "departments-reports",
 				label: "Календарь",
 				to: "/reports/calendar",
 				type: "link",
-				icon: "K",
+				icon: "■",
 			},
 			{
 				key: "profitability-report",
@@ -101,13 +101,6 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 	{
 		title: "Доп. списки",
 		items: [
-			{
-				key: "departments-reports",
-				label: "Отчеты отделов",
-				to: "/reports/calendar",
-				type: "link",
-				icon: "■",
-			},
 			{
 				key: "project-management",
 				label: "Проектный менеджмент",

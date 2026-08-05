@@ -135,14 +135,6 @@ export const SummaryCards = ({
 		<div className={styles.dealSummarySide}>
 			<div className={styles.dealSummaryStats}>
 				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Куплено:</span>
-					<strong
-						className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
-					>
-						{formatHours(summary.purchasedHours)}
-					</strong>
-				</div>
-				<div className={styles.dealSummaryStat}>
 					<span className={styles.dealSummaryLabel}>Сумма проекта:</span>
 					{isEditing ? (
 						<SummaryInlineValue
@@ -166,15 +158,11 @@ export const SummaryCards = ({
 					)}
 				</div>
 				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Факт:</span>
+					<span className={styles.dealSummaryLabel}>Куплено:</span>
 					<strong
-						className={`${styles.dealSummaryValue} ${
-							summary.factHours > summary.planHours
-								? styles.dealSummaryFactOverPlan
-								: styles.dealSummaryFactWithinPlan
-						}`}
+						className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
 					>
-						{formatHours(summary.factHours)}
+						{formatHours(summary.purchasedHours)}
 					</strong>
 				</div>
 			</div>
