@@ -38,27 +38,30 @@ export const ReportProjectSection = ({
 );
 
 export const ReportProjectFileInput = ({
-	file,
+	files,
 	fileKind,
 	label,
 	onDelete,
 	onDownload,
 	onFileChange,
 	project,
-	selectedFile,
+	selectedFiles,
 	variant = "modal",
 }: {
-	file?: ReportProjectFile;
+	files?: ReportProjectFile[];
 	fileKind: ReportProjectFileKind;
 	label: string;
 	onDelete: (project: ReportProject, file: ReportProjectFile) => void;
 	onDownload: (project: ReportProject, file: ReportProjectFile) => void;
-	onFileChange: (fileKind: ReportProjectFileKind, file?: File) => void;
+	onFileChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	project: ReportProject | null;
-	selectedFile?: File;
+	selectedFiles?: File[];
 	variant?: "modal" | "details";
 }) => {
+	const MAX_FILES = 5;
 	const inputId = `report-project-file-${fileKind}`;
+	const existingFiles = files ?? [];
+	const selectedFilesCount = selectedFiles?.length ?? 0;
 
 	const rootClassName =
 		variant === "details"
@@ -103,9 +106,16 @@ export const ReportProjectFileInput = ({
 				<input
 					id={inputId}
 					type="file"
+					multiple
 					className={styles.reportProjectFileInput}
 					onChange={(event) => {
-						onFileChange(fileKind, event.target.files?.[0] ?? undefined);
+						const newFiles = Array.from(event.target.files ?? []);
+						const nextFiles = [
+							...(selectedFiles ?? []),
+							...newFiles,
+						].slice(0, MAX_FILES);
+
+						onFileChange(fileKind, nextFiles);
 						event.currentTarget.value = "";
 					}}
 				/>
@@ -115,40 +125,72 @@ export const ReportProjectFileInput = ({
 				</label>
 
 				<span className={fileNameClassName}>
-					{selectedFile?.name ?? "Файл не выбран"}
+					{selectedFilesCount
+						? `${selectedFilesCount} файл${
+							selectedFilesCount === 1 ? "" : "ов"
+						}`
+						: existingFiles.length
+						? existingFiles
+							.map((file) => file.originalName)
+							.join(", ")
+						: "Файл не выбран"}
 				</span>
 			</div>
 
-			{selectedFile ? (
-				<small className={styles.reportProjectFileHint}>
-					Будет загружен после сохранения
-				</small>
-			) : file ? (
+			{selectedFilesCount ? (
 				<div className={fileMetaClassName}>
-					<strong>{file.originalName}</strong>
-
-					<div className={fileActionsClassName}>
-						<button
-							type="button"
-							onClick={() => project && onDownload(project, file)}
-						>
-							Скачать
-						</button>
-
-						<button
-							type="button"
-							className={deleteButtonClassName}
-							onClick={() => project && onDelete(project, file)}
-						>
-							Удалить
-						</button>
-					</div>
+					{selectedFiles?.map((file, index) => (
+						<div key={`${file.name}-${index}`}>
+							<strong>{file.name}</strong>
+							<div className={fileActionsClassName}>
+								<button
+									type="button"
+									onClick={() => {
+									const nextFiles = selectedFiles.filter(
+										(_, fileIndex) => fileIndex !== index,
+									);
+									onFileChange(fileKind, nextFiles);
+								}}
+								>
+									Удалить
+								</button>
+							</div>
+						</div>
+					))}
+					<small className={styles.reportProjectFileHint}>
+						Будет загружено после сохранения, максимум {MAX_FILES} файла
+					</small>
 				</div>
-			) : (
+			) : null}
+
+			{existingFiles.length ? (
+				<div className={fileMetaClassName}>
+					{existingFiles.map((file) => (
+						<div key={file.id}>
+							<strong>{file.originalName}</strong>
+							<div className={fileActionsClassName}>
+								<button
+									type="button"
+									onClick={() => project && onDownload(project, file)}
+								>
+									Скачать
+								</button>
+								<button
+									type="button"
+									className={deleteButtonClassName}
+									onClick={() => project && onDelete(project, file)}
+								>
+									Удалить
+								</button>
+							</div>
+						</div>
+					))}
+				</div>
+			) : selectedFilesCount === 0 ? (
 				<small className={styles.reportProjectFileHint}>
 					Файл не загружен
 				</small>
-			)}
+			) : null}
 		</div>
 	);
 };

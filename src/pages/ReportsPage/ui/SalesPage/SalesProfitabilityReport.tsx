@@ -828,7 +828,9 @@ export const SalesProfitabilityReport = ({
 		JSON.stringify(detailsProjectForm) !==
 		JSON.stringify(initialDetailsProjectForm);
 
-	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some(Boolean);
+	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some(
+		(value) => Array.isArray(value) ? value.length > 0 : Boolean(value),
+	);
 
 	const shouldShowDetailsSave =
 		Boolean(selectedReportProject) &&
@@ -946,10 +948,11 @@ export const SalesProfitabilityReport = ({
 
 	const uploadSelectedReportProjectFiles = async (projectId: number) => {
 		const entries = Object.entries(projectFileDrafts) as Array<
-			[ReportProjectFileKind, File | undefined]
+			[ReportProjectFileKind, File[] | undefined]
 		>;
 		const selectedEntries = entries.filter(
-			(entry): entry is [ReportProjectFileKind, File] => Boolean(entry[1]),
+			(entry): entry is [ReportProjectFileKind, File[]] =>
+				Boolean(entry[1] && entry[1].length),
 		);
 
 		if (!selectedEntries.length) {
@@ -957,8 +960,8 @@ export const SalesProfitabilityReport = ({
 		}
 
 		return Promise.all(
-			selectedEntries.map(([fileKind, file]) =>
-				uploadReportProjectFile(projectId, fileKind, file),
+			selectedEntries.flatMap(([fileKind, files]) =>
+				files.map((file) => uploadReportProjectFile(projectId, fileKind, file)),
 			),
 		);
 	};
@@ -1344,17 +1347,20 @@ export const SalesProfitabilityReport = ({
 			);
 
 			const entries = Object.entries(detailsFileDrafts) as Array<
-				[ReportProjectFileKind, File | undefined]
+				[ReportProjectFileKind, File[] | undefined]
 			>;
 
 			const selectedEntries = entries.filter(
-				(entry): entry is [ReportProjectFileKind, File] => Boolean(entry[1]),
+				(entry): entry is [ReportProjectFileKind, File[]] =>
+					Boolean(entry[1] && entry[1].length),
 			);
 
 			if (selectedEntries.length) {
 				const uploadedFiles = await Promise.all(
-					selectedEntries.map(([fileKind, file]) =>
-						uploadReportProjectFile(selectedReportProject.id, fileKind, file),
+					selectedEntries.flatMap(([fileKind, files]) =>
+						files.map((file) =>
+							uploadReportProjectFile(selectedReportProject.id, fileKind, file),
+						),
 					),
 				);
 

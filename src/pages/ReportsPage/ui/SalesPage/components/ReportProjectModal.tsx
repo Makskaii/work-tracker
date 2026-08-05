@@ -49,7 +49,7 @@ export const ReportProjectModal = ({
 	onDelete: () => void;
 	onFileDelete: (project: ReportProject, file: ReportProjectFile) => void;
 	onFileDownload: (project: ReportProject, file: ReportProjectFile) => void;
-	onFileDraftChange: (fileKind: ReportProjectFileKind, file?: File) => void;
+	onFileDraftChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	onFormChange: (value: ReportProjectFormState) => void;
 	onSubmit: () => void;
 	project: ReportProject | null;
@@ -114,26 +114,26 @@ export const ReportProjectModal = ({
 					options={companyOptions}
 				/>
 				<ReportProjectFileInput
-					file={project?.files.find(
+					files={project?.files.filter(
 						(projectFile) => projectFile.fileKind === "estimate",
 					)}
 					fileKind="estimate"
 					label={reportProjectFileLabels.estimate}
 					project={project}
-					selectedFile={fileDrafts.estimate}
+					selectedFiles={fileDrafts.estimate}
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
 				/>
 				<ReportProjectFileInput
-					file={project?.files.find(
+					files={project?.files.filter(
 						(projectFile) =>
 							projectFile.fileKind === "technical_specification",
 					)}
 					fileKind="technical_specification"
 					label={reportProjectFileLabels.technical_specification}
 					project={project}
-					selectedFile={fileDrafts.technical_specification}
+					selectedFiles={fileDrafts.technical_specification}
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
