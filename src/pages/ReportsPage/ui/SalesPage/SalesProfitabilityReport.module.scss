@@ -4182,10 +4182,11 @@ input[type="date"].dealSummaryDateInput {
 .projectHoursHeader {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: flex-start;
 	gap: 16px;
 	padding: 16px 18px;
 	border-bottom: 1px solid var(--color-border);
+	text-align: left;
 
 	h3 {
 		margin: 0;
@@ -4243,8 +4244,8 @@ input[type="date"].dealSummaryDateInput {
 	gap: 10px;
 
 	> div {
-		height: 10px;
-		border-radius: 4px;
+		height: 16px;
+		border-radius: 5px;
 		background: rgba(158, 176, 199, 0.16);
 		overflow: hidden;
 	}

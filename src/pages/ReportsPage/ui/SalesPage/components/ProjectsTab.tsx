@@ -178,18 +178,18 @@ export const ProjectsTab = ({
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
 			{selectedProject ? (
 				<>
+					{isWaterfallProject && (
+						<ProjectHoursProgress
+							form={form}
+							projects={bitrixProjects}
+						/>
+					)}
 					{isSupportProject ? (
 						<SupportPurchasedHoursChart project={selectedProject} />
 					) : (
 						<AutonomousProjectGantt
 							onPaymentsChanged={onPaymentsChanged}
 							project={selectedProject}
-						/>
-					)}
-					{isWaterfallProject && (
-						<ProjectHoursProgress
-							form={form}
-							projects={bitrixProjects}
 						/>
 					)}
 					<DealWorkDensityChart
