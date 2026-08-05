@@ -209,7 +209,7 @@ const EVENT_DATE_FIELDS: EventDateField[] = [
 const GANTT_DEFAULT_PIXELS_PER_DAY = 10;
 const GANTT_MIN_PIXELS_PER_DAY = 2;
 const GANTT_MAX_PIXELS_PER_DAY = 50;
-const GANTT_ZOOM_STEP = 0.5;
+const GANTT_ZOOM_STEP = 1;
 const GANTT_STAGE_COLUMN_WIDTH = 190;
 
 type TimelineZoomAnchor = {
@@ -762,6 +762,9 @@ export const AutonomousProjectGantt = ({
 	const pixelsPerDayRef = useRef(GANTT_DEFAULT_PIXELS_PER_DAY);
 	const targetPixelsPerDayRef = useRef(GANTT_DEFAULT_PIXELS_PER_DAY);
 	const zoomAnimationFrameRef = useRef<number | null>(null);
+	const isTimelineZoomingRef = useRef(false);
+	const [paymentLinksTimelineRevision, setPaymentLinksTimelineRevision] =
+		useState(0);
 	const timelineZoomPointerAnchorRef =
 		useRef<TimelineZoomPointerAnchor | null>(null);
 	const [ganttViewportWidth, setGanttViewportWidth] = useState(0);
@@ -828,11 +831,13 @@ export const AutonomousProjectGantt = ({
 		if (Math.abs(difference) < 0.01) {
 			pixelsPerDayRef.current = targetPixelsPerDay;
 			setPixelsPerDay(targetPixelsPerDay);
+			isTimelineZoomingRef.current = false;
+			setPaymentLinksTimelineRevision((revision) => revision + 1);
 			zoomAnimationFrameRef.current = null;
 			return;
 		}
 
-		const nextPixelsPerDay = currentPixelsPerDay + difference * 0.24;
+		const nextPixelsPerDay = currentPixelsPerDay + difference * 0.32;
 		pixelsPerDayRef.current = nextPixelsPerDay;
 		setPixelsPerDay(nextPixelsPerDay);
 		zoomAnimationFrameRef.current = window.requestAnimationFrame(
@@ -842,8 +847,9 @@ export const AutonomousProjectGantt = ({
 	const handleGanttWheel = useCallback(
 		(event: WheelEvent) => {
 			const board = ganttBoardRef.current;
+			const scale = ganttScaleRef.current;
 
-			if (!board) {
+			if (!board || !scale) {
 				return;
 			}
 
@@ -852,12 +858,11 @@ export const AutonomousProjectGantt = ({
 			if (event.ctrlKey) {
 				event.preventDefault();
 				const direction = event.deltaY < 0 ? 1 : -1;
-				const boardRect = board.getBoundingClientRect();
-				const timelineLeft = ganttScaleRef.current?.offsetLeft ?? 0;
+				const scaleRect = scale.getBoundingClientRect();
 				const cursorTimelineRatio = Math.min(
 					Math.max(
-						(event.clientX - boardRect.left - timelineLeft) /
-							timelineWidth,
+						(event.clientX - scaleRect.left) /
+							Math.max(scaleRect.width, 1),
 						0,
 					),
 					1,
@@ -887,6 +892,7 @@ export const AutonomousProjectGantt = ({
 					date: anchorDate,
 					viewportX: event.clientX,
 				};
+				isTimelineZoomingRef.current = true;
 				setTimelineZoomAnchor(zoomAnchor);
 				targetPixelsPerDayRef.current = nextPixelsPerDay;
 
@@ -913,8 +919,9 @@ export const AutonomousProjectGantt = ({
 	useLayoutEffect(() => {
 		const pointerAnchor = timelineZoomPointerAnchorRef.current;
 		const viewport = ganttViewportRef.current;
+		const scale = ganttScaleRef.current;
 
-		if (!pointerAnchor || !viewport) {
+		if (!pointerAnchor || !viewport || !scale) {
 			return;
 		}
 
@@ -923,11 +930,11 @@ export const AutonomousProjectGantt = ({
 			pointerAnchor.date,
 		);
 		const anchorTimelineX =
-			(anchorOffsetDays / Math.max(gantt.timeline.totalDays, 1)) * timelineWidth;
+			(anchorOffsetDays / Math.max(gantt.timeline.totalDays, 1)) *
+			scale.clientWidth;
 		const viewportX = pointerAnchor.viewportX - viewport.getBoundingClientRect().left;
 
-		viewport.scrollLeft =
-			GANTT_STAGE_COLUMN_WIDTH + anchorTimelineX - viewportX;
+		viewport.scrollLeft = scale.offsetLeft + anchorTimelineX - viewportX;
 	}, [gantt.timeline.start, gantt.timeline.totalDays, timelineWidth]);
 
 	useLayoutEffect(() => {
@@ -1126,6 +1133,10 @@ export const AutonomousProjectGantt = ({
 
 		let animationFrameId: number | null = null;
 		const updatePaymentLinks = () => {
+			if (isTimelineZoomingRef.current) {
+				return;
+			}
+
 			const boardRect = board.getBoundingClientRect();
 			const paymentsRow = gantt.rows.find((row) => row.stage.code === "payments");
 
@@ -1221,6 +1232,10 @@ export const AutonomousProjectGantt = ({
 			});
 		};
 		const schedulePaymentLinksUpdate = () => {
+			if (isTimelineZoomingRef.current) {
+				return;
+			}
+
 			if (animationFrameId !== null) {
 				cancelAnimationFrame(animationFrameId);
 			}
@@ -1252,6 +1267,7 @@ export const AutonomousProjectGantt = ({
 		gantt.rows,
 		gantt.timeline.start,
 		gantt.timeline.totalDays,
+		paymentLinksTimelineRevision,
 		timelineWidth,
 	]);
 
@@ -2320,7 +2336,8 @@ export const AutonomousProjectGantt = ({
 						ref={ganttBoardRef}
 						className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
 						style={{
-							gridTemplateColumns: `${GANTT_STAGE_COLUMN_WIDTH}px ${timelineWidth}px`,
+							gridTemplateColumns: `${GANTT_STAGE_COLUMN_WIDTH}px minmax(${timelineWidth}px, 1fr)`,
+							minWidth: "100%",
 							width: `${ganttBoardWidth}px`,
 						}}
 					>
