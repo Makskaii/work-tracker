@@ -35,7 +35,7 @@ export const router = createBrowserRouter(
 			children: [
 				{
 					index: true,
-					element: <Navigate to="/reports/developers" replace />,
+					element: <Navigate to="/reports/calendar" replace />,
 				},
 				{
 					path: "/reports",
@@ -45,6 +45,10 @@ export const router = createBrowserRouter(
 						</Suspense>
 					),
 					children: [
+						{
+							index: true,
+							element: <Navigate to="calendar" replace />,
+						},
 						{
 							path: "projects",
 							element: (
