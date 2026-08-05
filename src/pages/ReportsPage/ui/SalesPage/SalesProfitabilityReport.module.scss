@@ -1755,6 +1755,14 @@
 	gap: 8px;
 }
 
+.ganttStageTitle {
+	min-width: 0;
+	font-size: 12px !important;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
 .ganttCustomEventMenuButton {
 	display: inline-flex;
 	align-items: center;
@@ -4000,7 +4008,7 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .dealSummaryPurchased {
-	color: #9b6cff;
+	color: var(--color-success);
 }
 
 .dealSummaryProjectAmount {

@@ -2290,7 +2290,14 @@ const AutonomousStageRow = ({
 				}
 			>
 				<div className={styles.ganttCustomEventHeader}>
-					<strong>{row.stage.title}</strong>
+					<strong
+						className={styles.ganttStageTitle}
+						title={row.stage.title}
+					>
+						{row.stage.title.length > 35
+							? `${row.stage.title.slice(0, 35)}...`
+							: row.stage.title}
+					</strong>
 					{!row.stage.isDefault && row.stage.code !== "payments" ? (
 						<button
 							type="button"
@@ -2301,11 +2308,7 @@ const AutonomousStageRow = ({
 						</button>
 					) : null}
 				</div>
-				<span>
-					{isPaymentsStage
-						? "Платежи проекта"
-						: "Пользовательский этап проекта"}
-				</span>
+				{isPaymentsStage ? <span>Платежи проекта</span> : null}
 			</div>
 			<div
 				className={styles.autonomousGanttTrack}
