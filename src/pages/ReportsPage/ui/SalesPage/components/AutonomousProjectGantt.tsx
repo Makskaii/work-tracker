@@ -44,7 +44,11 @@ import {
 	fetchAutonomousProjectPayments,
 	updateAutonomousProjectPayment,
 } from "../model/projectPayments.api";
-import type { GanttMonthTick, GanttWeekTick } from "../model/ganttTypes";
+import type {
+	GanttMonthTick,
+	GanttTimeline,
+	GanttWeekTick,
+} from "../model/ganttTypes";
 import {
 	addDays,
 	daysBetween,
@@ -202,12 +206,73 @@ const EVENT_DATE_FIELDS: EventDateField[] = [
 	"planStartDate",
 ];
 
-const getScaleWeekStep = (weekTicksCount: number) => {
-	if (weekTicksCount > 36) return 4;
-	if (weekTicksCount > 24) return 3;
-	if (weekTicksCount > 14) return 2;
+const GANTT_DEFAULT_PIXELS_PER_DAY = 10;
+const GANTT_MIN_PIXELS_PER_DAY = 2;
+const GANTT_MAX_PIXELS_PER_DAY = 50;
+const GANTT_ZOOM_STEP = 0.5;
+const GANTT_STAGE_COLUMN_WIDTH = 190;
 
-	return 1;
+type TimelineZoomAnchor = {
+	date: Date;
+	ratio: number;
+};
+
+type TimelineZoomPointerAnchor = {
+	date: Date;
+	viewportX: number;
+};
+
+const getDisplayTimeline = (
+	baseTimeline: GanttTimeline,
+	viewportWidth: number,
+	pixelsPerDay: number,
+	anchor: TimelineZoomAnchor | null,
+): GanttTimeline => {
+	const requiredDays = Math.max(
+		baseTimeline.totalDays,
+		Math.ceil(viewportWidth / Math.max(pixelsPerDay, 1)),
+	);
+
+	if (requiredDays === baseTimeline.totalDays) {
+		return baseTimeline;
+	}
+
+	const extraDays = requiredDays - baseTimeline.totalDays;
+	const desiredStart = anchor
+		? addDays(anchor.date, -Math.round(requiredDays * anchor.ratio))
+		: addDays(baseTimeline.start, -Math.floor(extraDays / 2));
+	const earliestStart = addDays(baseTimeline.end, -requiredDays);
+	const latestStart = baseTimeline.start;
+	const start =
+		desiredStart < earliestStart
+			? earliestStart
+			: desiredStart > latestStart
+				? latestStart
+				: desiredStart;
+
+	return {
+		end: addDays(start, requiredDays),
+		start,
+		totalDays: requiredDays,
+	};
+};
+
+const getHorizontalScrollContainer = (node: HTMLElement | null) => {
+	let parent = node?.parentElement ?? null;
+
+	while (parent) {
+		const overflowX = window.getComputedStyle(parent).overflowX;
+		const canScrollHorizontally =
+			overflowX === "auto" || overflowX === "scroll";
+
+		if (canScrollHorizontally && parent.scrollWidth > parent.clientWidth) {
+			return parent;
+		}
+
+		parent = parent.parentElement;
+	}
+
+	return null;
 };
 
 const getStageTypeLabel = (stageType: ProjectGanttStageType) =>
@@ -676,6 +741,7 @@ export const AutonomousProjectGantt = ({
 	const [deletingStageId, setDeletingStageId] = useState<number | null>(null);
 	const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
 	const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(null);
+	const ganttViewportRef = useRef<HTMLDivElement | null>(null);
 	const ganttBoardRef = useRef<HTMLDivElement | null>(null);
 	const ganttScaleRef = useRef<HTMLDivElement | null>(null);
 	const paymentMarkerRefs = useRef(new Map<number, HTMLButtonElement>());
@@ -690,6 +756,17 @@ export const AutonomousProjectGantt = ({
 		useState<DependencyLinkDraft>(null);
 	const [dragDateGuide, setDragDateGuide] = useState<DragDateGuide>(null);
 	const [draggingStageId, setDraggingStageId] = useState<number | null>(null);
+	const [pixelsPerDay, setPixelsPerDay] = useState(
+		GANTT_DEFAULT_PIXELS_PER_DAY,
+	);
+	const pixelsPerDayRef = useRef(GANTT_DEFAULT_PIXELS_PER_DAY);
+	const targetPixelsPerDayRef = useRef(GANTT_DEFAULT_PIXELS_PER_DAY);
+	const zoomAnimationFrameRef = useRef<number | null>(null);
+	const timelineZoomPointerAnchorRef =
+		useRef<TimelineZoomPointerAnchor | null>(null);
+	const [ganttViewportWidth, setGanttViewportWidth] = useState(0);
+	const [timelineZoomAnchor, setTimelineZoomAnchor] =
+		useState<TimelineZoomAnchor | null>(null);
 	const today = useMemo(() => {
 		const currentDate = new Date();
 
@@ -699,20 +776,222 @@ export const AutonomousProjectGantt = ({
 			currentDate.getDate(),
 		);
 	}, []);
-	const gantt = useMemo(
+	const baseGantt = useMemo(
 		() => buildAutonomousProjectGantt({ events, payments, stages, today }),
 		[events, payments, stages, today],
+	);
+	const availableTimelineWidth = Math.max(
+		ganttViewportWidth - GANTT_STAGE_COLUMN_WIDTH,
+		1,
+	);
+	const displayTimeline = useMemo(
+		() =>
+			getDisplayTimeline(
+				baseGantt.timeline,
+				availableTimelineWidth,
+				pixelsPerDay,
+				timelineZoomAnchor,
+			),
+		[
+			availableTimelineWidth,
+			baseGantt.timeline,
+			pixelsPerDay,
+			timelineZoomAnchor,
+		],
+	);
+	const gantt = useMemo(
+		() => ({ ...baseGantt, timeline: displayTimeline }),
+		[baseGantt, displayTimeline],
 	);
 	const monthTicks = useMemo(
 		() => getMonthTicks(gantt.timeline),
 		[gantt.timeline],
 	);
 	const weekTicks = useMemo(() => getWeekTicks(gantt.timeline), [gantt.timeline]);
+	const timelineWidth = Math.max(
+		availableTimelineWidth,
+		gantt.timeline.totalDays * pixelsPerDay,
+	);
+	const effectivePixelsPerDay =
+		timelineWidth / Math.max(gantt.timeline.totalDays, 1);
 	const scaleWeekTicks = useMemo(() => {
-		const step = getScaleWeekStep(weekTicks.length);
+		const step = effectivePixelsPerDay < 7 ? 2 : 1;
 
 		return weekTicks.filter((_, index) => index % step === 0);
-	}, [weekTicks]);
+	}, [effectivePixelsPerDay, weekTicks]);
+	const ganttBoardWidth = GANTT_STAGE_COLUMN_WIDTH + timelineWidth;
+	const animateTimelineZoom = useCallback(() => {
+		const currentPixelsPerDay = pixelsPerDayRef.current;
+		const targetPixelsPerDay = targetPixelsPerDayRef.current;
+		const difference = targetPixelsPerDay - currentPixelsPerDay;
+
+		if (Math.abs(difference) < 0.01) {
+			pixelsPerDayRef.current = targetPixelsPerDay;
+			setPixelsPerDay(targetPixelsPerDay);
+			zoomAnimationFrameRef.current = null;
+			return;
+		}
+
+		const nextPixelsPerDay = currentPixelsPerDay + difference * 0.24;
+		pixelsPerDayRef.current = nextPixelsPerDay;
+		setPixelsPerDay(nextPixelsPerDay);
+		zoomAnimationFrameRef.current = window.requestAnimationFrame(
+			animateTimelineZoom,
+		);
+	}, []);
+	const handleGanttWheel = useCallback(
+		(event: WheelEvent) => {
+			const board = ganttBoardRef.current;
+
+			if (!board) {
+				return;
+			}
+
+			const scrollContainer = getHorizontalScrollContainer(board);
+
+			if (event.ctrlKey) {
+				event.preventDefault();
+				const direction = event.deltaY < 0 ? 1 : -1;
+				const boardRect = board.getBoundingClientRect();
+				const timelineLeft = ganttScaleRef.current?.offsetLeft ?? 0;
+				const cursorTimelineRatio = Math.min(
+					Math.max(
+						(event.clientX - boardRect.left - timelineLeft) /
+							timelineWidth,
+						0,
+					),
+					1,
+				);
+				const anchorDate = addDays(
+					gantt.timeline.start,
+					Math.round(gantt.timeline.totalDays * cursorTimelineRatio),
+				);
+				const zoomAnchor: TimelineZoomAnchor = {
+					date: anchorDate,
+					ratio: cursorTimelineRatio,
+				};
+
+				const nextPixelsPerDay = Math.min(
+					GANTT_MAX_PIXELS_PER_DAY,
+					Math.max(
+						GANTT_MIN_PIXELS_PER_DAY,
+						targetPixelsPerDayRef.current + direction * GANTT_ZOOM_STEP,
+					),
+				);
+
+				if (nextPixelsPerDay === targetPixelsPerDayRef.current) {
+					return;
+				}
+
+				timelineZoomPointerAnchorRef.current = {
+					date: anchorDate,
+					viewportX: event.clientX,
+				};
+				setTimelineZoomAnchor(zoomAnchor);
+				targetPixelsPerDayRef.current = nextPixelsPerDay;
+
+				if (zoomAnimationFrameRef.current === null) {
+					zoomAnimationFrameRef.current = window.requestAnimationFrame(
+						animateTimelineZoom,
+					);
+				}
+				return;
+			}
+
+			if (event.shiftKey && scrollContainer) {
+				event.preventDefault();
+				scrollContainer.scrollLeft += event.deltaY || event.deltaX;
+			}
+		},
+		[
+			animateTimelineZoom,
+			gantt.timeline,
+			timelineWidth,
+		],
+	);
+
+	useLayoutEffect(() => {
+		const pointerAnchor = timelineZoomPointerAnchorRef.current;
+		const viewport = ganttViewportRef.current;
+
+		if (!pointerAnchor || !viewport) {
+			return;
+		}
+
+		const anchorOffsetDays = daysBetween(
+			gantt.timeline.start,
+			pointerAnchor.date,
+		);
+		const anchorTimelineX =
+			(anchorOffsetDays / Math.max(gantt.timeline.totalDays, 1)) * timelineWidth;
+		const viewportX = pointerAnchor.viewportX - viewport.getBoundingClientRect().left;
+
+		viewport.scrollLeft =
+			GANTT_STAGE_COLUMN_WIDTH + anchorTimelineX - viewportX;
+	}, [gantt.timeline.start, gantt.timeline.totalDays, timelineWidth]);
+
+	useLayoutEffect(() => {
+		const viewport = ganttViewportRef.current;
+
+		if (!viewport) {
+			return;
+		}
+
+		const updateViewportWidth = () => {
+			setGanttViewportWidth(viewport.clientWidth);
+		};
+		const resizeObserver = new ResizeObserver(updateViewportWidth);
+
+		updateViewportWidth();
+		resizeObserver.observe(viewport);
+
+		return () => resizeObserver.disconnect();
+	}, [isLoading]);
+
+	useEffect(() => {
+		const viewport = ganttViewportRef.current;
+
+		if (!viewport) {
+			return;
+		}
+
+		viewport.addEventListener("wheel", handleGanttWheel, {
+			capture: true,
+			passive: false,
+		});
+
+		return () =>
+			viewport.removeEventListener("wheel", handleGanttWheel, true);
+	}, [handleGanttWheel, isLoading]);
+
+	useEffect(() => {
+		setPixelsPerDay(GANTT_DEFAULT_PIXELS_PER_DAY);
+		pixelsPerDayRef.current = GANTT_DEFAULT_PIXELS_PER_DAY;
+		targetPixelsPerDayRef.current = GANTT_DEFAULT_PIXELS_PER_DAY;
+		timelineZoomPointerAnchorRef.current = null;
+		setTimelineZoomAnchor(null);
+
+		const animationFrameId = window.requestAnimationFrame(() => {
+			const scrollContainer = getHorizontalScrollContainer(
+				ganttBoardRef.current,
+			);
+
+			if (scrollContainer) {
+				scrollContainer.scrollLeft = 0;
+			}
+		});
+
+		return () => window.cancelAnimationFrame(animationFrameId);
+	}, [project?.id]);
+
+	useEffect(
+		() => () => {
+			if (zoomAnimationFrameRef.current !== null) {
+				window.cancelAnimationFrame(zoomAnimationFrameRef.current);
+			}
+		},
+		[],
+	);
 	const updateGanttTimelineOffset = useCallback(() => {
 		const boardNode = ganttBoardRef.current;
 		const scaleNode = ganttScaleRef.current;
@@ -969,7 +1248,12 @@ export const AutonomousProjectGantt = ({
 			window.removeEventListener("resize", schedulePaymentLinksUpdate);
 			board.removeEventListener("scroll", schedulePaymentLinksUpdate);
 		};
-	}, [gantt.rows, gantt.timeline.start, gantt.timeline.totalDays]);
+	}, [
+		gantt.rows,
+		gantt.timeline.start,
+		gantt.timeline.totalDays,
+		timelineWidth,
+	]);
 
 	const openStageCreateModal = () => {
 		setStageForm({
@@ -2031,10 +2315,14 @@ export const AutonomousProjectGantt = ({
 			{isLoading ? (
 				<div className={styles.emptyState}>Загрузка Ганта...</div>
 			) : (
-				<div className={styles.ganttBoardScroll}>
+				<div ref={ganttViewportRef} className={styles.ganttBoardScroll}>
 					<div
 						ref={ganttBoardRef}
 						className={`${styles.ganttBoard} ${styles.autonomousGanttBoard}`}
+						style={{
+							gridTemplateColumns: `${GANTT_STAGE_COLUMN_WIDTH}px ${timelineWidth}px`,
+							width: `${ganttBoardWidth}px`,
+						}}
 					>
 						<div className={styles.ganttScaleLabel}>Этапы проекта</div>
 						<div ref={ganttScaleRef} className={styles.ganttScale}>

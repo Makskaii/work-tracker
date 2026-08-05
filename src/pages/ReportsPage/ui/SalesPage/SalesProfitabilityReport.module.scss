@@ -3357,8 +3357,16 @@
 }
 
 .ganttBoardScroll {
+	box-sizing: border-box;
 	margin: 0 0 16px;
-	overflow: visible;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: var(--color-surface);
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 
 .ganttBoard {
@@ -3376,7 +3384,21 @@
 .ganttBoardScroll .ganttBoard,
 .autonomousGanttBoard {
 	margin: 0;
+	border: 0;
+	border-radius: 0;
 	overflow: visible;
+}
+
+.autonomousGanttBoard {
+	.ganttScale,
+	.ganttScaleHeader,
+	.ganttMonthScale,
+	.ganttWeekScale,
+	.ganttTrack,
+	.autonomousGanttTrack,
+	.ganttTodayLineLayer {
+		min-width: 0;
+	}
 }
 
 .ganttPaymentLinksLayer {
