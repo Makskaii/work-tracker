@@ -30,7 +30,7 @@
 }
 
 .layoutCollapsed {
-	--structure-width: 72px;
+	--structure-width: 80px;
 }
 
 .content {
@@ -723,6 +723,34 @@
 	height: 50px;
 	padding: 0;
 	border-radius: 16px;
+}
+
+.layoutCollapsed .reportProjectGroup {
+	align-items: center;
+	width: 100%;
+}
+
+.layoutCollapsed .reportProjectGroupTitle,
+.layoutCollapsed .reportProjectText,
+.layoutCollapsed .reportProjectMenuButton {
+	display: none;
+}
+
+.layoutCollapsed .reportProjectButton {
+	display: grid;
+	place-items: center;
+	grid-template-columns: 1fr;
+	width: 50px;
+	min-height: 50px;
+	height: 50px;
+	padding: 0;
+	border-radius: 16px;
+}
+
+.layoutCollapsed .reportProjectButton .dealProjectIcon {
+	width: 34px;
+	height: 34px;
+	margin: 0;
 }
 
 .layoutCollapsed .dealChevron {
@@ -1725,6 +1753,14 @@
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: start;
 	gap: 8px;
+}
+
+.ganttStageTitle {
+	min-width: 0;
+	font-size: 12px !important;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+	white-space: normal;
 }
 
 .ganttCustomEventMenuButton {
@@ -3321,8 +3357,16 @@
 }
 
 .ganttBoardScroll {
+	box-sizing: border-box;
 	margin: 0 0 16px;
-	overflow: visible;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
+	background: var(--color-surface);
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 
 .ganttBoard {
@@ -3340,7 +3384,21 @@
 .ganttBoardScroll .ganttBoard,
 .autonomousGanttBoard {
 	margin: 0;
+	border: 0;
+	border-radius: 0;
 	overflow: visible;
+}
+
+.autonomousGanttBoard {
+	.ganttScale,
+	.ganttScaleHeader,
+	.ganttMonthScale,
+	.ganttWeekScale,
+	.ganttTrack,
+	.autonomousGanttTrack,
+	.ganttTodayLineLayer {
+		min-width: 0;
+	}
 }
 
 .ganttPaymentLinksLayer {
@@ -3908,11 +3966,11 @@
 }
 
 .dealSummaryPrimaryStats>div:first-child input {
-	color: var(--color-accent-blue);
+	color: var(--color-warning);
 }
 
 .dealSummaryPrimaryInput {
-	width: 5.8ch !important;
+	width: 10ch !important;
 }
 
 .dealSummaryMarginInline {
@@ -3924,20 +3982,20 @@
 }
 
 input[type="date"].dealSummaryDateInput {
-	width: 10ch;
+	width: 14ch;
 	color-scheme: dark;
 }
 
 .dealSummarySide {
 	min-width: 0;
-	max-width: 560px;
+	max-width: 720px;
 	justify-self: end;
 	width: 100%;
 }
 
 .dealSummaryStats {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(150px, 1fr));
+	grid-template-columns: minmax(0, 1fr);
 	gap: 12px 28px;
 	min-width: 0;
 }
@@ -3965,6 +4023,26 @@ input[type="date"].dealSummaryDateInput {
 	font-weight: 950;
 	line-height: 1.2;
 	white-space: nowrap;
+}
+
+.dealSummaryCompletionDate {
+	color: var(--color-warning);
+}
+
+.dealSummaryPurchased {
+	color: var(--color-success);
+}
+
+.dealSummaryProjectAmount {
+	color: var(--color-accent-blue);
+}
+
+.dealSummaryFactWithinPlan {
+	color: var(--color-success);
+}
+
+.dealSummaryFactOverPlan {
+	color: var(--color-danger);
 }
 
 .dealSummaryDanger {
@@ -4091,6 +4169,98 @@ input[type="date"].dealSummaryDateInput {
 .ganttStatusNeutral {
 	background: rgba(158, 176, 199, 0.16);
 	color: rgba(238, 245, 255, 0.72);
+}
+
+.projectHoursSection {
+	margin: 16px;
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+	background: var(--color-surface);
+	overflow: hidden;
+}
+
+.projectHoursHeader {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 16px;
+	padding: 16px 18px;
+	border-bottom: 1px solid var(--color-border);
+	text-align: left;
+
+	h3 {
+		margin: 0;
+		font-size: 16px;
+	}
+
+	p {
+		margin: 4px 0 0;
+		color: rgba(238, 245, 255, 0.58);
+		font-size: 12px;
+		font-weight: 700;
+	}
+}
+
+.projectHoursTable {
+	overflow-x: auto;
+}
+
+.projectHoursTableHead,
+.projectHoursRow {
+	display: grid;
+	grid-template-columns: minmax(160px, 1.2fr) repeat(3, minmax(100px, 0.7fr)) minmax(220px, 1.4fr);
+	align-items: center;
+	gap: 14px;
+	min-width: 820px;
+	padding: 12px 18px;
+}
+
+.projectHoursTableHead {
+	background: var(--color-surface-soft);
+	color: rgba(238, 245, 255, 0.58);
+	font-size: 11px;
+	font-weight: 900;
+	text-transform: uppercase;
+}
+
+.projectHoursRow {
+	min-height: 58px;
+	border-top: 1px solid var(--color-border);
+	font-size: 13px;
+
+	> strong {
+		font-size: 14px;
+	}
+
+	> span {
+		font-weight: 850;
+	}
+}
+
+.projectHoursProgress {
+	display: grid;
+	grid-template-columns: minmax(120px, 1fr) 46px;
+	align-items: center;
+	gap: 10px;
+
+	> div {
+		height: 16px;
+		border-radius: 5px;
+		background: rgba(158, 176, 199, 0.16);
+		overflow: hidden;
+	}
+
+	> div > span {
+		display: block;
+		height: 100%;
+		border-radius: inherit;
+		background: var(--color-success);
+		transition: width 180ms ease;
+	}
+
+	> strong {
+		text-align: right;
+	}
 }
 
 .skeletonWrap {

@@ -61,6 +61,7 @@ import {
 	type ReportProjectFormState,
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
+import { getProjectAutomaticHours } from "./model/projectHours";
 import type {
 	AutonomousProjectPayment,
 	CreateProjectReportEntryPayload,
@@ -723,6 +724,20 @@ export const SalesProfitabilityReport = ({
 				return bitrixProjectDetailsById.get(projectId) ?? project;
 			}),
 		[bitrixProjectDetailsById, selectedBitrixProjects],
+	);
+	const automaticProjectHours = useMemo(
+		() => getProjectAutomaticHours(selectedBitrixProjectsWithDetails),
+		[selectedBitrixProjectsWithDetails],
+	);
+	const displayedSummary = useMemo(
+		() => ({
+			...summary,
+			purchasedHours: automaticProjectHours.developmentPurchasedHours,
+			factHours:
+				(numberOrNull(summaryForm.summaryFactHours) ?? 0) +
+				automaticProjectHours.developmentFactHours,
+		}),
+		[automaticProjectHours, summary, summaryForm.summaryFactHours],
 	);
 	const allTasks = selectedBitrixProjectsWithDetails.flatMap((project) =>
 		project.tasks.map((task) => ({ project, task })),
@@ -1626,13 +1641,18 @@ export const SalesProfitabilityReport = ({
 											setSummaryError(null);
 										}}
 										onChange={setSummaryForm}
-										onEdit={() => setIsSummaryEditing(true)}
+										onEdit={() => {
+											setSummaryForm(
+												getProjectSummaryForm(selectedReportProject),
+											);
+											setIsSummaryEditing(true);
+										}}
 										onSave={handleSummarySave}
 										projectTitle={
 											selectedReportProject?.title ?? "Проект не выбран"
 										}
 										saveError={summaryError}
-										summary={summary}
+										summary={displayedSummary}
 									/>
 								)}
 
@@ -1655,6 +1675,7 @@ export const SalesProfitabilityReport = ({
 								{activeTab === "projects" && (
 									<ProjectsTab
 										bitrixProjects={selectedBitrixProjectsWithDetails}
+										form={summaryForm}
 										onPaymentsChanged={refreshAutonomousPayments}
 										projects={reportProjects}
 										selectedProjectId={effectiveSelectedProjectId}

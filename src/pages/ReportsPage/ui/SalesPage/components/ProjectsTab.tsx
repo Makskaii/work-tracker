@@ -1,13 +1,16 @@
 import { useState } from "react";
 import type { User } from "@/shared/types/types";
+import type { ProjectSummaryFormState } from "../model/reportProjectForm";
 import type { ProfitabilityProject, ReportProject } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { AutonomousProjectGantt } from "./AutonomousProjectGantt";
 import { DealProjectTeamCostTable } from "./DealProjectTeamCostTable";
 import { DealWorkDensityChart } from "./DealWorkDensityChart";
+import { ProjectHoursProgress } from "./ProjectHoursProgress";
 
 type ProjectsTabProps = {
 	bitrixProjects: ProfitabilityProject[];
+	form: ProjectSummaryFormState;
 	onPaymentsChanged?: () => void;
 	projects: ReportProject[];
 	selectedProjectId: string | null;
@@ -159,6 +162,7 @@ const SupportPurchasedHoursChart = ({
 
 export const ProjectsTab = ({
 	bitrixProjects,
+	form,
 	onPaymentsChanged,
 	projects,
 	selectedProjectId,
@@ -168,11 +172,18 @@ export const ProjectsTab = ({
 		projects.find((project) => `db-${project.id}` === selectedProjectId) ??
 		null;
 	const isSupportProject = selectedProject?.projectType === "support";
+	const isWaterfallProject = selectedProject?.projectType === "waterfall";
 
 	return (
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
 			{selectedProject ? (
 				<>
+					{isWaterfallProject && (
+						<ProjectHoursProgress
+							form={form}
+							projects={bitrixProjects}
+						/>
+					)}
 					{isSupportProject ? (
 						<SupportPurchasedHoursChart project={selectedProject} />
 					) : (
