@@ -101,13 +101,20 @@ export const ReportProjectFileInput = ({
 	const getFileKey = (file: File) =>
 		`${file.name}:${file.size}:${file.lastModified}`;
 
+
+	const [isPasteTargetActive, setIsPasteTargetActive] = useState(false);
 	const [isDragActive, setIsDragActive] = useState(false);
 
 
-	const fileDropzoneClassName = `${fileFieldClassName} ${isDragActive
-		? styles.reportProjectFileDropzoneActive
-		: styles.reportProjectFileDropzone
-		}`;
+
+	const fileDropzoneClassName = [
+		fileFieldClassName,
+		styles.reportProjectFileDropzone,
+		isDragActive ? styles.reportProjectFileDropzoneActive : "",
+		isPasteTargetActive ? styles.reportProjectFilePasteTargetActive : "",
+	]
+		.filter(Boolean)
+		.join(" ");
 
 	const mergeSelectedFiles = (nextSelection: File[]) => {
 		const merged = [...(selectedFiles ?? []), ...nextSelection];
@@ -115,7 +122,9 @@ export const ReportProjectFileInput = ({
 			new Map(merged.map((file) => [getFileKey(file), file])).values(),
 		);
 
-		return deduped.slice(0, MAX_FILES);
+		const availableSlots = Math.max(MAX_FILES - existingFiles.length, 0);
+
+		return deduped.slice(0, availableSlots);
 	};
 
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -132,20 +141,22 @@ export const ReportProjectFileInput = ({
 	};
 
 	const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+		const clipboardFiles = Array.from(event.clipboardData.files ?? []);
+		const itemFiles = Array.from(event.clipboardData.items ?? [])
+			.filter((item) => item.kind === "file")
+			.map((item) => item.getAsFile())
+			.filter((file): file is File => file !== null);
+
+		const filesToAdd = clipboardFiles.length ? clipboardFiles : itemFiles;
+
+		if (!filesToAdd.length) {
+			return;
+		}
+
 		event.preventDefault();
 		event.stopPropagation();
 
-		const pastedFiles = Array.from(event.clipboardData.files ?? []);
-		const pastedItems = Array.from(event.clipboardData.items ?? []);
-		const itemFiles = pastedItems
-			.map((item) => item.kind === "file" && item.getAsFile())
-			.filter(Boolean) as File[];
-
-		const filesToAdd = pastedFiles.length ? pastedFiles : itemFiles;
-
-		if (filesToAdd.length) {
-			onFileChange(fileKind, mergeSelectedFiles(filesToAdd));
-		}
+		onFileChange(fileKind, mergeSelectedFiles(filesToAdd));
 	};
 
 	const activateDrag = (event: React.DragEvent<HTMLDivElement>) => {
@@ -178,6 +189,8 @@ export const ReportProjectFileInput = ({
 		onFileChange(fileKind, nextFiles);
 	};
 
+	const totalFilesCount = existingFiles.length + selectedFilesCount;
+
 	return (
 		<div className={rootClassName}>
 			<div className={styles.reportProjectFieldContainer}>
@@ -192,7 +205,10 @@ export const ReportProjectFileInput = ({
 					onDragLeave={deactivateDrag}
 					onDrop={handleDrop}
 					onPaste={handlePaste}
+					onFocus={() => setIsPasteTargetActive(true)}
+					onBlur={() => setIsPasteTargetActive(false)}
 					tabIndex={0}
+					aria-label={`${label}. Нажмите, перетащите или вставьте файлы`}
 				>
 					<input
 						ref={fileInputRef}
@@ -215,8 +231,11 @@ export const ReportProjectFileInput = ({
 					</div>
 
 					<span className={fileNameClassName}>
+						<small className={styles.reportProjectFilePasteHint}>
+							Нажмите на поле и вставьте файлы через Ctrl + V
+						</small>
 						{hasSelectedFiles
-							? `Выбрано ${selectedFilesCount}/${MAX_FILES}`
+							? `Файлов ${totalFilesCount}/${MAX_FILES}`
 							: existingFiles.length
 								? `Загружено ${existingFiles.length}`
 								: "Новые файлы не выбраны"}
