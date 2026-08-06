@@ -34,6 +34,8 @@ export const ReportProjectModal = ({
 	onFileDraftChange,
 	onFormChange,
 	onSubmit,
+	onSaveFiles,
+	savingProjectFileKind,
 	project,
 	projectFormError,
 	saving,
@@ -52,6 +54,8 @@ export const ReportProjectModal = ({
 	onFileDraftChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	onFormChange: (value: ReportProjectFormState) => void;
 	onSubmit: () => void;
+	onSaveFiles: (fileKind: ReportProjectFileKind) => Promise<void>;
+	savingProjectFileKind: ReportProjectFileKind | null;
 	project: ReportProject | null;
 	projectFormError: string | null;
 	saving: boolean;
@@ -124,6 +128,8 @@ export const ReportProjectModal = ({
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
+					onSaveFiles={onSaveFiles}
+					isSaving={savingProjectFileKind === "estimate"}
 				/>
 				<ReportProjectFileInput
 					files={project?.files.filter(
@@ -137,6 +143,8 @@ export const ReportProjectModal = ({
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
+					onSaveFiles={onSaveFiles}
+					isSaving={savingProjectFileKind === "technical_specification"}
 				/>
 				<ReportProjectInput
 					form={form}

@@ -588,6 +588,67 @@
 	background: rgba(9, 20, 36, 0.5);
 }
 
+.reportProjectFileDropzone {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 12px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 16px;
+	border: 2px dashed rgba(46, 197, 173, 0.4);
+	border-radius: 16px;
+	background: rgba(9, 20, 36, 0.35);
+	transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.reportProjectFileDropzoneActive {
+	border-color: rgba(46, 197, 173, 0.9);
+	background: rgba(46, 197, 173, 0.08);
+}
+
+.reportProjectFileDropzoneContent {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 6px 0;
+}
+
+.reportProjectFileDropzoneTitle {
+	color: var(--color-text);
+	font-size: 13px;
+	font-weight: 900;
+}
+
+.reportProjectFileDropzoneSubtitle {
+	color: rgba(238, 245, 255, 0.54);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.reportProjectFieldContainer {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 8px;
+	border: 1px solid rgba(46, 197, 173, 0.08);
+	border-radius: 12px;
+	background: rgba(8, 16, 28, 0.24);
+}
+
+.reportProjectFileHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	border-radius: 8px;
+	background: rgba(7, 14, 24, 0.16);
+	color: rgba(238, 245, 255, 0.9);
+	font-size: 13px;
+	font-weight: 900;
+}
+
 .reportProjectFileInput {
 	display: none;
 }
@@ -613,6 +674,36 @@
 .reportProjectFileButton:hover {
 	background: rgba(38, 240, 233, 0.18);
 	border-color: #26f0e9;
+}
+
+.reportProjectFileSaveButton,
+.reportProjectDetailsFileSaveButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 32px;
+	padding: 0 14px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 8px;
+	background: rgba(38, 240, 233, 0.08);
+	color: #26f0e9;
+	font-size: 13px;
+	font-weight: 900;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.reportProjectFileSaveButton:hover,
+.reportProjectDetailsFileSaveButton:hover {
+	background: rgba(38, 240, 233, 0.16);
+	border-color: #26f0e9;
+}
+
+.reportProjectFileSaveButton:disabled,
+.reportProjectDetailsFileSaveButton:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
 }
 
 .reportProjectFileName {
@@ -641,10 +732,10 @@
 	flex-direction: column;
 	gap: 8px;
 	margin-top: 8px;
-	padding: 10px;
-	border: 1px solid var(--color-border);
-	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.5);
+	padding: 10px 0 0 0;
+	border: none; /* visually merge with dropzone */
+	border-radius: 0 0 10px 10px;
+	background: transparent;
 }
 
 .reportProjectFileMeta strong {
