@@ -218,10 +218,10 @@ const mergeReportProjectFiles = (
 	files: ReportProjectFile[] = [],
 	updatedFiles: ReportProjectFile[],
 ) => {
-	const result = new Map<ReportProjectFileKind, ReportProjectFile>();
+	const result = new Map<number, ReportProjectFile>();
 
-	files.forEach((file) => result.set(file.fileKind, file));
-	updatedFiles.forEach((file) => result.set(file.fileKind, file));
+	files.forEach((file) => result.set(file.id, file));
+	updatedFiles.forEach((file) => result.set(file.id, file));
 
 	return Array.from(result.values());
 };

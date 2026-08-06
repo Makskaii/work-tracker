@@ -62,6 +62,7 @@ export const ReportProjectFileInput = ({
 	const inputId = `report-project-file-${fileKind}`;
 	const existingFiles = files ?? [];
 	const selectedFilesCount = selectedFiles?.length ?? 0;
+	const hasSelectedFiles = selectedFilesCount > 0;
 
 	const rootClassName =
 		variant === "details"
@@ -98,6 +99,31 @@ export const ReportProjectFileInput = ({
 			? styles.reportProjectDetailsFileDeleteButton
 			: styles.reportProjectFileDeleteButton;
 
+	const getFileKey = (file: File) =>
+		`${file.name}:${file.size}:${file.lastModified}`;
+
+	const mergeSelectedFiles = (nextSelection: File[]) => {
+		const merged = [...(selectedFiles ?? []), ...nextSelection];
+		const deduped = Array.from(
+			new Map(merged.map((file) => [getFileKey(file), file])).values(),
+		);
+
+		return deduped.slice(0, MAX_FILES);
+	};
+
+	const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const newFiles = Array.from(event.target.files ?? []);
+		onFileChange(fileKind, mergeSelectedFiles(newFiles));
+		event.currentTarget.value = "";
+	};
+
+	const removeSelectedFile = (index: number) => {
+		const nextFiles = (selectedFiles ?? []).filter(
+			(_, fileIndex) => fileIndex !== index,
+		);
+		onFileChange(fileKind, nextFiles);
+	};
+
 	return (
 		<div className={rootClassName}>
 			<span>{label}</span>
@@ -108,58 +134,37 @@ export const ReportProjectFileInput = ({
 					type="file"
 					multiple
 					className={styles.reportProjectFileInput}
-					onChange={(event) => {
-						const newFiles = Array.from(event.target.files ?? []);
-						const nextFiles = [
-							...(selectedFiles ?? []),
-							...newFiles,
-						].slice(0, MAX_FILES);
-
-						onFileChange(fileKind, nextFiles);
-						event.currentTarget.value = "";
-					}}
+					onChange={handleFileSelection}
 				/>
 
 				<label className={fileButtonClassName} htmlFor={inputId}>
-					Выбрать файл
+					Выбрать файлы
 				</label>
 
 				<span className={fileNameClassName}>
-					{selectedFilesCount
-						? `${selectedFilesCount} файл${
-							selectedFilesCount === 1 ? "" : "ов"
-						}`
+					{hasSelectedFiles
+						? `Выбрано ${selectedFilesCount}/${MAX_FILES}`
 						: existingFiles.length
-						? existingFiles
-							.map((file) => file.originalName)
-							.join(", ")
-						: "Файл не выбран"}
+							? `Загружено ${existingFiles.length}`
+							: "Файл не выбран"}
 				</span>
 			</div>
 
-			{selectedFilesCount ? (
+			{hasSelectedFiles ? (
 				<div className={fileMetaClassName}>
+					<small className={styles.reportProjectFileHint}>
+						Новые файлы будут загружены после сохранения, максимум {MAX_FILES}
+					</small>
 					{selectedFiles?.map((file, index) => (
-						<div key={`${file.name}-${index}`}>
+						<div key={`${file.name}-${index}`} className={styles.reportProjectFileMeta}>
 							<strong>{file.name}</strong>
 							<div className={fileActionsClassName}>
-								<button
-									type="button"
-									onClick={() => {
-									const nextFiles = selectedFiles.filter(
-										(_, fileIndex) => fileIndex !== index,
-									);
-									onFileChange(fileKind, nextFiles);
-								}}
-								>
+								<button type="button" onClick={() => removeSelectedFile(index)}>
 									Удалить
 								</button>
 							</div>
 						</div>
 					))}
-					<small className={styles.reportProjectFileHint}>
-						Будет загружено после сохранения, максимум {MAX_FILES} файла
-					</small>
 				</div>
 			) : null}
 
@@ -186,7 +191,7 @@ export const ReportProjectFileInput = ({
 						</div>
 					))}
 				</div>
-			) : selectedFilesCount === 0 ? (
+			) : !hasSelectedFiles ? (
 				<small className={styles.reportProjectFileHint}>
 					Файл не загружен
 				</small>
