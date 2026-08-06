@@ -31,7 +31,11 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-	const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+	const [collapsedSections, setCollapsedSections] = useState<
+		Record<string, boolean>
+	>({
+		"Доп. списки": true,
+	});
 	const location = useLocation();
 	const navItems = useMemo(
 		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
