@@ -78,11 +78,6 @@ export const ReportProjectFileInput = ({
 			? styles.reportProjectDetailsFileField
 			: styles.reportProjectFileField;
 
-	const fileButtonClassName =
-		variant === "details"
-			? styles.reportProjectDetailsFileButton
-			: styles.reportProjectFileButton;
-
 	const fileNameClassName =
 		variant === "details"
 			? styles.reportProjectDetailsFileName
@@ -108,11 +103,11 @@ export const ReportProjectFileInput = ({
 
 	const [isDragActive, setIsDragActive] = useState(false);
 
-	const fileDropzoneClassName = `${fileFieldClassName} ${
-		isDragActive
-			? styles.reportProjectFileDropzoneActive
-			: styles.reportProjectFileDropzone
-	}`;
+
+	const fileDropzoneClassName = `${fileFieldClassName} ${isDragActive
+		? styles.reportProjectFileDropzoneActive
+		: styles.reportProjectFileDropzone
+		}`;
 
 	const mergeSelectedFiles = (nextSelection: File[]) => {
 		const merged = [...(selectedFiles ?? []), ...nextSelection];
@@ -123,34 +118,51 @@ export const ReportProjectFileInput = ({
 		return deduped.slice(0, MAX_FILES);
 	};
 
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+
 	const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const newFiles = Array.from(event.target.files ?? []);
 		onFileChange(fileKind, mergeSelectedFiles(newFiles));
 		event.currentTarget.value = "";
 	};
 
-	const dragCounter = useRef(0);
 
-	const activateDrag = (event: React.DragEvent<HTMLDivElement>) => {
-		// Only update counter on enter and prevent default on drag
+	const openFilePicker = () => {
+		fileInputRef.current?.click();
+	};
+
+	const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
 		event.preventDefault();
 		event.stopPropagation();
-		dragCounter.current += 1;
-		if (dragCounter.current > 0) setIsDragActive(true);
+
+		const pastedFiles = Array.from(event.clipboardData.files ?? []);
+		const pastedItems = Array.from(event.clipboardData.items ?? []);
+		const itemFiles = pastedItems
+			.map((item) => item.kind === "file" && item.getAsFile())
+			.filter(Boolean) as File[];
+
+		const filesToAdd = pastedFiles.length ? pastedFiles : itemFiles;
+
+		if (filesToAdd.length) {
+			onFileChange(fileKind, mergeSelectedFiles(filesToAdd));
+		}
+	};
+
+	const activateDrag = (event: React.DragEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		event.stopPropagation();
+		setIsDragActive(true);
 	};
 
 	const deactivateDrag = (event: React.DragEvent<HTMLDivElement>) => {
-		// Decrease counter on leave to avoid flicker when moving between children
 		event.preventDefault();
 		event.stopPropagation();
-		dragCounter.current = Math.max(0, dragCounter.current - 1);
-		if (dragCounter.current === 0) setIsDragActive(false);
+		setIsDragActive(false);
 	};
 
 	const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
 		event.preventDefault();
 		event.stopPropagation();
-		dragCounter.current = 0;
 		setIsDragActive(false);
 
 		const droppedFiles = Array.from(event.dataTransfer.files ?? []);
@@ -179,29 +191,55 @@ export const ReportProjectFileInput = ({
 					onDragEnter={activateDrag}
 					onDragLeave={deactivateDrag}
 					onDrop={handleDrop}
+					onPaste={handlePaste}
+					tabIndex={0}
 				>
-			<input
-				id={inputId}
-				type="file"
-				multiple
-				className={styles.reportProjectFileInput}
-				onChange={handleFileSelection}
-			/>
+					<input
+						ref={fileInputRef}
+						id={inputId}
+						type="file"
+						multiple
+						className={styles.reportProjectFileInput}
+						onChange={handleFileSelection}
+					/>
 
-			<label className={fileButtonClassName} htmlFor={inputId}>
-				Выбрать файлы
-			</label>
+					<div className={styles.reportProjectFileDropzoneToolbar}>
+						<button
+							type="button"
+							className={styles.reportProjectFileAttachButton}
+							onClick={openFilePicker}
+							aria-label="Attach files"
+						>
+							📎
+						</button>
+					</div>
 
-			{/* dropzone content intentionally removed per UX request */}
+					<span className={fileNameClassName}>
+						{hasSelectedFiles
+							? `Выбрано ${selectedFilesCount}/${MAX_FILES}`
+							: existingFiles.length
+								? `Загружено ${existingFiles.length}`
+								: "Новые файлы не выбраны"}
+					</span>
 
-			<span className={fileNameClassName}>
-				{hasSelectedFiles
-					? `Выбрано ${selectedFilesCount}/${MAX_FILES}`
-					: existingFiles.length
-						? `Загружено ${existingFiles.length}`
-						: "Новые файлы не выбраны"}
-				</span>
-			</div>
+					{existingFiles.length > 0 ? (
+						<div className={styles.reportProjectFileMeta}>
+							{existingFiles.map((file) => (
+								<div key={file.id} className={styles.reportProjectFileMeta}>
+									<strong>{file.originalName}</strong>
+									<div className={fileActionsClassName}>
+										<button type="button" onClick={() => project && onDownload(project, file)}>
+											Скачать
+										</button>
+										<button type="button" onClick={() => project && onDelete(project, file)}>
+											Удалить
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					) : null}
+				</div>
 
 				{hasSelectedFiles ? (
 					<div className={fileMetaClassName}>
@@ -228,51 +266,12 @@ export const ReportProjectFileInput = ({
 								{isSaving ? "Сохранение файлов..." : "Сохранить файлы"}
 							</button>
 						) : null}
-						{existingFiles.length > 0 ? (
-							<>
-								<small className={styles.reportProjectFileHint}>
-									Уже загруженные файлы
-								</small>
-								{existingFiles.map((file) => (
-									<div key={file.id} className={styles.reportProjectFileMeta}>
-										<strong>{file.originalName}</strong>
-										<div className={fileActionsClassName}>
-											<button type="button" onClick={() => project && onDownload(project, file)}>
-											Скачать
-										</button>
-											<button type="button" onClick={() => project && onDelete(project, file)}>
-											Удалить
-										</button>
-										</div>
-									</div>
-								))}
-							</>
-						) : null}
 					</div>
-				) : existingFiles.length > 0 ? (
-					<div className={fileMetaClassName}>
-						<small className={styles.reportProjectFileHint}>
-							Загруженные файлы
-						</small>
-						{existingFiles.map((file) => (
-							<div key={file.id} className={styles.reportProjectFileMeta}>
-								<strong>{file.originalName}</strong>
-								<div className={fileActionsClassName}>
-									<button type="button" onClick={() => project && onDownload(project, file)}>
-										Скачать
-									</button>
-									<button type="button" onClick={() => project && onDelete(project, file)}>
-										Удалить
-									</button>
-								</div>
-							</div>
-						))}
-					</div>
-				) : (
+				) : existingFiles.length === 0 ? (
 					<small className={styles.reportProjectFileHint}>
 						Файл не загружен
 					</small>
-				)}
+				) : null}
 			</div>
 		</div>
 	);

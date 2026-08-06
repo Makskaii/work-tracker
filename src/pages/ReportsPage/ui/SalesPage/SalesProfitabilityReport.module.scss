@@ -602,6 +602,37 @@
 	transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
+.reportProjectFileDropzoneToolbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.reportProjectFileAttachButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border: 1px solid rgba(38, 240, 233, 0.75);
+	border-radius: 10px;
+	background: rgba(8, 16, 28, 0.85);
+	color: #26f0e9;
+	font-size: 16px;
+	cursor: pointer;
+}
+
+.reportProjectFileAttachButton:hover {
+	background: rgba(38, 240, 233, 0.14);
+	border-color: #26f0e9;
+}
+
+.reportProjectFileDropzoneText {
+	color: rgba(238, 245, 255, 0.8);
+	font-size: 13px;
+	font-weight: 800;
+}
+
 .reportProjectFileDropzoneActive {
 	border-color: rgba(46, 197, 173, 0.9);
 	background: rgba(46, 197, 173, 0.08);
@@ -733,7 +764,8 @@
 	gap: 8px;
 	margin-top: 8px;
 	padding: 10px 0 0 0;
-	border: none; /* visually merge with dropzone */
+	border: none;
+	/* visually merge with dropzone */
 	border-radius: 0 0 10px 10px;
 	background: transparent;
 }
@@ -3481,6 +3513,7 @@
 }
 
 .autonomousGanttBoard {
+
 	.ganttScale,
 	.ganttScaleHeader,
 	.ganttMonthScale,
@@ -3621,7 +3654,7 @@
 	background: rgb(15, 28, 44);
 	box-shadow: 0 5px 10px rgba(3, 10, 20, 0.18);
 
-	> span {
+	>span {
 		position: absolute;
 		top: 0;
 		bottom: 0;
@@ -4319,11 +4352,11 @@ input[type="date"].dealSummaryDateInput {
 	border-top: 1px solid var(--color-border);
 	font-size: 13px;
 
-	> strong {
+	>strong {
 		font-size: 14px;
 	}
 
-	> span {
+	>span {
 		font-weight: 850;
 	}
 }
@@ -4334,14 +4367,14 @@ input[type="date"].dealSummaryDateInput {
 	align-items: center;
 	gap: 10px;
 
-	> div {
+	>div {
 		height: 16px;
 		border-radius: 5px;
 		background: rgba(158, 176, 199, 0.16);
 		overflow: hidden;
 	}
 
-	> div > span {
+	>div>span {
 		display: block;
 		height: 100%;
 		border-radius: inherit;
@@ -4349,7 +4382,7 @@ input[type="date"].dealSummaryDateInput {
 		transition: width 180ms ease;
 	}
 
-	> strong {
+	>strong {
 		text-align: right;
 	}
 }
