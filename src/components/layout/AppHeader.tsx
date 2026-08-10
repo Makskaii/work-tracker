@@ -18,14 +18,12 @@ const getLeafIcon = (item: NavLeaf) => {
 
 const isSectionActive = (pathname: string, item: NavItem) => {
 	if (item.type === "link") {
-		if (item.key === "departments-reports") {
-			return pathname.startsWith("/reports");
-		}
-
-		return pathname.startsWith(item.to);
+		return pathname === item.to || pathname.startsWith(`${item.to}/`);
 	}
 
-	return item.items.some((child) => pathname.startsWith(child.to));
+	return item.items.some(
+		(child) => pathname === child.to || pathname.startsWith(`${child.to}/`),
+	);
 };
 
 export const AppHeader = () => {
@@ -145,7 +143,7 @@ export const AppHeader = () => {
 							{collapsedSections[group.title] ? "⌄" : "⌃"}
 						</span>
 					</button>
-						{!collapsedSections[group.title] &&
+						{(!isSidebarOpen || !collapsedSections[group.title]) &&
 							group.items.map((item) => {
 								const isActive = activeTopKey === item.key;
 							const icon = getNavIcon(item);
