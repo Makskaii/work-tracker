@@ -454,8 +454,6 @@ export const SalesProfitabilityReport = ({
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
-	const [savingProjectFileKind, setSavingProjectFileKind] =
-		useState<ReportProjectFileKind | null>(null);
 	const [projectSearchQuery, setProjectSearchQuery] = useState("");
 	const [selectedResponsibleFilter, setSelectedResponsibleFilter] =
 		useState<string>("");
@@ -948,40 +946,6 @@ export const SalesProfitabilityReport = ({
 		setIsReportProjectModalOpen(true);
 	};
 
-	const saveProjectFiles = async (fileKind: ReportProjectFileKind) => {
-		if (!editingReportProject) {
-			return;
-		}
-
-		await saveProjectFilesByKind(
-			editingReportProject.id,
-			fileKind,
-			projectFileDrafts[fileKind],
-			() =>
-				setProjectFileDrafts((prev) => ({
-					...prev,
-					[fileKind]: undefined,
-				})),
-		);
-	};
-
-	const saveDetailsProjectFiles = async (fileKind: ReportProjectFileKind) => {
-		if (!selectedReportProject) {
-			return;
-		}
-
-		await saveProjectFilesByKind(
-			selectedReportProject.id,
-			fileKind,
-			detailsFileDrafts[fileKind],
-			() =>
-				setDetailsFileDrafts((prev) => ({
-					...prev,
-					[fileKind]: undefined,
-				})),
-		);
-	};
-
 	const uploadSelectedReportProjectFiles = async (projectId: number) => {
 		const entries = Object.entries(projectFileDrafts) as Array<
 			[ReportProjectFileKind, File[] | undefined]
@@ -995,80 +959,17 @@ export const SalesProfitabilityReport = ({
 			return [];
 		}
 
-		return Promise.all(
-			selectedEntries.flatMap(([fileKind, files]) =>
-				files.map((file) => uploadReportProjectFile(projectId, fileKind, file)),
-			),
-		);
-	};
+		const uploadedFiles: ReportProjectFile[] = [];
 
-	const uploadSelectedReportProjectFilesByKind = async (
-		projectId: number,
-		fileKind: ReportProjectFileKind,
-		files: File[] | undefined,
-	) => {
-		if (!files?.length) {
-			return [] as ReportProjectFile[];
+		for (const [fileKind, files] of selectedEntries) {
+			for (const file of files) {
+				uploadedFiles.push(
+					await uploadReportProjectFile(projectId, fileKind, file),
+				);
+			}
 		}
 
-		return Promise.all(
-			files.map((file) => uploadReportProjectFile(projectId, fileKind, file)),
-		);
-	};
-
-	const updateProjectFilesState = (
-		projectId: number,
-		uploadedFiles: ReportProjectFile[],
-	) => {
-		if (!uploadedFiles.length) {
-			return;
-		}
-
-		setReportProjects((prev) =>
-			prev.map((project) =>
-				project.id === projectId
-					? {
-						...project,
-						files: mergeReportProjectFiles(project.files, uploadedFiles),
-					}
-					: project,
-			),
-		);
-
-		setEditingReportProject((prev) =>
-			prev && prev.id === projectId
-				? {
-					...prev,
-					files: mergeReportProjectFiles(prev.files, uploadedFiles),
-				}
-				: prev,
-		);
-	};
-
-	const saveProjectFilesByKind = async (
-		projectId: number,
-		fileKind: ReportProjectFileKind,
-		files: File[] | undefined,
-		clearDrafts: () => void,
-	) => {
-		if (!files?.length) {
-			return;
-		}
-
-		setSavingProjectFileKind(fileKind);
-
-		try {
-			const uploadedFiles = await uploadSelectedReportProjectFilesByKind(
-				projectId,
-				fileKind,
-				files,
-			);
-
-			updateProjectFilesState(projectId, uploadedFiles);
-			clearDrafts();
-		} finally {
-			setSavingProjectFileKind(null);
-		}
+		return uploadedFiles;
 	};
 
 	const downloadProjectFile = async (
@@ -1461,13 +1362,19 @@ export const SalesProfitabilityReport = ({
 			);
 
 			if (selectedEntries.length) {
-				const uploadedFiles = await Promise.all(
-					selectedEntries.flatMap(([fileKind, files]) =>
-						files.map((file) =>
-							uploadReportProjectFile(selectedReportProject.id, fileKind, file),
-						),
-					),
-				);
+				const uploadedFiles: ReportProjectFile[] = [];
+
+				for (const [fileKind, files] of selectedEntries) {
+					for (const file of files) {
+						uploadedFiles.push(
+							await uploadReportProjectFile(
+								selectedReportProject.id,
+								fileKind,
+								file,
+							),
+						);
+					}
+				}
 
 				savedProject = {
 					...savedProject,
@@ -1484,7 +1391,6 @@ export const SalesProfitabilityReport = ({
 			setEditingReportProject((prev) =>
 				prev && prev.id === savedProject.id ? savedProject : prev,
 			);
-
 			setDetailsProjectForm(getReportProjectForm(savedProject));
 			setDetailsFileDrafts({});
 		} catch {
@@ -1812,9 +1718,7 @@ export const SalesProfitabilityReport = ({
 										}
 										onFormChange={setDetailsProjectForm}
 										onSave={handleDetailsProjectSave}
-							onSaveFiles={saveDetailsProjectFiles}
-							savingProjectFileKind={savingProjectFileKind}
-										project={selectedReportProject}
+								project={selectedReportProject}
 										shouldShowSave={shouldShowDetailsSave}
 										users={users}
 									/>
@@ -1901,8 +1805,6 @@ export const SalesProfitabilityReport = ({
 				onSubmit={handleReportProjectSubmit}
 				project={editingReportProject}
 				projectFormError={projectFormError}
-				onSaveFiles={saveProjectFiles}
-					savingProjectFileKind={savingProjectFileKind}
 					saving={isReportProjectSaving}
 				users={users}
 			/>

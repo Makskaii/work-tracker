@@ -30,8 +30,6 @@ export const ReportProjectDetailsTab = ({
 	onFileDraftChange,
 	onFormChange,
 	onSave,
-	onSaveFiles,
-	savingProjectFileKind,
 	project,
 	shouldShowSave,
 	users,
@@ -47,8 +45,6 @@ export const ReportProjectDetailsTab = ({
 	onFileDraftChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	onFormChange: (value: ReportProjectFormState) => void;
 	onSave: () => void;
-	onSaveFiles: (fileKind: ReportProjectFileKind) => Promise<void>;
-	savingProjectFileKind: ReportProjectFileKind | null;
 	project: ReportProject | null;
 	shouldShowSave: boolean;
 	users: User[];
@@ -121,8 +117,6 @@ export const ReportProjectDetailsTab = ({
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
-					onSaveFiles={onSaveFiles}
-					isSaving={savingProjectFileKind === "estimate"}
 					variant="details"
 				/>
 				<ReportProjectFileInput
@@ -137,8 +131,6 @@ export const ReportProjectDetailsTab = ({
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
-					onSaveFiles={onSaveFiles}
-					isSaving={savingProjectFileKind === "technical_specification"}
 					variant="details"
 				/>
 				<ReportProjectInput
