@@ -30,6 +30,8 @@ export const ReportProjectDetailsTab = ({
 	onFileDraftChange,
 	onFormChange,
 	onSave,
+	onSaveFiles,
+	savingProjectFileKind,
 	project,
 	shouldShowSave,
 	users,
@@ -42,9 +44,11 @@ export const ReportProjectDetailsTab = ({
 	isSaving: boolean;
 	onFileDelete: (project: ReportProject, file: ReportProjectFile) => void;
 	onFileDownload: (project: ReportProject, file: ReportProjectFile) => void;
-	onFileDraftChange: (fileKind: ReportProjectFileKind, file?: File) => void;
+	onFileDraftChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	onFormChange: (value: ReportProjectFormState) => void;
 	onSave: () => void;
+	onSaveFiles: (fileKind: ReportProjectFileKind) => Promise<void>;
+	savingProjectFileKind: ReportProjectFileKind | null;
 	project: ReportProject | null;
 	shouldShowSave: boolean;
 	users: User[];
@@ -107,30 +111,34 @@ export const ReportProjectDetailsTab = ({
 					variant="details"
 				/>
 				<ReportProjectFileInput
-					file={project.files.find(
+					files={project.files.filter(
 						(projectFile) => projectFile.fileKind === "estimate",
 					)}
 					fileKind="estimate"
 					label={reportProjectFileLabels.estimate}
 					project={project}
-					selectedFile={detailsFileDrafts.estimate}
+					selectedFiles={detailsFileDrafts.estimate}
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
+					onSaveFiles={onSaveFiles}
+					isSaving={savingProjectFileKind === "estimate"}
 					variant="details"
 				/>
 				<ReportProjectFileInput
-					file={project.files.find(
+					files={project.files.filter(
 						(projectFile) =>
 							projectFile.fileKind === "technical_specification",
 					)}
 					fileKind="technical_specification"
 					label={reportProjectFileLabels.technical_specification}
 					project={project}
-					selectedFile={detailsFileDrafts.technical_specification}
+					selectedFiles={detailsFileDrafts.technical_specification}
 					onDelete={onFileDelete}
 					onDownload={onFileDownload}
 					onFileChange={onFileDraftChange}
+					onSaveFiles={onSaveFiles}
+					isSaving={savingProjectFileKind === "technical_specification"}
 					variant="details"
 				/>
 				<ReportProjectInput

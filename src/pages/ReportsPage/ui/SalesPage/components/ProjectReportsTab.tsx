@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/modal/Modal";
 import type { User } from "@/shared/types/types";
-import projectReportsStyles from "../../ProjectReports/ProjectsReports.module.scss";
 import {
 	formatFileSize,
 	formatProjectReportDate,
@@ -14,6 +13,7 @@ import type {
 } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { getUserAutocompleteOptions } from "./ReportProjectFileInput";
+import { MultiFileDropzone } from "./MultiFileDropzone";
 
 export const ProjectReportsTab = ({
 	authorName,
@@ -234,6 +234,7 @@ const ProjectReportViewModal = ({
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isFileUploading, setIsFileUploading] = useState(false);
+	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const [deleteConfirmationId, setDeleteConfirmationId] = useState<
 		number | null
 	>(null);
@@ -256,10 +257,11 @@ const ProjectReportViewModal = ({
 			nextReportDate: reportEntry.nextReportDate ?? "",
 			text: reportEntry.text,
 		});
+		setSelectedFiles([]);
 		setError(null);
 		setIsEditing(false);
 		setDeleteConfirmationId(null);
-	}, [reportEntry]);
+	}, [reportEntry?.id]);
 
 	const handleSubmit = async () => {
 		if (!reportEntry) {
@@ -315,22 +317,6 @@ const ProjectReportViewModal = ({
 		}
 	};
 
-	const handleFilesChange = async (files: File[]) => {
-		if (!reportEntry || !files.length) {
-			return;
-		}
-
-		setIsFileUploading(true);
-		setError(null);
-
-		try {
-			await onFileUpload(reportEntry, files);
-		} catch {
-			setError("Не удалось загрузить файлы");
-		} finally {
-			setIsFileUploading(false);
-		}
-	};
 
 	const handleEditCancel = () => {
 		if (!reportEntry) {
@@ -430,31 +416,32 @@ const ProjectReportViewModal = ({
 								/>
 							</label>
 							<div className={styles.projectReportFilePicker}>
-								<span>Файлы</span>
-								<label
-									className={`${projectReportsStyles.projectFileField} ${styles.projectReportCreateFileField}`}
-								>
-									<input
-										type="file"
-										multiple
-										className={projectReportsStyles.projectFileInput}
-										disabled={isSaving || isDeleting || isFileUploading}
-										onChange={(event) => {
-											const selectedFiles = Array.from(
-												event.target.files ?? [],
-											);
+								<MultiFileDropzone
+									label="Файлы отчёта"
+									selectedFiles={selectedFiles}
+									existingFilesCount={reportEntry.files.length}
+									maxFiles={5}
+									isDisabled={isSaving || isDeleting || isFileUploading}
+									isUploading={isFileUploading}
+									onFilesChange={setSelectedFiles}
+									onUpload={async () => {
+										if (!selectedFiles.length) {
+											return;
+										}
 
-											event.target.value = "";
-											void handleFilesChange(selectedFiles);
-										}}
-									/>
-									<strong className={projectReportsStyles.projectFileButton}>
-										{isFileUploading ? "Загрузка..." : "Выбрать файлы"}
-									</strong>
-									<em className={projectReportsStyles.projectFileName}>
-										Можно добавить новые файлы к отчёту
-									</em>
-								</label>
+										setIsFileUploading(true);
+										setError(null);
+
+										try {
+											await onFileUpload(reportEntry, selectedFiles);
+											setSelectedFiles([]);
+										} catch {
+											setError("Не удалось загрузить файлы");
+										} finally {
+											setIsFileUploading(false);
+										}
+									}}
+								/>
 							</div>
 							{error ? <p className={styles.ganttFormError}>{error}</p> : null}
 							<div className={styles.ganttFormActions}>
@@ -623,27 +610,14 @@ const ProjectReportCreateModal = ({
 							/>
 						</label>
 						<div className={styles.projectReportFilePicker}>
-							<span>Файлы</span>
-							<label
-								className={`${projectReportsStyles.projectFileField} ${styles.projectReportCreateFileField}`}
-							>
-								<input
-									type="file"
-									multiple
-									className={projectReportsStyles.projectFileInput}
-									onChange={(event) =>
-										onFilesChange(Array.from(event.target.files ?? []))
-									}
-								/>
-								<strong className={projectReportsStyles.projectFileButton}>
-									Выбрать файлы
-								</strong>
-								<em className={projectReportsStyles.projectFileName}>
-									{fileDrafts.length
-										? `Выбрано файлов: ${fileDrafts.length}`
-										: "Файлы не выбраны"}
-								</em>
-							</label>
+							<MultiFileDropzone
+								label="Файлы"
+								selectedFiles={fileDrafts}
+								existingFilesCount={0}
+								maxFiles={5}
+								isDisabled={isSaving}
+								onFilesChange={onFilesChange}
+							/>
 						</div>
 					</div>
 					{error ? <p className={styles.ganttFormError}>{error}</p> : null}

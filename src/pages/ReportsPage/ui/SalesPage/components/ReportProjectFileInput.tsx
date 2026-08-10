@@ -7,6 +7,7 @@ import type {
 } from "../model/types";
 import type { ReportProjectFormState } from "../model/reportProjectForm";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { MultiFileDropzone } from "./MultiFileDropzone";
 
 export const ReportProjectSection = ({
 	children,
@@ -38,117 +39,73 @@ export const ReportProjectSection = ({
 );
 
 export const ReportProjectFileInput = ({
-	file,
+	files,
 	fileKind,
 	label,
 	onDelete,
 	onDownload,
 	onFileChange,
 	project,
-	selectedFile,
+	selectedFiles = [],
+	onSaveFiles,
+	isSaving,
 	variant = "modal",
 }: {
-	file?: ReportProjectFile;
+	files?: ReportProjectFile[];
 	fileKind: ReportProjectFileKind;
 	label: string;
 	onDelete: (project: ReportProject, file: ReportProjectFile) => void;
 	onDownload: (project: ReportProject, file: ReportProjectFile) => void;
-	onFileChange: (fileKind: ReportProjectFileKind, file?: File) => void;
+	onFileChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	project: ReportProject | null;
-	selectedFile?: File;
+	selectedFiles?: File[];
+	onSaveFiles?: (fileKind: ReportProjectFileKind) => Promise<void> | void;
+	isSaving?: boolean;
 	variant?: "modal" | "details";
 }) => {
-	const inputId = `report-project-file-${fileKind}`;
+	const MAX_FILES = 5;
+	const existingFiles = files ?? [];
 
 	const rootClassName =
 		variant === "details"
 			? `${styles.reportProjectDetailsField} ${styles.reportProjectDetailsWideField}`
 			: `${styles.reportProjectField} ${styles.reportProjectWideField}`;
 
-	const fileFieldClassName =
-		variant === "details"
-			? styles.reportProjectDetailsFileField
-			: styles.reportProjectFileField;
-
-	const fileButtonClassName =
-		variant === "details"
-			? styles.reportProjectDetailsFileButton
-			: styles.reportProjectFileButton;
-
-	const fileNameClassName =
-		variant === "details"
-			? styles.reportProjectDetailsFileName
-			: styles.reportProjectFileName;
-
-	const fileMetaClassName =
-		variant === "details"
-			? styles.reportProjectDetailsFileMeta
-			: styles.reportProjectFileMeta;
-
 	const fileActionsClassName =
 		variant === "details"
 			? styles.reportProjectDetailsFileActions
 			: styles.reportProjectFileActions;
 
-	const deleteButtonClassName =
-		variant === "details"
-			? styles.reportProjectDetailsFileDeleteButton
-			: styles.reportProjectFileDeleteButton;
-
 	return (
 		<div className={rootClassName}>
-			<span>{label}</span>
-
-			<div className={fileFieldClassName}>
-				<input
-					id={inputId}
-					type="file"
-					className={styles.reportProjectFileInput}
-					onChange={(event) => {
-						onFileChange(fileKind, event.target.files?.[0] ?? undefined);
-						event.currentTarget.value = "";
-					}}
-				/>
-
-				<label className={fileButtonClassName} htmlFor={inputId}>
-					Выбрать файл
-				</label>
-
-				<span className={fileNameClassName}>
-					{selectedFile?.name ?? "Файл не выбран"}
-				</span>
-			</div>
-
-			{selectedFile ? (
-				<small className={styles.reportProjectFileHint}>
-					Будет загружен после сохранения
-				</small>
-			) : file ? (
-				<div className={fileMetaClassName}>
-					<strong>{file.originalName}</strong>
-
-					<div className={fileActionsClassName}>
-						<button
-							type="button"
-							onClick={() => project && onDownload(project, file)}
-						>
-							Скачать
-						</button>
-
-						<button
-							type="button"
-							className={deleteButtonClassName}
-							onClick={() => project && onDelete(project, file)}
-						>
-							Удалить
-						</button>
+			<MultiFileDropzone
+				label={label}
+				selectedFiles={selectedFiles}
+				existingFilesCount={existingFiles.length}
+				maxFiles={MAX_FILES}
+				isUploading={isSaving}
+				onFilesChange={(files) => onFileChange(fileKind, files)}
+				onUpload={onSaveFiles ? () => onSaveFiles(fileKind) : undefined}
+				variant={variant}
+			>
+				{existingFiles.length > 0 ? (
+					<div className={styles.reportProjectFileMeta}>
+						{existingFiles.map((file) => (
+							<div key={file.id} className={styles.reportProjectFileMeta}>
+								<strong>{file.originalName}</strong>
+								<div className={fileActionsClassName}>
+									<button type="button" onClick={() => project && onDownload(project, file)}>
+										Скачать
+									</button>
+									<button type="button" onClick={() => project && onDelete(project, file)}>
+										Удалить
+									</button>
+								</div>
+							</div>
+						))}
 					</div>
-				</div>
-			) : (
-				<small className={styles.reportProjectFileHint}>
-					Файл не загружен
-				</small>
-			)}
+				) : null}
+			</MultiFileDropzone>
 		</div>
 	);
 };

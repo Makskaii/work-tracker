@@ -218,10 +218,10 @@ const mergeReportProjectFiles = (
 	files: ReportProjectFile[] = [],
 	updatedFiles: ReportProjectFile[],
 ) => {
-	const result = new Map<ReportProjectFileKind, ReportProjectFile>();
+	const result = new Map<number, ReportProjectFile>();
 
-	files.forEach((file) => result.set(file.fileKind, file));
-	updatedFiles.forEach((file) => result.set(file.fileKind, file));
+	files.forEach((file) => result.set(file.id, file));
+	updatedFiles.forEach((file) => result.set(file.id, file));
 
 	return Array.from(result.values());
 };
@@ -454,6 +454,8 @@ export const SalesProfitabilityReport = ({
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
+	const [savingProjectFileKind, setSavingProjectFileKind] =
+		useState<ReportProjectFileKind | null>(null);
 	const [projectSearchQuery, setProjectSearchQuery] = useState("");
 	const [selectedResponsibleFilter, setSelectedResponsibleFilter] =
 		useState<string>("");
@@ -828,7 +830,9 @@ export const SalesProfitabilityReport = ({
 		JSON.stringify(detailsProjectForm) !==
 		JSON.stringify(initialDetailsProjectForm);
 
-	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some(Boolean);
+	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some(
+		(value) => Array.isArray(value) ? value.length > 0 : Boolean(value),
+	);
 
 	const shouldShowDetailsSave =
 		Boolean(selectedReportProject) &&
@@ -944,12 +948,47 @@ export const SalesProfitabilityReport = ({
 		setIsReportProjectModalOpen(true);
 	};
 
+	const saveProjectFiles = async (fileKind: ReportProjectFileKind) => {
+		if (!editingReportProject) {
+			return;
+		}
+
+		await saveProjectFilesByKind(
+			editingReportProject.id,
+			fileKind,
+			projectFileDrafts[fileKind],
+			() =>
+				setProjectFileDrafts((prev) => ({
+					...prev,
+					[fileKind]: undefined,
+				})),
+		);
+	};
+
+	const saveDetailsProjectFiles = async (fileKind: ReportProjectFileKind) => {
+		if (!selectedReportProject) {
+			return;
+		}
+
+		await saveProjectFilesByKind(
+			selectedReportProject.id,
+			fileKind,
+			detailsFileDrafts[fileKind],
+			() =>
+				setDetailsFileDrafts((prev) => ({
+					...prev,
+					[fileKind]: undefined,
+				})),
+		);
+	};
+
 	const uploadSelectedReportProjectFiles = async (projectId: number) => {
 		const entries = Object.entries(projectFileDrafts) as Array<
-			[ReportProjectFileKind, File | undefined]
+			[ReportProjectFileKind, File[] | undefined]
 		>;
 		const selectedEntries = entries.filter(
-			(entry): entry is [ReportProjectFileKind, File] => Boolean(entry[1]),
+			(entry): entry is [ReportProjectFileKind, File[]] =>
+				Boolean(entry[1] && entry[1].length),
 		);
 
 		if (!selectedEntries.length) {
@@ -957,10 +996,79 @@ export const SalesProfitabilityReport = ({
 		}
 
 		return Promise.all(
-			selectedEntries.map(([fileKind, file]) =>
-				uploadReportProjectFile(projectId, fileKind, file),
+			selectedEntries.flatMap(([fileKind, files]) =>
+				files.map((file) => uploadReportProjectFile(projectId, fileKind, file)),
 			),
 		);
+	};
+
+	const uploadSelectedReportProjectFilesByKind = async (
+		projectId: number,
+		fileKind: ReportProjectFileKind,
+		files: File[] | undefined,
+	) => {
+		if (!files?.length) {
+			return [] as ReportProjectFile[];
+		}
+
+		return Promise.all(
+			files.map((file) => uploadReportProjectFile(projectId, fileKind, file)),
+		);
+	};
+
+	const updateProjectFilesState = (
+		projectId: number,
+		uploadedFiles: ReportProjectFile[],
+	) => {
+		if (!uploadedFiles.length) {
+			return;
+		}
+
+		setReportProjects((prev) =>
+			prev.map((project) =>
+				project.id === projectId
+					? {
+						...project,
+						files: mergeReportProjectFiles(project.files, uploadedFiles),
+					}
+					: project,
+			),
+		);
+
+		setEditingReportProject((prev) =>
+			prev && prev.id === projectId
+				? {
+					...prev,
+					files: mergeReportProjectFiles(prev.files, uploadedFiles),
+				}
+				: prev,
+		);
+	};
+
+	const saveProjectFilesByKind = async (
+		projectId: number,
+		fileKind: ReportProjectFileKind,
+		files: File[] | undefined,
+		clearDrafts: () => void,
+	) => {
+		if (!files?.length) {
+			return;
+		}
+
+		setSavingProjectFileKind(fileKind);
+
+		try {
+			const uploadedFiles = await uploadSelectedReportProjectFilesByKind(
+				projectId,
+				fileKind,
+				files,
+			);
+
+			updateProjectFilesState(projectId, uploadedFiles);
+			clearDrafts();
+		} finally {
+			setSavingProjectFileKind(null);
+		}
 	};
 
 	const downloadProjectFile = async (
@@ -1344,17 +1452,20 @@ export const SalesProfitabilityReport = ({
 			);
 
 			const entries = Object.entries(detailsFileDrafts) as Array<
-				[ReportProjectFileKind, File | undefined]
+				[ReportProjectFileKind, File[] | undefined]
 			>;
 
 			const selectedEntries = entries.filter(
-				(entry): entry is [ReportProjectFileKind, File] => Boolean(entry[1]),
+				(entry): entry is [ReportProjectFileKind, File[]] =>
+					Boolean(entry[1] && entry[1].length),
 			);
 
 			if (selectedEntries.length) {
 				const uploadedFiles = await Promise.all(
-					selectedEntries.map(([fileKind, file]) =>
-						uploadReportProjectFile(selectedReportProject.id, fileKind, file),
+					selectedEntries.flatMap(([fileKind, files]) =>
+						files.map((file) =>
+							uploadReportProjectFile(selectedReportProject.id, fileKind, file),
+						),
 					),
 				);
 
@@ -1701,6 +1812,8 @@ export const SalesProfitabilityReport = ({
 										}
 										onFormChange={setDetailsProjectForm}
 										onSave={handleDetailsProjectSave}
+							onSaveFiles={saveDetailsProjectFiles}
+							savingProjectFileKind={savingProjectFileKind}
 										project={selectedReportProject}
 										shouldShowSave={shouldShowDetailsSave}
 										users={users}
@@ -1788,7 +1901,9 @@ export const SalesProfitabilityReport = ({
 				onSubmit={handleReportProjectSubmit}
 				project={editingReportProject}
 				projectFormError={projectFormError}
-				saving={isReportProjectSaving}
+				onSaveFiles={saveProjectFiles}
+					savingProjectFileKind={savingProjectFileKind}
+					saving={isReportProjectSaving}
 				users={users}
 			/>
 			<PaymentModal

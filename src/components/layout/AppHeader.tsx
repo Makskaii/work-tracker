@@ -2,15 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
 	APP_TITLE,
-	NAV_ITEMS,
+	NAVIGATION_GROUPS,
 	type NavItem,
 	type NavLeaf,
 } from "@/shared/constants/const.nav";
 import styles from "./AppHeader.module.scss";
 
 const getNavIcon = (item: NavItem) => {
-	if (item.type === "section") return "";
-
 	return item.icon ?? item.label.trim().charAt(0).toUpperCase();
 };
 
@@ -19,10 +17,6 @@ const getLeafIcon = (item: NavLeaf) => {
 };
 
 const isSectionActive = (pathname: string, item: NavItem) => {
-	if (item.type === "section") {
-		return false;
-	}
-
 	if (item.type === "link") {
 		if (item.key === "departments-reports") {
 			return pathname.startsWith("/reports");
@@ -37,18 +31,39 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [collapsedSections, setCollapsedSections] = useState<
+		Record<string, boolean>
+	>({
+		"Доп. списки": true,
+	});
 	const location = useLocation();
+	const navItems = useMemo(
+		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
+		[],
+	);
 
 	const activeTopKey = useMemo(() => {
-		const activeItem = NAV_ITEMS.find((item) =>
+		if (location.pathname.startsWith("/reports/calendar")) {
+			return "departments-reports";
+		}
+
+		const activeItem = navItems.find((item) =>
 			isSectionActive(location.pathname, item),
 		);
 
-		return activeItem && activeItem.type !== "section" ? activeItem.key : null;
-	}, [location.pathname]);
+		return activeItem?.key ?? null;
+	}, [location.pathname, navItems]);
+
+	const activeSectionTitle = useMemo(() => {
+		return (
+			NAVIGATION_GROUPS.find((group) =>
+				group.items.some((item) => item.key === activeTopKey),
+			)?.title ?? null
+		);
+	}, [activeTopKey]);
 
 	useEffect(() => {
-		const activeDropdown = NAV_ITEMS.find(
+		const activeDropdown = navItems.find(
 			(item) =>
 				item.type === "dropdown" && isSectionActive(location.pathname, item),
 		);
@@ -56,7 +71,22 @@ export const AppHeader = () => {
 		if (activeDropdown?.type === "dropdown") {
 			setOpenedKey(activeDropdown.key);
 		}
-	}, [location.pathname]);
+	}, [location.pathname, navItems]);
+
+	useEffect(() => {
+		if (!activeSectionTitle) {
+			return;
+		}
+
+		setCollapsedSections((prev) =>
+			prev[activeSectionTitle]
+				? {
+					...prev,
+					[activeSectionTitle]: false,
+				}
+				: prev,
+		);
+	}, [activeSectionTitle]);
 
 	useEffect(() => {
 		document.documentElement.style.setProperty(
@@ -92,51 +122,68 @@ export const AppHeader = () => {
 			</div>
 
 			<nav className={styles.nav}>
-				{NAV_ITEMS.map((item) => {
-					if (item.type === "section") {
-						return (
-							<div key={item.title} className={styles.navSectionTitle}>
-								<span>{item.title}</span>
-								<span className={styles.sectionChevron}>⌄</span>
-							</div>
-						);
-					}
+				{NAVIGATION_GROUPS.map((group) => (
+					<div key={group.title} className={styles.reportsSection}>
+					<button
+						type="button"
+						className={styles.navSectionButton}
+						aria-label={collapsedSections[group.title] ? "Expand section" : "Collapse section"}
+						aria-expanded={!collapsedSections[group.title]}
+						onClick={() => {
+							if (activeSectionTitle === group.title) {
+								return;
+							}
 
-					const isActive = activeTopKey === item.key;
-					const icon = getNavIcon(item);
+							setCollapsedSections((prev) => ({
+								...prev,
+								[group.title]: !prev[group.title],
+							}));
+						}}
+					>
+						<span>{group.title}</span>
+						<span className={styles.sectionToggleIcon}>
+							{collapsedSections[group.title] ? "⌄" : "⌃"}
+						</span>
+					</button>
+						{!collapsedSections[group.title] &&
+							group.items.map((item) => {
+								const isActive = activeTopKey === item.key;
+							const icon = getNavIcon(item);
 
-					if (item.type === "link") {
-						return !item.disabled ? (
-							<NavLink
-								key={item.key}
-								to={item.to}
-								className={({ isActive: linkActive }) =>
-									[
-										styles.navItem,
-										linkActive || isActive ? styles.navItemActive : "",
-									].join(" ")
-								}
-								title={item.label}
-							>
-								<span className={styles.navIcon}>{icon}</span>
-								<span className={styles.navLabel}>{item.label}</span>
-							</NavLink>
-						) : (
-							<div
-								key={item.key}
-								className={styles.navItemDisabled}
-								title={item.label}
-							>
-								<span className={styles.navIcon}>{icon}</span>
-								<span className={styles.navLabel}>{item.label}</span>
-							</div>
-						);
-					}
+							if (item.type === "link") {
+								return !item.disabled ? (
+									<NavLink
+										key={item.key}
+										to={item.to}
+										className={({ isActive: linkActive }) =>
+											[
+												styles.navItem,
+												linkActive || isActive
+													? styles.navItemActive
+													: "",
+											].join(" ")
+										}
+										title={item.label}
+									>
+										<span className={styles.navIcon}>{icon}</span>
+										<span className={styles.navLabel}>{item.label}</span>
+									</NavLink>
+								) : (
+									<div
+										key={item.key}
+										className={styles.navItemDisabled}
+										title={item.label}
+									>
+										<span className={styles.navIcon}>{icon}</span>
+										<span className={styles.navLabel}>{item.label}</span>
+									</div>
+								);
+							}
 
-					const isOpened = isSidebarOpen && openedKey === item.key;
+							const isOpened = isSidebarOpen && openedKey === item.key;
 
-					return (
-						<div key={item.key} className={styles.navItemWrapper}>
+							return (
+								<div key={item.key} className={styles.navItemWrapper}>
 							<button
 								type="button"
 								className={[
@@ -198,9 +245,11 @@ export const AppHeader = () => {
 									)}
 								</div>
 							)}
-						</div>
-					);
-				})}
+								</div>
+							);
+						})}
+					</div>
+				))}
 			</nav>
 		</header>
 	);

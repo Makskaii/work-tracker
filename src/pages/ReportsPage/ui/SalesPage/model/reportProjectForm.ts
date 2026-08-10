@@ -28,7 +28,7 @@ export type ProjectSummaryFormState = Pick<
 	| "educationFactHours"
 >;
 
-export type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File>>;
+export type ReportProjectFileDrafts = Partial<Record<ReportProjectFileKind, File[]>>;
 
 export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	analyst: "",

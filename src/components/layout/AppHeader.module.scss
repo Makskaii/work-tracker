@@ -113,6 +113,44 @@
     text-transform: uppercase;
 }
 
+.navSectionButton {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 30px;
+    margin-top: 10px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #a9b8cc;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.navSectionButton:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text);
+}
+
+.navSectionButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(95, 143, 216, 0.16);
+}
+
+.sectionToggleIcon {
+    color: var(--color-muted);
+    font-size: 14px;
+}
+
 .sectionChevron {
     color: var(--color-muted);
     font-size: 14px;
@@ -386,6 +424,10 @@
 .sidebarCollapsed .nav {
     align-items: center;
     padding: 14px;
+}
+
+.sidebarCollapsed .reportsSection {
+    align-items: center;
 }
 
 .sidebarCollapsed .navItemWrapper,
