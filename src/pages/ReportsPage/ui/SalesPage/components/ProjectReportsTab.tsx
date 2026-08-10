@@ -233,7 +233,6 @@ const ProjectReportViewModal = ({
 	const [isEditing, setIsEditing] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
-	const [isFileUploading, setIsFileUploading] = useState(false);
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const [deleteConfirmationId, setDeleteConfirmationId] = useState<
 		number | null
@@ -286,6 +285,12 @@ const ProjectReportViewModal = ({
 				nextReportDate: draft.nextReportDate || null,
 				text,
 			});
+
+			if (selectedFiles.length) {
+				await onFileUpload(reportEntry, selectedFiles);
+				setSelectedFiles([]);
+			}
+
 			setIsEditing(false);
 		} catch {
 			setError("Не удалось сохранить отчёт");
@@ -342,6 +347,28 @@ const ProjectReportViewModal = ({
 	}
 
 	const authorOptions = getUserAutocompleteOptions(users);
+	const reportFiles = reportEntry?.files.map((file) => (
+		<div key={file.id} className={styles.projectReportFileItem}>
+			<span>
+				{file.originalName}
+				<small>{formatFileSize(file.size)}</small>
+			</span>
+			<div className={styles.projectReportFileActions}>
+				<button
+					type="button"
+					onClick={() => onFileDownload(reportEntry, file)}
+				>
+					Скачать
+				</button>
+				<button
+					type="button"
+					onClick={() => onFileDelete(reportEntry, file)}
+				>
+					Удалить
+				</button>
+			</div>
+		</div>
+	));
 
 	return (
 		<Modal isOpen={Boolean(reportEntry)} onClose={onClose} size="covered">
@@ -351,16 +378,6 @@ const ProjectReportViewModal = ({
 				>
 					<div className={styles.projectReportViewHeader}>
 						<h3>Отчёт по проекту</h3>
-						<button
-							type="button"
-							className={
-								isEditing ? styles.projectReportHiddenAction : undefined
-							}
-							disabled={isSaving || isDeleting || isEditing}
-							onClick={() => setIsEditing(true)}
-						>
-							{isEditing ? "Отменить" : "Редактировать"}
-						</button>
 					</div>
 					{isEditing ? (
 						<div className={styles.projectReportEditForm}>
@@ -421,45 +438,13 @@ const ProjectReportViewModal = ({
 									selectedFiles={selectedFiles}
 									existingFilesCount={reportEntry.files.length}
 									maxFiles={5}
-									isDisabled={isSaving || isDeleting || isFileUploading}
-									isUploading={isFileUploading}
+									isDisabled={isSaving || isDeleting}
 									onFilesChange={setSelectedFiles}
-									onUpload={async () => {
-										if (!selectedFiles.length) {
-											return;
-										}
-
-										setIsFileUploading(true);
-										setError(null);
-
-										try {
-											await onFileUpload(reportEntry, selectedFiles);
-											setSelectedFiles([]);
-										} catch {
-											setError("Не удалось загрузить файлы");
-										} finally {
-											setIsFileUploading(false);
-										}
-									}}
-								/>
+								>
+									{reportFiles}
+								</MultiFileDropzone>
 							</div>
 							{error ? <p className={styles.ganttFormError}>{error}</p> : null}
-							<div className={styles.ganttFormActions}>
-								<button
-									type="button"
-									disabled={isSaving || isFileUploading}
-									onClick={handleEditCancel}
-								>
-									Отмена
-								</button>
-								<button
-									type="button"
-									disabled={isSaving || isFileUploading}
-									onClick={handleSubmit}
-								>
-									{isSaving ? "Сохранение..." : "Сохранить"}
-								</button>
-							</div>
 						</div>
 					) : (
 						<>
@@ -487,45 +472,48 @@ const ProjectReportViewModal = ({
 							</div>
 						</>
 					)}
-					<div className={styles.projectReportFiles}>
-						<strong>Файлы</strong>
-						{reportEntry.files.length ? (
-							reportEntry.files.map((file) => (
-								<div key={file.id} className={styles.projectReportFileItem}>
-									<span>
-										{file.originalName}
-										<small>{formatFileSize(file.size)}</small>
-									</span>
-									<div className={styles.projectReportFileActions}>
-										<button
-											type="button"
-											onClick={() => onFileDownload(reportEntry, file)}
-										>
-											Скачать
-										</button>
-										<button
-											type="button"
-											onClick={() => onFileDelete(reportEntry, file)}
-										>
-											Удалить
-										</button>
-									</div>
-								</div>
-							))
-						) : (
-							<small>Файлы не прикреплены</small>
-						)}
-					</div>
-					<div className={styles.ganttFormActions}>
-						<button
-							type="button"
-							className={styles.ganttFormDeleteButton}
-							disabled={isSaving || isDeleting}
-							onClick={handleDelete}
-						>
-							{deleteButtonText}
-						</button>
-					</div>
+					{!isEditing ? (
+						<div className={styles.projectReportFiles}>
+							<strong>Файлы</strong>
+							{reportEntry.files.length ? reportFiles : <small>Файлы не прикреплены</small>}
+						</div>
+					) : null}
+					{isEditing ? (
+						<div className={styles.ganttFormActions}>
+							<button
+								type="button"
+								disabled={isSaving}
+								onClick={handleEditCancel}
+							>
+								Отмена
+							</button>
+							<button
+								type="button"
+								disabled={isSaving}
+								onClick={handleSubmit}
+							>
+								{isSaving ? "Сохранение..." : "Сохранить"}
+							</button>
+						</div>
+					) : (
+						<div className={styles.ganttFormActions}>
+							<button
+								type="button"
+								className={styles.ganttFormDeleteButton}
+								disabled={isSaving || isDeleting}
+								onClick={handleDelete}
+							>
+								{deleteButtonText}
+							</button>
+							<button
+								type="button"
+								disabled={isSaving || isDeleting}
+								onClick={() => setIsEditing(true)}
+							>
+								Редактировать
+							</button>
+						</div>
+					)}
 				</div>
 			) : null}
 		</Modal>

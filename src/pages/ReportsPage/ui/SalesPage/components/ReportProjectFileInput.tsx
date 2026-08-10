@@ -47,8 +47,6 @@ export const ReportProjectFileInput = ({
 	onFileChange,
 	project,
 	selectedFiles = [],
-	onSaveFiles,
-	isSaving,
 	variant = "modal",
 }: {
 	files?: ReportProjectFile[];
@@ -59,8 +57,6 @@ export const ReportProjectFileInput = ({
 	onFileChange: (fileKind: ReportProjectFileKind, files: File[]) => void;
 	project: ReportProject | null;
 	selectedFiles?: File[];
-	onSaveFiles?: (fileKind: ReportProjectFileKind) => Promise<void> | void;
-	isSaving?: boolean;
 	variant?: "modal" | "details";
 }) => {
 	const MAX_FILES = 5;
@@ -83,9 +79,7 @@ export const ReportProjectFileInput = ({
 				selectedFiles={selectedFiles}
 				existingFilesCount={existingFiles.length}
 				maxFiles={MAX_FILES}
-				isUploading={isSaving}
 				onFilesChange={(files) => onFileChange(fileKind, files)}
-				onUpload={onSaveFiles ? () => onSaveFiles(fileKind) : undefined}
 				variant={variant}
 			>
 				{existingFiles.length > 0 ? (

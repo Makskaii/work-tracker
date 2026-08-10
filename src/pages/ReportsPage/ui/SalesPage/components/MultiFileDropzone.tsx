@@ -149,6 +149,11 @@ export const MultiFileDropzone = ({
 		onFilesChange(nextFiles);
 	};
 
+	const saveSelectedFiles = async () => {
+		await onUpload?.();
+		onFilesChange([]);
+	};
+
 	return (
 		<div className={styles.reportProjectFieldContainer}>
 			{label ? (
@@ -227,7 +232,7 @@ export const MultiFileDropzone = ({
 						<button
 							type="button"
 							className={saveButtonClassName}
-							onClick={() => void onUpload()}
+							onClick={() => void saveSelectedFiles()}
 							disabled={isDisabled || isUploading || !hasSelectedFiles}
 						>
 							{isUploading ? "Сохранение файлов..." : "Сохранить файлы"}
