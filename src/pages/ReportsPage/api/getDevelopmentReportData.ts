@@ -1,6 +1,5 @@
 import type { ReportProps } from "@/components/calendar/types/types";
 import {
-	ActivityType,
 	ReportCodes,
 	TaskCodes,
 } from "@/components/calendar/constants/const";
@@ -26,6 +25,7 @@ const DEVELOPMENT_TASK_SELECT_FIELDS = [
 	"id",
 	"title",
 	"assignedById",
+	"createdTime",
 	"movedTime",
 	"stageId",
 	TaskCodes.estimateTime,
@@ -33,8 +33,6 @@ const DEVELOPMENT_TASK_SELECT_FIELDS = [
 	TaskCodes.project,
 	TaskCodes.parentproject,
 ] as const;
-
-const REPORT_TASK_CHUNK_SIZE = 40;
 
 type CrmItemListResponse<T> = {
 	result?: {
@@ -84,42 +82,73 @@ const fetchAllCrmItems = async <T,>({
 	return items;
 };
 
-const splitIntoChunks = <T,>(items: T[], chunkSize: number): T[][] => {
-	const chunks: T[][] = [];
+const getEarliestTaskCreatedTime = (
+	tasks: TaskProps[],
+	fallback: string,
+): string => {
+	const timestamps = tasks
+		.map((task) => Date.parse(String(task.createdTime ?? "")))
+		.filter(Number.isFinite);
 
-	for (let index = 0; index < items.length; index += chunkSize) {
-		chunks.push(items.slice(index, index + chunkSize));
+	if (!timestamps.length) {
+		return fallback;
 	}
 
-	return chunks;
+	return new Date(Math.min(...timestamps)).toISOString();
 };
 
-const fetchReportsByTaskField = async ({
+const getRelationIds = (value: unknown): string[] => {
+	const values = Array.isArray(value) ? value : [value];
+
+	return values
+		.map((item) => String(item ?? "").trim())
+		.filter(Boolean);
+};
+
+const getReportTaskIds = (report: ReportProps): string[] => [
+	...getRelationIds(report[ReportCodes.parentId]),
+	...getRelationIds(report[ReportCodes.taskId]),
+];
+
+const fetchDevelopmentReports = async ({
 	taskIds,
-	field,
+	reportsFrom,
+	developmentActivityIds,
 	signal,
 }: {
 	taskIds: string[];
-	field: ReportCodes.parentId | ReportCodes.taskId;
+	reportsFrom: string;
+	developmentActivityIds: Array<string | number>;
 	signal?: AbortSignal;
 }): Promise<ReportProps[]> => {
-	const reports: ReportProps[] = [];
+	const taskIdSet = new Set(taskIds);
+	const activityIds = Array.from(
+		new Set(developmentActivityIds.map(String).filter(Boolean)),
+	);
+	const reportPages = await Promise.all(
+		activityIds.map((activityId) =>
+			fetchAllCrmItems<ReportProps>({
+				entityTypeId: EntityTypeIds.reports,
+				select: REPORT_SELECT_FIELDS,
+				filter: {
+					[ReportCodes.activityType]: activityId,
+					">=begindate": reportsFrom,
+				},
+				signal,
+			}),
+		),
+	);
+	const reportsById = new Map<string, ReportProps>();
 
-	for (const taskIdChunk of splitIntoChunks(taskIds, REPORT_TASK_CHUNK_SIZE)) {
-		const chunkReports = await fetchAllCrmItems<ReportProps>({
-			entityTypeId: EntityTypeIds.reports,
-			select: REPORT_SELECT_FIELDS,
-			filter: {
-				[ReportCodes.activityType]: ActivityType.development,
-				[`@${field}`]: taskIdChunk,
-			},
-			signal,
-		});
+	for (const report of reportPages.flat()) {
+		if (!getReportTaskIds(report).some((taskId) => taskIdSet.has(taskId))) {
+			continue;
+		}
 
-		reports.push(...chunkReports);
+		reportsById.set(String(report.id), report);
 	}
 
-	return reports;
+	return Array.from(reportsById.values());
 };
 
 export type DevelopmentReportSourceData = {
@@ -131,11 +160,13 @@ export const getDevelopmentReportData = async ({
 	periodStart,
 	periodEnd,
 	developerIds,
+	developmentActivityIds,
 	signal,
 }: {
 	periodStart: string;
 	periodEnd: string;
 	developerIds: string[];
+	developmentActivityIds: Array<string | number>;
 	signal?: AbortSignal;
 }): Promise<DevelopmentReportSourceData> => {
 	if (!developerIds.length) {
@@ -157,31 +188,19 @@ export const getDevelopmentReportData = async ({
 		new Set(completedTasks.map((task) => String(task.id)).filter(Boolean)),
 	);
 
-	if (!taskIds.length) {
+	if (!taskIds.length || !developmentActivityIds.length) {
 		return { tasks: completedTasks, reports: [] };
 	}
 
-	const [parentLinkedReports, legacyLinkedReports] = await Promise.all([
-		fetchReportsByTaskField({
-			taskIds,
-			field: ReportCodes.parentId,
-			signal,
-		}),
-		fetchReportsByTaskField({
-			taskIds,
-			field: ReportCodes.taskId,
-			signal,
-		}),
-	]);
-
-	const reportsById = new Map<string, ReportProps>();
-
-	for (const report of [...parentLinkedReports, ...legacyLinkedReports]) {
-		reportsById.set(String(report.id), report);
-	}
+	const reports = await fetchDevelopmentReports({
+		taskIds,
+		reportsFrom: getEarliestTaskCreatedTime(completedTasks, periodStart),
+		developmentActivityIds,
+		signal,
+	});
 
 	return {
 		tasks: completedTasks,
-		reports: Array.from(reportsById.values()),
+		reports,
 	};
 };
