@@ -40,6 +40,11 @@ const EMPTY_SOURCE_DATA: DevelopmentReportSourceData = {
 	reports: [],
 };
 
+const DEVELOPMENT_ACTIVITY_NAMES = new Set(["development", "разработка"]);
+
+const isDevelopmentActivityName = (value: string): boolean =>
+	DEVELOPMENT_ACTIVITY_NAMES.has(value.trim().toLocaleLowerCase("ru-RU"));
+
 const numberFormatter = new Intl.NumberFormat("ru-RU", {
 	maximumFractionDigits: 1,
 });
@@ -203,7 +208,7 @@ const getAttributionNote = (task: DevelopmentTaskMetric): string => {
 };
 
 const DevelopmentReport = () => {
-	const { users, projects, month, year, setMonth, setYear } =
+	const { users, projects, activities, month, year, setMonth, setYear } =
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
 	const selectedMonth = month ?? dayjs().month() + 1;
@@ -214,6 +219,7 @@ const DevelopmentReport = () => {
 	const [error, setError] = useState("");
 	const [reloadToken, setReloadToken] = useState(0);
 	const [isRosterWaitExpired, setIsRosterWaitExpired] = useState(false);
+	const [isActivityWaitExpired, setIsActivityWaitExpired] = useState(false);
 	const developers = useMemo(
 		() =>
 			users
@@ -222,6 +228,28 @@ const DevelopmentReport = () => {
 		[users],
 	);
 	const developerIdsKey = developers.map((developer) => developer.id).join(",");
+	const currentDevelopmentActivityIds = useMemo(
+		() =>
+			activities
+				.filter((activity) => isDevelopmentActivityName(activity.NAME))
+				.map((activity) => String(activity.ID)),
+		[activities],
+	);
+	const developmentActivityIds = useMemo(
+		() =>
+			Array.from(
+				new Set([
+					String(ActivityType.development),
+					...currentDevelopmentActivityIds,
+				]),
+			),
+		[currentDevelopmentActivityIds],
+	);
+	const developmentActivityIdsKey = developmentActivityIds.join(",");
+	const developmentActivityIdSet = useMemo(
+		() => new Set(developmentActivityIds),
+		[developmentActivityIds],
+	);
 	const developerIdSet = useMemo(
 		() => new Set(developers.map((developer) => developer.id)),
 		[developers],
@@ -259,9 +287,28 @@ const DevelopmentReport = () => {
 	}, [users.length]);
 
 	useEffect(() => {
-		const developerIds = developerIdsKey.split(",").filter(Boolean);
+		if (activities.length > 0) {
+			setIsActivityWaitExpired(false);
+			return;
+		}
 
-		if (!developerIds.length) {
+		const timeoutId = window.setTimeout(
+			() => setIsActivityWaitExpired(true),
+			10000,
+		);
+
+		return () => window.clearTimeout(timeoutId);
+	}, [activities.length]);
+
+	useEffect(() => {
+		const developerIds = developerIdsKey.split(",").filter(Boolean);
+		const activityIds = developmentActivityIdsKey.split(",").filter(Boolean);
+
+		if (
+			!developerIds.length ||
+			!activities.length ||
+			!currentDevelopmentActivityIds.length
+		) {
 			setSourceData(EMPTY_SOURCE_DATA);
 			setIsLoading(false);
 			return;
@@ -276,6 +323,7 @@ const DevelopmentReport = () => {
 			periodStart: periodStart.format(),
 			periodEnd: periodEnd.format(),
 			developerIds,
+			developmentActivityIds: activityIds,
 			signal: abortController.signal,
 		})
 			.then((data) => {
@@ -283,11 +331,12 @@ const DevelopmentReport = () => {
 					setSourceData(data);
 				}
 			})
-			.catch(() => {
+			.catch((requestError) => {
 				if (abortController.signal.aborted) {
 					return;
 				}
 
+				console.error("Failed to load development report", requestError);
 				setSourceData(EMPTY_SOURCE_DATA);
 				setError("Не удалось загрузить задачи или подтверждённые отчёты.");
 			})
@@ -298,7 +347,15 @@ const DevelopmentReport = () => {
 			});
 
 		return () => abortController.abort();
-	}, [developerIdsKey, periodEnd, periodStart, reloadToken]);
+	}, [
+		activities.length,
+		currentDevelopmentActivityIds.length,
+		developerIdsKey,
+		developmentActivityIdsKey,
+		periodEnd,
+		periodStart,
+		reloadToken,
+	]);
 
 	const report = useMemo(
 		() =>
@@ -324,9 +381,9 @@ const DevelopmentReport = () => {
 					employeeId: sourceReport.assignedById,
 					hours: sourceReport[ReportCodes.timeSpent],
 					isConfirmed: sourceReport.stageId === ReportStageIds.confirmed,
-					isDevelopment:
-						Number(sourceReport[ReportCodes.activityType]) ===
-						ActivityType.development,
+					isDevelopment: developmentActivityIdSet.has(
+						String(sourceReport[ReportCodes.activityType]),
+					),
 					isDepartmentEmployee: developerIdSet.has(
 						String(sourceReport.assignedById),
 					),
@@ -337,7 +394,13 @@ const DevelopmentReport = () => {
 					title: project.title,
 				})),
 			}),
-		[sourceData, developers, developerIdSet, projects],
+		[
+			sourceData,
+			developers,
+			developerIdSet,
+			developmentActivityIdSet,
+			projects,
+		],
 	);
 	const hasReliableDepartmentSample =
 		report.summary.comparableTasks >=
@@ -426,6 +489,19 @@ const DevelopmentReport = () => {
 				<div className={cls.errorState} role="alert">
 					<strong>Не удалось получить состав отдела разработки.</strong>
 					<span>Без списка DEV персональные и отделовые показатели не рассчитываются.</span>
+					<button type="button" onClick={() => window.location.reload()}>
+						Перезагрузить страницу
+					</button>
+				</div>
+			) : activities.length === 0 && !isActivityWaitExpired ? (
+				<div className={cls.loadingState}>
+					<Spinner text="Загружаем справочник активностей" />
+				</div>
+			) : isActivityWaitExpired ||
+				currentDevelopmentActivityIds.length === 0 ? (
+				<div className={cls.errorState} role="alert">
+					<strong>Не найдена активность Development.</strong>
+					<span>Без неё подтверждённые часы разработки нельзя отделить от остальных отчётов.</span>
 					<button type="button" onClick={() => window.location.reload()}>
 						Перезагрузить страницу
 					</button>
