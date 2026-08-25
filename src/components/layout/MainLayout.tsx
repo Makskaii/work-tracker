@@ -65,6 +65,11 @@ export const MainLayout = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
+		if (window.self === window.top) {
+			window.location.replace("/marketplace/app/3/");
+			return;
+		}
+
 		let isMounted = true;
 
 		const getCurrentUserDepartmentInfo = async (
