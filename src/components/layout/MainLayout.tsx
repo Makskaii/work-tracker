@@ -65,10 +65,10 @@ export const MainLayout = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		if (window.self === window.top) {
-			window.location.replace("/marketplace/app/3/");
-			return;
-		}
+		// if (window.self === window.top) {
+		// 	window.location.replace("/marketplace/app/3/");
+		// 	return;
+		// }
 
 		let isMounted = true;
 
@@ -248,8 +248,8 @@ export const MainLayout = () => {
 						overflow: "auto",
 						width: "100%",
 						padding:
-							"clamp(12px, 1.1vw, 20px) clamp(12px, 1.1vw, 20px) clamp(12px, 1.1vw, 20px) var(--app-sidebar-width, 72px)",
-						background: "transparent",
+							"clamp(16px, 1.5vw, 24px) clamp(16px, 1.8vw, 32px) clamp(28px, 3vw, 48px) var(--app-sidebar-width, 72px)",
+						background: "#0d0f11",
 						transition: "padding-left 0.2s ease",
 					}}
 				>

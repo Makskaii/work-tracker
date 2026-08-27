@@ -89,7 +89,7 @@ export const AppHeader = () => {
 	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
-			isSidebarOpen ? "320px" : "72px",
+			isSidebarOpen ? "280px" : "72px",
 		);
 
 		return () => {
