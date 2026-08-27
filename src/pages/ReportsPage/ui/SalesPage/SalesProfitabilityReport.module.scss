@@ -3980,36 +3980,41 @@
 	position: relative;
 	display: grid;
 	grid-template-columns: minmax(320px, 1fr) minmax(420px, 0.8fr);
-	gap: clamp(36px, 4.5vw, 56px);
+	gap: clamp(32px, 4vw, 52px);
 	align-items: center;
-	margin: 16px 16px 8px;
-	padding: 26px 30px;
-	border: 1px solid var(--color-border);
-	border-radius: 24px;
-	background: rgba(15, 28, 44, 0.78);
-	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
+	margin: 16px 16px 10px;
+	padding: 24px 28px;
+	border: 1px solid rgba(125, 137, 145, 0.2);
+	border-radius: 12px;
+	background: #111315;
+	box-shadow: none;
 	text-align: left;
 }
 
 .dealSummaryEditing {
-	border-color: var(--color-border);
-	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
+	border-color: rgba(38, 231, 223, 0.46);
+	box-shadow: 0 0 0 1px rgba(38, 231, 223, 0.08);
 }
 
 .dealSummaryEditButton {
 	position: absolute;
-	top: 14px;
-	right: 14px;
-	width: 30px;
-	height: 30px;
-	border: 0;
-	border-radius: 50%;
+	top: 16px;
+	right: 16px;
+	width: 32px;
+	height: 32px;
+	border: 1px solid transparent;
+	border-radius: 8px;
 	background: transparent;
 	color: var(--color-accent);
 	font-size: 16px;
 	font-weight: 950;
 	line-height: 1;
 	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		border-color: rgba(38, 231, 223, 0.36);
+		background: rgba(38, 231, 223, 0.07);
+	}
 
 	&:disabled {
 		cursor: wait;
@@ -4030,15 +4035,16 @@
 }
 
 .dealSummaryEyebrow {
-	margin-bottom: 10px;
-	font-size: 15px;
+	margin-bottom: 8px;
+	font-size: 12px;
+	letter-spacing: 0.04em;
 }
 
 .dealSummaryMain h3 {
-	margin: 0 0 24px;
+	margin: 0 0 22px;
 	color: var(--color-text);
-	font-size: clamp(24px, 2.4vw, 30px);
-	font-weight: 950;
+	font-size: clamp(24px, 2vw, 30px);
+	font-weight: 800;
 	line-height: 1.08;
 	overflow-wrap: anywhere;
 }
@@ -4054,8 +4060,8 @@
 .dealSummaryMargin {
 	display: block;
 	margin-top: 10px;
-	font-size: clamp(25px, 2.35vw, 32px);
-	font-weight: 950;
+	font-size: clamp(24px, 2.15vw, 30px);
+	font-weight: 800;
 	line-height: 1;
 	white-space: nowrap;
 }
@@ -4135,7 +4141,7 @@ input[type="date"].dealSummaryDateInput {
 
 .dealSummarySide {
 	min-width: 0;
-	max-width: 720px;
+	max-width: 560px;
 	justify-self: end;
 	width: 100%;
 }
@@ -4143,7 +4149,7 @@ input[type="date"].dealSummaryDateInput {
 .dealSummaryStats {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	gap: 12px 28px;
+	gap: 10px;
 	min-width: 0;
 }
 
@@ -4151,23 +4157,27 @@ input[type="date"].dealSummaryDateInput {
 	display: flex;
 	align-items: baseline;
 	justify-content: flex-start;
-	gap: 7px;
+	gap: 10px;
 	min-width: 0;
-	min-height: 30px;
+	min-height: 28px;
+	padding-left: 14px;
+	border-left: 1px solid #2a2f32;
 	white-space: nowrap;
 }
 
 .dealSummaryLabel {
 	min-width: 0;
-	font-size: clamp(15px, 1.35vw, 17px);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
 .dealSummaryValue {
 	color: rgba(245, 248, 255, 0.95);
-	font-size: clamp(16px, 1.45vw, 19px);
-	font-weight: 950;
+	font-size: clamp(15px, 1.25vw, 18px);
+	font-weight: 800;
 	line-height: 1.2;
 	white-space: nowrap;
 }
@@ -4319,10 +4329,10 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .projectHoursSection {
-	margin: 16px;
-	border: 1px solid var(--color-border);
-	border-radius: 8px;
-	background: var(--color-surface);
+	margin: 10px 16px 16px;
+	border: 1px solid #272c2f;
+	border-radius: 12px;
+	background: #111315;
 	overflow: hidden;
 }
 
@@ -4331,20 +4341,21 @@ input[type="date"].dealSummaryDateInput {
 	align-items: center;
 	justify-content: flex-start;
 	gap: 16px;
-	padding: 16px 18px;
-	border-bottom: 1px solid var(--color-border);
+	padding: 18px 20px;
+	border-bottom: 1px solid #25282b;
 	text-align: left;
 
 	h3 {
 		margin: 0;
-		font-size: 16px;
+		font-size: 17px;
+		font-weight: 800;
 	}
 
 	p {
 		margin: 4px 0 0;
 		color: rgba(238, 245, 255, 0.58);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: 11px;
+		font-weight: 600;
 	}
 }
 
@@ -4357,30 +4368,30 @@ input[type="date"].dealSummaryDateInput {
 	display: grid;
 	grid-template-columns: minmax(160px, 1.2fr) repeat(3, minmax(100px, 0.7fr)) minmax(220px, 1.4fr);
 	align-items: center;
-	gap: 14px;
+	gap: 16px;
 	min-width: 820px;
-	padding: 12px 18px;
+	padding: 14px 20px;
 }
 
 .projectHoursTableHead {
-	background: var(--color-surface-soft);
-	color: rgba(238, 245, 255, 0.58);
-	font-size: 11px;
-	font-weight: 900;
+	background: #15181b;
+	color: #7f888d;
+	font-size: 10px;
+	font-weight: 700;
 	text-transform: uppercase;
 }
 
 .projectHoursRow {
-	min-height: 58px;
-	border-top: 1px solid var(--color-border);
+	min-height: 64px;
+	border-top: 1px solid #25282b;
 	font-size: 13px;
 
 	>strong {
-		font-size: 14px;
+		font-size: 13px;
 	}
 
 	>span {
-		font-weight: 850;
+		font-weight: 700;
 	}
 }
 
@@ -4391,9 +4402,9 @@ input[type="date"].dealSummaryDateInput {
 	gap: 10px;
 
 	>div {
-		height: 16px;
-		border-radius: 5px;
-		background: rgba(158, 176, 199, 0.16);
+		height: 18px;
+		border-radius: 6px;
+		background: #242a2d;
 		overflow: hidden;
 	}
 
@@ -4401,7 +4412,7 @@ input[type="date"].dealSummaryDateInput {
 		display: block;
 		height: 100%;
 		border-radius: inherit;
-		background: var(--color-success);
+		background: linear-gradient(90deg, #4aa96e, #66ca88);
 		transition: width 180ms ease;
 	}
 

@@ -165,6 +165,18 @@ export const SummaryCards = ({
 						{formatHours(summary.purchasedHours)}
 					</strong>
 				</div>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Факт:</span>
+					<strong
+						className={`${styles.dealSummaryValue} ${
+							summary.factHours > summary.planHours
+								? styles.dealSummaryFactOverPlan
+								: styles.dealSummaryFactWithinPlan
+						}`}
+					>
+						{formatHours(summary.factHours)}
+					</strong>
+				</div>
 			</div>
 			{saveError ? <p className={styles.dealSummaryError}>{saveError}</p> : null}
 			{isEditing ? (

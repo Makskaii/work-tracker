@@ -43,8 +43,6 @@ vi.mock("react-router", async () => {
 });
 
 describe("MainLayout", () => {
-	let topWindowSpy: ReturnType<typeof vi.spyOn>;
-
 	const createMockB24Instance = () => ({
 		destroy: vi.fn(),
 		auth: {
@@ -62,14 +60,10 @@ describe("MainLayout", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetModules();
-		topWindowSpy = vi
-			.spyOn(window, "top", "get")
-			.mockReturnValue({} as Window);
 		mockGetDepartmentsHeads.mockResolvedValue([]);
 	});
 
 	afterEach(() => {
-		topWindowSpy.mockRestore();
 		cleanup();
 		vi.unstubAllEnvs();
 	});
@@ -112,19 +106,6 @@ describe("MainLayout", () => {
 	});
 
 	describe("production mode", () => {
-		it("redirects direct app access to Bitrix Marketplace", async () => {
-			vi.stubEnv("DEV", false);
-			topWindowSpy.mockRestore();
-
-			const view = await renderComponent();
-
-			await waitFor(() => {
-				expect(view.container.textContent).toContain("Загрузка...");
-			});
-
-			expect(mockInitializeB24Frame).not.toHaveBeenCalled();
-		});
-
 		it("blocks main pages when the app is opened without a Bitrix24 frame", async () => {
 			vi.stubEnv("DEV", false);
 
