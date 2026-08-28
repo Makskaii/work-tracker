@@ -253,7 +253,7 @@ const GANTT_DEFAULT_PIXELS_PER_DAY = 10;
 const GANTT_MIN_PIXELS_PER_DAY = 2;
 const GANTT_MAX_PIXELS_PER_DAY = 50;
 const GANTT_ZOOM_STEP = 1;
-const GANTT_STAGE_COLUMN_WIDTH = 190;
+const GANTT_STAGE_COLUMN_WIDTH = 260;
 
 type TimelineZoomAnchor = {
 	date: Date;
@@ -2982,7 +2982,7 @@ const AutonomousStageRow = ({
 			>
 				{isGroupStage ? (
 					<span className={styles.ganttGroupType}>
-						{row.stage.stageType
+						{row.stage.stageType && row.stage.stageType !== "payments"
 							? getStageTypeLabel(row.stage.stageType)
 							: "Этап проекта"}
 					</span>
@@ -3011,9 +3011,35 @@ const AutonomousStageRow = ({
 							: row.stage.title}
 					</strong>
 					{isGroupStage ? (
-						<span className={styles.ganttGroupCount}>
-							{childStageCount}
-						</span>
+						<div className={styles.ganttGroupMeta}>
+							<span className={styles.ganttGroupCount}>{childStageCount}</span>
+							<div className={styles.ganttGroupStatusWrapper}>
+								<button
+									type="button"
+									className={`${styles.ganttGroupStatus} ${getGroupStatusClassName(row.stage.groupStatus)}`}
+									onClick={() => setIsStatusMenuOpen((isOpen) => !isOpen)}
+								>
+									{getGroupStatusLabel(row.stage.groupStatus)}
+								</button>
+								{isStatusMenuOpen ? (
+									<div className={styles.ganttGroupStatusMenu}>
+										{GROUP_STATUS_OPTIONS.map((option) => (
+											<button
+												type="button"
+												key={option.value}
+												className={`${styles.ganttGroupStatusMenuItem} ${getGroupStatusClassName(option.value)}`}
+												onClick={() => {
+													onGroupStatusChange(row.stage, option.value);
+													setIsStatusMenuOpen(false);
+												}}
+											>
+												{option.label}
+											</button>
+										))}
+									</div>
+								) : null}
+							</div>
+						</div>
 					) : null}
 					{!row.stage.isDefault && !isPaymentsStage ? (
 						<div className={styles.ganttStageActions}>
@@ -3058,36 +3084,6 @@ const AutonomousStageRow = ({
 							? `${row.payments.length} платежей`
 							: "Платежи проекта"}
 					</span>
-				) : null}
-				{isGroupStage ? (
-					<div className={styles.ganttGroupMeta}>
-						<div className={styles.ganttGroupStatusWrapper}>
-							<button
-								type="button"
-								className={`${styles.ganttGroupStatus} ${getGroupStatusClassName(row.stage.groupStatus)}`}
-								onClick={() => setIsStatusMenuOpen((isOpen) => !isOpen)}
-							>
-								{getGroupStatusLabel(row.stage.groupStatus)}
-							</button>
-							{isStatusMenuOpen ? (
-								<div className={styles.ganttGroupStatusMenu}>
-									{GROUP_STATUS_OPTIONS.map((option) => (
-										<button
-											type="button"
-											key={option.value}
-											className={`${styles.ganttGroupStatusMenuItem} ${getGroupStatusClassName(option.value)}`}
-											onClick={() => {
-												onGroupStatusChange(row.stage, option.value);
-												setIsStatusMenuOpen(false);
-											}}
-										>
-											{option.label}
-										</button>
-									))}
-								</div>
-							) : null}
-						</div>
-					</div>
 				) : null}
 			</div>
 			<div

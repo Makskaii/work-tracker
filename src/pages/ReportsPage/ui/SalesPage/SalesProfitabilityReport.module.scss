@@ -1947,7 +1947,8 @@
 	min-width: 0;
 	font-size: 12px !important;
 	line-height: 1.25;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
+	word-break: normal;
 	white-space: normal;
 }
 
@@ -2042,18 +2043,26 @@
 	z-index: 2;
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
-	width: 34px;
+	justify-content: flex-start;
+	width: auto;
 	height: 34px;
 	margin: 18px 0 18px 18px;
+	padding: 0 14px 0 8px;
 	border: 1px solid var(--color-border-active);
-	border-radius: 999px;
+	border-radius: 8px;
 	background: rgba(46, 197, 173, 0.14);
 	color: var(--color-accent);
-	font-size: 24px;
+	font-size: 16px;
 	font-weight: 900;
 	line-height: 1;
 	cursor: pointer;
+}
+
+.ganttAddEventButton::after {
+	margin-left: 8px;
+	content: "Добавить этап";
+	font-size: 15px;
+	font-weight: 800;
 }
 
 .ganttAddEventButton:hover {
@@ -3628,7 +3637,8 @@
 .ganttGroupMeta {
 	display: flex;
 	align-items: center;
-	margin-top: 4px;
+	justify-content: flex-end;
+	gap: 8px;
 }
 
 .ganttGroupStatusWrapper {
