@@ -1620,16 +1620,18 @@ export const SalesProfitabilityReport = ({
 
 					<div className={styles.content}>
 						<div className={styles.tabs}>
-							{tabs.map((tab) => (
-								<button
-									key={tab.id}
-									type="button"
-									className={activeTab === tab.id ? styles.activeTab : ""}
-									onClick={() => setActiveTab(tab.id)}
-								>
-									{tab.title}
-								</button>
-							))}
+							<div className={styles.tabsList}>
+								{tabs.map((tab) => (
+									<button
+										key={tab.id}
+										type="button"
+										className={activeTab === tab.id ? styles.activeTab : ""}
+										onClick={() => setActiveTab(tab.id)}
+									>
+										{tab.title}
+									</button>
+								))}
+							</div>
 							<button
 								type="button"
 								className={`${styles.marginalityTabButton} ${
