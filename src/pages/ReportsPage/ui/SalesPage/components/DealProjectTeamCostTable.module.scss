@@ -3,9 +3,9 @@
 	width: 100%;
 	min-width: 0;
 	max-width: 100%;
-	border: 1px solid var(--color-border);
-	border-radius: 18px;
-	background: rgba(15, 28, 44, 0.72);
+	border: 1px solid #272c2f;
+	border-radius: 12px;
+	background: #111315;
 	overflow: hidden;
 }
 
@@ -18,20 +18,21 @@
 }
 
 .teamHeader {
-	padding: 16px;
+	padding: 18px 20px;
+	border-bottom: 1px solid #25282b;
 }
 
 .teamTitle {
-	font-size: 18px;
-	font-weight: 900;
+	font-size: 17px;
+	font-weight: 800;
 	text-align: left;
 }
 
 .teamSubtitle {
 	margin-top: 5px;
-	color: rgba(238, 245, 255, 0.62);
+	color: var(--color-muted);
 	font-size: 12px;
-	font-weight: 800;
+	font-weight: 600;
 	text-align: left;
 }
 
@@ -66,8 +67,8 @@
 }
 
 .projectTeamHead {
-	background: rgba(22, 36, 55, 0.72);
-	color: rgba(238, 245, 255, 0.62);
+	background: var(--color-surface-soft);
+	color: var(--color-muted);
 	font-size: 12px;
 	font-weight: 900;
 }
@@ -83,13 +84,13 @@
 }
 
 .projectTeamTotalRow {
-	background: rgba(22, 36, 55, 0.42);
-	color: rgba(238, 245, 255, 0.72);
+	background: var(--color-surface-hover);
+	color: var(--color-text);
 	font-weight: 900;
 }
 
 .emptyEmployee {
-	color: rgba(238, 245, 255, 0.5);
+	color: var(--color-muted);
 	font-weight: 900;
 }
 
@@ -108,14 +109,14 @@
 }
 
 .teamHead {
-	background: rgba(22, 36, 55, 0.72);
-	color: rgba(238, 245, 255, 0.62);
-	font-size: 12px;
-	font-weight: 900;
+	background: #15181b;
+	color: #7f888d;
+	font-size: 10px;
+	font-weight: 700;
 }
 
 .teamRow {
-	color: var(--color-text);
+	color: #e8ecee;
 }
 
 .teamRow span,
@@ -133,12 +134,12 @@
 	display: inline-flex;
 	width: fit-content;
 	max-width: 100%;
-	padding: 5px 9px;
-	border-radius: 999px;
-	background: rgba(111, 168, 255, 0.14);
-	color: var(--color-accent-blue);
-	font-size: 12px;
-	font-weight: 900;
+	padding: 4px 7px;
+	border-radius: 5px;
+	background: rgba(105, 215, 243, 0.1);
+	color: var(--color-accent);
+	font-size: 10px;
+	font-weight: 700;
 }
 
 .roleCellEmpty {
@@ -160,24 +161,24 @@
 
 .employeeCell span {
 	margin-top: 4px;
-	color: rgba(238, 245, 255, 0.66);
-	font-size: 12px;
-	font-weight: 700;
+	color: #858d91;
+	font-size: 10px;
+	font-weight: 600;
 }
 
 .hoursBadge {
 	display: inline-flex;
 	width: fit-content;
-	padding: 5px 9px;
-	border-radius: 999px;
-	background: rgba(111, 168, 255, 0.16);
-	color: #7fb0ff;
-	font-weight: 950;
+	padding: 4px 7px;
+	border-radius: 5px;
+	background: #1a1e20;
+	color: #c7cccf;
+	font-weight: 700;
 }
 
 .factBadgeGood {
-	background: rgba(72, 217, 140, 0.14);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .factBadgeOverrun {
@@ -191,22 +192,22 @@
 }
 
 .groupTotal {
-	background: rgba(22, 36, 55, 0.42);
-	color: rgba(238, 245, 255, 0.72);
-	font-size: 13px;
-	font-weight: 900;
+	background: #15181b;
+	color: #aeb4b7;
+	font-size: 12px;
+	font-weight: 700;
 }
 
 .grandTotal {
-	background: rgba(57, 214, 238, 0.12);
-	color: var(--color-text);
-	font-size: 14px;
-	font-weight: 950;
+	background: var(--color-accent-soft);
+	color: #ffffff;
+	font-size: 13px;
+	font-weight: 800;
 }
 
 .emptyState {
 	padding: 20px;
-	color: rgba(238, 245, 255, 0.64);
+	color: var(--color-muted);
 	text-align: center;
 	font-weight: 800;
 }

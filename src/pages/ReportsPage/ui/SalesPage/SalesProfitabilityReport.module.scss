@@ -2,16 +2,16 @@
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	height: calc(100vh - 36px);
+	gap: 0;
+	height: 100%;
 	min-width: 0;
 	min-height: 0;
-	padding: 18px;
-	border: 1px solid var(--color-border);
-	border-radius: 24px;
-	background: rgba(15, 28, 44, 0.86);
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: #0d0f11;
 	color: var(--color-text);
-	box-shadow: 0 18px 44px rgba(1, 8, 14, 0.28);
+	box-shadow: none;
 }
 
 .layout {
@@ -19,7 +19,7 @@
 	display: grid;
 	--structure-width: 320px;
 	grid-template-columns: var(--structure-width) minmax(0, 1fr);
-	gap: 18px;
+	gap: 0;
 	align-items: start;
 	flex: 1 1 auto;
 	height: 100%;
@@ -38,9 +38,9 @@
 	height: 100%;
 	min-width: 0;
 	min-height: 0;
-	border: 1px solid var(--color-border);
-	border-radius: 20px;
-	background: var(--color-surface);
+	border: 0;
+	border-radius: 0;
+	background: #0d0f11;
 	overflow: auto;
 }
 
@@ -55,9 +55,10 @@
 	height: 100%;
 	min-height: 0;
 	padding: 18px 16px 0;
-	border: 1px solid #272c2f;
-	border-radius: 16px;
-	background: #0d0f11;
+	border: 0;
+	border-right: 1px solid #25282b;
+	border-radius: 0;
+	background: #0b0c0e;
 	overflow: hidden;
 	box-shadow: none;
 	transition:
@@ -1153,7 +1154,7 @@
 }
 
 .successText {
-	color: #48d98c !important;
+	color: var(--color-success) !important;
 }
 
 .amountText {
@@ -1227,8 +1228,8 @@
 }
 
 .paymentLegend .paymentPaid {
-	background: rgba(72, 217, 140, 0.16);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .paymentLegend .paymentPlanned {
@@ -1718,8 +1719,8 @@
 .ganttDateDragHandleFact {
 	top: 15px;
 	z-index: 9;
-	border-color: rgba(38, 240, 233, 0.38);
-	background: rgba(38, 240, 233, 0.22);
+	border-color: rgba(105, 215, 243, 0.38);
+	background: rgba(105, 215, 243, 0.22);
 }
 
 .ganttDependencyHandle {
@@ -1858,29 +1859,29 @@
 }
 
 .ganttAutonomousEventClosing {
-	border-color: rgba(118, 98, 255, 0.78);
-	background: #7662ff;
+	border-color: rgba(139, 82, 246, 0.78);
+	background: #8b52f6;
 	color: #ffffff;
 
 	b {
-		background: #7662ff;
+		background: #8b52f6;
 	}
 }
 
 .ganttAutonomousEventPlan {
 	z-index: 1;
-	border-color: rgba(239, 126, 42, 0.72);
-	background: #ef7e2a;
+	border-color: rgba(105, 215, 243, 0.72);
+	background: #69d7f3;
 }
 
 .ganttAutonomousEventFact {
 	z-index: 4;
-	border-color: rgba(19, 139, 109, 0.72);
-	background: #138b6d;
+	border-color: rgba(86, 184, 122, 0.72);
+	background: #56b87a;
 	color: #ffffff;
 
 	b {
-		background: #138b6d;
+		background: #56b87a;
 	}
 }
 
@@ -1897,23 +1898,23 @@
 
 .ganttAutonomousEventEarly {
 	z-index: 3;
-	border-color: rgba(142, 124, 255, 0.78);
-	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
+	border-color: rgba(139, 82, 246, 0.78);
+	background: repeating-linear-gradient(45deg, #8b52f6 0 6px, #443b7e 6px 12px);
 	color: #ffffff;
 
 	b {
-		background: #8e7cff;
+		background: #8b52f6;
 	}
 }
 
 .ganttAutonomousEventReserve {
 	z-index: 2;
-	border-color: rgba(108, 204, 165, 0.78);
-	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
+	border-color: rgba(86, 184, 122, 0.78);
+	background: repeating-linear-gradient(45deg, #56b87a 0 6px, #264d48 6px 12px);
 	color: #ffffff;
 
 	b {
-		background: #6ccca5;
+		background: #56b87a;
 	}
 }
 
@@ -3159,8 +3160,8 @@
 }
 
 .paymentItem .paymentPaid {
-	background: rgba(72, 217, 140, 0.16);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .paymentPlanned {
@@ -3189,8 +3190,8 @@
 }
 
 .paymentpaid {
-	background: rgba(72, 217, 140, 0.16);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .paymentcanceled {
@@ -3505,11 +3506,11 @@
 }
 
 .legendPlan {
-	background: #ef7e2a;
+	background: #69d7f3;
 }
 
 .legendFact {
-	background: #138b6d;
+	background: #56b87a;
 }
 
 .legendLate {
@@ -3517,7 +3518,7 @@
 }
 
 .legendEarly {
-	background: repeating-linear-gradient(45deg, #8e7cff 0 5px, #443b7e 5px 10px);
+	background: repeating-linear-gradient(45deg, #8b52f6 0 5px, #443b7e 5px 10px);
 }
 
 .legendOverdue {
@@ -3525,7 +3526,7 @@
 }
 
 .legendReserve {
-	background: repeating-linear-gradient(45deg, #6ccca5 0 5px, #264d48 5px 10px);
+	background: repeating-linear-gradient(45deg, #56b87a 0 5px, #264d48 5px 10px);
 }
 
 .legendSign {
@@ -3534,7 +3535,7 @@
 }
 
 .legendClose {
-	background: #7662ff;
+	background: #8b52f6;
 	border-radius: 999px !important;
 }
 
@@ -3612,10 +3613,10 @@
 	top: 0;
 	bottom: 0;
 	width: 0;
-	border-left: 2px solid rgba(38, 240, 233, 0.9);
+	border-left: 2px solid rgba(105, 215, 243, 0.9);
 	box-shadow:
 		0 0 0 1px rgba(255, 255, 255, 0.12),
-		0 0 14px rgba(38, 240, 233, 0.36);
+		0 0 14px rgba(105, 215, 243, 0.36);
 	transform: translateX(-1px);
 	z-index: 1;
 	pointer-events: none;
@@ -3625,11 +3626,11 @@
 	position: absolute;
 	top: 50px;
 	padding: 2px 7px;
-	border: 1px solid rgba(38, 240, 233, 0.55);
+	border: 1px solid rgba(105, 215, 243, 0.55);
 	border-radius: 6px;
-	background: rgb(15, 28, 44);
+	background: var(--color-surface);
 	box-shadow: 0 4px 12px rgba(3, 10, 20, 0.28);
-	color: #26f0e9;
+	color: var(--color-accent);
 	font-size: 11px;
 	font-weight: 950;
 	line-height: 1.2;
@@ -3736,7 +3737,7 @@
 	display: inline-flex;
 	min-height: auto;
 	align-items: center;
-	color: #26f0e9;
+	color: var(--color-accent);
 	font-size: 11px;
 	line-height: 1.2;
 	transform: translateX(-50%);
@@ -3806,8 +3807,8 @@
 .ganttPlan {
 	top: 25px;
 	height: 26px;
-	background: rgba(111, 168, 255, 0.2);
-	border: 1px solid rgba(111, 168, 255, 0.52);
+	background: rgba(105, 215, 243, 0.2);
+	border: 1px solid rgba(105, 215, 243, 0.52);
 }
 
 .ganttFact {
@@ -3815,7 +3816,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #138b6d;
+	background: #56b87a;
 	color: #ffffff;
 	font-size: 10px;
 	font-weight: 950;
@@ -3828,7 +3829,7 @@
 
 .ganttEarly {
 	z-index: 3;
-	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
+	background: repeating-linear-gradient(45deg, #8b52f6 0 6px, #443b7e 6px 12px);
 }
 
 .ganttOverdue {
@@ -3895,7 +3896,7 @@
 
 .ganttReserve {
 	z-index: 2;
-	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
+	background: repeating-linear-gradient(45deg, #56b87a 0 6px, #264d48 6px 12px);
 }
 
 .ganttStatus {
@@ -3945,7 +3946,7 @@
 }
 
 .ganttMilestoneAccent b {
-	background: #7662ff;
+	background: #8b52f6;
 }
 
 .ganttPaymentMarker {

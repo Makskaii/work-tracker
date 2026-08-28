@@ -383,8 +383,8 @@
 }
 
 .payChipClient {
-    background: rgba(72, 217, 140, 0.08);
-    color: #48d98c;
+    background: var(--color-success-soft);
+    color: var(--color-success);
 }
 
 .payChipCompany {
@@ -398,8 +398,8 @@
 }
 
 .payChipNotWork {
-    background: rgba(154, 174, 196, 0.09);
-    color: #9aaec4;
+    background: var(--color-payment-neutral-surface);
+    color: var(--color-muted);
 }
 
 .hoursChip {

@@ -5,34 +5,34 @@
 	color-scheme: dark;
 	color: var(--color-text);
 	background: transparent;
-	--color-bg: #07111c;
-	--color-surface: #0f1c2c;
-	--color-surface-soft: #162437;
-	--color-surface-hover: #203149;
-	--color-border: #263a55;
-	--color-border-active: #26e7df;
-	--color-text: #eef5ff;
-	--color-muted: #9aaec4;
-	--color-accent: #26e7df;
-	--color-accent-soft: rgba(38, 231, 223, 0.12);
-	--color-link: #6aa7ff;
-	--color-success: #48d98c;
-	--color-success-soft: rgba(72, 217, 140, 0.12);
-	--color-warning-soft: rgba(255, 191, 77, 0.12);
-	--color-danger-soft: rgba(255, 107, 107, 0.12);
-	--color-border-soft: rgba(93, 141, 206, 0.16);
-	--color-accent-blue: #6fa8ff;
-	--color-warning: #f7a313;
-	--color-danger: #ef5b67;
-	--color-success-surface: #123c3c;
+	--color-bg: #08090a;
+	--color-surface: #111315;
+	--color-surface-soft: #15181b;
+	--color-surface-hover: #1b1e21;
+	--color-border: #25282b;
+	--color-border-active: #69d7f3;
+	--color-text: #f2f4f5;
+	--color-muted: #9ba3a8;
+	--color-accent: #69d7f3;
+	--color-accent-soft: rgba(105, 215, 243, 0.12);
+	--color-link: #69d7f3;
+	--color-success: #56b87a;
+	--color-success-soft: rgba(86, 184, 122, 0.12);
+	--color-warning-soft: rgba(240, 184, 78, 0.12);
+	--color-danger-soft: rgba(229, 93, 102, 0.12);
+	--color-border-soft: rgba(125, 137, 145, 0.13);
+	--color-accent-blue: #82e3fa;
+	--color-warning: #f0b84e;
+	--color-danger: #e55d66;
+	--color-success-surface: #163525;
 	--color-payment-client: var(--color-accent-blue);
-	--color-payment-client-surface: rgba(111, 168, 255, 0.18);
-	--color-payment-company: #ffbf3f;
-	--color-payment-company-surface: rgba(255, 191, 63, 0.16);
-	--color-payment-unpaid: #ff6875;
-	--color-payment-unpaid-surface: rgba(255, 104, 117, 0.16);
-	--color-payment-neutral: #9eb0c7;
-	--color-payment-neutral-surface: rgba(158, 176, 199, 0.16);
+	--color-payment-client-surface: rgba(130, 227, 250, 0.16);
+	--color-payment-company: #f0b84e;
+	--color-payment-company-surface: rgba(240, 184, 78, 0.16);
+	--color-payment-unpaid: #e55d66;
+	--color-payment-unpaid-surface: rgba(229, 93, 102, 0.16);
+	--color-payment-neutral: #9ba3a8;
+	--color-payment-neutral-surface: rgba(155, 163, 168, 0.16);
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -41,7 +41,7 @@
 	-moz-osx-font-smoothing: grayscale;
 
 	scrollbar-width: thin;
-	scrollbar-color: var(--color-border-active) var(--color-bg);
+	scrollbar-color: #3a4044 var(--color-bg);
 
 	&::-webkit-scrollbar {
 		width: 6px;
@@ -53,11 +53,11 @@
 	}
 
 	&::-webkit-scrollbar-thumb {
-		background: var(--color-border-active);
+		background: #3a4044;
 		border-radius: 3px;
 
 		&:hover {
-			background: var(--color-accent-blue);
+			background: var(--color-accent);
 		}
 	}
 }
@@ -88,10 +88,7 @@ a.pending {
 body {
 	margin: 0;
 	min-height: 100vh;
-	background:
-		radial-gradient(circle at 20% 10%, rgba(38, 231, 223, 0.18), transparent 32%),
-		linear-gradient(180deg, rgba(2, 8, 18, 0.44), rgba(2, 8, 18, 0.72)),
-		url("/images/workdesk-bg.jpg") center / cover fixed;
+	background: var(--color-bg);
 	color: var(--color-text);
 }
 
@@ -101,9 +98,7 @@ body::before {
 	inset: 0;
 	pointer-events: none;
 	z-index: -1;
-	background:
-		linear-gradient(90deg, rgba(4, 14, 28, 0.34), rgba(4, 14, 28, 0.08) 45%, rgba(4, 14, 28, 0.34)),
-		radial-gradient(circle at 72% 22%, rgba(25, 213, 207, 0.16), transparent 30%);
+	background: transparent;
 }
 
 h1 {
@@ -137,14 +132,14 @@ button:focus {
 }
 
 button:focus-visible {
-	outline: 1px solid rgba(38, 231, 223, 0.45);
+	outline: 1px solid rgba(105, 215, 243, 0.45);
 	outline-offset: 2px;
 }
 
 button:disabled {
-	background-color: #102036;
+	background-color: #1a1e20;
 	border-color: var(--color-border);
-	color: #53657a;
+	color: #697176;
 	cursor: not-allowed;
 }
 
@@ -160,7 +155,7 @@ input:focus,
 select:focus,
 textarea:focus {
 	border-color: var(--color-accent);
-	outline: 2px solid rgba(57, 214, 238, 0.24);
+	outline: 2px solid rgba(105, 215, 243, 0.24);
 }
 
 @media (prefers-color-scheme: light) {

@@ -37,8 +37,8 @@ export const getColorAndBorderByActivity = (
 			};
 		case ActivityType.clientCall:
 			return {
-				background: "rgba(111, 168, 255, 0.18)",
-				borderLeft: "4px solid #6fa8ff",
+				background: "rgba(130, 227, 250, 0.16)",
+				borderLeft: "4px solid #82e3fa",
 			};
 		case ActivityType.analitycsCall:
 			return {

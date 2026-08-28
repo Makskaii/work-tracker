@@ -27,17 +27,17 @@ const DEPARTMENTS: Array<{
 	{
 		key: "analytics",
 		label: "Бизнес аналитики",
-		color: "#6fa8ff",
+		color: "#69d7f3",
 	},
 	{
 		key: "development",
 		label: "Разработка",
-		color: "#ff6b6b",
+		color: "#f0b84e",
 	},
 	{
 		key: "testing",
 		label: "Тестирование",
-		color: "#48d98c",
+		color: "#56b87a",
 	},
 ];
 
@@ -369,7 +369,7 @@ export const DealWorkDensityChart = ({
 																DEPARTMENTS.find(
 																	(department) =>
 																		department.key === activeFilter,
-																)?.color ?? "#6fa8ff",
+										)?.color ?? "#69d7f3",
 														}}
 													/>
 												)}
