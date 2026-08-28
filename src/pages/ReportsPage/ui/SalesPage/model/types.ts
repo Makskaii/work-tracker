@@ -124,6 +124,12 @@ export type ProjectGanttStageType =
 	| "delivery"
 	| "closing";
 
+export type ProjectGanttGroupStatus =
+	| "not_started"
+	| "in_progress"
+	| "inactive"
+	| "completed";
+
 export type ProjectGanttStage = {
 	id: number;
 	projectId: string;
@@ -135,6 +141,9 @@ export type ProjectGanttStage = {
 	durationDays: number | null;
 	sortOrder: number;
 	isDefault: boolean;
+	isGroup: boolean;
+	parentStageId: number | null;
+	groupStatus: ProjectGanttGroupStatus | null;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -147,6 +156,9 @@ export type ProjectGanttStagePayload = {
 	dependencyAnchor?: ProjectGanttDependencyAnchor | null;
 	durationDays?: number | null;
 	sortOrder?: number | null;
+	isGroup?: boolean;
+	parentStageId?: number | null;
+	groupStatus?: ProjectGanttGroupStatus | null;
 };
 
 export type ProjectGanttEvent = {

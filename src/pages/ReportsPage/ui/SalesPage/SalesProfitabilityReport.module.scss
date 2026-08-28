@@ -3511,6 +3511,235 @@
 	background: #69d7f3;
 }
 
+.ganttStageActions {
+	position: relative;
+
+	.ganttCustomEventMenu {
+		width: 164px;
+	}
+}
+
+.ganttParentRowInfo {
+	padding: 8px 14px;
+	background: #171a1d;
+
+	.ganttCustomEventHeader {
+		grid-template-columns: auto minmax(0, 1fr) auto auto;
+		align-items: center;
+	}
+}
+
+.ganttPaymentRowInfo {
+	min-height: 52px;
+	padding: 8px 14px;
+}
+
+.ganttParentRowInfoDropTarget {
+	background: rgba(105, 215, 243, 0.16);
+	box-shadow: inset 3px 0 0 #69d7f3;
+}
+
+.ganttParentTrackDropTarget {
+	background: rgba(105, 215, 243, 0.08);
+	box-shadow: inset 0 0 0 1px rgba(105, 215, 243, 0.42);
+}
+
+.ganttStageDropBefore,
+.ganttStageDropAfter {
+	position: relative;
+}
+
+.ganttStageDropBefore::before,
+.ganttStageDropAfter::after {
+	position: absolute;
+	left: 10px;
+	right: 10px;
+	z-index: 12;
+	height: 2px;
+	background: #69d7f3;
+	box-shadow: 0 0 0 1px rgba(105, 215, 243, 0.22);
+	content: "";
+}
+
+.ganttStageDropBefore::before {
+	top: -1px;
+}
+
+.ganttStageDropAfter::after {
+	bottom: -1px;
+}
+
+.ganttChildRowInfo {
+	padding-left: 26px;
+
+	.ganttCustomEventHeader {
+		grid-template-columns: 14px minmax(0, 1fr) auto;
+		align-items: center;
+	}
+}
+
+.ganttRowInfo .ganttGroupType {
+	display: block;
+	margin-bottom: 2px;
+	color: #778087;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	line-height: 1.1;
+	text-transform: uppercase;
+}
+
+.ganttRowInfo .ganttGroupCount {
+	display: inline-flex;
+	width: 22px;
+	height: 22px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: #22262a;
+	color: var(--color-muted);
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.ganttRowInfo .ganttChildRowMarker {
+	display: block;
+	margin-top: 0;
+	width: 14px;
+	border-top: 1px solid #596168;
+}
+
+.ganttGroupToggle {
+	display: inline-flex;
+	width: 18px;
+	height: 18px;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-muted);
+	font-size: 17px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.ganttGroupMeta {
+	display: flex;
+	align-items: center;
+	margin-top: 4px;
+}
+
+.ganttGroupStatusWrapper {
+	position: relative;
+}
+
+.ganttGroupStatus {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 3px 7px;
+	border: 1px solid #34393e;
+	border-radius: 4px;
+	background: #111315;
+	color: var(--color-muted);
+	font-size: 10px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.ganttGroupStatus::before,
+.ganttGroupStatusMenuItem::before {
+	width: 6px;
+	height: 6px;
+	flex: 0 0 6px;
+	border-radius: 50%;
+	background: var(--gantt-group-status-color, #c4cad0);
+	content: "";
+}
+
+.ganttGroupStatusNotStarted {
+	--gantt-group-status-color: #c4cad0;
+	border-color: #586069;
+	color: #c4cad0;
+}
+
+.ganttGroupStatusInProgress {
+	--gantt-group-status-color: #69d7f3;
+	border-color: rgba(105, 215, 243, 0.7);
+	background: rgba(105, 215, 243, 0.1);
+	color: #69d7f3;
+}
+
+.ganttGroupStatusInactive {
+	--gantt-group-status-color: #e1c267;
+	border-color: rgba(201, 168, 76, 0.72);
+	background: rgba(201, 168, 76, 0.1);
+	color: #e1c267;
+}
+
+.ganttGroupStatusCompleted {
+	--gantt-group-status-color: #70d89a;
+	border-color: rgba(86, 184, 122, 0.7);
+	background: rgba(86, 184, 122, 0.12);
+	color: #70d89a;
+}
+
+.ganttGroupStatusMenu {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	z-index: 16;
+	display: grid;
+	min-width: 112px;
+	padding: 4px;
+	border: 1px solid #34393e;
+	border-radius: 6px;
+	background: #171a1d;
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+
+	button {
+		padding: 6px 7px;
+		border: 0;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--color-text);
+		font-size: 10px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	button:hover {
+		background: #25282b;
+	}
+}
+
+.ganttGroupStatusMenuItem {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+
+	&.ganttGroupStatusInProgress {
+		color: #69d7f3;
+	}
+
+	&.ganttGroupStatusInactive {
+		color: #e1c267;
+	}
+
+	&.ganttGroupStatusCompleted {
+		color: #70d89a;
+	}
+}
+
+.ganttMoveStageDescription {
+	margin: 0;
+	color: var(--color-muted);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
 .legendFact {
 	background: #56b87a;
 }
@@ -4717,6 +4946,11 @@ input[type="date"].dealSummaryDateInput {
 	left: 0;
 	z-index: 6;
 	background: #111315;
+}
+
+.ganttRowInfo.ganttRowInfoWithOpenMenu {
+	z-index: 20;
+	overflow: visible;
 }
 
 .ganttTrack {

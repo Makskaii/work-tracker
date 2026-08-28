@@ -39,6 +39,53 @@ export type AutonomousProjectGantt = {
 	timeline: GanttTimeline;
 };
 
+export const getVisibleAutonomousGanttRows = (
+	rows: AutonomousGanttStageRow[],
+	expandedGroupIds: ReadonlySet<number>,
+) => {
+	const groupIds = new Set(
+		rows.filter((row) => row.stage.isGroup).map((row) => row.stage.id),
+	);
+	const visibleRows: AutonomousGanttStageRow[] = [];
+	const visibleStageIds = new Set<number>();
+
+	const appendRow = (row: AutonomousGanttStageRow) => {
+		if (!visibleStageIds.has(row.stage.id)) {
+			visibleRows.push(row);
+			visibleStageIds.add(row.stage.id);
+		}
+	};
+
+	for (const row of rows) {
+		const { stage } = row;
+
+		if (stage.code === "payments") {
+			appendRow(row);
+			continue;
+		}
+
+		if (stage.isGroup) {
+			appendRow(row);
+
+			if (expandedGroupIds.has(stage.id)) {
+				for (const childRow of rows) {
+					if (childRow.stage.parentStageId === stage.id) {
+						appendRow(childRow);
+					}
+				}
+			}
+
+			continue;
+		}
+
+		if (!stage.parentStageId || !groupIds.has(stage.parentStageId)) {
+			appendRow(row);
+		}
+	}
+
+	return visibleRows;
+};
+
 type AutonomousGanttSchedule = {
 	eventRows: AutonomousGanttEventRow[];
 	eventRowsByStageId: Map<number, AutonomousGanttEventRow>;
