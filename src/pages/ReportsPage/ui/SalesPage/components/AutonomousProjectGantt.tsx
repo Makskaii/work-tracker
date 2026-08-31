@@ -232,7 +232,6 @@ const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
 const GANTT_DRAG_CLICK_THRESHOLD = 4;
-const GANTT_STAGE_REORDER_THRESHOLD = 8;
 const GANTT_DEPENDENCY_TARGET_HITBOX_PADDING = 28;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -1503,81 +1502,10 @@ export const AutonomousProjectGantt = ({
 				return;
 			}
 
-			const initialEditableStages = stages
-				.filter(
-					(item) =>
-						item.code !== "payments" &&
-						!item.isGroup &&
-						item.parentStageId === stage.parentStageId,
-				)
-				.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
-			const initialIndex = initialEditableStages.findIndex(
-				(item) => item.id === stage.id,
-			);
-
-			if (initialIndex < 0) {
-				return;
-			}
-
 			pointerEvent.preventDefault();
 
 			const dragTarget = pointerEvent.currentTarget;
-			const startClientY = pointerEvent.clientY;
-			let latestStages = stages;
-			let latestTargetIndex = initialIndex;
-			let latestTargetGroupId: number | null = null;
 			let latestDropTarget: StageDropTarget = null;
-			let hasDragged = false;
-			let hasReordered = false;
-
-			const getNextStages = (targetIndex: number) => {
-				const nextEditableStages = [...initialEditableStages];
-				const [draggedStage] = nextEditableStages.splice(initialIndex, 1);
-
-				nextEditableStages.splice(targetIndex, 0, draggedStage);
-
-				const sortOrderByStageId = new Map(
-					nextEditableStages.map((item, index) => [item.id, index + 1]),
-				);
-
-				return stages.map((item) => {
-					const sortOrder = sortOrderByStageId.get(item.id);
-
-					return sortOrder === undefined
-						? item
-						: {
-								...item,
-								sortOrder,
-							};
-				});
-			};
-			const applyReorder = (clientY: number) => {
-				const deltaY = clientY - startClientY;
-
-				if (!hasDragged && Math.abs(deltaY) < GANTT_STAGE_REORDER_THRESHOLD) {
-					return;
-				}
-
-				const targetIndex = Math.min(
-					Math.max(
-						initialIndex + Math.round(deltaY / GANTT_ROW_HEIGHT),
-						0,
-					),
-					initialEditableStages.length - 1,
-				);
-
-				if (hasDragged && targetIndex === latestTargetIndex) {
-					return;
-				}
-
-				hasDragged = true;
-				hasReordered = true;
-				latestTargetIndex = targetIndex;
-				latestStages = getNextStages(targetIndex);
-				setDraggingStageId(stage.id);
-				setStages(latestStages);
-				markGanttDragClick(dragTarget);
-			};
 			const handlePointerMove = (moveEvent: PointerEvent) => {
 				const targetStageId = Array.from(
 					stageDropTargetRefs.current.entries(),
@@ -1585,8 +1513,6 @@ export const AutonomousProjectGantt = ({
 					const rect = node.getBoundingClientRect();
 
 					return (
-						moveEvent.clientX >= rect.left &&
-						moveEvent.clientX <= rect.right &&
 						moveEvent.clientY >= rect.top &&
 						moveEvent.clientY <= rect.bottom
 					);
@@ -1604,8 +1530,6 @@ export const AutonomousProjectGantt = ({
 					const rect = node.getBoundingClientRect();
 
 					return (
-						moveEvent.clientX >= rect.left &&
-						moveEvent.clientX <= rect.right &&
 						moveEvent.clientY >= rect.top &&
 						moveEvent.clientY <= rect.bottom
 					);
@@ -1644,7 +1568,7 @@ export const AutonomousProjectGantt = ({
 								placement,
 							};
 						})()
-						: targetGroupId !== null && targetGroupId !== stage.parentStageId
+						: targetGroupId !== null
 							? {
 									anchorStageId: null,
 									beforeStageId: null,
@@ -1653,26 +1577,12 @@ export const AutonomousProjectGantt = ({
 								}
 							: null;
 
-				latestTargetGroupId = nextDropTarget?.parentStageId ?? null;
 				latestDropTarget = nextDropTarget;
-				setDragTargetGroupId(latestTargetGroupId);
+				setDragTargetGroupId(nextDropTarget?.parentStageId ?? null);
 				setStageDropTarget(nextDropTarget);
 
 				if (nextDropTarget !== null) {
-					if (hasReordered) {
-						latestStages = stages;
-						latestTargetIndex = initialIndex;
-						hasReordered = false;
-						setStages(stages);
-					}
 					setDraggingStageId(stage.id);
-					moveEvent.preventDefault();
-					return;
-				}
-
-				applyReorder(moveEvent.clientY);
-
-				if (hasDragged) {
 					moveEvent.preventDefault();
 				}
 			};
@@ -1686,38 +1596,13 @@ export const AutonomousProjectGantt = ({
 				if (latestDropTarget !== null) {
 					markGanttDragClick(dragTarget);
 					void moveStageToParent(stage, latestDropTarget);
-					return;
 				}
-
-				if (!hasReordered || latestTargetIndex === initialIndex) {
-					return;
-				}
-
-				const initialSortOrderByStageId = new Map(
-					stages.map((item) => [item.id, item.sortOrder]),
-				);
-				const stagesToSave = latestStages.filter(
-					(item) =>
-						item.code !== "payments" &&
-						item.sortOrder !== initialSortOrderByStageId.get(item.id),
-				);
-
-				markGanttDragClick(dragTarget);
-				void Promise.all(
-					stagesToSave.map((item) =>
-						updateProjectGanttStage(item.id, {
-							sortOrder: item.sortOrder,
-						}),
-					),
-				).catch(() => {
-					void refreshData();
-				});
 			};
 
 			window.addEventListener("pointermove", handlePointerMove);
 			window.addEventListener("pointerup", handlePointerUp, { once: true });
 		},
-		[moveStageToParent, refreshData, stages],
+		[moveStageToParent, stages],
 	);
 
 	const handleEventDateDragStart = useCallback(

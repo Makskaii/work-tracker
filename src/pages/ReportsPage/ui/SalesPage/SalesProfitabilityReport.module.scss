@@ -3533,8 +3533,15 @@
 	background: #171a1d;
 
 	.ganttCustomEventHeader {
-		grid-template-columns: auto minmax(0, 1fr) auto auto;
-		align-items: center;
+		grid-template-columns: auto minmax(0, 1fr) max-content max-content;
+		align-items: start;
+		min-width: 0;
+	}
+
+	.ganttStageTitle {
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
 	}
 }
 
@@ -3639,6 +3646,7 @@
 	align-items: center;
 	justify-content: flex-end;
 	gap: 8px;
+	min-width: max-content;
 }
 
 .ganttGroupStatusWrapper {
