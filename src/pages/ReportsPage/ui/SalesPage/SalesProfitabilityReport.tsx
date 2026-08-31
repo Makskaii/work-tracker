@@ -1670,6 +1670,7 @@ export const SalesProfitabilityReport = ({
 										projectTitle={
 											selectedReportProject?.title ?? "Проект не выбран"
 										}
+										projectStatus={selectedReportProject?.projectStatus}
 										saveError={summaryError}
 										summary={displayedSummary}
 									/>

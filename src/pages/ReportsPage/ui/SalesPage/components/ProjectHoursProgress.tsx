@@ -26,6 +26,9 @@ const toHours = (value: string | number | null | undefined) => {
 const formatHours = (value: number) =>
 	`${value.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ч`;
 
+const formatDeviationHours = (value: number) =>
+	`${value > 0 ? "+" : ""}${formatHours(value)}`;
+
 export const ProjectHoursProgress = ({
 	form,
 	projects,
@@ -69,47 +72,105 @@ export const ProjectHoursProgress = ({
 			progress: automaticHours.overallTaskProgress,
 		},
 	];
+	const [summaryRow, ...stageRows] = rows;
+	const summaryDeviation = summaryRow.fact - summaryRow.plan;
 
 	return (
 		<section className={styles.projectHoursSection}>
-			<div className={styles.projectHoursHeader}>
-				<div>
+			<div className={styles.projectHoursOverview}>
+				<div className={styles.projectHoursHeading}>
+					<span>Итог</span>
 					<h3>Часы и прогресс проекта</h3>
 					<p>План и факт разработки рассчитываются автоматически</p>
 				</div>
+				<div className={styles.projectHoursSummaryMetrics}>
+					<div>
+						<span>План</span>
+						<strong>{formatHours(summaryRow.plan)}</strong>
+					</div>
+					<div>
+						<span>Факт</span>
+						<strong>{formatHours(summaryRow.fact)}</strong>
+					</div>
+					<div>
+						<span>Отклонение</span>
+						<strong
+							className={
+								summaryDeviation > 0
+									? styles.projectHoursDeviationOver
+									: summaryDeviation < 0
+										? styles.projectHoursDeviationWithin
+										: styles.projectHoursDeviationNeutral
+							}
+						>
+							{formatDeviationHours(summaryDeviation)}
+						</strong>
+					</div>
+				</div>
 			</div>
 
-			<div className={styles.projectHoursTable}>
-				<div className={styles.projectHoursTableHead}>
-					<span>Раздел</span>
-					<span>Куплено</span>
-					<span>План</span>
-					<span>Факт</span>
-					<span>Прогресс</span>
+			<div className={styles.projectHoursOverallProgress}>
+				<div className={styles.projectHoursProgressLabel}>
+					<span>Покрытие плана фактическими интервалами</span>
+					<strong>
+						{summaryRow.progress.toLocaleString("ru-RU", {
+							minimumFractionDigits: 1,
+							maximumFractionDigits: 1,
+						})}
+						%
+					</strong>
 				</div>
-				{rows.map((row) => {
+				<div className={styles.projectHoursOverallProgressBar}>
+					<span style={{ width: `${summaryRow.progress}%` }} />
+				</div>
+				<p>
+					Процент рассчитывается из тех же плановых и фактических полос,
+					что показаны ниже.
+				</p>
+			</div>
+
+			<div className={styles.projectHoursStageCards}>
+				{stageRows.map((row) => {
+					const deviation = row.fact - row.plan;
 					const progressLabel = `${row.progress.toLocaleString("ru-RU", {
 						minimumFractionDigits: 1,
 						maximumFractionDigits: 1,
 					})}%`;
 
 					return (
-						<div key={row.id} className={styles.projectHoursRow}>
-							<strong>{row.label}</strong>
-							<span>{formatHours(row.purchased)}</span>
-							<span>
-								{formatHours(row.plan)}
-							</span>
-							<span>
-								{formatHours(row.fact)}
-							</span>
-							<div className={styles.projectHoursProgress}>
-								<div>
-									<span style={{ width: `${row.progress}%` }} />
-								</div>
-								<strong>{progressLabel}</strong>
+						<article key={row.id} className={styles.projectHoursStageCard}>
+							<div className={styles.projectHoursStageCardHeader}>
+								<strong>{row.label}</strong>
+								<span>{progressLabel}</span>
 							</div>
-						</div>
+							<div className={styles.projectHoursStageProgressBar}>
+								<span style={{ width: `${row.progress}%` }} />
+							</div>
+							<div className={styles.projectHoursStageMetrics}>
+								<div>
+									<span>План</span>
+									<strong>{formatHours(row.plan)}</strong>
+								</div>
+								<div>
+									<span>Факт</span>
+									<strong>{formatHours(row.fact)}</strong>
+								</div>
+								<div>
+									<span>Отклонение</span>
+									<strong
+										className={
+											deviation > 0
+												? styles.projectHoursDeviationOver
+												: deviation < 0
+													? styles.projectHoursDeviationWithin
+													: styles.projectHoursDeviationNeutral
+										}
+									>
+										{formatDeviationHours(deviation)}
+									</strong>
+								</div>
+							</div>
+						</article>
 					);
 				})}
 			</div>

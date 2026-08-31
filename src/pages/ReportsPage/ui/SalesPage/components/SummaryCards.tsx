@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { formatHours, formatMoney } from "../model/profitabilityUtils";
-import type { ProjectSummaryFormState } from "../model/reportProjectForm";
-import type { FinancialProjectSummary } from "../model/types";
+import {
+	projectStatusOptions,
+	type ProjectSummaryFormState,
+} from "../model/reportProjectForm";
+import type {
+	FinancialProjectSummary,
+	ReportProjectStatus,
+} from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
 type SummaryCardsProps = {
@@ -13,6 +19,7 @@ type SummaryCardsProps = {
 	onEdit: () => void;
 	onSave: () => void;
 	projectTitle: string;
+	projectStatus: ReportProjectStatus | null | undefined;
 	saveError: string | null;
 	summary: FinancialProjectSummary;
 };
@@ -25,6 +32,19 @@ const formatSummaryDate = (value: string | null | undefined) => {
 	const [, month, day] = value.split("-");
 
 	return day && month ? `${day}.${month}` : value;
+};
+
+const getProjectStatusClassName = (status: ReportProjectStatus) => {
+	switch (status) {
+		case "in_progress":
+			return styles.dealSummaryProjectStatusInProgress;
+		case "inactive":
+			return styles.dealSummaryProjectStatusInactive;
+		case "completed":
+			return styles.dealSummaryProjectStatusCompleted;
+		default:
+			return styles.dealSummaryProjectStatusNotStarted;
+	}
 };
 
 const SummaryInput = ({
@@ -83,10 +103,18 @@ export const SummaryCards = ({
 	onEdit,
 	onSave,
 	projectTitle,
+	projectStatus,
 	saveError,
 	summary,
-}: SummaryCardsProps) => (
-	<div
+}: SummaryCardsProps) => {
+	const normalizedProjectStatus = projectStatus ?? "not_started";
+	const projectStatusLabel =
+		projectStatusOptions.find(
+			(option) => option.value === normalizedProjectStatus,
+		)?.label ?? "Не начат";
+
+	return (
+		<div
 		className={`${styles.dealSummary} ${
 			isEditing ? styles.dealSummaryEditing : ""
 		}`}
@@ -134,6 +162,14 @@ export const SummaryCards = ({
 		</div>
 		<div className={styles.dealSummarySide}>
 			<div className={styles.dealSummaryStats}>
+				<div className={styles.dealSummaryStat}>
+					<span className={styles.dealSummaryLabel}>Статус:</span>
+					<strong
+						className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectStatus} ${getProjectStatusClassName(normalizedProjectStatus)}`}
+					>
+						{projectStatusLabel}
+					</strong>
+				</div>
 				<div className={styles.dealSummaryStat}>
 					<span className={styles.dealSummaryLabel}>Сумма проекта:</span>
 					{isEditing ? (
@@ -187,5 +223,6 @@ export const SummaryCards = ({
 				</div>
 			) : null}
 		</div>
-	</div>
-);
+		</div>
+	);
+};

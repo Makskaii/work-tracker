@@ -7,6 +7,7 @@ import type {
 } from "../model/types";
 import {
 	projectTypeOptions,
+	projectStatusOptions,
 	reportProjectFileLabels,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
@@ -93,6 +94,24 @@ export const ReportProjectModal = ({
 						}
 					>
 						{projectTypeOptions.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</select>
+				</label>
+				<label className={styles.reportProjectField}>
+					<span>Статус проекта</span>
+					<select
+						value={form.projectStatus}
+						onChange={(event) =>
+							onFormChange({
+								...form,
+								projectStatus: event.target.value,
+							})
+						}
+					>
+						{projectStatusOptions.map((option) => (
 							<option key={option.value} value={option.value}>
 								{option.label}
 							</option>

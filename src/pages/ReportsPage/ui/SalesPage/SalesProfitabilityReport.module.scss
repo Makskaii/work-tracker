@@ -4541,7 +4541,7 @@ input[type="date"].dealSummaryDateInput {
 
 .dealSummaryStats {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 0;
 	min-width: 0;
 }
@@ -4584,6 +4584,37 @@ input[type="date"].dealSummaryDateInput {
 
 .dealSummaryProjectAmount {
 	color: var(--color-accent-blue);
+}
+
+.dealSummaryProjectStatus {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+
+	&::before {
+		width: 7px;
+		height: 7px;
+		flex: 0 0 7px;
+		border-radius: 50%;
+		background: currentcolor;
+		content: "";
+	}
+}
+
+.dealSummaryProjectStatusNotStarted {
+	color: #c4cad0;
+}
+
+.dealSummaryProjectStatusInProgress {
+	color: #69d7f3;
+}
+
+.dealSummaryProjectStatusInactive {
+	color: #e1c267;
+}
+
+.dealSummaryProjectStatusCompleted {
+	color: #70d89a;
 }
 
 .dealSummaryFactWithinPlan {
@@ -4724,22 +4755,40 @@ input[type="date"].dealSummaryDateInput {
 	margin: 18px 20px 20px;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
-	background: #111315;
+	background: #101214;
 	overflow: hidden;
 }
 
-.projectHoursHeader {
+.projectHoursOverview {
 	display: flex;
-	align-items: center;
-	justify-content: flex-start;
-	gap: 12px;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20px;
 	padding: 16px 18px;
-	border-bottom: 1px solid #25282b;
+	border-bottom: 1px solid var(--color-border);
 	text-align: left;
+}
+
+.projectHoursHeading {
+	min-width: 0;
+
+	>span {
+		display: inline-flex;
+		align-items: center;
+		min-height: 24px;
+		padding: 0 8px;
+		border: 1px solid rgba(105, 215, 243, 0.48);
+		border-radius: 5px;
+		color: var(--color-accent);
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
 
 	h3 {
-		margin: 0;
-		font-size: 16px;
+		margin: 8px 0 0;
+		font-size: 17px;
 		font-weight: 800;
 	}
 
@@ -4751,65 +4800,188 @@ input[type="date"].dealSummaryDateInput {
 	}
 }
 
-.projectHoursTable {
-	overflow-x: auto;
-}
-
-.projectHoursTableHead,
-.projectHoursRow {
+.projectHoursSummaryMetrics {
 	display: grid;
-	grid-template-columns: minmax(160px, 1.2fr) repeat(3, minmax(100px, 0.7fr)) minmax(220px, 1.4fr);
-	align-items: center;
-	gap: 16px;
-	min-width: 820px;
-	padding: 12px 18px;
-}
-
-.projectHoursTableHead {
-	background: #15181b;
-	color: #7f888d;
-	font-size: 10px;
-	font-weight: 700;
-	text-transform: uppercase;
-}
-
-.projectHoursRow {
-	min-height: 58px;
-	border-top: 1px solid #25282b;
-	font-size: 13px;
-
-	>strong {
-		font-size: 13px;
-	}
-
-	>span {
-		font-weight: 700;
-	}
-}
-
-.projectHoursProgress {
-	display: grid;
-	grid-template-columns: minmax(140px, 1fr) 46px;
-	align-items: center;
-	gap: 10px;
+	grid-template-columns: repeat(3, minmax(78px, auto));
+	gap: 0;
+	flex: 0 0 auto;
 
 	>div {
-		height: 14px;
-		border-radius: 4px;
-		background: #242a2d;
-		overflow: hidden;
+		min-width: 98px;
+		padding: 0 14px;
+		border-left: 1px solid var(--color-border);
 	}
 
-	>div>span {
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: var(--color-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	strong {
+		margin-top: 5px;
+		color: var(--color-text);
+		font-size: 14px;
+		font-weight: 800;
+	}
+}
+
+.projectHoursOverallProgress {
+	padding: 14px 20px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.projectHoursProgressLabel {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 12px;
+
+	strong {
+		color: var(--color-accent);
+		font-size: 14px;
+	}
+}
+
+.projectHoursOverallProgressBar,
+.projectHoursStageProgressBar {
+	height: 10px;
+	border-radius: 5px;
+	background: #252a2e;
+	overflow: hidden;
+
+	>span {
 		display: block;
 		height: 100%;
 		border-radius: inherit;
-		background: linear-gradient(90deg, #4aa96e, #66ca88);
+		background: #5ccf88;
 		transition: width 180ms ease;
 	}
+}
 
-	>strong {
-		text-align: right;
+
+.projectHoursOverallProgressBar {
+	margin-top: 9px;
+	height: 12px;
+
+	>span {
+		background: linear-gradient(90deg, #49b878, #65d691);
+	}
+}
+
+.projectHoursOverallProgress p {
+	margin: 7px 0 0;
+	color: var(--color-muted);
+	font-size: 10px;
+	line-height: 1.35;
+}
+
+.projectHoursStageCards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+	padding: 14px 20px 18px;
+}
+
+.projectHoursStageCard {
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid #282d31;
+	border-radius: 8px;
+	background: #111315;
+}
+
+.projectHoursStageCardHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+
+	strong {
+		min-width: 0;
+		color: var(--color-text);
+		font-size: 13px;
+		font-weight: 800;
+	}
+
+	span {
+		flex: 0 0 auto;
+		color: var(--color-accent);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.projectHoursStageProgressBar {
+	margin-top: 10px;
+	height: 6px;
+}
+
+.projectHoursStageMetrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 11px;
+
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: var(--color-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+	}
+
+	strong {
+		margin-top: 3px;
+		color: var(--color-text);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.projectHoursDeviationOver {
+	color: #ff6978 !important;
+}
+
+.projectHoursDeviationWithin {
+	color: #5ccf88 !important;
+}
+
+.projectHoursDeviationNeutral {
+	color: var(--color-muted) !important;
+}
+
+
+@media (max-width: 860px) {
+	.projectHoursOverview {
+		flex-direction: column;
+	}
+
+	.projectHoursSummaryMetrics {
+		width: 100%;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+
+		>div {
+			min-width: 0;
+			padding: 0 10px;
+		}
+	}
+
+	.projectHoursStageCards {
+		grid-template-columns: 1fr;
 	}
 }
 
