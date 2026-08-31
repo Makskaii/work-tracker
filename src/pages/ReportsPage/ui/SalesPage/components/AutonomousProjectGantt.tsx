@@ -255,7 +255,7 @@ const GANTT_DEFAULT_PIXELS_PER_DAY = 10;
 const GANTT_MIN_PIXELS_PER_DAY = 2;
 const GANTT_MAX_PIXELS_PER_DAY = 50;
 const GANTT_ZOOM_STEP = 1;
-const GANTT_STAGE_COLUMN_WIDTH = 260;
+const GANTT_STAGE_COLUMN_WIDTH = 280;
 
 type TimelineZoomAnchor = {
 	date: Date;
