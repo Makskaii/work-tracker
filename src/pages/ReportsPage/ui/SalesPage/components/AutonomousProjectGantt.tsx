@@ -228,6 +228,9 @@ const DURATION_STAGE_TYPES = new Set<ProjectGanttStageType>([
 	"education",
 ]);
 const GANTT_ROW_HEIGHT = 74;
+const GANTT_MIN_STAGE_ROW_HEIGHT = 62;
+const GANTT_MIN_GROUP_ROW_HEIGHT = 120;
+const GANTT_MAX_STAGE_ROW_HEIGHT = 280;
 const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
@@ -809,6 +812,9 @@ export const AutonomousProjectGantt = ({
 		null,
 	);
 	const [stageDropTarget, setStageDropTarget] = useState<StageDropTarget>(null);
+	const [stageRowHeights, setStageRowHeights] = useState<Record<number, number>>(
+		{},
+	);
 	const [pixelsPerDay, setPixelsPerDay] = useState(
 		GANTT_DEFAULT_PIXELS_PER_DAY,
 	);
@@ -1171,6 +1177,15 @@ export const AutonomousProjectGantt = ({
 			}
 
 			stageDropTargetRefs.current.delete(stageId);
+		},
+		[],
+	);
+	const handleStageRowHeightChange = useCallback(
+		(stageId: number, height: number) => {
+			setStageRowHeights((currentHeights) => ({
+				...currentHeights,
+				[stageId]: height,
+			}));
 		},
 		[],
 	);
@@ -2579,6 +2594,11 @@ export const AutonomousProjectGantt = ({
 								onGroupStatusChange={handleGroupStatusChange}
 								onGroupToggle={toggleGroupExpanded}
 								isGroupExpanded={expandedGroupIds.has(row.stage.id)}
+								customRowHeight={stageRowHeights[row.stage.id]}
+								onRowHeightChange={handleStageRowHeightChange}
+								showAddChildButton={
+									row.stage.isGroup && expandedGroupIds.has(row.stage.id)
+								}
 								dropPlacement={
 									stageDropTarget?.anchorStageId === row.stage.id
 										? stageDropTarget.placement
@@ -2725,6 +2745,9 @@ const AutonomousStageRow = ({
 	onGroupStatusChange,
 	onGroupToggle,
 	isGroupExpanded,
+	customRowHeight,
+	onRowHeightChange,
+	showAddChildButton,
 	dropPlacement,
 	row,
 	setPaymentMarkerRef,
@@ -2770,6 +2793,9 @@ const AutonomousStageRow = ({
 	) => void;
 	onGroupToggle: (groupStageId: number) => void;
 	isGroupExpanded: boolean;
+	customRowHeight: number | undefined;
+	onRowHeightChange: (stageId: number, height: number) => void;
+	showAddChildButton: boolean;
 	dropPlacement: Exclude<StageDropTarget, null>["placement"] | null;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
 	setPaymentMarkerRef: (
@@ -2803,7 +2829,7 @@ const AutonomousStageRow = ({
 		(maxLevel, item) => Math.max(maxLevel, item.level),
 		0,
 	);
-	const rowHeight = isPaymentsStage
+	const defaultRowHeight = isPaymentsStage
 		? row.payments.length
 			? Math.max(
 					GANTT_ROW_HEIGHT,
@@ -2812,7 +2838,43 @@ const AutonomousStageRow = ({
 						18,
 				)
 			: 52
-		: GANTT_ROW_HEIGHT;
+		: isGroupStage && showAddChildButton
+			? GANTT_MIN_GROUP_ROW_HEIGHT
+			: GANTT_ROW_HEIGHT;
+	const minRowHeight = isGroupStage && showAddChildButton
+		? GANTT_MIN_GROUP_ROW_HEIGHT
+		: GANTT_MIN_STAGE_ROW_HEIGHT;
+	const rowHeight = isPaymentsStage
+		? defaultRowHeight
+		: Math.max(minRowHeight, customRowHeight ?? defaultRowHeight);
+	const titleLineCount = Math.max(
+		1,
+		Math.floor((rowHeight - (isGroupStage && showAddChildButton ? 84 : 28)) / 16),
+	);
+	const handleRowResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		const startY = event.clientY;
+		const startHeight = rowHeight;
+		const handlePointerMove = (moveEvent: PointerEvent) => {
+			const nextHeight = Math.min(
+				GANTT_MAX_STAGE_ROW_HEIGHT,
+				Math.max(minRowHeight, startHeight + moveEvent.clientY - startY),
+			);
+			onRowHeightChange(row.stage.id, nextHeight);
+		};
+		const handlePointerUp = () => {
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+
+		window.addEventListener("pointermove", handlePointerMove);
+		window.addEventListener("pointerup", handlePointerUp);
+	};
 
 	useEffect(() => {
 		if (!isMenuOpen && !isStatusMenuOpen) {
@@ -2858,7 +2920,7 @@ const AutonomousStageRow = ({
 					isGroupStage ? row.stage.id : undefined
 				}
 				className={`${styles.ganttRowInfo} ${isPaymentsStage ? styles.ganttPaymentRowInfo : ""} ${isGroupStage ? styles.ganttParentRowInfo : ""} ${row.stage.parentStageId ? styles.ganttChildRowInfo : ""} ${canReorderStage ? styles.ganttRowInfoReorderable : ""} ${isDraggingStage ? styles.ganttRowInfoDragging : ""} ${isDragTarget ? styles.ganttParentRowInfoDropTarget : ""} ${dropPlacement === "before" ? styles.ganttStageDropBefore : ""} ${dropPlacement === "after" ? styles.ganttStageDropAfter : ""} ${isMenuOpen || isStatusMenuOpen ? styles.ganttRowInfoWithOpenMenu : ""}`}
-				style={{ minHeight: rowHeight }}
+				style={{ height: rowHeight, minHeight: rowHeight }}
 				onPointerDown={
 					canReorderStage
 						? (event) => onStageReorderDragStart(event, row.stage)
@@ -2890,10 +2952,9 @@ const AutonomousStageRow = ({
 					<strong
 						className={styles.ganttStageTitle}
 						title={row.stage.title}
+						style={{ WebkitLineClamp: titleLineCount }}
 					>
-								{row.stage.title.length > 35
-							? `${row.stage.title.slice(0, 35)}...`
-							: row.stage.title}
+						{row.stage.title}
 					</strong>
 					{isGroupStage ? (
 						<div className={styles.ganttGroupMeta}>
@@ -2963,12 +3024,33 @@ const AutonomousStageRow = ({
 						</div>
 					) : null}
 				</div>
+				{showAddChildButton ? (
+					<div className={styles.ganttGroupAddChildCell}>
+						<button
+							type="button"
+							className={styles.ganttGroupAddChildButton}
+							title="Добавить подэтап"
+							onClick={() => onGroupAddChild(row.stage.id)}
+						>
+							+
+						</button>
+					</div>
+				) : null}
 				{isPaymentsStage ? (
 					<span>
 						{row.payments.length
 							? `${row.payments.length} платежей`
 							: "Платежи проекта"}
 					</span>
+				) : null}
+				{!isPaymentsStage ? (
+					<div
+						className={styles.ganttRowResizeHandle}
+						onPointerDown={handleRowResizeStart}
+						role="separator"
+						aria-orientation="horizontal"
+						aria-label="Изменить высоту этапа"
+					/>
 				) : null}
 			</div>
 			<div
@@ -2977,7 +3059,7 @@ const AutonomousStageRow = ({
 					isGroupStage ? row.stage.id : undefined
 				}
 				data-autonomous-gantt-track="true"
-				style={{ minHeight: rowHeight }}
+				style={{ height: rowHeight, minHeight: rowHeight }}
 				onClick={isPaymentsStage ? onPaymentCreate : undefined}
 				onKeyDown={
 					isPaymentsStage

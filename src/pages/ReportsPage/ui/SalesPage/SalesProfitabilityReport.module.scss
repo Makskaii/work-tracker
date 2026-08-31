@@ -1944,9 +1944,13 @@
 }
 
 .ganttStageTitle {
+	display: -webkit-box !important;
+	-webkit-box-orient: vertical;
 	min-width: 0;
 	font-size: 12px !important;
 	line-height: 1.25;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	overflow-wrap: break-word;
 	word-break: normal;
 	white-space: normal;
@@ -2193,6 +2197,37 @@
 	.ganttAddEventButton {
 		margin: 0;
 	}
+}
+
+.ganttGroupAddChildCell {
+	display: flex;
+	flex: 0 0 34px;
+	align-items: flex-end;
+	justify-content: center;
+	min-height: 34px;
+	margin-top: auto;
+	padding: 4px 0 0;
+}
+
+.ganttGroupAddChildButton {
+	display: inline-flex;
+	width: 30px;
+	height: 30px;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 1px solid var(--color-border-active);
+	border-radius: 50%;
+	background: transparent;
+	color: var(--color-accent);
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.ganttGroupAddChildButton:hover {
+	background: rgba(46, 197, 173, 0.14);
 }
 
 .ganttPaymentFactOverdueLinkLine {
@@ -3529,6 +3564,9 @@
 }
 
 .ganttParentRowInfo {
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
 	padding: 8px 14px;
 	background: #171a1d;
 
@@ -3543,6 +3581,36 @@
 		min-width: 0;
 		max-width: 100%;
 	}
+}
+
+.ganttRowResizeHandle {
+	position: absolute;
+	right: 0;
+	bottom: -8px;
+	left: 0;
+	z-index: 7;
+	height: 20px;
+	cursor: row-resize;
+	touch-action: none;
+
+	&::after {
+		position: absolute;
+		top: 7px;
+		left: 50%;
+		width: 50px;
+		height: 2px;
+		border-radius: 2px;
+		background: var(--color-border-active);
+		content: "";
+		opacity: 0;
+		transform: translateX(-50%);
+		transition: opacity 0.15s ease;
+	}
+}
+
+.ganttRowInfo:hover .ganttRowResizeHandle::after,
+.ganttRowResizeHandle:focus-visible::after {
+	opacity: 1;
 }
 
 .ganttPaymentRowInfo {
