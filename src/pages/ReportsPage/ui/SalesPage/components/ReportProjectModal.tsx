@@ -37,6 +37,7 @@ export const ReportProjectModal = ({
 	onSubmit,
 	project,
 	projectFormError,
+	position,
 	saving,
 	users,
 }: {
@@ -55,10 +56,11 @@ export const ReportProjectModal = ({
 	onSubmit: () => void;
 	project: ReportProject | null;
 	projectFormError: string | null;
+	position?: "center" | "right";
 	saving: boolean;
 	users: User[];
 }) => (
-	<Modal isOpen={isOpen} onClose={onClose} size="small">
+	<Modal isOpen={isOpen} onClose={onClose} position={position} size="small">
 		<div className={`${styles.ganttFormModal} ${styles.reportProjectModal}`}>
 			<h3>{project ? "Карточка проекта" : "Новый проект"}</h3>
 			<ReportProjectSection title="Информация">
