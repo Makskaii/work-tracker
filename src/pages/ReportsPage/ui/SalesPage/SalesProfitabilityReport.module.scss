@@ -4371,8 +4371,8 @@
 .dealSummary {
 	position: relative;
 	display: grid;
-	grid-template-columns: minmax(320px, 1.35fr) minmax(420px, 1fr);
-	gap: clamp(28px, 3vw, 44px);
+	grid-template-columns: minmax(320px, 1fr) minmax(500px, 1.15fr);
+	gap: clamp(24px, 2.5vw, 36px);
 	align-items: center;
 	margin: 0 20px;
 	padding: 26px 8px 22px;
@@ -4440,13 +4440,6 @@
 	font-weight: 800;
 	line-height: 1.08;
 	overflow-wrap: anywhere;
-}
-
-.dealSummaryPrimaryStats {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(120px, max-content));
-	gap: 28px;
-	align-items: start;
 }
 
 .dealSummaryAmount,
@@ -4552,7 +4545,7 @@ input[type="date"].dealSummaryDateInput {
 	gap: 5px;
 	min-width: 0;
 	min-height: 42px;
-	padding: 0 14px;
+	padding: 0 12px;
 	border-left: 1px solid var(--color-border);
 	white-space: normal;
 }

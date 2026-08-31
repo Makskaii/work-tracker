@@ -135,30 +135,6 @@ export const SummaryCards = ({
 				Финансовый вотерфол проект
 			</span>
 			<h3>{projectTitle}</h3>
-			<div className={styles.dealSummaryPrimaryStats}>
-				<div>
-					<span className={styles.dealSummaryLabel}>Дата завершения</span>
-					{isEditing ? (
-						<strong
-							className={`${styles.dealSummaryAmount} ${styles.dealSummaryCompletionDate}`}
-						>
-							<SummaryInput
-								className={styles.dealSummaryDateInput}
-								form={form}
-								name="summaryPlanCompletionDate"
-								onChange={onChange}
-								type="date"
-							/>
-						</strong>
-					) : (
-						<strong
-							className={`${styles.dealSummaryAmount} ${styles.dealSummaryCompletionDate}`}
-						>
-							{formatSummaryDate(form.summaryPlanCompletionDate)}
-						</strong>
-					)}
-				</div>
-			</div>
 		</div>
 		<div className={styles.dealSummarySide}>
 			<div className={styles.dealSummaryStats}>
@@ -202,16 +178,26 @@ export const SummaryCards = ({
 					</strong>
 				</div>
 				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Факт:</span>
-					<strong
-						className={`${styles.dealSummaryValue} ${
-							summary.factHours > summary.planHours
-								? styles.dealSummaryFactOverPlan
-								: styles.dealSummaryFactWithinPlan
-						}`}
-					>
-						{formatHours(summary.factHours)}
-					</strong>
+					<span className={styles.dealSummaryLabel}>Дата завершения:</span>
+					{isEditing ? (
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryCompletionDate}`}
+						>
+							<SummaryInput
+								className={styles.dealSummaryDateInput}
+								form={form}
+								name="summaryPlanCompletionDate"
+								onChange={onChange}
+								type="date"
+							/>
+						</strong>
+					) : (
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryCompletionDate}`}
+						>
+							{formatSummaryDate(form.summaryPlanCompletionDate)}
+						</strong>
+					)}
 				</div>
 			</div>
 			{saveError ? <p className={styles.dealSummaryError}>{saveError}</p> : null}
