@@ -1871,18 +1871,18 @@
 
 .ganttAutonomousEventPlan {
 	z-index: 1;
-	border-color: rgba(105, 215, 243, 0.72);
-	background: #69d7f3;
+	border-color: transparent;
+	background: linear-gradient(90deg, #69d7f3, #82e3fa);
 }
 
 .ganttAutonomousEventFact {
 	z-index: 4;
-	border-color: rgba(86, 184, 122, 0.72);
-	background: #56b87a;
+	border-color: transparent;
+	background: linear-gradient(90deg, #4aa86d, #63c685);
 	color: #ffffff;
 
 	b {
-		background: #56b87a;
+		background: #4aa86d;
 	}
 }
 
@@ -2121,9 +2121,16 @@
 	min-height: 74px;
 	padding: 0;
 	border: 0;
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid #252a2d;
 	border-radius: 0;
-	background: #0d0f11;
+	background-color: #0b0d0f;
+	background-image: repeating-linear-gradient(
+		90deg,
+		transparent 0,
+		transparent calc((100% / var(--gantt-timeline-steps, 8)) - 1px),
+		rgba(145, 154, 160, 0.055) calc((100% / var(--gantt-timeline-steps, 8)) - 1px),
+		rgba(145, 154, 160, 0.055) calc(100% / var(--gantt-timeline-steps, 8))
+	);
 	color: inherit;
 	text-align: left;
 	cursor: crosshair;
@@ -2131,7 +2138,7 @@
 }
 
 .autonomousGanttTrack:hover {
-	background: #15181b;
+	background-color: #0f1214;
 }
 
 .autonomousPaymentPaid b {
@@ -3500,12 +3507,12 @@
 
 .ganttCard {
 	min-width: 0;
-	border: 1px solid var(--color-border);
-	border-radius: 18px;
-	background: rgba(15, 28, 44, 0.76);
+	border: 0;
+	border-radius: 0;
+	background: #0b0d0f;
 	color: var(--color-text);
 	overflow: hidden;
-	box-shadow: 0 14px 36px rgba(1, 8, 14, 0.24);
+	box-shadow: none;
 }
 
 .ganttHeader {
@@ -3513,9 +3520,9 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
-	padding: 16px 18px 12px;
-	border-bottom: 1px solid var(--color-border);
-	background: rgba(22, 36, 55, 0.72);
+	padding: 12px 20px 8px;
+	border-bottom: 1px solid #252a2d;
+	background: #0b0d0f;
 	text-align: left;
 
 	h3 {
@@ -3539,9 +3546,9 @@
 	gap: 0 22px;
 	margin: 10px 14px 8px;
 	padding: 10px 14px;
-	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: rgba(22, 36, 55, 0.28);
+	border: 1px solid #252a2d;
+	border-radius: 0;
+	background: #101315;
 }
 
 .ganttMetric {
@@ -3637,7 +3644,7 @@
 	flex-direction: column;
 	box-sizing: border-box;
 	padding: 8px 10px 8px 12px;
-	background: #171a1d;
+	background: #121517;
 
 	.ganttCustomEventHeader {
 		grid-template-columns: auto minmax(0, 1fr) max-content max-content;
@@ -3793,12 +3800,13 @@
 
 .ganttGroupStatus {
 	display: inline-flex;
+	min-height: 24px;
 	align-items: center;
 	gap: 4px;
-	padding: 2px 6px;
+	padding: 0 7px;
 	border: 1px solid #34393e;
-	border-radius: 4px;
-	background: #111315;
+	border-radius: 7px;
+	background: #15191b;
 	color: var(--color-muted);
 	font-size: 9px;
 	font-weight: 700;
@@ -3928,13 +3936,13 @@
 
 .ganttBoardScroll {
 	box-sizing: border-box;
-	margin: 0 20px 20px;
+	margin: 0 20px 12px;
 	width: 100%;
 	min-width: 0;
 	max-width: 100%;
-	border: 1px solid var(--color-border);
+	border: 0;
 	border-radius: 0;
-	background: #0b0c0e;
+	background: #0b0d0f;
 	overflow-x: auto;
 	overflow-y: hidden;
 	scrollbar-color: #3b4145 transparent;
@@ -3946,9 +3954,9 @@
 	display: grid;
 	grid-template-columns: minmax(150px, 190px) minmax(720px, 1fr);
 	margin: 0;
-	border: 1px solid var(--color-border);
+	border: 1px solid #252a2d;
 	border-radius: 0;
-	background: #0d0f11;
+	background: #0b0d0f;
 	overflow-x: auto;
 	text-align: left;
 }
@@ -4000,10 +4008,8 @@
 	top: 0;
 	bottom: 0;
 	width: 0;
-	border-left: 2px solid rgba(105, 215, 243, 0.9);
-	box-shadow:
-		0 0 0 1px rgba(255, 255, 255, 0.12),
-		0 0 14px rgba(105, 215, 243, 0.36);
+	border-left: 1px solid rgba(105, 215, 243, 0.72);
+	box-shadow: none;
 	transform: translateX(-1px);
 	z-index: 1;
 	pointer-events: none;
@@ -4015,8 +4021,8 @@
 	padding: 2px 7px;
 	border: 1px solid rgba(105, 215, 243, 0.55);
 	border-radius: 6px;
-	background: #0d0f11;
-	box-shadow: 0 4px 12px rgba(3, 10, 20, 0.28);
+	background: #0d1619;
+	box-shadow: none;
 	color: var(--color-accent);
 	font-size: 11px;
 	font-weight: 950;
@@ -4076,7 +4082,7 @@
 .ganttScaleLabel,
 .ganttScale {
 	min-height: 54px;
-	border-bottom: 1px solid #25282b;
+	border-bottom: 1px solid #252a2d;
 }
 
 .ganttScaleLabel {
@@ -4087,7 +4093,7 @@
 	top: 0;
 	left: 0;
 	z-index: 72;
-	background: #111315;
+	background: #101315;
 	color: var(--color-muted);
 	font-size: 11px;
 	font-weight: 700;
@@ -4101,7 +4107,7 @@
 	min-width: 720px;
 	height: 54px;
 	overflow: visible;
-	background: #111315;
+	background: #101315;
 	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
 
 	>span {
@@ -4135,8 +4141,8 @@
 	box-sizing: border-box;
 	min-height: 72px;
 	padding: 12px 14px;
-	border-bottom: 1px solid #25282b;
-	background: #111315;
+	border-bottom: 1px solid #252a2d;
+	background: #0e1012;
 
 	strong,
 	span,
@@ -4180,8 +4186,8 @@
 	position: relative;
 	min-width: 720px;
 	min-height: 72px;
-	border-bottom: 1px solid #25282b;
-	background: #0d0f11;
+	border-bottom: 1px solid #252a2d;
+	background: #0b0d0f;
 }
 
 .ganttSegment {
@@ -4195,8 +4201,8 @@
 .ganttPlan {
 	top: 25px;
 	height: 26px;
-	background: rgba(105, 215, 243, 0.2);
-	border: 1px solid rgba(105, 215, 243, 0.52);
+	background: linear-gradient(90deg, #69d7f3, #82e3fa);
+	border: 0;
 }
 
 .ganttFact {
@@ -4204,7 +4210,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #56b87a;
+	background: linear-gradient(90deg, #4aa86d, #63c685);
 	color: #ffffff;
 	font-size: 10px;
 	font-weight: 950;
@@ -4345,16 +4351,16 @@
 
 	b {
 		display: flex;
-		width: 18px;
-		height: 18px;
+		width: 20px;
+		height: 20px;
 		align-items: center;
 		justify-content: center;
-		border: 3px solid var(--color-surface);
+		border: 3px solid #0b0d0f;
 		border-radius: 999px;
 		color: #06111e;
 		font-size: 11px;
 		font-weight: 950;
-		box-shadow: 0 6px 12px rgba(1, 8, 14, 0.28);
+		box-shadow: none;
 
 		svg {
 			width: 11px;
@@ -5207,8 +5213,8 @@ input[type="date"].dealSummaryDateInput {
 	min-width: 720px;
 	min-height: 54px;
 	overflow: visible;
-	border-bottom: 1px solid var(--color-border);
-	background: #111315;
+	border-bottom: 1px solid #252a2d;
+	background: #101315;
 }
 
 .ganttMonthScale,
@@ -5219,13 +5225,13 @@ input[type="date"].dealSummaryDateInput {
 
 .ganttMonthScale {
 	height: 24px;
-	border-bottom: 1px solid #25282b;
-	background: #111315;
+	border-bottom: 1px solid #252a2d;
+	background: #101315;
 }
 
 .ganttWeekScale {
 	height: 29px;
-	background: #111315;
+	background: #101315;
 }
 
 .ganttMonthScale span,
@@ -5291,10 +5297,10 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .ganttTrackWeekLine {
-	background: rgba(155, 163, 168, 0.12);
+	background: rgba(145, 154, 160, 0.08);
 }
 
 .ganttTrackMonthLine {
 	z-index: 1;
-	background: rgba(155, 163, 168, 0.26);
+	background: rgba(145, 154, 160, 0.18);
 }
