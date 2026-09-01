@@ -2818,6 +2818,7 @@ const AutonomousStageRow = ({
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
 	const rowInfoRef = useRef<HTMLDivElement | null>(null);
+	const stageTitleRef = useRef<HTMLElement | null>(null);
 	const isPaymentsStage = row.stage.code === "payments";
 	const isGroupStage = row.stage.isGroup;
 	const canReorderStage = !isPaymentsStage && !isGroupStage;
@@ -2847,10 +2848,6 @@ const AutonomousStageRow = ({
 	const rowHeight = isPaymentsStage
 		? defaultRowHeight
 		: Math.max(minRowHeight, customRowHeight ?? defaultRowHeight);
-	const titleLineCount = Math.max(
-		1,
-		Math.floor((rowHeight - (isGroupStage && showAddChildButton ? 84 : 28)) / 16),
-	);
 	const handleRowResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) {
 			return;
@@ -2903,6 +2900,28 @@ const AutonomousStageRow = ({
 		};
 	}, [isMenuOpen, isStatusMenuOpen]);
 
+	useLayoutEffect(() => {
+		if (isPaymentsStage || !rowInfoRef.current || !stageTitleRef.current) {
+			return;
+		}
+
+		const requiredHeight = Math.max(
+			minRowHeight,
+			rowInfoRef.current.scrollHeight,
+		);
+
+		if (requiredHeight > rowHeight) {
+			onRowHeightChange(row.stage.id, requiredHeight);
+		}
+	}, [
+		isPaymentsStage,
+		minRowHeight,
+		onRowHeightChange,
+		row.stage.id,
+		row.stage.title,
+		rowHeight,
+	]);
+
 	return (
 		<>
 			<div
@@ -2950,9 +2969,9 @@ const AutonomousStageRow = ({
 						<span className={styles.ganttChildRowMarker} />
 					) : null}
 					<strong
+						ref={stageTitleRef}
 						className={styles.ganttStageTitle}
 						title={row.stage.title}
-						style={{ WebkitLineClamp: titleLineCount }}
 					>
 						{row.stage.title}
 					</strong>

@@ -1945,13 +1945,10 @@
 }
 
 .ganttStageTitle {
-	display: -webkit-box !important;
-	-webkit-box-orient: vertical;
+	display: block !important;
 	min-width: 0;
 	font-size: 11px !important;
 	line-height: 1.25;
-	overflow: hidden;
-	text-overflow: ellipsis;
 	overflow-wrap: break-word;
 	word-break: normal;
 	white-space: normal;
@@ -2450,7 +2447,7 @@
 	padding: 12px 14px;
 	border: 1px solid rgba(38, 240, 233, 0.45);
 	border-radius: 12px;
-	background: rgba(5, 15, 28, 0.96);
+	background: #101315;
 	box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
 }
 
@@ -2624,9 +2621,9 @@
 	min-height: 48px;
 	box-sizing: border-box;
 	padding: 12px 15px;
-	border: 1px solid rgba(80, 140, 190, 0.48);
+	border: 1px solid #30363a;
 	border-radius: 14px;
-	background: rgba(12, 28, 48, 0.72);
+	background: #15191b;
 	color: var(--color-text);
 	font-size: 15px;
 	font-weight: 700;
@@ -2698,7 +2695,7 @@
 	overflow-y: auto;
 	box-sizing: border-box;
 	padding: 6px;
-	border: 1px solid rgba(80, 140, 190, 0.52);
+	border: 1px solid #30363a;
 	border-radius: 12px;
 	background: #111315;
 	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
@@ -2735,9 +2732,9 @@
 	min-height: 54px;
 	box-sizing: border-box;
 	padding: 10px 12px;
-	border: 1px solid rgba(80, 140, 190, 0.48);
+	border: 1px solid #30363a;
 	border-radius: 14px;
-	background: rgba(12, 28, 48, 0.72);
+	background: #15191b;
 }
 
 .reportProjectDetailsFileButton {
@@ -2781,9 +2778,9 @@
 	gap: 10px;
 	margin-top: 10px;
 	padding: 12px 14px;
-	border: 1px solid rgba(80, 140, 190, 0.48);
+	border: 1px solid #30363a;
 	border-radius: 14px;
-	background: rgba(12, 28, 48, 0.72);
+	background: #15191b;
 }
 
 .reportProjectDetailsFileMeta strong {
