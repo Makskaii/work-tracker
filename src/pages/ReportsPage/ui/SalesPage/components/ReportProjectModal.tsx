@@ -59,17 +59,69 @@ export const ReportProjectModal = ({
 	position?: "center" | "right";
 	saving: boolean;
 	users: User[];
-}) => (
-	<Modal isOpen={isOpen} onClose={onClose} position={position} size="small">
-		<div className={`${styles.ganttFormModal} ${styles.reportProjectModal}`}>
-			<h3>{project ? "Карточка проекта" : "Новый проект"}</h3>
-			<ReportProjectSection title="Информация">
+	}) => {
+	const isProjectDrawer = position === "right";
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} position={position} size="small">
+			<div className={`${styles.ganttFormModal} ${styles.reportProjectModal}`}>
+				<header className={styles.reportProjectModalHeader}>
+					<div>
+						<span>Карточка проекта</span>
+						<h3>{project ? "Изменить проект" : "Новый проект"}</h3>
+					</div>
+				</header>
+				<ReportProjectSection title="Информация">
 				<ReportProjectInput
 					form={form}
 					label="Название"
 					name="title"
 					onFormChange={onFormChange}
 				/>
+				{isProjectDrawer ? (
+					<>
+						<label className={styles.reportProjectField}>
+							<span>Статус проекта</span>
+							<select
+								value={form.projectStatus}
+								onChange={(event) =>
+									onFormChange({
+										...form,
+										projectStatus: event.target.value,
+									})
+								}
+							>
+								{projectStatusOptions.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+						</label>
+						<ReportProjectInput
+							form={form}
+							label="Сумма проекта"
+							name="projectAmount"
+							onFormChange={onFormChange}
+							type="number"
+						/>
+						<ReportProjectInput
+							form={form}
+							label="Куплено часов"
+							name="summaryPurchasedHours"
+							onFormChange={onFormChange}
+							type="number"
+						/>
+						<ReportProjectInput
+							form={form}
+							label="Дата завершения"
+							name="summaryFactCompletionDate"
+							onFormChange={onFormChange}
+							type="date"
+						/>
+					</>
+				) : (
+					<>
 				<ReportProjectInput
 					form={form}
 					label="ID проекта в Битрикс"
@@ -173,7 +225,10 @@ export const ReportProjectModal = ({
 					onFormChange={onFormChange}
 					type="date"
 				/>
-			</ReportProjectSection>
+					</>
+				)}
+				</ReportProjectSection>
+				{!isProjectDrawer ? (
 			<ReportProjectSection title="Проектная команда">
 				<ReportProjectInput
 					form={form}
@@ -211,11 +266,12 @@ export const ReportProjectModal = ({
 					options={getUserAutocompleteOptions(users)}
 				/>
 			</ReportProjectSection>
+				) : null}
 			{projectFormError ? (
 				<p className={styles.ganttFormError}>{projectFormError}</p>
 			) : null}
 			<div className={styles.ganttFormActions}>
-				{project ? (
+				{project && !isProjectDrawer ? (
 					<button
 						type="button"
 						className={styles.ganttFormDeleteButton}
@@ -235,5 +291,6 @@ export const ReportProjectModal = ({
 				</button>
 			</div>
 		</div>
-	</Modal>
-);
+		</Modal>
+	);
+};

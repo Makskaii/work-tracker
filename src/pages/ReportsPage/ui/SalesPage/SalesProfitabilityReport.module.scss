@@ -2345,9 +2345,41 @@
 }
 
 .reportProjectModal {
-	max-height: min(76vh, 760px);
+	flex: 1;
+	min-height: 0;
 	overflow-y: auto;
-	padding-right: 4px;
+	padding: 0 2px 2px 0;
+	gap: 16px;
+}
+
+.reportProjectModalHeader {
+	flex: 0 0 auto;
+	margin-right: 50px;
+	padding: 0 0 18px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.reportProjectModalHeader > div {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.reportProjectModalHeader span {
+	color: var(--color-accent);
+	font-size: 10px;
+	font-weight: 900;
+	line-height: 1;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.reportProjectModalHeader h3 {
+	margin: 0;
+	color: var(--color-text);
+	font-size: 20px;
+	font-weight: 900;
+	line-height: 1.2;
 }
 
 .reportProjectDetails {
@@ -2503,17 +2535,19 @@
 .reportProjectSection {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	padding: 10px;
-	border: 1px solid rgba(80, 139, 207, 0.24);
-	border-radius: 12px;
-	background: rgba(12, 25, 43, 0.34);
+	gap: 14px;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
 
 	h4 {
-		margin: 0;
-		color: rgba(238, 245, 255, 0.82);
-		font-size: 13px;
+		margin: 4px 0 0;
+		color: rgba(238, 245, 255, 0.7);
+		font-size: 11px;
 		font-weight: 900;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 	}
 }
 
@@ -2613,7 +2647,7 @@
 	flex-direction: column;
 	align-items: stretch;
 	justify-content: flex-start;
-	gap: 7px;
+	gap: 6px;
 	min-width: 0;
 	width: 100%;
 	text-align: left;
@@ -2622,7 +2656,7 @@
 .reportProjectField>span {
 	display: block;
 	color: rgba(238, 245, 255, 0.76);
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 900;
 	line-height: 1.25;
 	text-align: left;
