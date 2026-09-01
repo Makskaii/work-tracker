@@ -2901,13 +2901,17 @@ const AutonomousStageRow = ({
 	}, [isMenuOpen, isStatusMenuOpen]);
 
 	useLayoutEffect(() => {
-		if (isPaymentsStage || !rowInfoRef.current || !stageTitleRef.current) {
+		if (isPaymentsStage || !stageTitleRef.current) {
 			return;
 		}
 
 		const requiredHeight = Math.max(
 			minRowHeight,
-			rowInfoRef.current.scrollHeight,
+			Math.ceil(
+				stageTitleRef.current.offsetTop +
+					stageTitleRef.current.scrollHeight +
+					(isGroupStage && showAddChildButton ? 42 : 14),
+			),
 		);
 
 		if (requiredHeight > rowHeight) {
