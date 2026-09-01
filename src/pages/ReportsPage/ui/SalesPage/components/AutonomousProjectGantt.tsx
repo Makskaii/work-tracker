@@ -3611,12 +3611,23 @@ const AutonomousPaymentItem = ({
 			}}
 			ref={markerRef}
 			style={style}
-			title={formatAutonomousPaymentTooltip(payment, stageTitle)}
+			aria-label={formatAutonomousPaymentTooltip(payment, stageTitle)}
 		>
 			<b>
 				<FaMoneyBillWave aria-hidden="true" />
 			</b>
-			<small>{formatMoney(payment.amount ?? 0)}</small>
+			<span className={styles.ganttPaymentTooltip}>
+				<i aria-hidden="true" />
+				<span>
+					<small>{stageTitle}</small>
+					<span className={styles.ganttPaymentTooltipMeta}>
+						<small>
+							{paymentDate ? formatDateShort(paymentDate) : "Дата не указана"}
+						</small>
+						<strong>{formatMoney(payment.amount ?? 0)}</strong>
+					</span>
+				</span>
+			</span>
 		</button>
 	);
 };
