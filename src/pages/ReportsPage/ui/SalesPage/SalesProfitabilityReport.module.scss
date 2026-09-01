@@ -1,4 +1,4 @@
-﻿.section {
+.section {
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -184,7 +184,7 @@
 	padding: 6px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
-	background: #0f1d30;
+	background: #101315;
 	box-shadow: 0 16px 36px rgba(1, 8, 14, 0.34);
 
 	button {
@@ -593,7 +593,7 @@
 	padding: 8px 10px;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.5);
+	background: #101315;
 }
 
 .reportProjectFileDropzone {
@@ -606,7 +606,7 @@
 	padding: 16px;
 	border: 2px dashed rgba(46, 197, 173, 0.4);
 	border-radius: 16px;
-	background: rgba(9, 20, 36, 0.35);
+	background: #101315;
 	transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -1208,7 +1208,7 @@
 	padding: 14px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(15, 28, 44, 0.72);
+	background: #101315;
 	text-align: left;
 	overflow: hidden;
 
@@ -1254,7 +1254,7 @@
 	padding: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 16px;
-	background: rgba(9, 20, 36, 0.58);
+	background: #101315;
 	overflow-x: auto;
 }
 
@@ -1671,18 +1671,19 @@
 .ganttCustomEventSegmentPlanLane,
 .ganttCustomEventSegmentFactLane {
 	bottom: auto;
-	height: 18px;
-	border-radius: 6px;
+	border-radius: 999px;
 	box-shadow: 0 3px 8px rgba(1, 8, 14, 0.18);
 }
 
 .ganttCustomEventSegmentPlanLane {
-	top: 16px;
+	top: 4px;
+	height: 12px;
 	z-index: 3;
 }
 
 .ganttCustomEventSegmentFactLane {
-	top: 6px;
+	top: 24px;
+	height: 9px;
 	z-index: 2;
 }
 
@@ -1712,13 +1713,13 @@
 }
 
 .ganttDateDragHandlePlan {
-	top: 25px;
+	top: 10px;
 	z-index: 10;
 	border-color: rgba(190, 202, 220, 0.34);
 }
 
 .ganttDateDragHandleFact {
-	top: 15px;
+	top: 28px;
 	z-index: 9;
 	border-color: rgba(105, 215, 243, 0.38);
 	background: rgba(105, 215, 243, 0.22);
@@ -2005,7 +2006,7 @@
 	padding: 6px;
 	border: 1px solid rgba(111, 168, 255, 0.28);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.98);
+	background: #111315;
 	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
 	overflow: hidden;
 
@@ -2319,7 +2320,7 @@
 		padding: 8px 10px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.72);
+		background: #15191b;
 		color: var(--color-text);
 		box-sizing: border-box;
 	}
@@ -2405,7 +2406,7 @@
 	padding: 16px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(9, 20, 36, 0.55);
+	background: #101315;
 	text-align: left;
 }
 
@@ -2429,7 +2430,7 @@
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(9, 20, 36, 0.55);
+	background: #101315;
 	color: rgba(238, 245, 255, 0.62);
 	font-size: 14px;
 	font-weight: 800;
@@ -2503,7 +2504,7 @@
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(9, 20, 36, 0.55);
+	background: #101315;
 	color: rgba(238, 245, 255, 0.62);
 	font-size: 14px;
 	font-weight: 800;
@@ -2517,7 +2518,7 @@
 	padding: 10px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.42);
+	background: #101315;
 }
 
 .reportProjectDetail span {
@@ -2574,7 +2575,7 @@
 	padding: 16px;
 	border: 1px solid var(--color-border);
 	border-radius: 16px;
-	background: rgba(9, 20, 36, 0.5);
+	background: #101315;
 	text-align: left;
 }
 
@@ -2699,7 +2700,7 @@
 	padding: 6px;
 	border: 1px solid rgba(80, 140, 190, 0.52);
 	border-radius: 12px;
-	background: rgba(9, 20, 36, 0.98);
+	background: #111315;
 	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
 
 	button {
@@ -2901,7 +2902,7 @@
 		padding: 9px 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.72);
+		background: #15191b;
 		color: var(--color-text);
 		box-sizing: border-box;
 	}
@@ -3112,7 +3113,7 @@
 		padding: 9px 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.72);
+		background: #15191b;
 		color: var(--color-text);
 		box-sizing: border-box;
 	}
@@ -3135,7 +3136,7 @@
 		padding: 10px 12px;
 		border: 1px solid rgba(80, 139, 207, 0.22);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.48);
+		background: #101315;
 	}
 
 	span {
@@ -3168,7 +3169,7 @@
 		padding: 12px;
 		border: 1px solid rgba(80, 139, 207, 0.22);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.48);
+		background: #101315;
 		color: rgba(238, 245, 255, 0.86);
 		font-size: 14px;
 		font-weight: 750;
@@ -3204,7 +3205,7 @@
 	padding: 9px 10px;
 	border: 1px solid rgba(80, 139, 207, 0.24);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.48);
+	background: #101315;
 
 	span {
 		min-width: 0;
@@ -4612,7 +4613,7 @@
 
 	&:focus {
 		outline: 0;
-		background: rgba(9, 20, 36, 0.28);
+		background: #101315;
 		box-shadow: 0 2px 0 var(--color-accent);
 	}
 }

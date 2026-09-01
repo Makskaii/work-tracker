@@ -3758,7 +3758,7 @@ const StageModal = ({
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} size="small">
+		<Modal isOpen={isOpen} onClose={onClose} position="right" size="small">
 			<div className={styles.ganttFormModal}>
 				<h3>{form.id ? "Редактирование этапа" : "Новый этап"}</h3>
 				<label>
