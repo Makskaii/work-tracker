@@ -109,6 +109,13 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 				icon: "PM",
 			},
 			{
+				key: "projects-plan",
+				label: "План проектов",
+				to: "/reports/projects-plan",
+				type: "link",
+				icon: "▤",
+			},
+			{
 				key: "workload",
 				label: "Загрузки по сотрудникам",
 				to: "/reports/workload",
