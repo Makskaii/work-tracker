@@ -3739,7 +3739,7 @@
 	flex-direction: column;
 	box-sizing: border-box;
 	padding: 8px 10px 8px 12px;
-	background: #121517;
+	background: #1a1f21;
 
 	.ganttCustomEventHeader {
 		grid-template-columns: auto minmax(0, 1fr) max-content max-content;
@@ -3858,6 +3858,7 @@
 
 .ganttRowInfo .ganttGroupType {
 	display: block;
+	margin-left: 24px;
 	margin-bottom: 2px;
 	color: #778087;
 	font-size: 9px;
@@ -5455,6 +5456,10 @@ input[type="date"].dealSummaryDateInput {
 	left: 0;
 	z-index: 6;
 	background: #111315;
+}
+
+.ganttRowInfo.ganttParentRowInfo {
+	background: linear-gradient(90deg, #1b2022 0%, #151a1c 35%, #111315 50%, #111315 100%);
 }
 
 .ganttRowInfo.ganttRowInfoWithOpenMenu {
