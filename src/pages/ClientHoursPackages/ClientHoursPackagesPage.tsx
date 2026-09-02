@@ -7,26 +7,10 @@ import {
 	FaSearch,
 	FaSlidersH,
 } from "react-icons/fa";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
+import { ClientHoursPackageModal, type HoursPackageModalMode } from "./ClientHoursPackageModal";
+import type { ClientPackage, PackagePurchase, PackageState } from "./clientHoursPackages.types";
 import styles from "./ClientHoursPackagesPage.module.scss";
-
-type PackageState = "overdue" | "empty" | "ending" | "active";
-
-type ClientPackage = {
-	id: number;
-	client: string;
-	lastCharge: string;
-	remainingHours: number;
-	state: PackageState;
-	status: string;
-	statusHint: string;
-	progress: number;
-	purchases?: Array<{
-		date: string;
-		hours: number;
-		remaining: number;
-		state: string;
-	}>;
-};
 
 const CLIENT_PACKAGES: ClientPackage[] = [
 	{ id: 1, client: "Б24 | Аэросистемы", lastCharge: "29.08", remainingHours: -1.5, state: "overdue", status: "Перерасход", statusHint: "Работы сверх пакета", progress: 100 },
@@ -41,8 +25,8 @@ const CLIENT_PACKAGES: ClientPackage[] = [
 		statusHint: "≈ 6 дней",
 		progress: 82,
 		purchases: [
-			{ date: "20.08.2026", hours: 30, remaining: 3.5, state: "Активный" },
-			{ date: "12.03.2026", hours: 20, remaining: 0, state: "Закончился 02.06" },
+			{ id: 1, date: "2026-08-20", hours: 30, remaining: 3.5, state: "Активный" },
+			{ id: 2, date: "2026-03-12", hours: 20, remaining: 0, state: "Закончился 02.06" },
 		],
 	},
 	{ id: 4, client: "Б24 | Мастер сервис", lastCharge: "сегодня", remainingHours: 11.5, state: "active", status: "Активный пакет", statusHint: "≈ до декабря", progress: 73 },
@@ -60,21 +44,73 @@ const STATE_LABELS: Record<PackageState, string> = {
 	overdue: "Перерасход",
 };
 
+const getPackageState = (remainingHours: number): Omit<ClientPackage, "id" | "client" | "lastCharge" | "remainingHours" | "purchases"> => {
+	if (remainingHours < 0) return { progress: 100, state: "overdue", status: "Перерасход", statusHint: "Работы сверх пакета" };
+	if (remainingHours === 0) return { progress: 100, state: "empty", status: "Часы закончились", statusHint: "Нужна покупка" };
+	if (remainingHours <= 5) return { progress: 82, state: "ending", status: "Заканчиваются", statusHint: "≈ 6 дней" };
+
+	return { progress: Math.max(18, Math.min(74, Math.round(200 / remainingHours))), state: "active", status: "Активный пакет", statusHint: "≈ до следующего этапа" };
+};
+
+const formatPackageDate = (value: string) => new Intl.DateTimeFormat("ru-RU").format(new Date(`${value}T00:00:00`));
+
 export const ClientHoursPackagesPage = () => {
+	const [packages, setPackages] = useState(CLIENT_PACKAGES);
 	const [query, setQuery] = useState("");
 	const [stateFilter, setStateFilter] = useState<PackageState | "all">("all");
 	const [expandedClientId, setExpandedClientId] = useState<number | null>(3);
+	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(null);
+	const [modalClientId, setModalClientId] = useState<number | null>(null);
+	const [editingPurchase, setEditingPurchase] = useState<PackagePurchase | null>(null);
 
 	const visiblePackages = useMemo(() => {
 		const normalizedQuery = query.trim().toLocaleLowerCase("ru");
 
-		return CLIENT_PACKAGES.filter((item) => {
+		return packages.filter((item) => {
 			const matchesQuery = !normalizedQuery || item.client.toLocaleLowerCase("ru").includes(normalizedQuery);
 			const matchesState = stateFilter === "all" || item.state === stateFilter;
 
 			return matchesQuery && matchesState;
 		});
-	}, [query, stateFilter]);
+	}, [packages, query, stateFilter]);
+	const availableHours = packages.reduce((total, item) => total + Math.max(item.remainingHours, 0), 0);
+	const attentionClients = packages.filter((item) => item.remainingHours <= 5).length;
+	const purchasedHours = packages.reduce((total, item) => total + (item.purchases ?? []).reduce((sum, purchase) => sum + purchase.hours, 0), 0);
+
+	const closeModal = () => {
+		setModalMode(null);
+		setModalClientId(null);
+		setEditingPurchase(null);
+	};
+
+	const openModal = (mode: HoursPackageModalMode, clientId: number | null, purchase: PackagePurchase | null = null) => {
+		setModalMode(mode);
+		setModalClientId(clientId);
+		setEditingPurchase(purchase);
+	};
+
+	const savePurchase = ({ clientId, date, hours }: { clientId: number; date: string; hours: number }) => {
+		setPackages((current) => current.map((client) => {
+			if (client.id !== clientId) return client;
+
+			const previousHours = modalMode === "edit" ? editingPurchase?.hours ?? 0 : 0;
+			const nextRemainingHours = client.remainingHours + hours - previousHours;
+			const nextPurchase: PackagePurchase = modalMode === "edit" && editingPurchase
+				? { ...editingPurchase, date, hours, remaining: nextRemainingHours, state: "Активный" }
+				: { id: Date.now(), date, hours, remaining: nextRemainingHours, state: "Активный" };
+			const purchases = modalMode === "edit" && editingPurchase
+				? (client.purchases ?? []).map((purchase) => purchase.id === editingPurchase.id ? nextPurchase : purchase)
+				: [nextPurchase, ...(client.purchases ?? [])];
+
+			return { ...client, ...getPackageState(nextRemainingHours), lastCharge: "сегодня", purchases, remainingHours: nextRemainingHours };
+		}));
+		setExpandedClientId(clientId);
+		notify({
+			message: modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена",
+			type: "success",
+		});
+		closeModal();
+	};
 
 	return (
 		<section className={styles.page}>
@@ -84,7 +120,7 @@ export const ClientHoursPackagesPage = () => {
 					<h1>Пакеты часов клиентов</h1>
 					<p>Покупки, списания и остатки по всем проектам в одном месте</p>
 				</div>
-				<button className={styles.addHoursButton} type="button">
+				<button className={styles.addHoursButton} type="button" onClick={() => openModal("purchase", null)}>
 					<FaPlus aria-hidden="true" /> Добавить покупку часов
 				</button>
 			</header>
@@ -104,9 +140,9 @@ export const ClientHoursPackagesPage = () => {
 			</div>
 
 			<div className={styles.metrics}>
-				<div><span>Доступно клиентам сейчас</span><strong className={styles.metricAccent}>61,5 ч</strong><small>По активным пакетам</small></div>
-				<div><span>Требуют внимания</span><strong className={styles.metricWarning}>3 клиента</strong><small>Мало часов, закончились или перерасход</small></div>
-				<div><span>Куплено в сентябре</span><strong>50 ч</strong><small>2 новые покупки</small></div>
+				<div><span>Доступно клиентам сейчас</span><strong className={styles.metricAccent}>{formatHours(availableHours)}</strong><small>По активным пакетам</small></div>
+				<div><span>Требуют внимания</span><strong className={styles.metricWarning}>{attentionClients} {attentionClients === 1 ? "клиент" : "клиента"}</strong><small>Мало часов, закончились или перерасход</small></div>
+				<div><span>Куплено в пакетах</span><strong>{formatHours(purchasedHours)}</strong><small>Всего по истории покупок</small></div>
 			</div>
 
 			<div className={styles.notice}>
@@ -129,13 +165,13 @@ export const ClientHoursPackagesPage = () => {
 							</button>
 							{isExpanded && item.purchases ? (
 								<div className={styles.purchaseHistory}>
-									<div className={styles.purchaseHistoryTitle}><span>История покупок</span><button type="button"><FaPlus aria-hidden="true" /> Новый пакет</button></div>
+									<div className={styles.purchaseHistoryTitle}><span>История покупок</span><button type="button" onClick={() => openModal("new-package", item.id)}><FaPlus aria-hidden="true" /> Новый пакет</button></div>
 									{item.purchases.map((purchase) => (
-										<div className={styles.purchaseItem} key={purchase.date}>
-											<div><strong>Пакет от {purchase.date}</strong><small>{purchase.state}</small></div>
+									<div className={styles.purchaseItem} key={purchase.id}>
+										<div><strong>Пакет от {formatPackageDate(purchase.date)}</strong><small>{purchase.state}</small></div>
 											<div><span>Куплено</span><strong>{purchase.hours} ч</strong></div>
 											<div><span>Остаток</span><strong>{formatHours(purchase.remaining)}</strong></div>
-											<button type="button" aria-label={`Изменить пакет от ${purchase.date}`}><FaPen aria-hidden="true" /></button>
+										<button type="button" onClick={() => openModal("edit", item.id, purchase)} aria-label={`Изменить пакет от ${formatPackageDate(purchase.date)}`}><FaPen aria-hidden="true" /></button>
 										</div>
 									))}
 								</div>
@@ -144,7 +180,8 @@ export const ClientHoursPackagesPage = () => {
 					);
 				})}
 			</div>
-			<footer className={styles.footer}><span>Показано {visiblePackages.length} клиентов</span><strong>61,5 ч доступно</strong></footer>
+			<footer className={styles.footer}><span>Показано {visiblePackages.length} клиентов</span><strong>{formatHours(availableHours)} доступно</strong></footer>
+			<ClientHoursPackageModal clients={packages} clientId={modalClientId} isOpen={modalMode !== null} mode={modalMode ?? "purchase"} onClose={closeModal} onSubmit={savePurchase} purchase={editingPurchase} />
 		</section>
 	);
 };
