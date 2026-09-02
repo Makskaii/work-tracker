@@ -1,4 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaCalendarAlt, FaEllipsisH } from "react-icons/fa";
+import { useNavigate } from "react-router";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
@@ -373,6 +375,7 @@ export const SalesProfitabilityReport = ({
 	loading,
 }: SalesProfitabilityReportProps) => {
 	void deals;
+	const navigate = useNavigate();
 
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
@@ -1521,6 +1524,24 @@ export const SalesProfitabilityReport = ({
 										))}
 									</div>
 								) : null}
+							</div>
+							<div className={styles.projectsPlanSection}>
+								<span className={styles.projectsPlanSectionTitle}>Общий план</span>
+								<button
+									type="button"
+									className={styles.projectsPlanButton}
+									onClick={() => navigate("/reports/projects-plan")}
+								>
+									<span className={styles.projectsPlanIcon}>
+										<FaCalendarAlt aria-hidden="true" />
+									</span>
+									<span className={styles.projectsPlanCopy}>
+										<strong>Все проекты</strong>
+										<span>Проекты, команда и сводные окна</span>
+									</span>
+									<b className={styles.projectsPlanCount}>{reportProjects.length}</b>
+									<FaEllipsisH aria-hidden="true" className={styles.projectsPlanMore} />
+								</button>
 							</div>
 							{isReportProjectsLoading ? <ProjectListSkeleton /> : null}
 							{!isReportProjectsLoading &&

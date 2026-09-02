@@ -244,6 +244,97 @@
 	min-width: 0;
 }
 
+.projectsPlanSection {
+	display: grid;
+	gap: 8px;
+	padding: 4px 2px 8px;
+}
+
+.projectsPlanSectionTitle {
+	padding-left: 10px;
+	color: #7f8a8f;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.projectsPlanButton {
+	display: grid;
+	grid-template-columns: 36px minmax(0, 1fr) auto 16px;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px;
+	border: 1px solid #3e9db1;
+	border-radius: 12px;
+	background: #11191b;
+	color: var(--color-text);
+	cursor: pointer;
+	text-align: left;
+}
+
+.projectsPlanButton:hover {
+	border-color: #69d7f3;
+	background: #142125;
+}
+
+.projectsPlanIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border: 1px solid #367a8a;
+	border-radius: 9px;
+	background: #13252a;
+	color: #69d7f3;
+	font-size: 15px;
+}
+
+.projectsPlanCopy {
+	min-width: 0;
+
+	strong,
+	span {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	strong {
+		color: #edf1f2;
+		font-size: 13px;
+		font-weight: 800;
+	}
+
+	span {
+		margin-top: 3px;
+		color: #8f999d;
+		font-size: 10px;
+		font-weight: 600;
+	}
+}
+
+.projectsPlanCount {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 24px;
+	height: 24px;
+	border-radius: 8px;
+	background: #252b2e;
+	color: #8de0ef;
+	font-size: 11px;
+}
+
+.projectsPlanMore {
+	justify-self: end;
+	color: #9aa3a7;
+	font-size: 12px;
+}
+
 .projectSearchInput {
 	width: 100%;
 	min-height: 42px;
