@@ -379,6 +379,8 @@ export const SalesProfitabilityReport = ({
 	);
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
+	const [isStructureTransitioning, setIsStructureTransitioning] =
+		useState(false);
 	const [reportProjects, setReportProjects] = useState<ReportProject[]>([]);
 	const [editingReportProject, setEditingReportProject] =
 		useState<ReportProject | null>(null);
@@ -1433,14 +1435,27 @@ export const SalesProfitabilityReport = ({
 				<div
 					className={`${styles.layout} ${
 						isStructureCollapsed ? styles.layoutCollapsed : ""
+					} ${
+						isStructureTransitioning ? styles.layoutTransitioning : ""
 					}`}
+					onTransitionEnd={(event) => {
+						if (
+							event.target === event.currentTarget &&
+							event.propertyName === "grid-template-columns"
+						) {
+							setIsStructureTransitioning(false);
+						}
+					}}
 				>
 					<aside className={styles.structure}>
 						<div className={styles.structureHeader}>
 							<button
 								type="button"
 								className={styles.structureToggle}
-								onClick={() => setIsStructureCollapsed((prev) => !prev)}
+								onClick={() => {
+									setIsStructureTransitioning(true);
+									setIsStructureCollapsed((prev) => !prev);
+								}}
 								title={
 									isStructureCollapsed
 										? "Развернуть структуру"

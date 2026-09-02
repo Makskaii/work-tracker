@@ -26,7 +26,8 @@
 	min-width: 0;
 	min-height: 0;
 	overflow: hidden;
-	transition: grid-template-columns 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+	will-change: grid-template-columns;
+	transition: grid-template-columns 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .layoutCollapsed {
@@ -62,9 +63,9 @@
 	overflow: hidden;
 	box-shadow: none;
 	transition:
-		width 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-		padding 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-		gap 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+		width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+		padding 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+		gap 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .structureHeader {
@@ -5383,4 +5384,34 @@ input[type="date"].dealSummaryDateInput {
 .ganttTrackMonthLine {
 	z-index: 1;
 	background: rgba(145, 154, 160, 0.18);
+}
+
+.layout:not(.layoutCollapsed) .structureHeader h3,
+.layout:not(.layoutCollapsed) .projectSearchInput,
+.layout:not(.layoutCollapsed) .responsibleFilter,
+.layout:not(.layoutCollapsed) .reportProjectGroup,
+.layout:not(.layoutCollapsed) .dealProjectAddButton {
+	animation: structure-content-in 0.16s ease-out 0.12s both;
+}
+
+.layoutTransitioning .ganttPaymentTooltip,
+.layoutTransitioning .ganttCustomEventMenu,
+.layoutTransitioning .ganttGroupStatusMenu {
+	display: none;
+}
+
+.layoutTransitioning .ganttBoardScroll {
+	scrollbar-gutter: stable;
+}
+
+@keyframes structure-content-in {
+	from {
+		opacity: 0;
+		transform: translateX(-6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
 }
