@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FaThumbtack } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router";
 import {
 	APP_TITLE,
@@ -129,15 +130,12 @@ export const AppHeader = () => {
 					}
 					onClick={() => setIsSidebarOpen((prev) => !prev)}
 				>
-					<svg
+					<FaThumbtack
 						aria-hidden="true"
 						className={`${styles.pinIcon} ${
 							isSidebarOpen ? styles.pinIconPinned : ""
 						}`}
-						viewBox="0 0 24 24"
-					>
-						<path d="M16 9V4l1-1V2H7v1l1 1v5c0 .55-.45 1-1 1v1h5v9l1 1 1-1v-9h5v-1c-.55 0-1-.45-1-1Z" />
-					</svg>
+					/>
 				</button>
 			</div>
 

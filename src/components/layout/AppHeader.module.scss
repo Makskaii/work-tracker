@@ -69,9 +69,9 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    border: 1px solid #293035;
+    border-color: transparent;
     border-radius: 8px;
-    background: #15181b;
+    background: transparent;
     color: var(--color-accent);
     cursor: pointer;
     transition:
@@ -80,16 +80,16 @@
 }
 
 .menuButton:hover {
-    background: #1a1e21;
-    border-color: rgba(38, 231, 223, 0.5);
+    background: rgba(105, 215, 243, 0.08);
+    border-color: transparent;
 }
 
 .menuButton:active,
 .menuButton:focus,
 .menuButton:focus-visible {
     outline: none;
-    background: #15181b;
-    border-color: rgba(38, 231, 223, 0.35);
+    background: rgba(105, 215, 243, 0.08);
+    border-color: transparent;
     box-shadow: none;
 }
 
@@ -98,7 +98,6 @@
     width: 16px;
     height: 16px;
     color: #69d7f3;
-    fill: currentcolor;
     transform: rotate(40deg);
     transition: transform 0.2s ease;
 }
