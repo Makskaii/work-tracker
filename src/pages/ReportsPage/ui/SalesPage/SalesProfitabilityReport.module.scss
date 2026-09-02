@@ -4538,6 +4538,7 @@
 
 .dealSummaryMain {
 	min-width: 0;
+	padding-right: 152px;
 }
 
 .dealSummaryEyebrow,
@@ -4649,6 +4650,7 @@ input[type="date"].dealSummaryDateInput {
 .dealSummarySide {
 	min-width: 0;
 	max-width: 640px;
+	padding-top: 42px;
 	justify-self: end;
 	width: 100%;
 }
@@ -5164,6 +5166,7 @@ input[type="date"].dealSummaryDateInput {
 
 	.dealSummarySide {
 		max-width: none;
+		padding-top: 0;
 		justify-self: stretch;
 	}
 
