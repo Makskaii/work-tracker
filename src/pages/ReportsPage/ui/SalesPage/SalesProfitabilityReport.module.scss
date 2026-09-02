@@ -1733,6 +1733,11 @@
 	overflow: visible;
 }
 
+.ganttGroupSummaryEvent {
+	cursor: default;
+	filter: saturate(0.8);
+}
+
 .ganttCustomEventSegmentShell:hover {
 	filter: brightness(1.08);
 }

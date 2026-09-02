@@ -3175,6 +3175,7 @@ const AutonomousEventItem = ({
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 }) => {
 	const style = getAutonomousEventStyle(event, timeline);
+	const isCollapsedGroupSummary = Boolean(event.isCollapsedGroupSummary);
 	const eventClassName = getAutonomousEventClassName(
 		event.event,
 		stageType,
@@ -3187,7 +3188,7 @@ const AutonomousEventItem = ({
 		shellEnd: Date,
 		className = "",
 	) =>
-		date ? (
+		date && !isCollapsedGroupSummary ? (
 			<span
 				className={`${styles.ganttDateDragHandle} ${className}`}
 				onClick={(clickEvent) => {
@@ -3208,7 +3209,8 @@ const AutonomousEventItem = ({
 				title={formatAutonomousEventTooltip(event)}
 			/>
 		) : null;
-	const renderDependencyHandles = () => (
+	const renderDependencyHandles = () =>
+		isCollapsedGroupSummary ? null : (
 		<>
 			<span
 				className={`${styles.ganttDependencyHandle} ${styles.ganttDependencyHandleLeft}`}
@@ -3407,19 +3409,27 @@ const AutonomousEventItem = ({
 		return (
 			<button
 				type="button"
-				className={styles.ganttCustomEventSegmentShell}
+				className={`${styles.ganttCustomEventSegmentShell} ${
+					isCollapsedGroupSummary ? styles.ganttGroupSummaryEvent : ""
+				}`}
 				onClick={(clickEvent) => {
 					clickEvent.stopPropagation();
+					if (isCollapsedGroupSummary) {
+						return;
+					}
+
 					if (shouldSkipGanttClick(clickEvent.currentTarget)) {
 						return;
 					}
 
 					onEdit();
 				}}
-				onPointerDown={(pointerEvent) =>
-					onMoveDragStart(pointerEvent, event.event)
+				onPointerDown={
+					isCollapsedGroupSummary
+						? undefined
+						: (pointerEvent) => onMoveDragStart(pointerEvent, event.event)
 				}
-				ref={targetRef}
+				ref={isCollapsedGroupSummary ? undefined : targetRef}
 				style={getSegmentStyle(shellStart, shellEnd, timeline)}
 				title={formatAutonomousEventTooltip(event)}
 			>
