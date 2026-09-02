@@ -96,6 +96,13 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 				to: "/create-client-form",
 				type: "link",
 			},
+			{
+				key: "client-hours-packages",
+				label: "Пакеты часов клиентов",
+				to: "/client-hours-packages",
+				type: "link",
+				icon: "ч",
+			},
 		],
 	},
 	{

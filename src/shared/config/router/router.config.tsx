@@ -13,6 +13,7 @@ import {
 import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage";
 import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
+import { ClientHoursPackagesPage } from "@/pages/ClientHoursPackages/ClientHoursPackagesPage";
 import { MigratePage } from "@/pages/MigratePage";
 import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
@@ -159,6 +160,10 @@ export const router = createBrowserRouter(
 							<ClientForm />
 						</Suspense>
 					),
+				},
+				{
+					path: "/client-hours-packages",
+					element: <ClientHoursPackagesPage />,
 				},
 				{
 					path: "/employee/:id/stats",
