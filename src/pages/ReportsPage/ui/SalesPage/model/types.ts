@@ -124,6 +124,12 @@ export type ProjectGanttStageType =
 	| "delivery"
 	| "closing";
 
+export type ProjectGanttGroupStatus =
+	| "not_started"
+	| "in_progress"
+	| "inactive"
+	| "completed";
+
 export type ProjectGanttStage = {
 	id: number;
 	projectId: string;
@@ -135,6 +141,9 @@ export type ProjectGanttStage = {
 	durationDays: number | null;
 	sortOrder: number;
 	isDefault: boolean;
+	isGroup: boolean;
+	parentStageId: number | null;
+	groupStatus: ProjectGanttGroupStatus | null;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -147,6 +156,9 @@ export type ProjectGanttStagePayload = {
 	dependencyAnchor?: ProjectGanttDependencyAnchor | null;
 	durationDays?: number | null;
 	sortOrder?: number | null;
+	isGroup?: boolean;
+	parentStageId?: number | null;
+	groupStatus?: ProjectGanttGroupStatus | null;
 };
 
 export type ProjectGanttEvent = {
@@ -203,6 +215,12 @@ export type AutonomousProjectPaymentPayload = {
 
 export type ReportProjectType = "none" | "waterfall" | "support";
 
+export type ReportProjectStatus =
+	| "not_started"
+	| "in_progress"
+	| "inactive"
+	| "completed";
+
 export type ReportProjectFileKind = "estimate" | "technical_specification";
 
 export type ReportProjectFile = {
@@ -258,6 +276,7 @@ export type ReportProject = {
 	id: number;
 	bitrixProjectId: string | null;
 	title: string;
+	projectStatus?: ReportProjectStatus | null;
 	projectAmount: number | null;
 	summaryMarginPercent: number | null;
 	summaryPurchasedHours: number | null;
@@ -317,6 +336,7 @@ export type ReportProject = {
 
 export type ReportProjectPayload = {
 	title: string;
+	projectStatus?: ReportProjectStatus | null;
 	bitrixProjectId?: string | null;
 	projectAmount?: number | null;
 	summaryMarginPercent?: number | null;

@@ -1,8 +1,8 @@
 .chartCard {
 	min-width: 0;
-	border: 1px solid var(--color-border);
-	border-radius: 18px;
-	background: rgba(15, 28, 44, 0.72);
+	border: 1px solid #272c2f;
+	border-radius: 12px;
+	background: #111315;
 	overflow: hidden;
 }
 
@@ -11,70 +11,76 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 14px;
-	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
+	padding: 18px 20px;
+	border-bottom: 1px solid #25282b;
 	text-align: left;
 }
 
 .chartTitle {
 	margin: 0;
 	color: var(--color-text);
-	font-size: 18px;
-	font-weight: 900;
+	font-size: 17px;
+	font-weight: 800;
 }
 
 .chartSubtitle {
 	margin: 5px 0 0;
-	color: rgba(238, 245, 255, 0.62);
+	color: var(--color-muted);
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 }
 
 .filters {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-end;
-	gap: 8px;
+	gap: 6px;
 }
 
 .filterButton {
 	min-height: 34px;
-	padding: 0 12px;
-	border: 1px solid var(--color-border);
-	border-radius: 999px;
-	background: var(--color-surface-soft);
-	color: rgba(238, 245, 255, 0.72);
-	font-size: 12px;
-	font-weight: 900;
+	padding: 0 10px;
+	border: 1px solid #293035;
+	border-radius: 8px;
+	background: #15181b;
+	color: #aeb4b8;
+	font-size: 11px;
+	font-weight: 700;
 	cursor: pointer;
 }
 
 .filterButton:hover {
-	border-color: var(--color-border-active);
-	background: var(--color-surface-hover);
-	color: var(--color-text);
+	border-color: rgba(105, 215, 243, 0.42);
+	background: #1a1e21;
+	color: #ffffff;
 }
 
 .filterButtonActive {
-	border-color: var(--color-border-active);
-	background: rgba(57, 214, 238, 0.12);
+	border-color: rgba(105, 215, 243, 0.54);
+	background: var(--color-accent-soft);
 	color: var(--color-accent);
 }
 
 .metricsGrid {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(130px, 1fr));
-	gap: 10px;
-	padding: 14px 16px 0;
+	gap: 0;
+	padding: 16px 20px 0;
 }
 
 .metric {
 	min-width: 0;
-	padding: 12px;
-	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: var(--color-surface-soft);
+	padding: 2px 14px;
+	border: 0;
+	border-left: 1px solid #2a2f32;
+	border-radius: 0;
+	background: transparent;
 	text-align: left;
+}
+
+.metric:first-child {
+	padding-left: 0;
+	border-left: 0;
 }
 
 .metric span,
@@ -86,16 +92,16 @@
 }
 
 .metric span {
-	color: rgba(238, 245, 255, 0.62);
-	font-size: 11px;
-	font-weight: 900;
+	color: #7f888d;
+	font-size: 10px;
+	font-weight: 700;
 }
 
 .metric strong {
 	margin-top: 7px;
 	color: var(--color-text);
-	font-size: 18px;
-	font-weight: 950;
+	font-size: 16px;
+	font-weight: 800;
 }
 
 .legendPanel {
@@ -103,16 +109,16 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 12px;
-	padding: 12px 16px 0;
+	padding: 16px 20px 0;
 }
 
 .legend {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px 14px;
-	color: rgba(238, 245, 255, 0.66);
-	font-size: 12px;
-	font-weight: 800;
+	color: #aeb4b7;
+	font-size: 11px;
+	font-weight: 700;
 }
 
 .legendItem {
@@ -132,21 +138,21 @@
 	flex-wrap: wrap;
 	justify-content: flex-end;
 	gap: 8px;
-	color: rgba(238, 245, 255, 0.72);
+	color: var(--color-text);
 	font-size: 12px;
 	font-weight: 900;
 }
 
 .departmentTotals span {
-	padding: 4px 8px;
-	border-radius: 999px;
-	background: rgba(158, 176, 199, 0.12);
+	padding: 3px 5px;
+	border-radius: 5px;
+	background: #1a1e20;
 	white-space: nowrap;
 }
 
 .chartScroll {
 	overflow-x: auto;
-	padding: 12px 16px 16px;
+	padding: 16px 20px 20px;
 }
 
 .chartScroll::-webkit-scrollbar {
@@ -155,7 +161,7 @@
 
 .chartScroll::-webkit-scrollbar-thumb {
 	border-radius: 999px;
-	background: rgba(38, 231, 223, 0.34);
+	background: #3a4044;
 }
 
 .chart {
@@ -178,7 +184,7 @@
 	justify-content: space-between;
 	height: 170px;
 	padding-top: 8px;
-	color: rgba(238, 245, 255, 0.54);
+	color: var(--color-muted);
 	font-size: 11px;
 	font-weight: 900;
 	text-align: right;
@@ -191,11 +197,11 @@
 	min-width: 100%;
 	height: 170px;
 	padding: 10px 10px 0;
-	border: 1px solid var(--color-border);
-	border-radius: 14px;
+	border: 1px solid #25282b;
+	border-radius: 10px;
 	background:
-		linear-gradient(180deg, rgba(93, 141, 206, 0.14) 1px, transparent 1px) 0 0 / 100% 25%,
-		rgba(7, 17, 31, 0.34);
+		linear-gradient(180deg, rgba(125, 137, 145, 0.12) 1px, transparent 1px) 0 0 / 100% 25%,
+		#0f1113;
 }
 
 .barColumn {
@@ -227,8 +233,8 @@
 	flex-direction: column-reverse;
 	width: 32px;
 	min-height: 2px;
-	border-radius: 999px 999px 4px 4px;
-	background: rgba(238, 245, 255, 0.08);
+	border-radius: 6px 6px 3px 3px;
+	background: rgba(242, 244, 245, 0.08);
 	overflow: hidden;
 }
 
@@ -239,8 +245,8 @@
 
 .barEmpty {
 	height: 2px !important;
-	background: rgba(238, 245, 255, 0.2);
-	box-shadow: 0 0 0 1px rgba(238, 245, 255, 0.1);
+	background: rgba(242, 244, 245, 0.2);
+	box-shadow: 0 0 0 1px rgba(242, 244, 245, 0.1);
 }
 
 .barSegment {
@@ -260,7 +266,7 @@
 
 .weekLabel {
 	flex: 0 0 64px;
-	color: rgba(238, 245, 255, 0.66);
+	color: var(--color-text);
 	font-size: 12px;
 	font-weight: 900;
 	line-height: 1.25;
@@ -270,13 +276,13 @@
 .weekDate {
 	display: block;
 	margin-top: 3px;
-	color: rgba(238, 245, 255, 0.48);
+	color: var(--color-muted);
 	font-size: 11px;
 }
 
 .emptyState {
 	padding: 24px 16px;
-	color: rgba(238, 245, 255, 0.64);
+	color: var(--color-muted);
 	text-align: center;
 	font-weight: 800;
 }

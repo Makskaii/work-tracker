@@ -52,7 +52,6 @@ import {
 import {
 	DEFAULT_REPORT_PROJECT_FORM,
 	getProjectSummaryForm,
-	getProjectSummaryPayload,
 	getReportProjectForm,
 	getReportProjectPayload,
 	numberOrNull,
@@ -380,6 +379,8 @@ export const SalesProfitabilityReport = ({
 	);
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
+	const [isStructureTransitioning, setIsStructureTransitioning] =
+		useState(false);
 	const [reportProjects, setReportProjects] = useState<ReportProject[]>([]);
 	const [editingReportProject, setEditingReportProject] =
 		useState<ReportProject | null>(null);
@@ -402,9 +403,6 @@ export const SalesProfitabilityReport = ({
 	const [summaryForm, setSummaryForm] = useState<ProjectSummaryFormState>(
 		getProjectSummaryForm(null),
 	);
-	const [isSummaryEditing, setIsSummaryEditing] = useState(false);
-	const [isSummarySaving, setIsSummarySaving] = useState(false);
-	const [summaryError, setSummaryError] = useState<string | null>(null);
 	const [projectReportEntries, setProjectReportEntries] = useState<
 		ProjectReportEntry[]
 	>([]);
@@ -451,6 +449,7 @@ export const SalesProfitabilityReport = ({
 	);
 	const [isReportProjectModalOpen, setIsReportProjectModalOpen] =
 		useState(false);
+	const [isReportProjectDrawer, setIsReportProjectDrawer] = useState(false);
 	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
@@ -530,8 +529,6 @@ export const SalesProfitabilityReport = ({
 	useEffect(() => {
 		setDetailsProjectForm(getReportProjectForm(selectedReportProject));
 		setSummaryForm(getProjectSummaryForm(selectedReportProject));
-		setIsSummaryEditing(false);
-		setSummaryError(null);
 		setDetailsFileDrafts({});
 		setDetailsProjectError(null);
 	}, [selectedReportProject]);
@@ -929,6 +926,7 @@ export const SalesProfitabilityReport = ({
 	}, []);
 
 	const openReportProjectCreateModal = () => {
+		setIsReportProjectDrawer(false);
 		setEditingReportProject(null);
 		setProjectForm(DEFAULT_REPORT_PROJECT_FORM);
 		setProjectFileDrafts({});
@@ -937,7 +935,11 @@ export const SalesProfitabilityReport = ({
 		setIsReportProjectModalOpen(true);
 	};
 
-	const openReportProjectEditModal = (project: ReportProject) => {
+	const openReportProjectEditModal = (
+		project: ReportProject,
+		asDrawer = false,
+	) => {
+		setIsReportProjectDrawer(asDrawer);
 		setEditingReportProject(project);
 		setProjectForm(getReportProjectForm(project));
 		setProjectFileDrafts({});
@@ -1400,37 +1402,6 @@ export const SalesProfitabilityReport = ({
 		}
 	};
 
-	const handleSummarySave = async () => {
-		if (!selectedReportProject) {
-			return;
-		}
-
-		setIsSummarySaving(true);
-		setSummaryError(null);
-
-		try {
-			const savedProject = await updateReportProject(
-				selectedReportProject.id,
-				getProjectSummaryPayload(summaryForm),
-			);
-
-			setReportProjects((prev) =>
-				prev.map((project) =>
-					project.id === savedProject.id ? savedProject : project,
-				),
-			);
-			setEditingReportProject((prev) =>
-				prev && prev.id === savedProject.id ? savedProject : prev,
-			);
-			setSummaryForm(getProjectSummaryForm(savedProject));
-			setIsSummaryEditing(false);
-		} catch {
-			setSummaryError("Не удалось сохранить метрики проекта");
-		} finally {
-			setIsSummarySaving(false);
-		}
-	};
-
 	const handleReportProjectDelete = async () => {
 		if (!editingReportProject) {
 			return;
@@ -1464,14 +1435,27 @@ export const SalesProfitabilityReport = ({
 				<div
 					className={`${styles.layout} ${
 						isStructureCollapsed ? styles.layoutCollapsed : ""
+					} ${
+						isStructureTransitioning ? styles.layoutTransitioning : ""
 					}`}
+					onTransitionEnd={(event) => {
+						if (
+							event.target === event.currentTarget &&
+							event.propertyName === "grid-template-columns"
+						) {
+							setIsStructureTransitioning(false);
+						}
+					}}
 				>
 					<aside className={styles.structure}>
 						<div className={styles.structureHeader}>
 							<button
 								type="button"
 								className={styles.structureToggle}
-								onClick={() => setIsStructureCollapsed((prev) => !prev)}
+								onClick={() => {
+									setIsStructureTransitioning(true);
+									setIsStructureCollapsed((prev) => !prev);
+								}}
 								title={
 									isStructureCollapsed
 										? "Развернуть структуру"
@@ -1620,16 +1604,18 @@ export const SalesProfitabilityReport = ({
 
 					<div className={styles.content}>
 						<div className={styles.tabs}>
-							{tabs.map((tab) => (
-								<button
-									key={tab.id}
-									type="button"
-									className={activeTab === tab.id ? styles.activeTab : ""}
-									onClick={() => setActiveTab(tab.id)}
-								>
-									{tab.title}
-								</button>
-							))}
+							<div className={styles.tabsList}>
+								{tabs.map((tab) => (
+									<button
+										key={tab.id}
+										type="button"
+										className={activeTab === tab.id ? styles.activeTab : ""}
+										onClick={() => setActiveTab(tab.id)}
+									>
+										{tab.title}
+									</button>
+								))}
+							</div>
 							<button
 								type="button"
 								className={`${styles.marginalityTabButton} ${
@@ -1648,27 +1634,15 @@ export const SalesProfitabilityReport = ({
 								{activeTab === "projects" && (
 									<SummaryCards
 										form={summaryForm}
-										isEditing={isSummaryEditing}
-										isSaving={isSummarySaving}
-										onCancel={() => {
-											setSummaryForm(
-												getProjectSummaryForm(selectedReportProject),
-											);
-											setIsSummaryEditing(false);
-											setSummaryError(null);
+										onEditProject={() => {
+											if (selectedReportProject) {
+												openReportProjectEditModal(selectedReportProject, true);
+											}
 										}}
-										onChange={setSummaryForm}
-										onEdit={() => {
-											setSummaryForm(
-												getProjectSummaryForm(selectedReportProject),
-											);
-											setIsSummaryEditing(true);
-										}}
-										onSave={handleSummarySave}
 										projectTitle={
 											selectedReportProject?.title ?? "Проект не выбран"
 										}
-										saveError={summaryError}
+										projectStatus={selectedReportProject?.projectStatus}
 										summary={displayedSummary}
 									/>
 								)}
@@ -1790,6 +1764,7 @@ export const SalesProfitabilityReport = ({
 				onClose={() => {
 					setDeletingReportProjectId(null);
 					setProjectFileDrafts({});
+					setIsReportProjectDrawer(false);
 					setIsReportProjectModalOpen(false);
 				}}
 				onDelete={handleReportProjectDelete}
@@ -1805,7 +1780,8 @@ export const SalesProfitabilityReport = ({
 				onSubmit={handleReportProjectSubmit}
 				project={editingReportProject}
 				projectFormError={projectFormError}
-					saving={isReportProjectSaving}
+				position={isReportProjectDrawer ? "right" : "center"}
+				saving={isReportProjectSaving}
 				users={users}
 			/>
 			<PaymentModal

@@ -11,6 +11,7 @@ const mockInitializeB24Frame = vi.fn();
 const mockAbilityUpdate = vi.fn();
 const mockCallMake = vi.fn();
 const mockGetDepartmentsHeads = vi.fn();
+const originalTopDescriptor = Object.getOwnPropertyDescriptor(window, "top");
 
 vi.mock("@bitrix24/b24jssdk", () => ({
 	initializeB24Frame: mockInitializeB24Frame,
@@ -43,8 +44,6 @@ vi.mock("react-router", async () => {
 });
 
 describe("MainLayout", () => {
-	let topWindowSpy: ReturnType<typeof vi.spyOn>;
-
 	const createMockB24Instance = () => ({
 		destroy: vi.fn(),
 		auth: {
@@ -62,17 +61,23 @@ describe("MainLayout", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.resetModules();
-		topWindowSpy = vi
-			.spyOn(window, "top", "get")
-			.mockReturnValue({} as Window);
 		mockGetDepartmentsHeads.mockResolvedValue([]);
 	});
 
 	afterEach(() => {
-		topWindowSpy.mockRestore();
 		cleanup();
 		vi.unstubAllEnvs();
+		if (originalTopDescriptor) {
+			Object.defineProperty(window, "top", originalTopDescriptor);
+		}
 	});
+
+	const mockEmbeddedWindow = () => {
+		Object.defineProperty(window, "top", {
+			configurable: true,
+			value: {},
+		});
+	};
 
 	const renderComponent = async () => {
 		const { MainLayout } = await import("./MainLayout");
@@ -112,21 +117,24 @@ describe("MainLayout", () => {
 	});
 
 	describe("production mode", () => {
-		it("redirects direct app access to Bitrix Marketplace", async () => {
+		it("не инициализирует Bitrix24 при прямом открытии приложения", async () => {
 			vi.stubEnv("DEV", false);
-			topWindowSpy.mockRestore();
+			const consoleError = vi
+				.spyOn(console, "error")
+				.mockImplementation(() => undefined);
 
-			const view = await renderComponent();
+			await renderComponent();
 
 			await waitFor(() => {
-				expect(view.container.textContent).toContain("Загрузка...");
+				expect(mockInitializeB24Frame).not.toHaveBeenCalled();
 			});
 
-			expect(mockInitializeB24Frame).not.toHaveBeenCalled();
+			consoleError.mockRestore();
 		});
 
 		it("blocks main pages when the app is opened without a Bitrix24 frame", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			mockInitializeB24Frame.mockRejectedValue(new Error("No Bitrix frame"));
 
@@ -149,6 +157,7 @@ describe("MainLayout", () => {
 
 		it("должен инициализировать B24Frame при монтировании", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 
@@ -177,6 +186,7 @@ describe("MainLayout", () => {
 
 		it("должен вызывать destroy при размонтировании", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 
@@ -204,6 +214,7 @@ describe("MainLayout", () => {
 
 		it("должен выдать права руководителю отдела", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 
@@ -242,6 +253,7 @@ describe("MainLayout", () => {
 
 		it("должен выдать права сотруднику из департамента 25 и выполнить navigate", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 
@@ -274,6 +286,7 @@ describe("MainLayout", () => {
 
 		it("не должен выдавать права, если пользователь не руководитель и не из департамента 25", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 
@@ -299,6 +312,7 @@ describe("MainLayout", () => {
 
 		it("не должен дублировать правило create-client, если пользователь и руководитель, и из департамента 25", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 
@@ -335,6 +349,7 @@ describe("MainLayout", () => {
 
 		it("должен игнорировать пустые значения из getDepartmentsHeads", async () => {
 			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
 
 			const mockB24Instance = createMockB24Instance();
 

@@ -13,7 +13,7 @@
     padding: clamp(8px, 0.85vw, 16px);
     border: 1px solid var(--color-border);
     border-radius: 26px;
-    background: rgba(15, 28, 44, 0.86);
+    background: #0d0f11;
     box-shadow: 0 22px 52px rgba(1, 8, 14, 0.35);
 }
 
@@ -71,7 +71,7 @@
     padding: 4px;
     border: 1px solid var(--color-border);
     border-radius: 999px;
-    background: #0c1726;
+    background: #101315;
 
     button {
         min-height: 38px;
@@ -370,7 +370,7 @@
     height: 6px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(95, 143, 216, 0.24);
+    background: #252a2e;
 
     span {
         display: block;
@@ -386,7 +386,7 @@
 .progressSkeleton {
     display: inline-block;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(38, 58, 85, 0.84), rgba(57, 214, 238, 0.2), rgba(38, 58, 85, 0.84));
+    background: linear-gradient(90deg, #30363a, #4b5358, #30363a);
     background-size: 220% 100%;
     animation: skeletonShimmer 1.2s ease-in-out infinite;
 }
@@ -641,7 +641,7 @@
     padding: 10px 12px;
     border-radius: 14px;
     background: var(--color-surface-soft);
-    border: 1px solid rgba(38, 58, 85, 0.7);
+    border: 1px solid #30363a;
     overflow: hidden;
 }
 
@@ -666,7 +666,7 @@
 .skeletonPills span {
     display: block;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(38, 58, 85, 0.84), rgba(57, 214, 238, 0.18), rgba(38, 58, 85, 0.84));
+    background: linear-gradient(90deg, #30363a, #4b5358, #30363a);
     background-size: 220% 100%;
     animation: skeletonShimmer 1.2s ease-in-out infinite;
 }

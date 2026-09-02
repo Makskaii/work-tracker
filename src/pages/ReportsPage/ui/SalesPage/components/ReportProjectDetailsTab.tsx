@@ -5,6 +5,7 @@ import type {
 	ReportProjectFileKind,
 } from "../model/types";
 import {
+	projectStatusOptions,
 	reportProjectFileLabels,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
@@ -74,6 +75,24 @@ export const ReportProjectDetailsTab = ({
 					onFormChange={onFormChange}
 					variant="details"
 				/>
+				<label className={styles.reportProjectField}>
+					<span>Статус проекта</span>
+					<select
+						value={form.projectStatus}
+						onChange={(event) =>
+							onFormChange({
+								...form,
+								projectStatus: event.target.value,
+							})
+						}
+					>
+						{projectStatusOptions.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</select>
+				</label>
 				<ReportProjectInput
 					form={form}
 					label="ID проекта в Битрикс"

@@ -65,11 +65,6 @@ export const MainLayout = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		if (window.self === window.top) {
-			window.location.replace("/marketplace/app/3/");
-			return;
-		}
-
 		let isMounted = true;
 
 		const getCurrentUserDepartmentInfo = async (
@@ -96,6 +91,11 @@ export const MainLayout = () => {
 			try {
 				const nextRules: AbilityRule[] = [];
 				let redirectTo: string | null = null;
+
+				if (!devMode && window.self === window.top) {
+					window.location.replace("/marketplace/app/3/");
+					return;
+				}
 
 				if (devMode) {
 					addRuleIfMissing(nextRules, {
@@ -248,8 +248,8 @@ export const MainLayout = () => {
 						overflow: "auto",
 						width: "100%",
 						padding:
-							"clamp(12px, 1.1vw, 20px) clamp(12px, 1.1vw, 20px) clamp(12px, 1.1vw, 20px) var(--app-sidebar-width, 72px)",
-						background: "transparent",
+							"0 0 0 var(--app-sidebar-width, 72px)",
+						background: "#0d0f11",
 						transition: "padding-left 0.2s ease",
 					}}
 				>

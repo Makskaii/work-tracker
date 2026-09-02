@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FaThumbtack } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router";
 import {
 	APP_TITLE,
@@ -29,12 +30,15 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 	const [collapsedSections, setCollapsedSections] = useState<
 		Record<string, boolean>
 	>({
 		"Доп. списки": true,
 	});
 	const location = useLocation();
+	const isSidebarExpanded = isSidebarOpen || isSidebarHovered;
+	const isSidebarHoverExpanded = !isSidebarOpen && isSidebarHovered;
 	const navItems = useMemo(
 		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
 		[],
@@ -89,7 +93,7 @@ export const AppHeader = () => {
 	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
-			isSidebarOpen ? "320px" : "72px",
+			isSidebarOpen ? "310px" : "72px",
 		);
 
 		return () => {
@@ -101,21 +105,37 @@ export const AppHeader = () => {
 		<header
 			className={[
 				styles.sidebar,
-				isSidebarOpen ? styles.sidebarOpened : styles.sidebarCollapsed,
+				isSidebarExpanded ? styles.sidebarOpened : styles.sidebarCollapsed,
+				isSidebarHoverExpanded ? styles.sidebarHoverExpanded : "",
 			].join(" ")}
+			onMouseEnter={() => setIsSidebarHovered(true)}
+			onMouseLeave={() => setIsSidebarHovered(false)}
 		>
 			<div className={styles.sidebarHeader}>
 				<div className={styles.sidebarTitle}>{APP_TITLE}</div>
 				<button
 					type="button"
 					className={styles.menuButton}
-					aria-label={isSidebarOpen ? "Close navigation" : "Open navigation"}
-					aria-expanded={isSidebarOpen}
+					aria-label={
+						isSidebarOpen
+							? "Открепить боковую панель"
+							: "Закрепить боковую панель"
+					}
+					aria-expanded={isSidebarExpanded}
+					aria-pressed={isSidebarOpen}
+					title={
+						isSidebarOpen
+							? "Открепить боковую панель"
+							: "Закрепить боковую панель"
+					}
 					onClick={() => setIsSidebarOpen((prev) => !prev)}
 				>
-					<span />
-					<span />
-					<span />
+					<FaThumbtack
+						aria-hidden="true"
+						className={`${styles.pinIcon} ${
+							isSidebarOpen ? styles.pinIconPinned : ""
+						}`}
+					/>
 				</button>
 			</div>
 
@@ -143,7 +163,7 @@ export const AppHeader = () => {
 							{collapsedSections[group.title] ? "⌄" : "⌃"}
 						</span>
 					</button>
-						{(!isSidebarOpen || !collapsedSections[group.title]) &&
+						{(!isSidebarExpanded || !collapsedSections[group.title]) &&
 							group.items.map((item) => {
 								const isActive = activeTopKey === item.key;
 							const icon = getNavIcon(item);
@@ -178,7 +198,7 @@ export const AppHeader = () => {
 								);
 							}
 
-							const isOpened = isSidebarOpen && openedKey === item.key;
+							const isOpened = isSidebarExpanded && openedKey === item.key;
 
 							return (
 								<div key={item.key} className={styles.navItemWrapper}>
@@ -190,7 +210,7 @@ export const AppHeader = () => {
 									isOpened ? styles.navItemOpened : "",
 								].join(" ")}
 								onClick={() => {
-									if (!isSidebarOpen) {
+									if (!isSidebarExpanded) {
 										setIsSidebarOpen(true);
 										setOpenedKey(item.key);
 										return;

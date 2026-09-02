@@ -45,6 +45,19 @@ export const updateProjectGanttStage = async (
 export const deleteProjectGanttStage = (stageId: number) =>
 	$backendApi.delete(`project-reports/gantt/stages/${stageId}`);
 
+export const moveProjectGanttStageParent = async (
+	stageId: number,
+	parentStageId: number,
+	beforeStageId: number | null,
+) => {
+	const response = await $backendApi.patch<ProjectGanttStage[]>(
+		`project-reports/gantt/stages/${stageId}/parent`,
+		{ beforeStageId, parentStageId },
+	);
+
+	return response.data;
+};
+
 export const fetchProjectGanttEvents = async (
 	projectId: string,
 	signal?: AbortSignal,

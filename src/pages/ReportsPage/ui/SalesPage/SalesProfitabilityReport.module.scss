@@ -1,17 +1,17 @@
-﻿.section {
+.section {
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	height: calc(100vh - 36px);
+	gap: 0;
+	height: 100%;
 	min-width: 0;
 	min-height: 0;
-	padding: 18px;
-	border: 1px solid var(--color-border);
-	border-radius: 24px;
-	background: rgba(15, 28, 44, 0.86);
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: #0d0f11;
 	color: var(--color-text);
-	box-shadow: 0 18px 44px rgba(1, 8, 14, 0.28);
+	box-shadow: none;
 }
 
 .layout {
@@ -19,14 +19,15 @@
 	display: grid;
 	--structure-width: 320px;
 	grid-template-columns: var(--structure-width) minmax(0, 1fr);
-	gap: 18px;
+	gap: 0;
 	align-items: start;
 	flex: 1 1 auto;
 	height: 100%;
 	min-width: 0;
 	min-height: 0;
 	overflow: hidden;
-	transition: grid-template-columns 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+	will-change: grid-template-columns;
+	transition: grid-template-columns 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .layoutCollapsed {
@@ -38,9 +39,9 @@
 	height: 100%;
 	min-width: 0;
 	min-height: 0;
-	border: 1px solid var(--color-border);
-	border-radius: 20px;
-	background: var(--color-surface);
+	border: 0;
+	border-radius: 0;
+	background: #0d0f11;
 	overflow: auto;
 }
 
@@ -54,32 +55,33 @@
 	max-width: 100%;
 	height: 100%;
 	min-height: 0;
-	padding: 14px;
-	border: 1px solid var(--color-border);
-	border-radius: 22px;
-	background: rgba(15, 28, 46, 0.3);
+	padding: 16px 14px 0;
+	border: 0;
+	border-right: 1px solid #25282b;
+	border-radius: 0;
+	background: #0b0c0e;
 	overflow: hidden;
-	box-shadow: inset 0 0 0 1px rgba(46, 197, 173, 0.04);
+	box-shadow: none;
 	transition:
-		width 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-		padding 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-		gap 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+		width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+		padding 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+		gap 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .structureHeader {
 	display: grid;
 	grid-template-columns: 30px minmax(0, 1fr);
 	align-items: center;
-	gap: 8px;
-	padding: 0 0 12px;
-	border-bottom: 1px solid var(--color-border);
+	gap: 10px;
+	padding: 0 2px 12px;
+	border-bottom: 1px solid #25282b;
 
 	h3 {
 		margin: 0;
-		color: var(--color-muted);
-		font-size: 12px;
-		font-weight: 900;
-		letter-spacing: 0.08em;
+		color: #aeb5b9;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
 		text-transform: uppercase;
 	}
 }
@@ -92,9 +94,9 @@
 	height: 30px;
 	flex: 0 0 30px;
 	padding: 0;
-	border: 1px solid var(--color-border);
-	border-radius: 11px;
-	background: rgba(22, 36, 55, 0.34);
+	border: 1px solid #293035;
+	border-radius: 10px;
+	background: #15181b;
 	color: var(--color-accent);
 	font-size: 16px;
 	font-weight: 900;
@@ -103,8 +105,8 @@
 }
 
 .structureToggle:hover {
-	border-color: var(--color-border-active);
-	background: rgba(32, 49, 73, 0.38);
+	border-color: rgba(38, 231, 223, 0.48);
+	background: #1a1e21;
 }
 
 .dealsList {
@@ -114,12 +116,18 @@
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
-	padding: 0 4px 0 0;
-	scrollbar-width: none;
+	padding: 0 2px 24px 0;
+	scrollbar-color: #3a4044 transparent;
+	scrollbar-width: thin;
 }
 
 .dealsList::-webkit-scrollbar {
-	display: none;
+	width: 6px;
+}
+
+.dealsList::-webkit-scrollbar-thumb {
+	border-radius: 6px;
+	background: #3a4044;
 }
 
 .responsibleFilter {
@@ -135,17 +143,17 @@
 	width: 100%;
 	min-height: 40px;
 	padding: 8px 12px;
-	border: 1px solid var(--color-border);
-	border-radius: 12px;
-	background: rgba(9, 20, 36, 0.72);
+	border: 1px solid #282e32;
+	border-radius: 10px;
+	background: #101316;
 	color: var(--color-text);
 	cursor: pointer;
 	text-align: left;
 
 	span {
-		color: rgba(238, 245, 255, 0.66);
-		font-size: 11px;
-		font-weight: 800;
+		color: #aab1b5;
+		font-size: 10px;
+		font-weight: 700;
 		text-transform: uppercase;
 	}
 
@@ -161,8 +169,8 @@
 }
 
 .responsibleFilterButton:hover {
-	border-color: var(--color-border-active);
-	background: rgba(46, 197, 173, 0.08);
+	border-color: rgba(38, 231, 223, 0.5);
+	background: #101316;
 }
 
 .responsibleFilterOptions {
@@ -177,7 +185,7 @@
 	padding: 6px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
-	background: #0f1d30;
+	background: #101315;
 	box-shadow: 0 16px 36px rgba(1, 8, 14, 0.34);
 
 	button {
@@ -237,25 +245,25 @@
 
 .projectSearchInput {
 	width: 100%;
-	min-height: 38px;
-	padding: 9px 11px;
-	border: 1px solid var(--color-border);
-	border-radius: 12px;
-	background: rgba(9, 20, 36, 0.72);
+	min-height: 42px;
+	padding: 9px 12px;
+	border: 1px solid #282e32;
+	border-radius: 10px;
+	background: #101316;
 	color: var(--color-text);
 	font-size: 12px;
-	font-weight: 800;
+	font-weight: 700;
 	box-sizing: border-box;
 	outline: none;
 }
 
 .projectSearchInput::placeholder {
-	color: rgba(238, 245, 255, 0.42);
+	color: #697176;
 }
 
 .projectSearchInput:focus {
-	border-color: var(--color-border-active);
-	background: rgba(12, 28, 48, 0.9);
+	border-color: rgba(38, 231, 223, 0.6);
+	background: #101316;
 }
 
 .dealButton {
@@ -346,11 +354,11 @@
 	align-items: center;
 	gap: 10px;
 	width: 100%;
-	min-height: 46px;
-	padding: 9px 12px;
+	min-height: 58px;
+	padding: 8px 9px;
 	border: 1px solid transparent;
-	border-radius: 12px;
-	background: rgba(22, 36, 55, 0.24);
+	border-radius: 10px;
+	background: transparent;
 	color: var(--color-text);
 	text-align: left;
 	cursor: pointer;
@@ -366,14 +374,14 @@
 
 	strong {
 		font-size: 13px;
-		font-weight: 900;
+		font-weight: 700;
 	}
 
 	small {
 		margin-top: 2px;
-		color: rgba(238, 245, 255, 0.6);
-		font-size: 11px;
-		font-weight: 700;
+		color: #858d91;
+		font-size: 10px;
+		font-weight: 600;
 	}
 }
 
@@ -423,22 +431,22 @@
 }
 
 .dealProjectButton:not(.activeProject):hover {
-	border-color: var(--color-border-active);
-	background: rgba(46, 197, 173, 0.08);
+	border-color: transparent;
+	background: rgba(255, 255, 255, 0.025);
 }
 
 .reportProjectGroup {
 	display: grid;
-	gap: 7px;
+	gap: 2px;
 }
 
 .reportProjectGroupTitle {
 	overflow: hidden;
-	padding: 4px 2px 0;
-	color: rgba(238, 245, 255, 0.54);
+	padding: 10px 4px 4px;
+	color: #7f878c;
 	font-size: 10px;
-	font-weight: 900;
-	letter-spacing: 0.04em;
+	font-weight: 700;
+	letter-spacing: 0.1em;
 	text-overflow: ellipsis;
 	text-transform: uppercase;
 	white-space: nowrap;
@@ -448,7 +456,8 @@
 	grid-template-columns: 28px minmax(0, 1fr) 28px;
 	align-items: center;
 	column-gap: 11px;
-	padding-right: 12px;
+	min-height: 56px;
+	padding: 7px 10px 7px 8px;
 }
 
 .reportProjectText {
@@ -489,8 +498,8 @@
 }
 
 .reportProjectMenuButton:hover {
-	background: rgba(46, 197, 173, 0.12);
-	color: var(--color-text);
+	background: rgba(255, 255, 255, 0.05);
+	color: #e8ecee;
 }
 
 .reportProjectMeta {
@@ -543,11 +552,11 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 26px;
-	height: 26px;
+	width: 30px;
+	height: 30px;
 	overflow: hidden;
 	border-radius: 999px;
-	background: rgba(46, 197, 173, 0.12);
+	background: rgba(255, 255, 255, 0.06);
 	color: var(--color-accent);
 	font-size: 12px;
 	font-weight: 900;
@@ -561,18 +570,18 @@
 }
 
 .activeProject {
-	border-color: var(--color-border-active);
-	background: rgba(46, 197, 173, 0.12);
-	box-shadow: none;
+	border-color: rgba(38, 231, 223, 0.55);
+	background: linear-gradient(90deg, rgba(38, 231, 223, 0.11), rgba(255, 255, 255, 0.025));
+	box-shadow: inset 3px 0 0 var(--color-accent);
 	outline: none;
 }
 
 .activeProject:hover,
 .activeProject:focus,
 .activeProject:focus-visible {
-	border-color: var(--color-border-active);
-	background: rgba(46, 197, 173, 0.12);
-	box-shadow: none;
+	border-color: rgba(38, 231, 223, 0.55);
+	background: linear-gradient(90deg, rgba(38, 231, 223, 0.11), rgba(255, 255, 255, 0.025));
+	box-shadow: inset 3px 0 0 var(--color-accent);
 	outline: none;
 }
 
@@ -585,7 +594,7 @@
 	padding: 8px 10px;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.5);
+	background: #101315;
 }
 
 .reportProjectFileDropzone {
@@ -598,7 +607,7 @@
 	padding: 16px;
 	border: 2px dashed rgba(46, 197, 173, 0.4);
 	border-radius: 16px;
-	background: rgba(9, 20, 36, 0.35);
+	background: #101315;
 	transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -911,38 +920,68 @@
 .tabs {
 	display: flex;
 	align-items: center;
+	justify-content: space-between;
 	gap: 16px;
-	padding: 0 16px;
-	border-bottom: 1px solid var(--color-border);
-	overflow-x: auto;
+	min-height: 54px;
+	padding: 0 20px;
+	border-bottom: 1px solid #25282b;
+	background: #111315;
+	overflow: hidden;
 
 	button {
-		min-height: 44px;
-		padding: 0;
+		position: relative;
+		min-height: 54px;
+		padding: 0 12px;
 		border: 0;
 		border-radius: 0;
 		background: transparent;
-		color: rgba(238, 245, 255, 0.68);
-		font-size: 14px;
-		font-weight: 900;
+		color: #aeb4b8;
+		font-size: 13px;
+		font-weight: 700;
 		white-space: nowrap;
-	}
+		cursor: pointer;
 
-	strong {
-		margin-left: auto;
-		color: var(--color-accent);
-		white-space: nowrap;
+		&:hover {
+			color: #ffffff;
+		}
+	}
+}
+
+.tabsList {
+	display: flex;
+	align-items: stretch;
+	gap: 4px;
+	min-width: 0;
+	min-height: 54px;
+	overflow-x: auto;
+	scrollbar-width: none;
+
+	&::-webkit-scrollbar {
+		display: none;
 	}
 }
 
 .marginalityTabButton {
-	margin-left: auto;
-	color: var(--color-accent) !important;
+	flex: 0 0 auto;
+	padding-right: 0 !important;
+	padding-left: 10px !important;
+	color: #f3f5f6 !important;
 }
 
 .activeTab {
-	color: var(--color-accent-blue) !important;
-	box-shadow: inset 0 -3px 0 var(--color-accent);
+	color: #ffffff !important;
+
+	&::after {
+		position: absolute;
+		right: 13px;
+		bottom: 0;
+		left: 13px;
+		height: 3px;
+		border-radius: 3px 3px 0 0;
+		background: var(--color-accent);
+		box-shadow: 0 -4px 15px rgba(105, 215, 243, 0.16);
+		content: "";
+	}
 }
 
 .contentHeader {
@@ -1117,7 +1156,7 @@
 }
 
 .successText {
-	color: #48d98c !important;
+	color: var(--color-success) !important;
 }
 
 .amountText {
@@ -1170,7 +1209,7 @@
 	padding: 14px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(15, 28, 44, 0.72);
+	background: #101315;
 	text-align: left;
 	overflow: hidden;
 
@@ -1191,8 +1230,8 @@
 }
 
 .paymentLegend .paymentPaid {
-	background: rgba(72, 217, 140, 0.16);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .paymentLegend .paymentPlanned {
@@ -1216,7 +1255,7 @@
 	padding: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 16px;
-	background: rgba(9, 20, 36, 0.58);
+	background: #101315;
 	overflow-x: auto;
 }
 
@@ -1456,7 +1495,7 @@
 }
 
 .paymentSegment+.paymentSegment {
-	border-bottom: 1px solid rgba(238, 245, 255, 0.16);
+	border-bottom: 1px solid var(--color-border);
 }
 
 .stackedBar .paymentPaid {
@@ -1508,10 +1547,10 @@
 	justify-content: center;
 	min-height: 30px;
 	padding: 6px 12px;
-	border: 1px solid rgba(38, 236, 236, 0.62);
-	border-radius: 999px;
-	background: rgba(38, 236, 236, 0.08);
-	color: var(--color-accent-cyan);
+	border: 1px solid rgba(105, 215, 243, 0.62);
+	border-radius: 6px;
+	background: var(--color-accent-soft);
+	color: var(--color-accent);
 	font-size: 12px;
 	font-weight: 950;
 	line-height: 1;
@@ -1519,8 +1558,8 @@
 }
 
 .paymentCreateButton:hover {
-	border-color: rgba(38, 236, 236, 0.9);
-	background: rgba(38, 236, 236, 0.14);
+	border-color: rgba(105, 215, 243, 0.9);
+	background: rgba(105, 215, 243, 0.14);
 }
 
 .paymentItem {
@@ -1530,7 +1569,7 @@
 	gap: 10px;
 	padding: 10px 12px;
 	border: 1px solid var(--color-border);
-	border-radius: 12px;
+	border-radius: 8px;
 	background: var(--color-surface-soft);
 	color: inherit;
 	font: inherit;
@@ -1552,7 +1591,7 @@
 
 	span {
 		margin-top: 3px;
-		color: rgba(238, 245, 255, 0.62);
+		color: var(--color-muted);
 		font-size: 11px;
 		font-weight: 700;
 		line-height: 1.25;
@@ -1561,14 +1600,14 @@
 	small {
 		display: block;
 		margin-top: 2px;
-		color: rgba(238, 245, 255, 0.52);
+		color: var(--color-muted);
 		font-size: 11px;
 		font-weight: 700;
 		line-height: 1.25;
 	}
 
 	.paymentStageBinding {
-		color: rgba(238, 245, 255, 0.74);
+		color: var(--color-text);
 	}
 
 	b {
@@ -1633,18 +1672,19 @@
 .ganttCustomEventSegmentPlanLane,
 .ganttCustomEventSegmentFactLane {
 	bottom: auto;
-	height: 18px;
-	border-radius: 6px;
+	border-radius: 999px;
 	box-shadow: 0 3px 8px rgba(1, 8, 14, 0.18);
 }
 
 .ganttCustomEventSegmentPlanLane {
-	top: 16px;
+	top: 4px;
+	height: 12px;
 	z-index: 3;
 }
 
 .ganttCustomEventSegmentFactLane {
-	top: 6px;
+	top: 24px;
+	height: 9px;
 	z-index: 2;
 }
 
@@ -1674,16 +1714,16 @@
 }
 
 .ganttDateDragHandlePlan {
-	top: 25px;
+	top: 10px;
 	z-index: 10;
 	border-color: rgba(190, 202, 220, 0.34);
 }
 
 .ganttDateDragHandleFact {
-	top: 15px;
+	top: 28px;
 	z-index: 9;
-	border-color: rgba(38, 240, 233, 0.38);
-	background: rgba(38, 240, 233, 0.22);
+	border-color: rgba(105, 215, 243, 0.38);
+	background: rgba(105, 215, 243, 0.22);
 }
 
 .ganttDependencyHandle {
@@ -1822,29 +1862,29 @@
 }
 
 .ganttAutonomousEventClosing {
-	border-color: rgba(118, 98, 255, 0.78);
-	background: #7662ff;
+	border-color: rgba(139, 82, 246, 0.78);
+	background: #8b52f6;
 	color: #ffffff;
 
 	b {
-		background: #7662ff;
+		background: #8b52f6;
 	}
 }
 
 .ganttAutonomousEventPlan {
 	z-index: 1;
-	border-color: rgba(239, 126, 42, 0.72);
-	background: #ef7e2a;
+	border-color: transparent;
+	background: linear-gradient(90deg, #69d7f3, #82e3fa);
 }
 
 .ganttAutonomousEventFact {
 	z-index: 4;
-	border-color: rgba(19, 139, 109, 0.72);
-	background: #138b6d;
+	border-color: transparent;
+	background: linear-gradient(90deg, #4aa86d, #63c685);
 	color: #ffffff;
 
 	b {
-		background: #138b6d;
+		background: #4aa86d;
 	}
 }
 
@@ -1861,23 +1901,23 @@
 
 .ganttAutonomousEventEarly {
 	z-index: 3;
-	border-color: rgba(142, 124, 255, 0.78);
-	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
+	border-color: rgba(139, 82, 246, 0.78);
+	background: repeating-linear-gradient(45deg, #8b52f6 0 6px, #443b7e 6px 12px);
 	color: #ffffff;
 
 	b {
-		background: #8e7cff;
+		background: #8b52f6;
 	}
 }
 
 .ganttAutonomousEventReserve {
 	z-index: 2;
-	border-color: rgba(108, 204, 165, 0.78);
-	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
+	border-color: rgba(86, 184, 122, 0.78);
+	background: repeating-linear-gradient(45deg, #56b87a 0 6px, #264d48 6px 12px);
 	color: #ffffff;
 
 	b {
-		background: #6ccca5;
+		background: #56b87a;
 	}
 }
 
@@ -1906,28 +1946,46 @@
 }
 
 .ganttStageTitle {
+	display: block !important;
 	min-width: 0;
-	font-size: 12px !important;
+	font-size: 11px !important;
 	line-height: 1.25;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
+	word-break: normal;
 	white-space: normal;
 }
 
 .ganttCustomEventMenuButton {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 18px;
+	width: 15px !important;
+	min-width: 15px !important;
+	max-width: 20px;
+	flex: 0 0 9px;
 	height: 18px;
+	padding: 0 !important;
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
-	color: rgba(238, 245, 255, 0.82);
-	font-size: 12px;
-	font-weight: 900;
-	line-height: 1;
+	color: transparent;
 	cursor: pointer;
-	transform: rotate(90deg);
+
+	&::before {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+		background: rgba(238, 245, 255, 0.82);
+		box-shadow:
+			0 -5px 0 rgba(238, 245, 255, 0.82),
+			0 5px 0 rgba(238, 245, 255, 0.82);
+		content: "";
+		transform: translate(-50%, -50%);
+	}
 }
 
 .ganttCustomEventMenuButton:hover {
@@ -1946,7 +2004,7 @@
 	padding: 6px;
 	border: 1px solid rgba(111, 168, 255, 0.28);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.98);
+	background: #111315;
 	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
 	overflow: hidden;
 
@@ -2004,18 +2062,26 @@
 	z-index: 2;
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
-	width: 34px;
+	justify-content: flex-start;
+	width: auto;
 	height: 34px;
 	margin: 18px 0 18px 18px;
+	padding: 0 14px 0 8px;
 	border: 1px solid var(--color-border-active);
-	border-radius: 999px;
+	border-radius: 8px;
 	background: rgba(46, 197, 173, 0.14);
 	color: var(--color-accent);
-	font-size: 24px;
+	font-size: 16px;
 	font-weight: 900;
 	line-height: 1;
 	cursor: pointer;
+}
+
+.ganttAddEventButton::after {
+	margin-left: 8px;
+	content: "Добавить этап";
+	font-size: 15px;
+	font-weight: 800;
 }
 
 .ganttAddEventButton:hover {
@@ -2027,7 +2093,7 @@
 	align-items: center;
 	padding: 22px;
 	border-bottom: 1px solid var(--color-border);
-	background: rgba(22, 36, 55, 0.52);
+	background: #111315;
 
 	h3 {
 		margin: 0;
@@ -2054,9 +2120,14 @@
 	min-height: 74px;
 	padding: 0;
 	border: 0;
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid #252a2d;
 	border-radius: 0;
-	background: linear-gradient(180deg, rgba(22, 36, 55, 0.72), rgba(15, 28, 44, 0.72));
+	background-color: #0b0d0f;
+	background-image: repeating-linear-gradient(90deg,
+			transparent 0,
+			transparent calc((100% / var(--gantt-timeline-steps, 8)) - 1px),
+			rgba(145, 154, 160, 0.055) calc((100% / var(--gantt-timeline-steps, 8)) - 1px),
+			rgba(145, 154, 160, 0.055) calc(100% / var(--gantt-timeline-steps, 8)));
 	color: inherit;
 	text-align: left;
 	cursor: crosshair;
@@ -2064,24 +2135,24 @@
 }
 
 .autonomousGanttTrack:hover {
-	background: linear-gradient(180deg, rgba(27, 43, 64, 0.78), rgba(15, 28, 44, 0.74));
+	background-color: #0f1214;
 }
 
 .autonomousPaymentPaid b {
-	background: var(--color-payment-client);
+	background: #70d891;
 }
 
 .autonomousPaymentUnpaid b {
-	background: var(--color-payment-unpaid);
+	background: #69d7f3;
 }
 
 .autonomousPaymentDue b {
-	background: #f2a51f;
+	background: #ffc847;
 }
 
 .autonomousPaymentMarker {
 	display: flex;
-	width: 32px;
+	width: 28px;
 	justify-content: center;
 	padding: 0;
 	border: 0;
@@ -2132,8 +2203,8 @@
 
 .autonomousPaymentMarker:hover b {
 	box-shadow:
-		0 6px 12px rgba(1, 8, 14, 0.28),
-		0 0 0 8px rgba(111, 168, 255, 0.12);
+		0 0 0 4px rgba(105, 215, 243, 0.12),
+		0 0 14px rgba(105, 215, 243, 0.2);
 }
 
 .ganttAddEventCell {
@@ -2146,6 +2217,56 @@
 	.ganttAddEventButton {
 		margin: 0;
 	}
+}
+
+.ganttGroupAddChildCell {
+	display: flex;
+	flex: 0 0 34px;
+	align-items: flex-end;
+	justify-content: center;
+	min-height: 34px;
+	margin-top: auto;
+	padding: 4px 0 0;
+}
+
+.ganttGroupAddChildButton {
+	position: relative;
+	display: inline-flex;
+	width: 30px;
+	height: 30px;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 1px solid var(--color-border-active);
+	border-radius: 50%;
+	background: transparent;
+	color: transparent;
+	cursor: pointer;
+
+	&::before,
+	&::after {
+		position: absolute;
+		left: 50%;
+		width: 12px;
+		height: 2px;
+		border-radius: 2px;
+		background: var(--color-accent);
+		content: "";
+		transform: translate(-50%, -50%);
+	}
+
+	&::before {
+		top: 50%;
+	}
+
+	&::after {
+		top: 50%;
+		transform: translate(-50%, -50%) rotate(90deg);
+	}
+}
+
+.ganttGroupAddChildButton:hover {
+	background: rgba(46, 197, 173, 0.14);
 }
 
 .ganttPaymentFactOverdueLinkLine {
@@ -2195,7 +2316,7 @@
 		padding: 8px 10px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.72);
+		background: #15191b;
 		color: var(--color-text);
 		box-sizing: border-box;
 	}
@@ -2228,9 +2349,41 @@
 }
 
 .reportProjectModal {
-	max-height: min(76vh, 760px);
+	flex: 1;
+	min-height: 0;
 	overflow-y: auto;
-	padding-right: 4px;
+	padding: 0 2px 2px 0;
+	gap: 16px;
+}
+
+.reportProjectModalHeader {
+	flex: 0 0 auto;
+	margin-right: 50px;
+	padding: 0 0 18px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.reportProjectModalHeader>div {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.reportProjectModalHeader span {
+	color: var(--color-accent);
+	font-size: 10px;
+	font-weight: 900;
+	line-height: 1;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.reportProjectModalHeader h3 {
+	margin: 0;
+	color: var(--color-text);
+	font-size: 20px;
+	font-weight: 900;
+	line-height: 1.2;
 }
 
 .reportProjectDetails {
@@ -2249,7 +2402,7 @@
 	padding: 16px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(9, 20, 36, 0.55);
+	background: #101315;
 	text-align: left;
 }
 
@@ -2273,7 +2426,7 @@
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(9, 20, 36, 0.55);
+	background: #101315;
 	color: rgba(238, 245, 255, 0.62);
 	font-size: 14px;
 	font-weight: 800;
@@ -2293,7 +2446,7 @@
 	padding: 12px 14px;
 	border: 1px solid rgba(38, 240, 233, 0.45);
 	border-radius: 12px;
-	background: rgba(5, 15, 28, 0.96);
+	background: #101315;
 	box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
 }
 
@@ -2347,7 +2500,7 @@
 	padding: 18px;
 	border: 1px solid var(--color-border);
 	border-radius: 14px;
-	background: rgba(9, 20, 36, 0.55);
+	background: #101315;
 	color: rgba(238, 245, 255, 0.62);
 	font-size: 14px;
 	font-weight: 800;
@@ -2361,7 +2514,7 @@
 	padding: 10px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.42);
+	background: #101315;
 }
 
 .reportProjectDetail span {
@@ -2386,17 +2539,19 @@
 .reportProjectSection {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	padding: 10px;
-	border: 1px solid rgba(80, 139, 207, 0.24);
-	border-radius: 12px;
-	background: rgba(12, 25, 43, 0.34);
+	gap: 14px;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
 
 	h4 {
-		margin: 0;
-		color: rgba(238, 245, 255, 0.82);
-		font-size: 13px;
+		margin: 4px 0 0;
+		color: rgba(238, 245, 255, 0.7);
+		font-size: 11px;
 		font-weight: 900;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 	}
 }
 
@@ -2416,7 +2571,7 @@
 	padding: 16px;
 	border: 1px solid var(--color-border);
 	border-radius: 16px;
-	background: rgba(9, 20, 36, 0.5);
+	background: #101315;
 	text-align: left;
 }
 
@@ -2465,9 +2620,9 @@
 	min-height: 48px;
 	box-sizing: border-box;
 	padding: 12px 15px;
-	border: 1px solid rgba(80, 140, 190, 0.48);
+	border: 1px solid #30363a;
 	border-radius: 14px;
-	background: rgba(12, 28, 48, 0.72);
+	background: #15191b;
 	color: var(--color-text);
 	font-size: 15px;
 	font-weight: 700;
@@ -2496,7 +2651,7 @@
 	flex-direction: column;
 	align-items: stretch;
 	justify-content: flex-start;
-	gap: 7px;
+	gap: 6px;
 	min-width: 0;
 	width: 100%;
 	text-align: left;
@@ -2505,7 +2660,7 @@
 .reportProjectField>span {
 	display: block;
 	color: rgba(238, 245, 255, 0.76);
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 900;
 	line-height: 1.25;
 	text-align: left;
@@ -2539,9 +2694,9 @@
 	overflow-y: auto;
 	box-sizing: border-box;
 	padding: 6px;
-	border: 1px solid rgba(80, 140, 190, 0.52);
+	border: 1px solid #30363a;
 	border-radius: 12px;
-	background: rgba(9, 20, 36, 0.98);
+	background: #111315;
 	box-shadow: 0 12px 26px rgba(1, 8, 14, 0.32);
 
 	button {
@@ -2576,9 +2731,9 @@
 	min-height: 54px;
 	box-sizing: border-box;
 	padding: 10px 12px;
-	border: 1px solid rgba(80, 140, 190, 0.48);
+	border: 1px solid #30363a;
 	border-radius: 14px;
-	background: rgba(12, 28, 48, 0.72);
+	background: #15191b;
 }
 
 .reportProjectDetailsFileButton {
@@ -2622,9 +2777,9 @@
 	gap: 10px;
 	margin-top: 10px;
 	padding: 12px 14px;
-	border: 1px solid rgba(80, 140, 190, 0.48);
+	border: 1px solid #30363a;
 	border-radius: 14px;
-	background: rgba(12, 28, 48, 0.72);
+	background: #15191b;
 }
 
 .reportProjectDetailsFileMeta strong {
@@ -2677,8 +2832,8 @@
 .projectReportsPanel {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	padding: 18px;
+	gap: 14px;
+	padding: 20px;
 }
 
 .projectReportsHeader {
@@ -2712,8 +2867,8 @@
 .projectReportCard,
 .projectReportEmptyState {
 	border: 1px solid var(--color-border);
-	border-radius: 16px;
-	background: rgba(15, 28, 44, 0.72);
+	border-radius: 8px;
+	background: var(--color-surface);
 }
 
 .projectReportComposer {
@@ -2743,7 +2898,7 @@
 		padding: 9px 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.72);
+		background: #15191b;
 		color: var(--color-text);
 		box-sizing: border-box;
 	}
@@ -2808,8 +2963,8 @@
 .projectReportTableWrap {
 	overflow-x: auto;
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: rgba(15, 28, 44, 0.72);
+	border-radius: 8px;
+	background: var(--color-surface);
 }
 
 .projectReportTable {
@@ -2954,7 +3109,7 @@
 		padding: 9px 11px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.72);
+		background: #15191b;
 		color: var(--color-text);
 		box-sizing: border-box;
 	}
@@ -2977,7 +3132,7 @@
 		padding: 10px 12px;
 		border: 1px solid rgba(80, 139, 207, 0.22);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.48);
+		background: #101315;
 	}
 
 	span {
@@ -3010,7 +3165,7 @@
 		padding: 12px;
 		border: 1px solid rgba(80, 139, 207, 0.22);
 		border-radius: 10px;
-		background: rgba(9, 20, 36, 0.48);
+		background: #101315;
 		color: rgba(238, 245, 255, 0.86);
 		font-size: 14px;
 		font-weight: 750;
@@ -3046,7 +3201,7 @@
 	padding: 9px 10px;
 	border: 1px solid rgba(80, 139, 207, 0.24);
 	border-radius: 10px;
-	background: rgba(9, 20, 36, 0.48);
+	background: #101315;
 
 	span {
 		min-width: 0;
@@ -3123,8 +3278,8 @@
 }
 
 .paymentItem .paymentPaid {
-	background: rgba(72, 217, 140, 0.16);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .paymentPlanned {
@@ -3153,8 +3308,8 @@
 }
 
 .paymentpaid {
-	background: rgba(72, 217, 140, 0.16);
-	color: #48d98c;
+	background: var(--color-success-soft);
+	color: var(--color-success);
 }
 
 .paymentcanceled {
@@ -3174,15 +3329,16 @@
 .tableCard,
 .detailCard {
 	min-width: 0;
+	margin: 20px;
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: rgba(15, 28, 44, 0.72);
+	border-radius: 8px;
+	background: var(--color-surface);
 	overflow: hidden;
 }
 
 .tableTitle,
 .detailTitle {
-	padding: 11px 14px;
+	padding: 14px 16px;
 	font-size: 15px;
 	line-height: 1.25;
 	font-weight: 900;
@@ -3216,10 +3372,10 @@
 .tableHead,
 .tasksHead,
 .reportsHead {
-	color: rgba(238, 245, 255, 0.62);
+	color: var(--color-muted);
 	font-size: 11px;
 	font-weight: 900;
-	background: rgba(22, 36, 55, 0.72);
+	background: var(--color-surface-soft);
 }
 
 .tableHead,
@@ -3259,7 +3415,7 @@
 	small {
 		display: block;
 		margin-top: 2px;
-		color: rgba(238, 245, 255, 0.62);
+		color: var(--color-muted);
 		font-size: 11px;
 		font-weight: 600;
 		line-height: 1.25;
@@ -3272,7 +3428,7 @@
 
 .projectRow:hover,
 .projectRowOpen {
-	background: rgba(57, 214, 238, 0.08);
+	background: var(--color-accent-soft);
 }
 
 .openBitrixButton {
@@ -3281,9 +3437,9 @@
 	align-items: center;
 	justify-content: center;
 	padding: 0 10px;
-	border: 1px solid rgba(38, 240, 233, 0.56);
-	border-radius: 9px;
-	background: rgba(38, 240, 233, 0.1);
+	border: 1px solid rgba(105, 215, 243, 0.56);
+	border-radius: 6px;
+	background: var(--color-accent-soft);
 	color: var(--color-accent);
 	font-size: 12px;
 	font-weight: 900;
@@ -3291,13 +3447,13 @@
 }
 
 .openBitrixButton:hover {
-	background: rgba(38, 240, 233, 0.18);
+	background: rgba(105, 215, 243, 0.18);
 }
 
 .projectGanttWrap {
-	padding: 12px 16px 18px;
+	padding: 14px 18px 20px;
 	border-top: 1px solid var(--color-border);
-	background: rgba(22, 36, 55, 0.36);
+	background: var(--color-surface-soft);
 }
 
 .mutedValue,
@@ -3347,13 +3503,14 @@
 }
 
 .ganttCard {
+	margin: 0 9px;
 	min-width: 0;
-	border: 1px solid var(--color-border);
-	border-radius: 18px;
-	background: rgba(15, 28, 44, 0.76);
+	border: 0;
+	border-radius: 0;
+	background: #0b0d0f;
 	color: var(--color-text);
 	overflow: hidden;
-	box-shadow: 0 14px 36px rgba(1, 8, 14, 0.24);
+	box-shadow: none;
 }
 
 .ganttHeader {
@@ -3361,9 +3518,9 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
-	padding: 16px 18px 12px;
-	border-bottom: 1px solid var(--color-border);
-	background: rgba(22, 36, 55, 0.72);
+	padding: 12px 20px 8px;
+	border-bottom: 1px solid #252a2d;
+	background: #0b0d0f;
 	text-align: left;
 
 	h3 {
@@ -3387,9 +3544,9 @@
 	gap: 0 22px;
 	margin: 10px 14px 8px;
 	padding: 10px 14px;
-	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: rgba(22, 36, 55, 0.28);
+	border: 1px solid #252a2d;
+	border-radius: 0;
+	background: #101315;
 }
 
 .ganttMetric {
@@ -3448,7 +3605,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 7px 10px;
-	padding: 0 14px 10px;
+	padding: 0 20px 14px;
 	color: rgba(238, 245, 255, 0.66);
 	font-size: 11px;
 	font-weight: 800;
@@ -3469,11 +3626,306 @@
 }
 
 .legendPlan {
-	background: #ef7e2a;
+	background: #69d7f3;
+}
+
+.ganttStageActions {
+	position: relative;
+
+	.ganttCustomEventMenu {
+		width: 164px;
+	}
+}
+
+.ganttParentRowInfo {
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	padding: 8px 10px 8px 12px;
+	background: #121517;
+
+	.ganttCustomEventHeader {
+		grid-template-columns: auto minmax(0, 1fr) max-content max-content;
+		align-items: start;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	.ganttStageTitle {
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+	}
+}
+
+.ganttRowResizeHandle {
+	position: absolute;
+	right: 0;
+	bottom: -8px;
+	left: 0;
+	z-index: 7;
+	height: 20px;
+	cursor: row-resize;
+	touch-action: none;
+
+	&::after {
+		position: absolute;
+		top: 7px;
+		left: 50%;
+		width: 50px;
+		height: 2px;
+		border-radius: 2px;
+		background: var(--color-border-active);
+		content: "";
+		opacity: 0;
+		transform: translateX(-50%);
+		transition: opacity 0.15s ease;
+	}
+}
+
+.ganttRowInfo:hover .ganttRowResizeHandle::after,
+.ganttRowResizeHandle:focus-visible::after {
+	opacity: 1;
+}
+
+.ganttPaymentRowInfo {
+	display: flex;
+	min-height: 40px;
+	align-items: center;
+	gap: 8px;
+	padding: 0 14px;
+	background: #0b0d0f;
+
+	.ganttCustomEventHeader {
+		display: block;
+		flex: 0 0 auto;
+	}
+
+	.ganttStageTitle {
+		font-size: 16px !important;
+		font-weight: 900;
+		line-height: 1.15;
+	}
+
+	>span {
+		margin: 0;
+		color: #8d979c;
+		font-size: 11px;
+		font-weight: 700;
+	}
+}
+
+.ganttParentRowInfoDropTarget {
+	background: rgba(105, 215, 243, 0.16);
+	box-shadow: inset 3px 0 0 #69d7f3;
+}
+
+.ganttParentTrackDropTarget {
+	background: rgba(105, 215, 243, 0.08);
+	box-shadow: inset 0 0 0 1px rgba(105, 215, 243, 0.42);
+}
+
+.ganttStageDropBefore,
+.ganttStageDropAfter {
+	position: relative;
+}
+
+.ganttStageDropBefore::before,
+.ganttStageDropAfter::after {
+	position: absolute;
+	left: 10px;
+	right: 10px;
+	z-index: 12;
+	height: 2px;
+	background: #69d7f3;
+	box-shadow: 0 0 0 1px rgba(105, 215, 243, 0.22);
+	content: "";
+}
+
+.ganttStageDropBefore::before {
+	top: -1px;
+}
+
+.ganttStageDropAfter::after {
+	bottom: -1px;
+}
+
+.ganttChildRowInfo {
+	padding-left: 26px;
+
+	.ganttCustomEventHeader {
+		grid-template-columns: 14px minmax(0, 1fr) auto;
+		align-items: center;
+	}
+}
+
+.ganttRowInfo .ganttGroupType {
+	display: block;
+	margin-bottom: 2px;
+	color: #778087;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	line-height: 1.1;
+	text-transform: uppercase;
+}
+
+.ganttRowInfo .ganttGroupCount {
+	display: inline-flex;
+	width: 20px;
+	height: 20px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: #22262a;
+	color: var(--color-muted);
+	font-size: 10px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.ganttRowInfo .ganttChildRowMarker {
+	display: block;
+	margin-top: 0;
+	width: 14px;
+	border-top: 1px solid #596168;
+}
+
+.ganttGroupToggle {
+	display: inline-flex;
+	width: 18px;
+	height: 18px;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--color-muted);
+	font-size: 17px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.ganttGroupMeta {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	min-width: max-content;
+}
+
+.ganttGroupStatusWrapper {
+	position: relative;
+}
+
+.ganttGroupStatus {
+	display: inline-flex;
+	min-height: 24px;
+	align-items: center;
+	gap: 4px;
+	padding: 0 7px;
+	border: 1px solid #34393e;
+	border-radius: 7px;
+	background: #15191b;
+	color: var(--color-muted);
+	font-size: 9px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.ganttGroupStatus::before,
+.ganttGroupStatusMenuItem::before {
+	width: 6px;
+	height: 6px;
+	flex: 0 0 6px;
+	border-radius: 50%;
+	background: var(--gantt-group-status-color, #c4cad0);
+	content: "";
+}
+
+.ganttGroupStatusNotStarted {
+	--gantt-group-status-color: #c4cad0;
+	border-color: #586069;
+	color: #c4cad0;
+}
+
+.ganttGroupStatusInProgress {
+	--gantt-group-status-color: #69d7f3;
+	border-color: rgba(105, 215, 243, 0.7);
+	background: rgba(105, 215, 243, 0.1);
+	color: #69d7f3;
+}
+
+.ganttGroupStatusInactive {
+	--gantt-group-status-color: #e1c267;
+	border-color: rgba(201, 168, 76, 0.72);
+	background: rgba(201, 168, 76, 0.1);
+	color: #e1c267;
+}
+
+.ganttGroupStatusCompleted {
+	--gantt-group-status-color: #70d89a;
+	border-color: rgba(86, 184, 122, 0.7);
+	background: rgba(86, 184, 122, 0.12);
+	color: #70d89a;
+}
+
+.ganttGroupStatusMenu {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	z-index: 16;
+	display: grid;
+	min-width: 112px;
+	padding: 4px;
+	border: 1px solid #34393e;
+	border-radius: 6px;
+	background: #171a1d;
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+
+	button {
+		padding: 6px 7px;
+		border: 0;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--color-text);
+		font-size: 10px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	button:hover {
+		background: #25282b;
+	}
+}
+
+.ganttGroupStatusMenuItem {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+
+	&.ganttGroupStatusInProgress {
+		color: #69d7f3;
+	}
+
+	&.ganttGroupStatusInactive {
+		color: #e1c267;
+	}
+
+	&.ganttGroupStatusCompleted {
+		color: #70d89a;
+	}
+}
+
+.ganttMoveStageDescription {
+	margin: 0;
+	color: var(--color-muted);
+	font-size: 12px;
+	line-height: 1.4;
 }
 
 .legendFact {
-	background: #138b6d;
+	background: #56b87a;
 }
 
 .legendLate {
@@ -3481,7 +3933,7 @@
 }
 
 .legendEarly {
-	background: repeating-linear-gradient(45deg, #8e7cff 0 5px, #443b7e 5px 10px);
+	background: repeating-linear-gradient(45deg, #8b52f6 0 5px, #443b7e 5px 10px);
 }
 
 .legendOverdue {
@@ -3489,7 +3941,7 @@
 }
 
 .legendReserve {
-	background: repeating-linear-gradient(45deg, #6ccca5 0 5px, #264d48 5px 10px);
+	background: repeating-linear-gradient(45deg, #56b87a 0 5px, #264d48 5px 10px);
 }
 
 .legendSign {
@@ -3498,31 +3950,33 @@
 }
 
 .legendClose {
-	background: #7662ff;
+	background: #8b52f6;
 	border-radius: 999px !important;
 }
 
 .ganttBoardScroll {
 	box-sizing: border-box;
-	margin: 0 0 16px;
+	margin: 0 0 12px;
 	width: 100%;
 	min-width: 0;
 	max-width: 100%;
-	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: var(--color-surface);
+	border: 0;
+	border-radius: 0;
+	background: #0b0d0f;
 	overflow-x: auto;
 	overflow-y: hidden;
+	scrollbar-color: #3b4145 transparent;
+	scrollbar-width: thin;
 }
 
 .ganttBoard {
 	position: relative;
 	display: grid;
 	grid-template-columns: minmax(150px, 190px) minmax(720px, 1fr);
-	margin: 0 16px 16px;
-	border: 1px solid var(--color-border);
-	border-radius: 14px;
-	background: var(--color-surface);
+	margin: 0;
+	border: 1px solid #252a2d;
+	border-radius: 0;
+	background: #0b0d0f;
 	overflow-x: auto;
 	text-align: left;
 }
@@ -3563,7 +4017,7 @@
 	top: 0;
 	bottom: 0;
 	width: 0;
-	border-left: 2px dashed rgba(180, 192, 208, 0.92);
+	border-left: 2px dashed rgba(155, 163, 168, 0.7);
 	transform: translateX(-1px);
 	z-index: 8;
 	pointer-events: none;
@@ -3574,10 +4028,8 @@
 	top: 0;
 	bottom: 0;
 	width: 0;
-	border-left: 2px solid rgba(38, 240, 233, 0.9);
-	box-shadow:
-		0 0 0 1px rgba(255, 255, 255, 0.12),
-		0 0 14px rgba(38, 240, 233, 0.36);
+	border-left: 1px solid rgba(105, 215, 243, 0.72);
+	box-shadow: none;
 	transform: translateX(-1px);
 	z-index: 1;
 	pointer-events: none;
@@ -3587,11 +4039,11 @@
 	position: absolute;
 	top: 50px;
 	padding: 2px 7px;
-	border: 1px solid rgba(38, 240, 233, 0.55);
+	border: 1px solid rgba(105, 215, 243, 0.55);
 	border-radius: 6px;
-	background: rgb(15, 28, 44);
-	box-shadow: 0 4px 12px rgba(3, 10, 20, 0.28);
-	color: #26f0e9;
+	background: #0d1619;
+	box-shadow: none;
+	color: var(--color-accent);
 	font-size: 11px;
 	font-weight: 950;
 	line-height: 1.2;
@@ -3614,8 +4066,8 @@
 	top: 2px;
 	padding: 2px 6px;
 	border-radius: 6px;
-	background: rgba(15, 28, 44, 0.94);
-	color: rgba(220, 228, 238, 0.96);
+	background: var(--color-surface-hover);
+	color: var(--color-text);
 	font-size: 12px;
 	font-weight: 950;
 	white-space: nowrap;
@@ -3626,8 +4078,8 @@
 
 .ganttPaymentLinkLine {
 	fill: none;
-	stroke: rgba(190, 202, 220, 0.58);
-	stroke-dasharray: 2 4;
+	stroke: rgba(145, 154, 160, 0.5);
+	stroke-dasharray: 3 5;
 	stroke-linecap: round;
 	stroke-width: 1;
 }
@@ -3650,7 +4102,7 @@
 .ganttScaleLabel,
 .ganttScale {
 	min-height: 54px;
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid #252a2d;
 }
 
 .ganttScaleLabel {
@@ -3661,10 +4113,11 @@
 	top: 0;
 	left: 0;
 	z-index: 72;
-	background: rgb(15, 28, 44);
-	color: rgba(238, 245, 255, 0.68);
-	font-size: 12px;
-	font-weight: 900;
+	background: #101315;
+	color: var(--color-muted);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
 }
 
 .ganttScale {
@@ -3674,8 +4127,8 @@
 	min-width: 720px;
 	height: 54px;
 	overflow: visible;
-	background: rgb(15, 28, 44);
-	box-shadow: 0 5px 10px rgba(3, 10, 20, 0.18);
+	background: #101315;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.12);
 
 	>span {
 		position: absolute;
@@ -3684,9 +4137,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: rgba(238, 245, 255, 0.68);
-		font-size: 12px;
-		font-weight: 900;
+		color: var(--color-muted);
+		font-size: 11px;
+		font-weight: 700;
 		text-transform: lowercase;
 	}
 }
@@ -3697,7 +4150,7 @@
 	display: inline-flex;
 	min-height: auto;
 	align-items: center;
-	color: #26f0e9;
+	color: var(--color-accent);
 	font-size: 11px;
 	line-height: 1.2;
 	transform: translateX(-50%);
@@ -3705,10 +4158,11 @@
 }
 
 .ganttRowInfo {
-	min-height: 74px;
-	padding: 12px;
-	border-bottom: 1px solid var(--color-border);
-	background: rgba(15, 28, 44, 0.62);
+	box-sizing: border-box;
+	min-height: 72px;
+	padding: 12px 14px;
+	border-bottom: 1px solid #252a2d;
+	background: #0e1012;
 
 	strong,
 	span,
@@ -3718,15 +4172,15 @@
 
 	strong {
 		color: var(--color-text);
-		font-size: 14px;
-		font-weight: 950;
+		font-size: 13px;
+		font-weight: 800;
 	}
 
 	span,
 	small {
 		margin-top: 3px;
-		color: rgba(238, 245, 255, 0.62);
-		font-size: 11px;
+		color: var(--color-muted);
+		font-size: 10px;
 		line-height: 1.25;
 	}
 }
@@ -3739,10 +4193,10 @@
 .ganttRowInfoDragging {
 	position: relative;
 	z-index: 2;
-	background: rgba(20, 74, 92, 0.72);
+	background: rgba(105, 215, 243, 0.12);
 	box-shadow:
 		inset 3px 0 0 var(--color-accent),
-		0 0 0 1px rgba(44, 238, 235, 0.28),
+		0 0 0 1px rgba(105, 215, 243, 0.28),
 		0 10px 24px rgba(0, 0, 0, 0.24);
 	cursor: grabbing;
 	transform: translateY(-1px);
@@ -3751,11 +4205,9 @@
 .ganttTrack {
 	position: relative;
 	min-width: 720px;
-	min-height: 74px;
-	border-bottom: 1px solid var(--color-border);
-	background:
-		linear-gradient(90deg, rgba(93, 141, 206, 0.18) 1px, transparent 1px) 0 0 / 7.142% 100%,
-		linear-gradient(180deg, rgba(22, 36, 55, 0.72), rgba(15, 28, 44, 0.72));
+	min-height: 72px;
+	border-bottom: 1px solid #252a2d;
+	background: #0b0d0f;
 }
 
 .ganttSegment {
@@ -3769,8 +4221,8 @@
 .ganttPlan {
 	top: 25px;
 	height: 26px;
-	background: rgba(111, 168, 255, 0.2);
-	border: 1px solid rgba(111, 168, 255, 0.52);
+	background: linear-gradient(90deg, #69d7f3, #82e3fa);
+	border: 0;
 }
 
 .ganttFact {
@@ -3778,7 +4230,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #138b6d;
+	background: linear-gradient(90deg, #4aa86d, #63c685);
 	color: #ffffff;
 	font-size: 10px;
 	font-weight: 950;
@@ -3791,7 +4243,7 @@
 
 .ganttEarly {
 	z-index: 3;
-	background: repeating-linear-gradient(45deg, #8e7cff 0 6px, #443b7e 6px 12px);
+	background: repeating-linear-gradient(45deg, #8b52f6 0 6px, #443b7e 6px 12px);
 }
 
 .ganttOverdue {
@@ -3858,7 +4310,7 @@
 
 .ganttReserve {
 	z-index: 2;
-	background: repeating-linear-gradient(45deg, #6ccca5 0 6px, #264d48 6px 12px);
+	background: repeating-linear-gradient(45deg, #56b87a 0 6px, #264d48 6px 12px);
 }
 
 .ganttStatus {
@@ -3908,7 +4360,7 @@
 }
 
 .ganttMilestoneAccent b {
-	background: #7662ff;
+	background: #8b52f6;
 }
 
 .ganttPaymentMarker {
@@ -3919,16 +4371,17 @@
 
 	b {
 		display: flex;
-		width: 18px;
-		height: 18px;
+		box-sizing: border-box;
+		width: 20px;
+		height: 20px;
 		align-items: center;
 		justify-content: center;
-		border: 3px solid var(--color-surface);
+		border: 3px solid #0b0d0f;
 		border-radius: 999px;
 		color: #06111e;
 		font-size: 11px;
 		font-weight: 950;
-		box-shadow: 0 6px 12px rgba(1, 8, 14, 0.28);
+		box-shadow: none;
 
 		svg {
 			width: 11px;
@@ -3936,18 +4389,78 @@
 		}
 	}
 
-	small {
-		position: absolute;
-		top: 24px;
-		left: 50%;
-		width: 108px;
-		transform: translateX(-50%);
-		color: rgba(238, 245, 255, 0.78);
-		font-size: 10px;
-		font-weight: 900;
-		line-height: 1.2;
-		text-align: center;
+}
+
+.ganttPaymentTooltip {
+	position: absolute;
+	left: calc(100% + 7px);
+	top: 50%;
+	z-index: 12;
+	display: none;
+	min-width: max-content;
+	grid-template-columns: 6px minmax(0, 1fr);
+	align-items: center;
+	gap: 7px;
+	padding: 7px 10px 7px 8px;
+	border: 1px solid #30383d;
+	border-radius: 8px;
+	background: #111619;
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+	transform: translateY(-50%);
+	text-align: left;
+	white-space: nowrap;
+	pointer-events: none;
+
+	i {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: #69d7f3;
 	}
+
+	>span {
+		display: grid;
+		gap: 2px;
+	}
+
+	small {
+		position: static;
+		left: auto;
+		width: auto;
+		transform: none;
+		color: #8d979c;
+		font-size: 9px;
+		font-weight: 700;
+		line-height: 1.2;
+		text-align: left;
+	}
+
+	strong {
+		color: #edf1f2;
+		font-size: 10px;
+		font-weight: 800;
+		line-height: 1.2;
+	}
+}
+
+.ganttPaymentTooltipMeta {
+	display: flex !important;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.autonomousPaymentPaid .ganttPaymentTooltip i {
+	background: #70d891;
+}
+
+.autonomousPaymentDue .ganttPaymentTooltip i {
+	background: #ffc847;
+}
+
+.autonomousPaymentMarker:hover .ganttPaymentTooltip,
+.autonomousPaymentMarker:focus-visible .ganttPaymentTooltip {
+	display: grid;
 }
 
 .ganttPaymentPaid b {
@@ -3979,37 +4492,43 @@
 .dealSummary {
 	position: relative;
 	display: grid;
-	grid-template-columns: minmax(320px, 1fr) minmax(420px, 0.8fr);
-	gap: clamp(36px, 4.5vw, 56px);
+	grid-template-columns: minmax(320px, 1fr) minmax(500px, 1.15fr);
+	gap: clamp(24px, 2.5vw, 36px);
 	align-items: center;
-	margin: 16px 16px 8px;
-	padding: 26px 30px;
-	border: 1px solid var(--color-border);
-	border-radius: 24px;
-	background: rgba(15, 28, 44, 0.78);
-	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
+	margin: 0 8px;
+	padding: 26px 0 22px;
+	border: 0;
+	border-bottom: 1px solid var(--color-border);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
 	text-align: left;
 }
 
 .dealSummaryEditing {
-	border-color: var(--color-border);
-	box-shadow: 0 14px 34px rgba(1, 8, 14, 0.22);
+	border-color: rgba(38, 231, 223, 0.46);
+	box-shadow: 0 0 0 1px rgba(38, 231, 223, 0.08);
 }
 
 .dealSummaryEditButton {
 	position: absolute;
-	top: 14px;
-	right: 14px;
-	width: 30px;
-	height: 30px;
-	border: 0;
-	border-radius: 50%;
+	top: 16px;
+	right: 16px;
+	min-height: 32px;
+	padding: 0 11px;
+	border: 1px solid var(--color-border);
+	border-radius: 6px;
 	background: transparent;
 	color: var(--color-accent);
-	font-size: 16px;
-	font-weight: 950;
+	font-size: 11px;
+	font-weight: 800;
 	line-height: 1;
 	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		border-color: rgba(38, 231, 223, 0.36);
+		background: rgba(38, 231, 223, 0.07);
+	}
 
 	&:disabled {
 		cursor: wait;
@@ -4019,6 +4538,7 @@
 
 .dealSummaryMain {
 	min-width: 0;
+	padding-right: 152px;
 }
 
 .dealSummaryEyebrow,
@@ -4030,32 +4550,26 @@
 }
 
 .dealSummaryEyebrow {
-	margin-bottom: 10px;
-	font-size: 15px;
+	margin-bottom: 8px;
+	font-size: 12px;
+	letter-spacing: 0.04em;
 }
 
 .dealSummaryMain h3 {
-	margin: 0 0 24px;
+	margin: 0 0 18px;
 	color: var(--color-text);
-	font-size: clamp(24px, 2.4vw, 30px);
-	font-weight: 950;
+	font-size: clamp(26px, 2vw, 32px);
+	font-weight: 800;
 	line-height: 1.08;
 	overflow-wrap: anywhere;
-}
-
-.dealSummaryPrimaryStats {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(120px, max-content));
-	gap: 36px;
-	align-items: start;
 }
 
 .dealSummaryAmount,
 .dealSummaryMargin {
 	display: block;
 	margin-top: 10px;
-	font-size: clamp(25px, 2.35vw, 32px);
-	font-weight: 950;
+	font-size: clamp(24px, 2.15vw, 30px);
+	font-weight: 800;
 	line-height: 1;
 	white-space: nowrap;
 }
@@ -4097,7 +4611,7 @@
 
 	&:focus {
 		outline: 0;
-		background: rgba(9, 20, 36, 0.28);
+		background: #101315;
 		box-shadow: 0 2px 0 var(--color-accent);
 	}
 }
@@ -4135,39 +4649,43 @@ input[type="date"].dealSummaryDateInput {
 
 .dealSummarySide {
 	min-width: 0;
-	max-width: 720px;
+	max-width: 640px;
+	padding-top: 42px;
 	justify-self: end;
 	width: 100%;
 }
 
 .dealSummaryStats {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	gap: 12px 28px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0;
 	min-width: 0;
 }
 
 .dealSummaryStat {
-	display: flex;
-	align-items: baseline;
-	justify-content: flex-start;
-	gap: 7px;
+	display: grid;
+	align-content: start;
+	gap: 5px;
 	min-width: 0;
-	min-height: 30px;
-	white-space: nowrap;
+	min-height: 42px;
+	padding: 0 12px;
+	border-left: 1px solid var(--color-border);
+	white-space: normal;
 }
 
 .dealSummaryLabel {
 	min-width: 0;
-	font-size: clamp(15px, 1.35vw, 17px);
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
 .dealSummaryValue {
 	color: rgba(245, 248, 255, 0.95);
-	font-size: clamp(16px, 1.45vw, 19px);
-	font-weight: 950;
+	font-size: clamp(15px, 1.15vw, 17px);
+	font-weight: 800;
 	line-height: 1.2;
 	white-space: nowrap;
 }
@@ -4182,6 +4700,37 @@ input[type="date"].dealSummaryDateInput {
 
 .dealSummaryProjectAmount {
 	color: var(--color-accent-blue);
+}
+
+.dealSummaryProjectStatus {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+
+	&::before {
+		width: 7px;
+		height: 7px;
+		flex: 0 0 7px;
+		border-radius: 50%;
+		background: currentcolor;
+		content: "";
+	}
+}
+
+.dealSummaryProjectStatusNotStarted {
+	color: #c4cad0;
+}
+
+.dealSummaryProjectStatusInProgress {
+	color: #69d7f3;
+}
+
+.dealSummaryProjectStatusInactive {
+	color: #e1c267;
+}
+
+.dealSummaryProjectStatusCompleted {
+	color: #70d89a;
 }
 
 .dealSummaryFactWithinPlan {
@@ -4232,7 +4781,7 @@ input[type="date"].dealSummaryDateInput {
 	position: absolute;
 	top: 28px;
 	left: 12px;
-	color: rgba(238, 245, 255, 0.52);
+	color: var(--color-muted);
 	font-size: 11px;
 	font-weight: 800;
 }
@@ -4240,15 +4789,15 @@ input[type="date"].dealSummaryDateInput {
 .ganttEmpty {
 	grid-column: 1 / -1;
 	padding: 28px;
-	color: rgba(238, 245, 255, 0.64);
+	color: var(--color-muted);
 	text-align: center;
 	font-weight: 800;
 }
 
 .ganttTable {
-	margin: 0 16px 16px;
+	margin: 0 20px 20px;
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
+	border-radius: 8px;
 	background: var(--color-surface);
 	overflow-x: auto;
 }
@@ -4267,7 +4816,7 @@ input[type="date"].dealSummaryDateInput {
 .ganttTableHead {
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-surface-soft);
-	color: rgba(238, 245, 255, 0.64);
+	color: var(--color-muted);
 	font-size: 12px;
 	font-weight: 950;
 }
@@ -4314,99 +4863,241 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .ganttStatusNeutral {
-	background: rgba(158, 176, 199, 0.16);
-	color: rgba(238, 245, 255, 0.72);
+	background: var(--color-payment-neutral-surface);
+	color: var(--color-muted);
 }
 
 .projectHoursSection {
-	margin: 16px;
+	margin: 18px 8px 20px 0;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
-	background: var(--color-surface);
+	background: #101214;
 	overflow: hidden;
 }
 
-.projectHoursHeader {
+.projectHoursOverview {
 	display: flex;
-	align-items: center;
-	justify-content: flex-start;
-	gap: 16px;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20px;
 	padding: 16px 18px;
 	border-bottom: 1px solid var(--color-border);
 	text-align: left;
+}
+
+.projectHoursHeading {
+	min-width: 0;
+
+	>span {
+		display: inline-flex;
+		align-items: center;
+		min-height: 24px;
+		padding: 0 8px;
+		border: 1px solid rgba(105, 215, 243, 0.48);
+		border-radius: 5px;
+		color: var(--color-accent);
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
 
 	h3 {
-		margin: 0;
-		font-size: 16px;
+		margin: 8px 0 0;
+		font-size: 17px;
+		font-weight: 800;
 	}
 
 	p {
 		margin: 4px 0 0;
 		color: rgba(238, 245, 255, 0.58);
-		font-size: 12px;
-		font-weight: 700;
+		font-size: 11px;
+		font-weight: 600;
 	}
 }
 
-.projectHoursTable {
-	overflow-x: auto;
-}
-
-.projectHoursTableHead,
-.projectHoursRow {
+.projectHoursSummaryMetrics {
 	display: grid;
-	grid-template-columns: minmax(160px, 1.2fr) repeat(3, minmax(100px, 0.7fr)) minmax(220px, 1.4fr);
-	align-items: center;
-	gap: 14px;
-	min-width: 820px;
-	padding: 12px 18px;
-}
-
-.projectHoursTableHead {
-	background: var(--color-surface-soft);
-	color: rgba(238, 245, 255, 0.58);
-	font-size: 11px;
-	font-weight: 900;
-	text-transform: uppercase;
-}
-
-.projectHoursRow {
-	min-height: 58px;
-	border-top: 1px solid var(--color-border);
-	font-size: 13px;
-
-	>strong {
-		font-size: 14px;
-	}
-
-	>span {
-		font-weight: 850;
-	}
-}
-
-.projectHoursProgress {
-	display: grid;
-	grid-template-columns: minmax(120px, 1fr) 46px;
-	align-items: center;
-	gap: 10px;
+	grid-template-columns: repeat(3, minmax(78px, auto));
+	gap: 0;
+	flex: 0 0 auto;
 
 	>div {
-		height: 16px;
-		border-radius: 5px;
-		background: rgba(158, 176, 199, 0.16);
-		overflow: hidden;
+		min-width: 98px;
+		padding: 0 14px;
+		border-left: 1px solid var(--color-border);
 	}
 
-	>div>span {
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: var(--color-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	strong {
+		margin-top: 5px;
+		color: var(--color-text);
+		font-size: 14px;
+		font-weight: 800;
+	}
+}
+
+.projectHoursOverallProgress {
+	padding: 14px 20px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.projectHoursProgressLabel {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 12px;
+
+	strong {
+		color: var(--color-accent);
+		font-size: 14px;
+	}
+}
+
+.projectHoursOverallProgressBar,
+.projectHoursStageProgressBar {
+	height: 10px;
+	border-radius: 5px;
+	background: #252a2e;
+	overflow: hidden;
+
+	>span {
 		display: block;
 		height: 100%;
 		border-radius: inherit;
-		background: var(--color-success);
+		background: #5ccf88;
 		transition: width 180ms ease;
 	}
+}
 
-	>strong {
-		text-align: right;
+
+.projectHoursOverallProgressBar {
+	margin-top: 9px;
+	height: 12px;
+
+	>span {
+		background: linear-gradient(90deg, #49b878, #65d691);
+	}
+}
+
+.projectHoursOverallProgress p {
+	margin: 7px 0 0;
+	color: var(--color-muted);
+	font-size: 10px;
+	line-height: 1.35;
+}
+
+.projectHoursStageCards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+	padding: 14px 20px 18px;
+}
+
+.projectHoursStageCard {
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid #282d31;
+	border-radius: 8px;
+	background: #111315;
+}
+
+.projectHoursStageCardHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+
+	strong {
+		min-width: 0;
+		color: var(--color-text);
+		font-size: 13px;
+		font-weight: 800;
+	}
+
+	span {
+		flex: 0 0 auto;
+		color: var(--color-accent);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.projectHoursStageProgressBar {
+	margin-top: 10px;
+	height: 6px;
+}
+
+.projectHoursStageMetrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 11px;
+
+	span,
+	strong {
+		display: block;
+	}
+
+	span {
+		color: var(--color-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+	}
+
+	strong {
+		margin-top: 3px;
+		color: var(--color-text);
+		font-size: 11px;
+		font-weight: 800;
+	}
+}
+
+.projectHoursDeviationOver {
+	color: #ff6978 !important;
+}
+
+.projectHoursDeviationWithin {
+	color: #5ccf88 !important;
+}
+
+.projectHoursDeviationNeutral {
+	color: var(--color-muted) !important;
+}
+
+
+@media (max-width: 860px) {
+	.projectHoursOverview {
+		flex-direction: column;
+	}
+
+	.projectHoursSummaryMetrics {
+		width: 100%;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+
+		>div {
+			min-width: 0;
+			padding: 0 10px;
+		}
+	}
+
+	.projectHoursStageCards {
+		grid-template-columns: 1fr;
 	}
 }
 
@@ -4470,11 +5161,12 @@ input[type="date"].dealSummaryDateInput {
 	.dealSummary {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 24px;
-		padding: 26px;
+		padding: 24px 8px 20px;
 	}
 
 	.dealSummarySide {
 		max-width: none;
+		padding-top: 0;
 		justify-self: stretch;
 	}
 
@@ -4513,8 +5205,8 @@ input[type="date"].dealSummaryDateInput {
 	}
 
 	.dealSummary {
-		margin: 14px 12px 10px;
-		padding: 22px;
+		margin: 0 12px;
+		padding: 22px 0 18px;
 	}
 
 	.dealSummaryPrimaryStats,
@@ -4541,7 +5233,7 @@ input[type="date"].dealSummaryDateInput {
 	width: 1px;
 	height: 7px;
 	transform: translateX(-50%);
-	background: rgba(238, 245, 255, 0.22);
+	background: rgba(242, 244, 245, 0.18);
 	color: rgba(238, 245, 255, 0.58);
 	font-style: normal;
 	font-size: 10px;
@@ -4592,7 +5284,7 @@ input[type="date"].dealSummaryDateInput {
 	padding: 0;
 	align-items: flex-start;
 	background: transparent;
-	color: rgba(238, 245, 255, 0.62);
+	color: var(--color-muted);
 }
 
 .ganttDayTickMajor::before {
@@ -4605,8 +5297,8 @@ input[type="date"].dealSummaryDateInput {
 	min-width: 720px;
 	min-height: 54px;
 	overflow: visible;
-	border-bottom: 1px solid var(--color-border);
-	background: rgba(15, 28, 44, 0.98);
+	border-bottom: 1px solid #252a2d;
+	background: #101315;
 }
 
 .ganttMonthScale,
@@ -4617,11 +5309,13 @@ input[type="date"].dealSummaryDateInput {
 
 .ganttMonthScale {
 	height: 24px;
-	border-bottom: 1px solid rgba(93, 141, 206, 0.18);
+	border-bottom: 1px solid #252a2d;
+	background: #101315;
 }
 
 .ganttWeekScale {
 	height: 29px;
+	background: #101315;
 }
 
 .ganttMonthScale span,
@@ -4630,7 +5324,7 @@ input[type="date"].dealSummaryDateInput {
 	display: flex;
 	align-items: center;
 	height: 100%;
-	color: rgba(238, 245, 255, 0.66);
+	color: var(--color-muted);
 	font-weight: 900;
 	white-space: nowrap;
 }
@@ -4641,7 +5335,9 @@ input[type="date"].dealSummaryDateInput {
 	align-items: center;
 	justify-content: flex-start;
 	transform: translateX(6px);
-	font-size: 12px;
+	color: var(--color-text);
+	font-size: 11px;
+	font-weight: 700;
 	line-height: 1;
 	text-transform: lowercase;
 }
@@ -4654,18 +5350,23 @@ input[type="date"].dealSummaryDateInput {
 	transform: translateX(-50%);
 	font-size: 10px;
 	line-height: 1;
-	color: rgba(238, 245, 255, 0.46);
+	color: var(--color-muted);
 }
 
 .ganttRowInfo {
 	position: sticky;
 	left: 0;
 	z-index: 6;
-	background: rgba(15, 28, 44, 0.96);
+	background: #111315;
+}
+
+.ganttRowInfo.ganttRowInfoWithOpenMenu {
+	z-index: 20;
+	overflow: visible;
 }
 
 .ganttTrack {
-	background: linear-gradient(180deg, rgba(22, 36, 55, 0.72), rgba(15, 28, 44, 0.72));
+	background: #0d0f11;
 	overflow: visible;
 }
 
@@ -4680,10 +5381,40 @@ input[type="date"].dealSummaryDateInput {
 }
 
 .ganttTrackWeekLine {
-	background: rgba(93, 141, 206, 0.18);
+	background: rgba(145, 154, 160, 0.08);
 }
 
 .ganttTrackMonthLine {
 	z-index: 1;
-	background: rgba(38, 231, 223, 0.36);
+	background: rgba(145, 154, 160, 0.18);
+}
+
+.layout:not(.layoutCollapsed) .structureHeader h3,
+.layout:not(.layoutCollapsed) .projectSearchInput,
+.layout:not(.layoutCollapsed) .responsibleFilter,
+.layout:not(.layoutCollapsed) .reportProjectGroup,
+.layout:not(.layoutCollapsed) .dealProjectAddButton {
+	animation: structure-content-in 0.16s ease-out 0.12s both;
+}
+
+.layoutTransitioning .ganttPaymentTooltip,
+.layoutTransitioning .ganttCustomEventMenu,
+.layoutTransitioning .ganttGroupStatusMenu {
+	display: none;
+}
+
+.layoutTransitioning .ganttBoardScroll {
+	scrollbar-gutter: stable;
+}
+
+@keyframes structure-content-in {
+	from {
+		opacity: 0;
+		transform: translateX(-6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
 }

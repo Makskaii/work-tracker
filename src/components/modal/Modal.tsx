@@ -9,6 +9,7 @@ type ModalProps = {
 	isOpen?: boolean;
 	children: ReactNode;
 	className?: string;
+	position?: "center" | "right";
 	size?: "full" | "covered" | "small";
 	closeOnBackdropClick?: boolean;
 	onClose?(): void;
@@ -21,6 +22,7 @@ export default function Modal({
 	isOpen,
 	onClose,
 	innerScroll,
+	position = "center",
 	closeOnBackdropClick = true,
 }: ModalProps) {
 	const [mounted, setMounted] = useState(false);
@@ -73,11 +75,18 @@ export default function Modal({
 	};
 
 	return createPortal(
-		<div className={cls.modalContainer} onClick={handleBackdropClick}>
+		<div
+			className={`${cls.modalContainer} ${
+				position === "right" ? cls.modalContainerRight : ""
+			}`}
+			onClick={handleBackdropClick}
+		>
 			<dialog
 				ref={modalRef}
 				open={isOpen}
-				className={`${cls.modal} ${className ?? ""}`.trim()}
+				className={`${cls.modal} ${
+					position === "right" ? cls.modalRight : ""
+				} ${className ?? ""}`.trim()}
 				style={{
 					height: getModalHeight(size),
 					maxWidth: getModalWidth(size),

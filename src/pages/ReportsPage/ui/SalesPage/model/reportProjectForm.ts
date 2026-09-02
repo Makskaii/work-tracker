@@ -2,6 +2,7 @@ import type {
 	ReportProject,
 	ReportProjectFileKind,
 	ReportProjectPayload,
+	ReportProjectStatus,
 	ReportProjectType,
 } from "./types";
 
@@ -58,6 +59,7 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	nextReportDate: "",
 	projectAmount: "",
 	projectGoal: "",
+	projectStatus: "not_started",
 	projectStartDate: "",
 	projectType: "none",
 	qa: "",
@@ -93,6 +95,16 @@ export const projectTypeOptions: Array<{
 	{ label: "Не выбрано", value: "none" },
 	{ label: "Вотерфол", value: "waterfall" },
 	{ label: "Техпод", value: "support" },
+];
+
+export const projectStatusOptions: Array<{
+	label: string;
+	value: ReportProjectStatus;
+}> = [
+	{ label: "Не начат", value: "not_started" },
+	{ label: "В работе", value: "in_progress" },
+	{ label: "Неактивен", value: "inactive" },
+	{ label: "Завершён", value: "completed" },
 ];
 
 export const reportProjectFileLabels: Record<ReportProjectFileKind, string> = {
@@ -170,6 +182,7 @@ export const getReportProjectForm = (
 		projectAmount:
 			project.projectAmount === null ? "" : String(project.projectAmount),
 		projectGoal: project.projectGoal ?? "",
+		projectStatus: project.projectStatus ?? "not_started",
 		projectStartDate: project.projectStartDate ?? "",
 		projectType: project.projectType,
 		qa: project.qa ?? "",
@@ -241,6 +254,7 @@ export const getReportProjectPayload = (
 	nextReportDate: dateOrNull(form.nextReportDate),
 	projectAmount: numberOrNull(form.projectAmount),
 	projectGoal: textOrNull(form.projectGoal),
+	projectStatus: form.projectStatus as ReportProjectStatus,
 	projectStartDate: dateOrNull(form.projectStartDate),
 	projectType: form.projectType as ReportProjectType,
 	qa: textOrNull(form.qa),

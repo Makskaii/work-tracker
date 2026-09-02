@@ -24,6 +24,7 @@ import {
 	getAutonomousDependencyAnchorDate,
 	getAutonomousEventStyle,
 	getAutonomousPaymentAnchorDate,
+	getVisibleAutonomousGanttRows,
 	isAutonomousPaymentDueByCompletedStage,
 	recalculateAutonomousDependencyEvents,
 	resolveAutonomousPaymentDates,
@@ -35,6 +36,7 @@ import {
 	deleteProjectGanttStage,
 	fetchProjectGanttEvents,
 	fetchProjectGanttStages,
+	moveProjectGanttStageParent,
 	updateProjectGanttEvent,
 	updateProjectGanttStage,
 } from "../model/projectGantt.api";
@@ -67,6 +69,7 @@ import type {
 	ProjectGanttDependencyAnchor,
 	ProjectGanttEvent,
 	ProjectGanttEventPayload,
+	ProjectGanttGroupStatus,
 	ProjectGanttStage,
 	ProjectGanttStageType,
 	ReportProject,
@@ -94,6 +97,9 @@ type StageFormState = {
 	factEndDate: string;
 	factStartDate: string;
 	id: number | null;
+	isGroup: boolean;
+	parentStageId: number | null;
+	groupStatus: ProjectGanttGroupStatus;
 	planEndDate: string;
 	planStartDate: string;
 	stageType: ProjectGanttStageType;
@@ -134,6 +140,13 @@ type DragDateGuide = {
 	date: Date;
 } | null;
 
+type StageDropTarget = {
+	anchorStageId: number | null;
+	beforeStageId: number | null;
+	parentStageId: number;
+	placement: "append" | "after" | "before";
+} | null;
+
 type DependencyLinkSide = "left" | "right";
 
 type PaymentLayoutItem = {
@@ -149,10 +162,40 @@ const DEFAULT_STAGE_FORM: StageFormState = {
 	factEndDate: "",
 	factStartDate: "",
 	id: null,
+	isGroup: false,
+	parentStageId: null,
+	groupStatus: "not_started",
 	planEndDate: "",
 	planStartDate: "",
 	stageType: "tz_writing",
 	title: "",
+};
+
+const GROUP_STATUS_OPTIONS: Array<{
+	label: string;
+	value: ProjectGanttGroupStatus;
+}> = [
+	{ label: "Не начат", value: "not_started" },
+	{ label: "В работе", value: "in_progress" },
+	{ label: "Неактивен", value: "inactive" },
+	{ label: "Завершён", value: "completed" },
+];
+
+const getGroupStatusLabel = (status: ProjectGanttGroupStatus | null) =>
+	GROUP_STATUS_OPTIONS.find((option) => option.value === status)?.label ??
+	"Не начат";
+
+const getGroupStatusClassName = (status: ProjectGanttGroupStatus | null) => {
+	switch (status) {
+		case "in_progress":
+			return styles.ganttGroupStatusInProgress;
+		case "inactive":
+			return styles.ganttGroupStatusInactive;
+		case "completed":
+			return styles.ganttGroupStatusCompleted;
+		default:
+			return styles.ganttGroupStatusNotStarted;
+	}
 };
 
 const DEFAULT_EVENT_FORM: EventFormState = {
@@ -185,11 +228,13 @@ const DURATION_STAGE_TYPES = new Set<ProjectGanttStageType>([
 	"education",
 ]);
 const GANTT_ROW_HEIGHT = 74;
+const GANTT_MIN_STAGE_ROW_HEIGHT = 62;
+const GANTT_MIN_GROUP_ROW_HEIGHT = 120;
+const GANTT_MAX_STAGE_ROW_HEIGHT = 280;
 const GANTT_PAYMENT_MARKER_STEP = 46;
 const GANTT_PAYMENT_MARKER_TOP = 16;
 const GANTT_PAYMENT_COLLISION_THRESHOLD = 9;
 const GANTT_DRAG_CLICK_THRESHOLD = 4;
-const GANTT_STAGE_REORDER_THRESHOLD = 8;
 const GANTT_DEPENDENCY_TARGET_HITBOX_PADDING = 28;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -210,7 +255,7 @@ const GANTT_DEFAULT_PIXELS_PER_DAY = 10;
 const GANTT_MIN_PIXELS_PER_DAY = 2;
 const GANTT_MAX_PIXELS_PER_DAY = 50;
 const GANTT_ZOOM_STEP = 1;
-const GANTT_STAGE_COLUMN_WIDTH = 190;
+const GANTT_STAGE_COLUMN_WIDTH = 280;
 
 type TimelineZoomAnchor = {
 	date: Date;
@@ -736,6 +781,11 @@ export const AutonomousProjectGantt = ({
 	const [paymentForm, setPaymentForm] =
 		useState<PaymentFormState>(DEFAULT_PAYMENT_FORM);
 	const [isStageModalOpen, setIsStageModalOpen] = useState(false);
+	const [expandedGroupIds, setExpandedGroupIds] = useState<Set<number>>(
+		new Set(),
+	);
+	const [isGroupExpansionInitialized, setIsGroupExpansionInitialized] =
+		useState(false);
 	const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 	const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 	const [deletingStageId, setDeletingStageId] = useState<number | null>(null);
@@ -746,6 +796,8 @@ export const AutonomousProjectGantt = ({
 	const ganttScaleRef = useRef<HTMLDivElement | null>(null);
 	const paymentMarkerRefs = useRef(new Map<number, HTMLButtonElement>());
 	const eventRefsByStageId = useRef(new Map<number, HTMLButtonElement>());
+	const groupDropTargetRefs = useRef(new Map<number, HTMLDivElement>());
+	const stageDropTargetRefs = useRef(new Map<number, HTMLDivElement>());
 	const [paymentLinksLayout, setPaymentLinksLayout] =
 		useState<PaymentLinkLayout>({
 			height: 0,
@@ -756,6 +808,13 @@ export const AutonomousProjectGantt = ({
 		useState<DependencyLinkDraft>(null);
 	const [dragDateGuide, setDragDateGuide] = useState<DragDateGuide>(null);
 	const [draggingStageId, setDraggingStageId] = useState<number | null>(null);
+	const [dragTargetGroupId, setDragTargetGroupId] = useState<number | null>(
+		null,
+	);
+	const [stageDropTarget, setStageDropTarget] = useState<StageDropTarget>(null);
+	const [stageRowHeights, setStageRowHeights] = useState<Record<number, number>>(
+		{},
+	);
 	const [pixelsPerDay, setPixelsPerDay] = useState(
 		GANTT_DEFAULT_PIXELS_PER_DAY,
 	);
@@ -805,6 +864,10 @@ export const AutonomousProjectGantt = ({
 	const gantt = useMemo(
 		() => ({ ...baseGantt, timeline: displayTimeline }),
 		[baseGantt, displayTimeline],
+	);
+	const visibleGanttRows = useMemo(
+		() => getVisibleAutonomousGanttRows(gantt.rows, expandedGroupIds),
+		[expandedGroupIds, gantt.rows],
 	);
 	const monthTicks = useMemo(
 		() => getMonthTicks(gantt.timeline),
@@ -1055,9 +1118,24 @@ export const AutonomousProjectGantt = ({
 		[events],
 	);
 	const editableStages = useMemo(
-		() => stages.filter((stage) => stage.code !== "payments"),
+		() =>
+			stages.filter((stage) => stage.code !== "payments" && !stage.isGroup),
 		[stages],
 	);
+	useEffect(() => {
+		setExpandedGroupIds(new Set());
+		setIsGroupExpansionInitialized(false);
+	}, [project?.id]);
+	useEffect(() => {
+		if (isGroupExpansionInitialized || !stages.length) {
+			return;
+		}
+
+		setExpandedGroupIds(
+			new Set(stages.filter((stage) => stage.isGroup).map((stage) => stage.id)),
+		);
+		setIsGroupExpansionInitialized(true);
+	}, [isGroupExpansionInitialized, stages]);
 	const setPaymentMarkerRef = useCallback(
 		(paymentId: number) => (node: HTMLButtonElement | null) => {
 			if (node) {
@@ -1077,6 +1155,37 @@ export const AutonomousProjectGantt = ({
 			}
 
 			eventRefsByStageId.current.delete(stageId);
+		},
+		[],
+	);
+	const setGroupDropTargetRef = useCallback(
+		(groupStageId: number) => (node: HTMLDivElement | null) => {
+			if (node) {
+				groupDropTargetRefs.current.set(groupStageId, node);
+				return;
+			}
+
+			groupDropTargetRefs.current.delete(groupStageId);
+		},
+		[],
+	);
+	const setStageDropTargetRef = useCallback(
+		(stageId: number) => (node: HTMLDivElement | null) => {
+			if (node) {
+				stageDropTargetRefs.current.set(stageId, node);
+				return;
+			}
+
+			stageDropTargetRefs.current.delete(stageId);
+		},
+		[],
+	);
+	const handleStageRowHeightChange = useCallback(
+		(stageId: number, height: number) => {
+			setStageRowHeights((currentHeights) => ({
+				...currentHeights,
+				[stageId]: height,
+			}));
 		},
 		[],
 	);
@@ -1271,10 +1380,20 @@ export const AutonomousProjectGantt = ({
 		timelineWidth,
 	]);
 
-	const openStageCreateModal = () => {
+	const openStageCreateModal = (parentStageId: number | null = null) => {
 		setStageForm({
 			...DEFAULT_STAGE_FORM,
+			parentStageId,
 			title: getStageTypeLabel(DEFAULT_STAGE_FORM.stageType),
+		});
+		setIsStageModalOpen(true);
+	};
+
+	const openGroupCreateModal = () => {
+		setStageForm({
+			...DEFAULT_STAGE_FORM,
+			isGroup: true,
+			title: "Новый этап",
 		});
 		setIsStageModalOpen(true);
 	};
@@ -1290,6 +1409,9 @@ export const AutonomousProjectGantt = ({
 			factEndDate: stageEvent?.factEndDate ?? "",
 			factStartDate: stageEvent?.factStartDate ?? "",
 			id: stage.id,
+			isGroup: stage.isGroup,
+			parentStageId: stage.parentStageId,
+			groupStatus: stage.groupStatus ?? "not_started",
 			planEndDate: stageEvent?.planEndDate ?? "",
 			planStartDate: stageEvent?.planStartDate ?? "",
 			stageType,
@@ -1299,6 +1421,62 @@ export const AutonomousProjectGantt = ({
 		setStageForm(withDerivedStageDuration(nextForm));
 		setIsStageModalOpen(true);
 	};
+
+	const toggleGroupExpanded = (groupStageId: number) => {
+		setExpandedGroupIds((currentIds) => {
+			const nextIds = new Set(currentIds);
+
+			if (nextIds.has(groupStageId)) {
+				nextIds.delete(groupStageId);
+			} else {
+				nextIds.add(groupStageId);
+			}
+
+			return nextIds;
+		});
+	};
+
+	const handleGroupStatusChange = async (
+		stage: ProjectGanttStage,
+		groupStatus: ProjectGanttGroupStatus,
+	) => {
+		try {
+			const updatedStage = await updateProjectGanttStage(stage.id, {
+				groupStatus,
+			});
+			setStages((currentStages) =>
+				currentStages.map((item) =>
+					item.id === updatedStage.id ? updatedStage : item,
+				),
+			);
+		} catch (error) {
+			notify({
+				duration: 5000,
+				message: getApiErrorMessage(error, "Не удалось обновить статус этапа"),
+				type: "error",
+			});
+		}
+	};
+
+	const moveStageToParent = useCallback(async (
+		stage: ProjectGanttStage,
+		dropTarget: Exclude<StageDropTarget, null>,
+	) => {
+		try {
+			await moveProjectGanttStageParent(
+				stage.id,
+				dropTarget.parentStageId,
+				dropTarget.beforeStageId,
+			);
+			await refreshData();
+		} catch (error) {
+			notify({
+				duration: 5000,
+				message: getApiErrorMessage(error, "Не удалось перенести этап"),
+				type: "error",
+			});
+		}
+	}, [refreshData]);
 
 	const openPaymentCreateModal = () => {
 		const stageId = editableStages[0]?.id ?? stages[0]?.id ?? null;
@@ -1339,76 +1517,87 @@ export const AutonomousProjectGantt = ({
 				return;
 			}
 
-			const initialEditableStages = stages
-				.filter((item) => item.code !== "payments")
-				.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
-			const initialIndex = initialEditableStages.findIndex(
-				(item) => item.id === stage.id,
-			);
-
-			if (initialIndex < 0) {
-				return;
-			}
-
 			pointerEvent.preventDefault();
 
 			const dragTarget = pointerEvent.currentTarget;
-			const startClientY = pointerEvent.clientY;
-			let latestStages = stages;
-			let latestTargetIndex = initialIndex;
-			let hasDragged = false;
-
-			const getNextStages = (targetIndex: number) => {
-				const nextEditableStages = [...initialEditableStages];
-				const [draggedStage] = nextEditableStages.splice(initialIndex, 1);
-
-				nextEditableStages.splice(targetIndex, 0, draggedStage);
-
-				const sortOrderByStageId = new Map(
-					nextEditableStages.map((item, index) => [item.id, index + 1]),
-				);
-
-				return stages.map((item) => {
-					const sortOrder = sortOrderByStageId.get(item.id);
-
-					return sortOrder === undefined
-						? item
-						: {
-								...item,
-								sortOrder,
-							};
-				});
-			};
-			const applyReorder = (clientY: number) => {
-				const deltaY = clientY - startClientY;
-
-				if (!hasDragged && Math.abs(deltaY) < GANTT_STAGE_REORDER_THRESHOLD) {
-					return;
-				}
-
-				const targetIndex = Math.min(
-					Math.max(
-						initialIndex + Math.round(deltaY / GANTT_ROW_HEIGHT),
-						0,
-					),
-					initialEditableStages.length - 1,
-				);
-
-				if (hasDragged && targetIndex === latestTargetIndex) {
-					return;
-				}
-
-				hasDragged = true;
-				latestTargetIndex = targetIndex;
-				latestStages = getNextStages(targetIndex);
-				setDraggingStageId(stage.id);
-				setStages(latestStages);
-				markGanttDragClick(dragTarget);
-			};
+			let latestDropTarget: StageDropTarget = null;
 			const handlePointerMove = (moveEvent: PointerEvent) => {
-				applyReorder(moveEvent.clientY);
+				const targetStageId = Array.from(
+					stageDropTargetRefs.current.entries(),
+				).find(([, node]) => {
+					const rect = node.getBoundingClientRect();
 
-				if (hasDragged) {
+					return (
+						moveEvent.clientY >= rect.top &&
+						moveEvent.clientY <= rect.bottom
+					);
+				})?.[0] ?? null;
+				const targetStage = targetStageId
+					? stages.find((item) => item.id === targetStageId) ?? null
+					: null;
+				const targetStageNode = targetStageId
+					? stageDropTargetRefs.current.get(targetStageId) ?? null
+					: null;
+				const targetStageRect = targetStageNode?.getBoundingClientRect() ?? null;
+				const targetGroupId = Array.from(
+					groupDropTargetRefs.current.entries(),
+				).find(([, node]) => {
+					const rect = node.getBoundingClientRect();
+
+					return (
+						moveEvent.clientY >= rect.top &&
+						moveEvent.clientY <= rect.bottom
+					);
+				})?.[0] ?? null;
+				const nextDropTarget: StageDropTarget =
+					targetStage &&
+					targetStage.id !== stage.id &&
+					targetStage.parentStageId !== null &&
+					targetStageRect
+						? (() => {
+							const placement =
+								moveEvent.clientY <
+								targetStageRect.top + targetStageRect.height / 2
+									? "before"
+									: "after";
+							const siblings = stages
+								.filter(
+									(item) =>
+										!item.isGroup &&
+										item.code !== "payments" &&
+										item.id !== stage.id &&
+										item.parentStageId === targetStage.parentStageId,
+								)
+								.toSorted((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+							const nextSibling = siblings.at(
+								siblings.findIndex((item) => item.id === targetStage.id) + 1,
+							);
+
+							return {
+								anchorStageId: targetStage.id,
+								beforeStageId:
+									placement === "before"
+										? targetStage.id
+										: nextSibling?.id ?? null,
+								parentStageId: targetStage.parentStageId,
+								placement,
+							};
+						})()
+						: targetGroupId !== null
+							? {
+									anchorStageId: null,
+									beforeStageId: null,
+									parentStageId: targetGroupId,
+									placement: "append",
+								}
+							: null;
+
+				latestDropTarget = nextDropTarget;
+				setDragTargetGroupId(nextDropTarget?.parentStageId ?? null);
+				setStageDropTarget(nextDropTarget);
+
+				if (nextDropTarget !== null) {
+					setDraggingStageId(stage.id);
 					moveEvent.preventDefault();
 				}
 			};
@@ -1416,36 +1605,19 @@ export const AutonomousProjectGantt = ({
 				window.removeEventListener("pointermove", handlePointerMove);
 				window.removeEventListener("pointerup", handlePointerUp);
 				setDraggingStageId(null);
+				setDragTargetGroupId(null);
+				setStageDropTarget(null);
 
-				if (!hasDragged || latestTargetIndex === initialIndex) {
-					return;
+				if (latestDropTarget !== null) {
+					markGanttDragClick(dragTarget);
+					void moveStageToParent(stage, latestDropTarget);
 				}
-
-				const initialSortOrderByStageId = new Map(
-					stages.map((item) => [item.id, item.sortOrder]),
-				);
-				const stagesToSave = latestStages.filter(
-					(item) =>
-						item.code !== "payments" &&
-						item.sortOrder !== initialSortOrderByStageId.get(item.id),
-				);
-
-				markGanttDragClick(dragTarget);
-				void Promise.all(
-					stagesToSave.map((item) =>
-						updateProjectGanttStage(item.id, {
-							sortOrder: item.sortOrder,
-						}),
-					),
-				).catch(() => {
-					void refreshData();
-				});
 			};
 
 			window.addEventListener("pointermove", handlePointerMove);
 			window.addEventListener("pointerup", handlePointerUp, { once: true });
 		},
-		[refreshData, stages],
+		[moveStageToParent, stages],
 	);
 
 	const handleEventDateDragStart = useCallback(
@@ -1990,6 +2162,28 @@ export const AutonomousProjectGantt = ({
 		}
 
 		try {
+		if (stageForm.isGroup) {
+			const groupPayload = {
+				groupStatus: stageForm.groupStatus,
+				isGroup: true,
+				stageType: stageForm.stageType,
+				title: stageForm.title.trim() || "Новый этап",
+			};
+
+			if (stageForm.id) {
+				await updateProjectGanttStage(stageForm.id, groupPayload);
+			} else {
+				await createProjectGanttStage(String(project.id), {
+					...groupPayload,
+					sortOrder: stages.length,
+				});
+			}
+
+			setIsStageModalOpen(false);
+			await refreshData();
+			return;
+		}
+
 		const title = stageForm.title.trim() || getStageTypeLabel(stageForm.stageType);
 		const isDependencyStage = Boolean(stageForm.dependsOnStageId);
 		const eventKind = getStageEventKind(stageForm.stageType);
@@ -2114,6 +2308,7 @@ export const AutonomousProjectGantt = ({
 		} else {
 			const createdStage = await createProjectGanttStage(String(project.id), {
 				...stagePayload,
+				parentStageId: stageForm.parentStageId,
 				sortOrder: stages.length,
 			});
 			savedStageId = createdStage.id;
@@ -2354,7 +2549,7 @@ export const AutonomousProjectGantt = ({
 								>
 									{formatDateShort(today)}
 								</span>
-							) : null}
+									) : null}
 							{dragDateGuide && dragDateGuidePercent !== null ? (
 								<div
 									className={styles.ganttDragDateGuideLabel}
@@ -2376,8 +2571,15 @@ export const AutonomousProjectGantt = ({
 								/>
 							</div>
 						) : null}
-						{gantt.rows.map((row) => (
+						{visibleGanttRows.map((row) => (
 							<AutonomousStageRow
+								childStageCount={
+									row.stage.isGroup
+										? stages.filter(
+											(stage) => stage.parentStageId === row.stage.id,
+										).length
+										: 0
+								}
 								key={row.stage.id}
 								dragDateGuidePercent={dragDateGuidePercent}
 								monthTicks={monthTicks}
@@ -2388,14 +2590,31 @@ export const AutonomousProjectGantt = ({
 								onEventMoveDragStart={handleEventMoveDragStart}
 								onStageReorderDragStart={handleStageReorderDragStart}
 								onStageEdit={openStageEditModal}
+								onGroupAddChild={openStageCreateModal}
+								onGroupStatusChange={handleGroupStatusChange}
+								onGroupToggle={toggleGroupExpanded}
+								isGroupExpanded={expandedGroupIds.has(row.stage.id)}
+								customRowHeight={stageRowHeights[row.stage.id]}
+								onRowHeightChange={handleStageRowHeightChange}
+								showAddChildButton={
+									row.stage.isGroup && expandedGroupIds.has(row.stage.id)
+								}
+								dropPlacement={
+									stageDropTarget?.anchorStageId === row.stage.id
+										? stageDropTarget.placement
+										: null
+								}
 								row={row}
 								eventByStageId={eventByStageId}
 								setPaymentMarkerRef={setPaymentMarkerRef}
 								setStageEventRef={setStageEventRef}
+								setGroupDropTargetRef={setGroupDropTargetRef}
+								setStageDropTargetRef={setStageDropTargetRef}
 								stageById={stageById}
 								today={today}
 								timeline={gantt.timeline}
 								draggingStageId={draggingStageId}
+								isDragTarget={dragTargetGroupId === row.stage.id}
 								weekTicks={weekTicks}
 							/>
 						))}
@@ -2403,7 +2622,8 @@ export const AutonomousProjectGantt = ({
 							<button
 								type="button"
 								className={styles.ganttAddEventButton}
-								onClick={openStageCreateModal}
+								title="Добавить родительский этап"
+								onClick={openGroupCreateModal}
 							>
 								+
 							</button>
@@ -2508,7 +2728,9 @@ const AutonomousPaymentLinksLayer = ({
 };
 
 const AutonomousStageRow = ({
+	childStageCount,
 	dragDateGuidePercent,
+	isDragTarget,
 	draggingStageId,
 	eventByStageId,
 	monthTicks,
@@ -2519,15 +2741,27 @@ const AutonomousStageRow = ({
 	onPaymentEdit,
 	onStageReorderDragStart,
 	onStageEdit,
+	onGroupAddChild,
+	onGroupStatusChange,
+	onGroupToggle,
+	isGroupExpanded,
+	customRowHeight,
+	onRowHeightChange,
+	showAddChildButton,
+	dropPlacement,
 	row,
 	setPaymentMarkerRef,
 	setStageEventRef,
+	setGroupDropTargetRef,
+	setStageDropTargetRef,
 	stageById,
 	today,
 	timeline,
 	weekTicks,
 }: {
+	childStageCount: number;
 	dragDateGuidePercent: number | null;
+	isDragTarget: boolean;
 	draggingStageId: number | null;
 	eventByStageId: Map<number, ProjectGanttEvent>;
 	monthTicks: GanttMonthTick[];
@@ -2552,6 +2786,17 @@ const AutonomousStageRow = ({
 		stage: ProjectGanttStage,
 	) => void;
 	onStageEdit: (stage: ProjectGanttStage) => void;
+	onGroupAddChild: (parentStageId: number) => void;
+	onGroupStatusChange: (
+		stage: ProjectGanttStage,
+		status: ProjectGanttGroupStatus,
+	) => void;
+	onGroupToggle: (groupStageId: number) => void;
+	isGroupExpanded: boolean;
+	customRowHeight: number | undefined;
+	onRowHeightChange: (stageId: number, height: number) => void;
+	showAddChildButton: boolean;
+	dropPlacement: Exclude<StageDropTarget, null>["placement"] | null;
 	row: ReturnType<typeof buildAutonomousProjectGantt>["rows"][number];
 	setPaymentMarkerRef: (
 		paymentId: number,
@@ -2559,13 +2804,24 @@ const AutonomousStageRow = ({
 	setStageEventRef: (
 		stageId: number,
 	) => (node: HTMLButtonElement | null) => void;
+	setGroupDropTargetRef: (
+		groupStageId: number,
+	) => (node: HTMLDivElement | null) => void;
+	setStageDropTargetRef: (
+		stageId: number,
+	) => (node: HTMLDivElement | null) => void;
 	stageById: Map<number, ProjectGanttStage>;
 	today: Date;
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 	weekTicks: GanttWeekTick[];
 }) => {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+	const rowInfoRef = useRef<HTMLDivElement | null>(null);
+	const stageTitleRef = useRef<HTMLElement | null>(null);
 	const isPaymentsStage = row.stage.code === "payments";
-	const canReorderStage = !isPaymentsStage;
+	const isGroupStage = row.stage.isGroup;
+	const canReorderStage = !isPaymentsStage && !isGroupStage;
 	const isDraggingStage = draggingStageId === row.stage.id;
 	const paymentLayoutItems = isPaymentsStage
 		? getPaymentLayoutItems(row.payments, timeline)
@@ -2574,51 +2830,259 @@ const AutonomousStageRow = ({
 		(maxLevel, item) => Math.max(maxLevel, item.level),
 		0,
 	);
+	const defaultRowHeight = isPaymentsStage
+		? row.payments.length
+			? Math.max(
+					GANTT_ROW_HEIGHT,
+					GANTT_PAYMENT_MARKER_TOP +
+						(maxPaymentLevel + 1) * GANTT_PAYMENT_MARKER_STEP +
+						18,
+				)
+			: 52
+		: isGroupStage && showAddChildButton
+			? GANTT_MIN_GROUP_ROW_HEIGHT
+			: GANTT_ROW_HEIGHT;
+	const minRowHeight = isGroupStage && showAddChildButton
+		? GANTT_MIN_GROUP_ROW_HEIGHT
+		: GANTT_MIN_STAGE_ROW_HEIGHT;
 	const rowHeight = isPaymentsStage
-		? Math.max(
-				GANTT_ROW_HEIGHT,
-				GANTT_PAYMENT_MARKER_TOP +
-					(maxPaymentLevel + 1) * GANTT_PAYMENT_MARKER_STEP +
-					18,
-			)
-		: GANTT_ROW_HEIGHT;
+		? defaultRowHeight
+		: Math.max(minRowHeight, customRowHeight ?? defaultRowHeight);
+	const handleRowResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		const startY = event.clientY;
+		const startHeight = rowHeight;
+		const handlePointerMove = (moveEvent: PointerEvent) => {
+			const nextHeight = Math.min(
+				GANTT_MAX_STAGE_ROW_HEIGHT,
+				Math.max(minRowHeight, startHeight + moveEvent.clientY - startY),
+			);
+			onRowHeightChange(row.stage.id, nextHeight);
+		};
+		const handlePointerUp = () => {
+			window.removeEventListener("pointermove", handlePointerMove);
+			window.removeEventListener("pointerup", handlePointerUp);
+		};
+
+		window.addEventListener("pointermove", handlePointerMove);
+		window.addEventListener("pointerup", handlePointerUp);
+	};
+
+	useEffect(() => {
+		if (!isMenuOpen && !isStatusMenuOpen) {
+			return;
+		}
+
+		const closeMenu = (event: PointerEvent) => {
+			if (!rowInfoRef.current?.contains(event.target as Node)) {
+				setIsMenuOpen(false);
+				setIsStatusMenuOpen(false);
+			}
+		};
+		const closeMenuOnEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setIsMenuOpen(false);
+				setIsStatusMenuOpen(false);
+			}
+		};
+
+		document.addEventListener("pointerdown", closeMenu);
+		document.addEventListener("keydown", closeMenuOnEscape);
+
+		return () => {
+			document.removeEventListener("pointerdown", closeMenu);
+			document.removeEventListener("keydown", closeMenuOnEscape);
+		};
+	}, [isMenuOpen, isStatusMenuOpen]);
+
+	useLayoutEffect(() => {
+		if (isPaymentsStage || !stageTitleRef.current) {
+			return;
+		}
+
+		const requiredHeight = Math.max(
+			minRowHeight,
+			Math.ceil(
+				stageTitleRef.current.offsetTop +
+					stageTitleRef.current.scrollHeight +
+					(isGroupStage && showAddChildButton ? 42 : 14),
+			),
+		);
+
+		if (requiredHeight > rowHeight) {
+			onRowHeightChange(row.stage.id, requiredHeight);
+		}
+	}, [
+		isPaymentsStage,
+		minRowHeight,
+		onRowHeightChange,
+		row.stage.id,
+		row.stage.title,
+		rowHeight,
+	]);
 
 	return (
 		<>
 			<div
-				className={`${styles.ganttRowInfo} ${canReorderStage ? styles.ganttRowInfoReorderable : ""} ${isDraggingStage ? styles.ganttRowInfoDragging : ""}`}
-				style={{ minHeight: rowHeight }}
+				ref={(node) => {
+					rowInfoRef.current = node;
+
+					if (isGroupStage) {
+						setGroupDropTargetRef(row.stage.id)(node);
+						return;
+					}
+
+					setStageDropTargetRef(row.stage.id)(node);
+				}}
+				data-gantt-group-stage-id={
+					isGroupStage ? row.stage.id : undefined
+				}
+				className={`${styles.ganttRowInfo} ${isPaymentsStage ? styles.ganttPaymentRowInfo : ""} ${isGroupStage ? styles.ganttParentRowInfo : ""} ${row.stage.parentStageId ? styles.ganttChildRowInfo : ""} ${canReorderStage ? styles.ganttRowInfoReorderable : ""} ${isDraggingStage ? styles.ganttRowInfoDragging : ""} ${isDragTarget ? styles.ganttParentRowInfoDropTarget : ""} ${dropPlacement === "before" ? styles.ganttStageDropBefore : ""} ${dropPlacement === "after" ? styles.ganttStageDropAfter : ""} ${isMenuOpen || isStatusMenuOpen ? styles.ganttRowInfoWithOpenMenu : ""}`}
+				style={{ height: rowHeight, minHeight: rowHeight }}
 				onPointerDown={
 					canReorderStage
 						? (event) => onStageReorderDragStart(event, row.stage)
 						: undefined
 				}
 			>
+				{isGroupStage ? (
+					<span className={styles.ganttGroupType}>
+						{row.stage.stageType && row.stage.stageType !== "payments"
+							? getStageTypeLabel(row.stage.stageType)
+							: "Этап проекта"}
+					</span>
+				) : null}
 				<div className={styles.ganttCustomEventHeader}>
+					{isGroupStage ? (
+						<button
+							type="button"
+							className={styles.ganttGroupToggle}
+							onClick={() => onGroupToggle(row.stage.id)}
+							aria-expanded={isGroupExpanded}
+							title={isGroupExpanded ? "Свернуть этапы" : "Раскрыть этапы"}
+						>
+							{isGroupExpanded ? "⌄" : "›"}
+						</button>
+					) : null}
+					{!isGroupStage && row.stage.parentStageId ? (
+						<span className={styles.ganttChildRowMarker} />
+					) : null}
 					<strong
+						ref={stageTitleRef}
 						className={styles.ganttStageTitle}
 						title={row.stage.title}
 					>
-						{row.stage.title.length > 35
-							? `${row.stage.title.slice(0, 35)}...`
-							: row.stage.title}
+						{row.stage.title}
 					</strong>
-					{!row.stage.isDefault && row.stage.code !== "payments" ? (
-						<button
-							type="button"
-							className={styles.ganttCustomEventMenuButton}
-							onClick={() => onStageEdit(row.stage)}
-						>
-							...
-						</button>
+					{isGroupStage ? (
+						<div className={styles.ganttGroupMeta}>
+							<span className={styles.ganttGroupCount}>{childStageCount}</span>
+							<div className={styles.ganttGroupStatusWrapper}>
+								<button
+									type="button"
+									className={`${styles.ganttGroupStatus} ${getGroupStatusClassName(row.stage.groupStatus)}`}
+									onClick={() => setIsStatusMenuOpen((isOpen) => !isOpen)}
+								>
+									{getGroupStatusLabel(row.stage.groupStatus)}
+								</button>
+								{isStatusMenuOpen ? (
+									<div className={styles.ganttGroupStatusMenu}>
+										{GROUP_STATUS_OPTIONS.map((option) => (
+											<button
+												type="button"
+												key={option.value}
+												className={`${styles.ganttGroupStatusMenuItem} ${getGroupStatusClassName(option.value)}`}
+												onClick={() => {
+													onGroupStatusChange(row.stage, option.value);
+													setIsStatusMenuOpen(false);
+												}}
+											>
+												{option.label}
+											</button>
+										))}
+									</div>
+								) : null}
+							</div>
+						</div>
+					) : null}
+					{!row.stage.isDefault && !isPaymentsStage ? (
+						<div className={styles.ganttStageActions}>
+							<button
+								type="button"
+								className={styles.ganttCustomEventMenuButton}
+								onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
+								aria-expanded={isMenuOpen}
+							>
+								...
+							</button>
+							{isMenuOpen ? (
+								<div className={styles.ganttCustomEventMenu}>
+									{isGroupStage ? (
+										<button
+											type="button"
+											onClick={() => {
+												onGroupAddChild(row.stage.id);
+												setIsMenuOpen(false);
+											}}
+										>
+											Добавить подэтап
+										</button>
+					) : null}
+									<button
+										type="button"
+										onClick={() => {
+											onStageEdit(row.stage);
+											setIsMenuOpen(false);
+										}}
+									>
+										Редактировать
+									</button>
+								</div>
+							) : null}
+						</div>
 					) : null}
 				</div>
-				{isPaymentsStage ? <span>Платежи проекта</span> : null}
+				{showAddChildButton ? (
+					<div className={styles.ganttGroupAddChildCell}>
+						<button
+							type="button"
+							className={styles.ganttGroupAddChildButton}
+							title="Добавить подэтап"
+							onClick={() => onGroupAddChild(row.stage.id)}
+						>
+							+
+						</button>
+					</div>
+				) : null}
+				{isPaymentsStage ? (
+					<span>
+						{row.payments.length
+							? `${row.payments.length} платежей`
+							: "Платежи проекта"}
+					</span>
+				) : null}
+				{!isPaymentsStage ? (
+					<div
+						className={styles.ganttRowResizeHandle}
+						onPointerDown={handleRowResizeStart}
+						role="separator"
+						aria-orientation="horizontal"
+						aria-label="Изменить высоту этапа"
+					/>
+				) : null}
 			</div>
 			<div
-				className={styles.autonomousGanttTrack}
+				className={`${styles.autonomousGanttTrack} ${isGroupStage && isDragTarget ? styles.ganttParentTrackDropTarget : ""}`}
+				data-gantt-group-stage-id={
+					isGroupStage ? row.stage.id : undefined
+				}
 				data-autonomous-gantt-track="true"
-				style={{ minHeight: rowHeight }}
+				style={{ height: rowHeight, minHeight: rowHeight }}
 				onClick={isPaymentsStage ? onPaymentCreate : undefined}
 				onKeyDown={
 					isPaymentsStage
@@ -3170,12 +3634,23 @@ const AutonomousPaymentItem = ({
 			}}
 			ref={markerRef}
 			style={style}
-			title={formatAutonomousPaymentTooltip(payment, stageTitle)}
+			aria-label={formatAutonomousPaymentTooltip(payment, stageTitle)}
 		>
 			<b>
 				<FaMoneyBillWave aria-hidden="true" />
 			</b>
-			<small>{formatMoney(payment.amount ?? 0)}</small>
+			<span className={styles.ganttPaymentTooltip}>
+				<i aria-hidden="true" />
+				<span>
+					<small>{stageTitle}</small>
+					<span className={styles.ganttPaymentTooltipMeta}>
+						<small>
+							{paymentDate ? formatDateShort(paymentDate) : "Дата не указана"}
+						</small>
+						<strong>{formatMoney(payment.amount ?? 0)}</strong>
+					</span>
+				</span>
+			</span>
 		</button>
 	);
 };
@@ -3203,6 +3678,7 @@ const StageModal = ({
 	stage: ProjectGanttStage | null | undefined;
 	stages: ProjectGanttStage[];
 }) => {
+	const isGroupStage = form.isGroup;
 	const isDurationStage = DURATION_STAGE_TYPES.has(form.stageType);
 	const isDependencyStage = Boolean(form.dependsOnStageId);
 	const availableDependencyStages = stages.filter((item) => item.id !== form.id);
@@ -3305,7 +3781,7 @@ const StageModal = ({
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} size="small">
+		<Modal isOpen={isOpen} onClose={onClose} position="right" size="small">
 			<div className={styles.ganttFormModal}>
 				<h3>{form.id ? "Редактирование этапа" : "Новый этап"}</h3>
 				<label>
@@ -3346,7 +3822,7 @@ const StageModal = ({
 						}
 					/>
 				</label>
-				<label>
+				{!isGroupStage ? <label>
 					<span>Этап привязки</span>
 					<select
 						value={form.dependsOnStageId ?? ""}
@@ -3363,8 +3839,8 @@ const StageModal = ({
 							</option>
 						))}
 					</select>
-				</label>
-				{isDependencyStage ? (
+				</label> : null}
+				{!isGroupStage && isDependencyStage ? (
 					<>
 						<label>
 							<span>Точка привязки</span>
@@ -3393,7 +3869,7 @@ const StageModal = ({
 						) : null}
 					</>
 				) : null}
-				<div className={styles.ganttFormGrid}>
+				{!isGroupStage ? <div className={styles.ganttFormGrid}>
 					<label>
 						<span>
 							{isDurationStage ? "Плановая дата начала" : "Плановая дата"}
@@ -3442,7 +3918,7 @@ const StageModal = ({
 							/>
 						</label>
 					) : null}
-				</div>
+				</div> : null}
 				<div className={styles.ganttFormActions}>
 					{form.id && stage?.code !== "payments" && !stage?.isDefault ? (
 						<button

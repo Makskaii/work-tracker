@@ -176,13 +176,13 @@
     }
 
     &.empty {
-        background: rgba(22, 36, 55, 0.5);
+        background: #15191b;
         border: 1px solid var(--color-border);
         cursor: default;
     }
 
     &:hover:not(.empty) {
-        background: #1b2b42;
+        background: #1b1e21;
         border-color: var(--color-accent);
         transform: translateY(-1px);
         box-shadow: 0 12px 24px rgba(1, 8, 14, 0.2);
@@ -358,7 +358,7 @@
     padding: 12px 10px;
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(22, 36, 55, 0.78), rgba(15, 28, 44, 0.88));
+    background: linear-gradient(135deg, #171b1e, #101315);
     overflow: hidden;
 }
 
@@ -375,7 +375,7 @@
 .skeletonBadges span {
     display: block;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(38, 58, 85, 0.8), rgba(57, 214, 238, 0.18), rgba(38, 58, 85, 0.8));
+    background: linear-gradient(90deg, #30363a, #4b5358, #30363a);
     background-size: 220% 100%;
     animation: skeletonShimmer 1.25s ease-in-out infinite;
 }
@@ -600,7 +600,7 @@
 .reports-count {
     font-size: 11px;
     color: var(--color-muted);
-    background: rgba(111, 168, 255, 0.12);
+    background: rgba(145, 154, 160, 0.14);
     padding: 2px 6px;
     border-radius: 3px;
     display: inline-block;
