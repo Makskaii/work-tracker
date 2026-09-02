@@ -92,6 +92,11 @@ export const MainLayout = () => {
 				const nextRules: AbilityRule[] = [];
 				let redirectTo: string | null = null;
 
+				if (!devMode && window.self === window.top) {
+					window.location.replace("/marketplace/app/3/");
+					return;
+				}
+
 				if (devMode) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
