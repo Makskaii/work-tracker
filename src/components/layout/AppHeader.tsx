@@ -29,12 +29,14 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 	const [collapsedSections, setCollapsedSections] = useState<
 		Record<string, boolean>
 	>({
 		"Доп. списки": true,
 	});
 	const location = useLocation();
+	const isSidebarExpanded = isSidebarOpen || isSidebarHovered;
 	const navItems = useMemo(
 		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
 		[],
@@ -89,20 +91,22 @@ export const AppHeader = () => {
 	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
-			isSidebarOpen ? "280px" : "72px",
+			isSidebarExpanded ? "310px" : "72px",
 		);
 
 		return () => {
 			document.documentElement.style.removeProperty("--app-sidebar-width");
 		};
-	}, [isSidebarOpen]);
+	}, [isSidebarExpanded]);
 
 	return (
 		<header
 			className={[
 				styles.sidebar,
-				isSidebarOpen ? styles.sidebarOpened : styles.sidebarCollapsed,
+				isSidebarExpanded ? styles.sidebarOpened : styles.sidebarCollapsed,
 			].join(" ")}
+			onMouseEnter={() => setIsSidebarHovered(true)}
+			onMouseLeave={() => setIsSidebarHovered(false)}
 		>
 			<div className={styles.sidebarHeader}>
 				<div className={styles.sidebarTitle}>{APP_TITLE}</div>
@@ -110,7 +114,7 @@ export const AppHeader = () => {
 					type="button"
 					className={styles.menuButton}
 					aria-label={isSidebarOpen ? "Close navigation" : "Open navigation"}
-					aria-expanded={isSidebarOpen}
+					aria-expanded={isSidebarExpanded}
 					onClick={() => setIsSidebarOpen((prev) => !prev)}
 				>
 					<span />
@@ -143,7 +147,7 @@ export const AppHeader = () => {
 							{collapsedSections[group.title] ? "⌄" : "⌃"}
 						</span>
 					</button>
-						{(!isSidebarOpen || !collapsedSections[group.title]) &&
+						{(!isSidebarExpanded || !collapsedSections[group.title]) &&
 							group.items.map((item) => {
 								const isActive = activeTopKey === item.key;
 							const icon = getNavIcon(item);
@@ -178,7 +182,7 @@ export const AppHeader = () => {
 								);
 							}
 
-							const isOpened = isSidebarOpen && openedKey === item.key;
+							const isOpened = isSidebarExpanded && openedKey === item.key;
 
 							return (
 								<div key={item.key} className={styles.navItemWrapper}>
@@ -190,7 +194,7 @@ export const AppHeader = () => {
 									isOpened ? styles.navItemOpened : "",
 								].join(" ")}
 								onClick={() => {
-									if (!isSidebarOpen) {
+									if (!isSidebarExpanded) {
 										setIsSidebarOpen(true);
 										setOpenedKey(item.key);
 										return;
