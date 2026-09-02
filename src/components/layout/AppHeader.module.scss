@@ -11,7 +11,10 @@
     background: #0b0c0e;
     border-right: 1px solid #25282b;
     box-shadow: 20px 0 48px rgba(0, 0, 0, 0.2);
-    transition: width 0.24s cubic-bezier(0.2, 0.75, 0.25, 1);
+    will-change: width;
+    transition:
+        width 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sidebarOpened {
@@ -20,6 +23,10 @@
 
 .sidebarCollapsed {
     width: 72px;
+}
+
+.sidebarHoverExpanded {
+    box-shadow: 20px 0 48px rgba(0, 0, 0, 0.34);
 }
 
 .sidebarHeader {
@@ -42,6 +49,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.sidebarHoverExpanded .sidebarTitle,
+.sidebarHoverExpanded .navSectionButton,
+.sidebarHoverExpanded .navLabel,
+.sidebarHoverExpanded .chevron {
+    animation: sidebar-content-in 0.16s ease-out 0.1s both;
 }
 
 .menuButton {
@@ -79,11 +93,18 @@
     box-shadow: none;
 }
 
-.menuButton span {
-    width: 14px;
-    height: 2px;
-    border-radius: 999px;
-    background: var(--color-text);
+.pinIcon {
+    display: block;
+    width: 16px;
+    height: 16px;
+    color: #69d7f3;
+    fill: currentcolor;
+    transform: rotate(40deg);
+    transition: transform 0.2s ease;
+}
+
+.pinIconPinned {
+    transform: rotate(0deg);
 }
 
 .nav {
@@ -435,6 +456,18 @@
 .sidebarCollapsed .navItem,
 .sidebarCollapsed .navItemDisabled {
     width: 44px;
+}
+
+@keyframes sidebar-content-in {
+    from {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .sidebarCollapsed .navItem,

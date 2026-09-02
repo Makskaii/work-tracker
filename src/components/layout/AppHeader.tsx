@@ -37,6 +37,7 @@ export const AppHeader = () => {
 	});
 	const location = useLocation();
 	const isSidebarExpanded = isSidebarOpen || isSidebarHovered;
+	const isSidebarHoverExpanded = !isSidebarOpen && isSidebarHovered;
 	const navItems = useMemo(
 		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
 		[],
@@ -91,19 +92,20 @@ export const AppHeader = () => {
 	useEffect(() => {
 		document.documentElement.style.setProperty(
 			"--app-sidebar-width",
-			isSidebarExpanded ? "310px" : "72px",
+			isSidebarOpen ? "310px" : "72px",
 		);
 
 		return () => {
 			document.documentElement.style.removeProperty("--app-sidebar-width");
 		};
-	}, [isSidebarExpanded]);
+	}, [isSidebarOpen]);
 
 	return (
 		<header
 			className={[
 				styles.sidebar,
 				isSidebarExpanded ? styles.sidebarOpened : styles.sidebarCollapsed,
+				isSidebarHoverExpanded ? styles.sidebarHoverExpanded : "",
 			].join(" ")}
 			onMouseEnter={() => setIsSidebarHovered(true)}
 			onMouseLeave={() => setIsSidebarHovered(false)}
@@ -113,13 +115,29 @@ export const AppHeader = () => {
 				<button
 					type="button"
 					className={styles.menuButton}
-					aria-label={isSidebarOpen ? "Close navigation" : "Open navigation"}
+					aria-label={
+						isSidebarOpen
+							? "Открепить боковую панель"
+							: "Закрепить боковую панель"
+					}
 					aria-expanded={isSidebarExpanded}
+					aria-pressed={isSidebarOpen}
+					title={
+						isSidebarOpen
+							? "Открепить боковую панель"
+							: "Закрепить боковую панель"
+					}
 					onClick={() => setIsSidebarOpen((prev) => !prev)}
 				>
-					<span />
-					<span />
-					<span />
+					<svg
+						aria-hidden="true"
+						className={`${styles.pinIcon} ${
+							isSidebarOpen ? styles.pinIconPinned : ""
+						}`}
+						viewBox="0 0 24 24"
+					>
+						<path d="M16 9V4l1-1V2H7v1l1 1v5c0 .55-.45 1-1 1v1h5v9l1 1 1-1v-9h5v-1c-.55 0-1-.45-1-1Z" />
+					</svg>
 				</button>
 			</div>
 
