@@ -132,6 +132,7 @@
 
 .responsibleFilter {
 	position: relative;
+	z-index: 30;
 	width: 100%;
 }
 
@@ -175,7 +176,7 @@
 
 .responsibleFilterOptions {
 	position: absolute;
-	z-index: 20;
+	z-index: 31;
 	top: calc(100% + 6px);
 	right: 0;
 	left: 0;
@@ -185,7 +186,7 @@
 	padding: 6px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
-	background: #101315;
+	background: #15191b;
 	box-shadow: 0 16px 36px rgba(1, 8, 14, 0.34);
 
 	button {
