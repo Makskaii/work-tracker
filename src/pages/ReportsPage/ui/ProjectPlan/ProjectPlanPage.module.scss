@@ -38,6 +38,7 @@
 .heading p { margin: 5px 0 0; color: #90999d; font-size: 12px; }
 .summary { min-width: 148px; padding: 9px 13px; border: 1px solid #315341; border-radius: 8px; background: #101c18; color: #9fafaa; font-size: 10px; }
 .summary strong { display: block; margin-top: 3px; color: #77dd9a; font-size: 18px; }
+.summary small { display: block; margin-top: 2px; color: #779087; font-size: 9px; }
 
 .toolbar {
 	display: flex;
@@ -54,6 +55,7 @@
 .search { display: flex; align-items: center; gap: 8px; width: min(320px, 100%); padding: 0 10px; border: 1px solid #30363a; border-radius: 7px; background: #15191b; color: #849095; }
 .search input { width: 100%; height: 34px; border: 0; outline: 0; background: transparent; color: #edf1f2; font: inherit; font-size: 12px; }
 .search input::placeholder { color: #778186; }
+.teamFilters { display: flex; gap: 6px; }.teamFilters button { min-height: 34px; padding: 0 10px; border: 1px solid #30363a; border-radius: 7px; background: #15191b; color: #aab4b8; cursor: pointer; font: inherit; font-size: 11px; }.teamFilters button:hover, .teamFilters .activeTeamFilter { border-color: #53cde3; background: #13252a; color: #dff9ff; }
 .modeControls { display: flex; align-items: center; gap: 6px; margin-left: auto; color: #9ba4a8; font-size: 11px; }
 .modeControls > span, .modeControls button { padding: 7px 9px; }
 .modeControls button { color: #9ba4a8; }
@@ -61,8 +63,14 @@
 .modeControls i { display: inline-block; width: 14px; height: 5px; border-radius: 99px; }
 .planLegend { background: #68d5eb; }
 .factLegend { background: #5ac47e; }
+.freeLegend { border: 1px dashed #718087; background: transparent; }
+.todayLegend { width: 1px !important; height: 15px !important; border-radius: 0 !important; background: #58d3e9; }
+
+.projectStrip { display: flex; gap: 8px; padding: 10px 22px; border-bottom: 1px solid #272b2e; overflow-x: auto; background: #0f1213; scrollbar-width: thin; }.projectStrip button { position: relative; display: grid; flex: 0 0 218px; grid-template-columns: 8px minmax(0, 1fr); gap: 4px 7px; min-height: 88px; padding: 11px 12px; border: 1px solid #2d3437; border-radius: 8px; background: #141819; color: #dbe2e4; cursor: pointer; text-align: left; }.projectStrip button:hover, .projectStrip .selectedProjectCard { border-color: #58cfe6; background: #142429; }.projectStrip button > i { width: 7px; height: 7px; margin-top: 4px; border-radius: 50%; }.projectStrip button > strong, .projectStrip button > b, .projectStrip button > span, .projectStrip button > small { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.projectStrip button > strong { font-size: 11px; }.projectStrip button > b { color: #e7edef; font-size: 13px; }.projectStrip button > span, .projectStrip button > small { color: #8f9a9e; font-size: 9px; }.projectStrip button:first-child { flex-basis: 160px; grid-template-columns: minmax(0, 1fr) auto; align-content: center; }.projectStrip button:first-child > strong, .projectStrip button:first-child > span { grid-column: 1; }.projectStrip button:first-child > b { grid-column: 2; grid-row: 1 / 3; align-self: center; padding: 4px 6px; border-radius: 6px; background: #233238; color: #71d9ed; font-size: 10px; }
+.teamViewOptions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-height: 36px; padding: 0 22px; border-bottom: 1px solid #292d30; background: #111416; color: #8f9a9e; font-size: 10px; }.teamViewOptions label { display: inline-flex; align-items: center; gap: 7px; margin-right: auto; color: #b6c0c4; cursor: pointer; }.teamViewOptions input { width: 14px; height: 14px; accent-color: #58cfe6; }.teamViewOptions > span { display: inline-flex; align-items: center; gap: 6px; }.teamViewOptions i { display: inline-block; width: 16px; height: 7px; border-radius: 4px; }
 
 .planTable { display: grid; grid-template-columns: 290px minmax(860px, 1fr); min-width: 1150px; }
+.teamTable { display: grid; grid-template-columns: 420px minmax(860px, 1fr); min-width: 1280px; }.teamColumnHeader { height: 56px; box-sizing: border-box; padding: 21px 22px; border-bottom: 1px solid #292d30; background: #111416; color: #dfe5e7; font-size: 12px; font-weight: 700; }.teamColumnHeader span { margin-left: 8px; color: #75cfe2; font-size: 10px; font-weight: 500; }.teamRoleGroup { display: contents; }.teamSectionHeader { grid-column: 1 / -1; min-height: 34px; padding: 0 22px; border-bottom: 1px solid #292d30; background: #171b1d; color: #aebbc0; font-size: 11px; font-weight: 800; line-height: 34px; letter-spacing: .06em; text-transform: uppercase; }.teamSectionHeader b { display: inline-flex; align-items: center; justify-content: center; min-width: 19px; height: 19px; margin-left: 8px; border-radius: 6px; background: #293136; color: #dce6e8; font-size: 10px; line-height: 1; }.teamRow { display: contents; }.teamInfo, .teamTrack { box-sizing: border-box; border-bottom: 1px solid #24282b; }.teamInfo { display: flex; align-items: flex-start; gap: 11px; padding: 13px 16px 13px 22px; background: #101315; }.teamAvatar { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #1b2925; color: #9ee8c0; object-fit: cover; font-size: 11px; font-weight: 800; }.teamInfo div { min-width: 0; flex: 1; }.teamInfo strong, .teamInfo span:not(.teamAvatar), .teamInfo small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.teamInfo strong { color: #e7edef; font-size: 13px; }.teamInfo span:not(.teamAvatar) { margin-top: 3px; color: #9ba8ac; font-size: 11px; }.teamInfo small { margin-top: 6px; color: #6ebbcf; font-size: 10px; }.loadBadge { flex: 0 0 auto; min-width: 38px; padding: 6px 7px; border-radius: 7px; font-size: 10px; text-align: center; }.loadLow { background: #11271d; color: #72da96; }.loadMedium { background: #292515; color: #e4c253; }.loadHigh { background: #2b171b; color: #ed7385; }.teamTrack { position: relative; overflow: hidden; border-left: 1px solid #24282b; background: #0e1112; }.teamAssignment { position: absolute; right: 0; left: 0; height: 32px; }.teamAssignment .planBar { top: 0; height: 18px; padding-top: 2px; padding-bottom: 2px; line-height: 14px; }.teamAssignment .factBar { top: 21px; height: 10px; padding: 0 7px; line-height: 10px; }.freeRange { position: absolute; z-index: 1; display: block; box-sizing: border-box; height: 22px; overflow: hidden; border: 1px dashed #627076; border-radius: 6px; color: #78d49a; font-size: 9px; font-weight: 700; line-height: 20px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .projectColumnHeader, .timelineHeader { height: 56px; box-sizing: border-box; border-bottom: 1px solid #292d30; background: #111416; }
 .projectColumnHeader { padding: 22px; color: #dfe5e7; font-size: 12px; font-weight: 700; }
 .timelineHeader { position: relative; overflow: hidden; border-left: 1px solid #292d30; }
@@ -72,6 +80,7 @@
 .weeks span { bottom: 8px; color: #8a9498; font-size: 10px; }
 
 .projectRow { display: contents; }
+.sectionHeader { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 22px; border-bottom: 1px solid #292d30; background: #171b1d; color: #aebbc0; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }.sectionHeader b { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; border-radius: 7px; background: #293136; color: #e0eaed; font-size: 10px; letter-spacing: 0; }
 .projectInfo, .track { min-height: 76px; box-sizing: border-box; border-bottom: 1px solid #24282b; }
 .projectInfo { display: flex; align-items: center; gap: 10px; padding: 12px 18px 12px 22px; background: #101315; }
 .projectInfo > i { width: 4px; align-self: stretch; border-radius: 5px; }
@@ -80,6 +89,7 @@
 .projectInfo strong { color: #e7edef; font-size: 12px; }
 .projectInfo span { margin-top: 3px; color: #a4afb3; font-size: 11px; }
 .projectInfo small { margin-top: 4px; color: #718087; font-size: 10px; }
+.statusBadge { flex: 0 0 auto; margin-left: auto; padding: 7px 9px; border-radius: 7px; font-size: 10px; line-height: 1; white-space: nowrap; }.factNow { background: #11291f; color: #67dc9b; }.planNow { background: #10242b; color: #6bd9ee; }.planned { background: #252216; color: #e3bb54; }
 .track { position: relative; overflow: hidden; border-left: 1px solid #24282b; background: #0e1112; }
 .weekLine, .todayLine { position: absolute; top: 0; bottom: 0; z-index: 0; }
 .weekLine { width: 1px; background: #1e2426; }
@@ -96,4 +106,5 @@
 	.summary { grid-column: 2; grid-row: 2; }
 	.toolbar { flex-wrap: wrap; }
 	.modeControls { margin-left: 0; }
+	.teamFilters { order: 3; width: 100%; overflow-x: auto; padding-bottom: 2px; }
 }

@@ -1,12 +1,12 @@
 import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
-import { DEPARTMENT_IDS } from "@/shared/constants/const";
 import type { TaskProps, User } from "@/shared/types/types";
 import { toNumber } from "../model/profitabilityUtils";
+import { getProjectTeamRole, type ProjectTeamRole } from "../model/projectTeam";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "./DealProjectTeamCostTable.module.scss";
 
-type TeamRole = "pm" | "analytics" | "development" | "qa" | "unknown";
+type TeamRole = ProjectTeamRole;
 
 type TeamMember = {
 	userId: string;
@@ -48,51 +48,7 @@ const formatMoney = (value: number) =>
 		maximumFractionDigits: 0,
 	}).format(value);
 
-const getUserRole = (user?: User): TeamRole => {
-	const position = String(user?.position ?? "").toLowerCase();
-	const title = String(user?.title ?? "").toLowerCase();
-	const searchable = `${position} ${title}`;
-
-	if (
-		searchable.includes("pm") ||
-		searchable.includes("project manager") ||
-		searchable.includes("руководитель") ||
-		searchable.includes("владелец проекта")
-	) {
-		return "pm";
-	}
-
-	if (
-		user?.department === DEPARTMENT_IDS.ANALYTICS ||
-		searchable.includes("analyst") ||
-		searchable.includes("ba") ||
-		searchable.includes("аналит")
-	) {
-		return "analytics";
-	}
-
-	if (
-		searchable.includes("qa") ||
-		searchable.includes("test") ||
-		searchable.includes("tester") ||
-		searchable.includes("тест")
-	) {
-		return "qa";
-	}
-
-	if (
-		user?.department === DEPARTMENT_IDS.DEV ||
-		searchable.includes("backend") ||
-		searchable.includes("frontend") ||
-		searchable.includes("developer") ||
-		searchable.includes("dev") ||
-		searchable.includes("разработ")
-	) {
-		return "development";
-	}
-
-	return "unknown";
-};
+const getUserRole = getProjectTeamRole;
 
 const getReportTaskId = (report: ReportProps) =>
 	String(report[ReportCodes.parentId] ?? report[ReportCodes.taskId] ?? "").trim();
