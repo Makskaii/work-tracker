@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	FaChevronDown,
 	FaChevronRight,
@@ -8,31 +8,11 @@ import {
 	FaSlidersH,
 } from "react-icons/fa";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
+import { fetchReportProjects } from "@/pages/ReportsPage/ui/SalesPage/model/projectReports.api";
 import { ClientHoursPackageModal, type HoursPackageModalMode } from "./ClientHoursPackageModal";
-import type { ClientPackage, PackagePurchase, PackageState } from "./clientHoursPackages.types";
+import { createSupportHoursPackage, deleteSupportHoursPackage, fetchSupportHoursPackages, updateSupportHoursPackage } from "./clientHoursPackages.api";
+import type { ClientPackage, PackagePurchase, PackageState, SupportProjectOption } from "./clientHoursPackages.types";
 import styles from "./ClientHoursPackagesPage.module.scss";
-
-const CLIENT_PACKAGES: ClientPackage[] = [
-	{ id: 1, client: "Б24 | Аэросистемы", lastCharge: "29.08", remainingHours: -1.5, state: "overdue", status: "Перерасход", statusHint: "Работы сверх пакета", progress: 100 },
-	{ id: 2, client: "Б24 | Скиф", lastCharge: "17.08", remainingHours: 0, state: "empty", status: "Часы закончились", statusHint: "Нужна покупка", progress: 100 },
-	{
-		id: 3,
-		client: "Б24 | Вентаж",
-		lastCharge: "31.08",
-		remainingHours: 3.5,
-		state: "ending",
-		status: "Заканчиваются",
-		statusHint: "≈ 6 дней",
-		progress: 82,
-		purchases: [
-			{ id: 1, date: "2026-08-20", hours: 30, remaining: 3.5, state: "Активный" },
-			{ id: 2, date: "2026-03-12", hours: 20, remaining: 0, state: "Закончился 02.06" },
-		],
-	},
-	{ id: 4, client: "Б24 | Мастер сервис", lastCharge: "сегодня", remainingHours: 11.5, state: "active", status: "Активный пакет", statusHint: "≈ до декабря", progress: 73 },
-	{ id: 5, client: "Б24 | ИП Балуев", lastCharge: "28.08", remainingHours: 13.5, state: "active", status: "Активный пакет", statusHint: "≈ до января", progress: 39 },
-	{ id: 6, client: "Б24 | РК 1с (крепежники)", lastCharge: "27.08", remainingHours: 33, state: "active", status: "Активный пакет", statusHint: "≈ до февраля", progress: 21 },
-];
 
 const formatHours = (value: number) =>
 	`${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(value)} ч`;
@@ -44,24 +24,34 @@ const STATE_LABELS: Record<PackageState, string> = {
 	overdue: "Перерасход",
 };
 
-const getPackageState = (remainingHours: number): Omit<ClientPackage, "id" | "client" | "lastCharge" | "remainingHours" | "purchases"> => {
-	if (remainingHours < 0) return { progress: 100, state: "overdue", status: "Перерасход", statusHint: "Работы сверх пакета" };
-	if (remainingHours === 0) return { progress: 100, state: "empty", status: "Часы закончились", statusHint: "Нужна покупка" };
-	if (remainingHours <= 5) return { progress: 82, state: "ending", status: "Заканчиваются", statusHint: "≈ 6 дней" };
-
-	return { progress: Math.max(18, Math.min(74, Math.round(200 / remainingHours))), state: "active", status: "Активный пакет", statusHint: "≈ до следующего этапа" };
-};
-
 const formatPackageDate = (value: string) => new Intl.DateTimeFormat("ru-RU").format(new Date(`${value}T00:00:00`));
 
 export const ClientHoursPackagesPage = () => {
-	const [packages, setPackages] = useState(CLIENT_PACKAGES);
+	const [packages, setPackages] = useState<ClientPackage[]>([]);
+	const [projects, setProjects] = useState<SupportProjectOption[]>([]);
 	const [query, setQuery] = useState("");
 	const [stateFilter, setStateFilter] = useState<PackageState | "all">("all");
 	const [expandedClientId, setExpandedClientId] = useState<number | null>(3);
 	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(null);
 	const [modalClientId, setModalClientId] = useState<number | null>(null);
 	const [editingPurchase, setEditingPurchase] = useState<PackagePurchase | null>(null);
+
+	const loadPackages = useCallback(async (signal?: AbortSignal) => {
+		const [nextPackages, reportProjects] = await Promise.all([
+			fetchSupportHoursPackages(signal),
+			fetchReportProjects(signal),
+		]);
+		setPackages(nextPackages);
+		setProjects(reportProjects.filter((project) => project.projectType === "support").map((project) => ({ id: project.id, title: project.clientCompany ? `${project.clientCompany} | ${project.title}` : project.title })));
+	}, []);
+
+	useEffect(() => {
+		const controller = new AbortController();
+		loadPackages(controller.signal).catch(() => {
+			if (!controller.signal.aborted) notify({ message: "Не удалось загрузить пакеты часов", type: "error" });
+		});
+		return () => controller.abort();
+	}, [loadPackages]);
 
 	const visiblePackages = useMemo(() => {
 		const normalizedQuery = query.trim().toLocaleLowerCase("ru");
@@ -89,27 +79,29 @@ export const ClientHoursPackagesPage = () => {
 		setEditingPurchase(purchase);
 	};
 
-	const savePurchase = ({ clientId, date, hours }: { clientId: number; date: string; hours: number }) => {
-		setPackages((current) => current.map((client) => {
-			if (client.id !== clientId) return client;
+	const savePurchase = async ({ projectId, date, hours, amount, comment }: { projectId: number; date: string; hours: number; amount?: number; comment?: string }) => {
+		try {
+			if (modalMode === "edit" && editingPurchase) await updateSupportHoursPackage(editingPurchase.id, { purchasedHours: hours, purchaseDate: date, amount, comment });
+			else await createSupportHoursPackage({ projectId, purchasedHours: hours, purchaseDate: date, amount, comment });
+			await loadPackages();
+			setExpandedClientId(projectId);
+			notify({ message: modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена", type: "success" });
+			closeModal();
+		} catch {
+			notify({ message: "Не удалось сохранить пакет", type: "error" });
+		}
+	};
 
-			const previousHours = modalMode === "edit" ? editingPurchase?.hours ?? 0 : 0;
-			const nextRemainingHours = client.remainingHours + hours - previousHours;
-			const nextPurchase: PackagePurchase = modalMode === "edit" && editingPurchase
-				? { ...editingPurchase, date, hours, remaining: nextRemainingHours, state: "Активный" }
-				: { id: Date.now(), date, hours, remaining: nextRemainingHours, state: "Активный" };
-			const purchases = modalMode === "edit" && editingPurchase
-				? (client.purchases ?? []).map((purchase) => purchase.id === editingPurchase.id ? nextPurchase : purchase)
-				: [nextPurchase, ...(client.purchases ?? [])];
-
-			return { ...client, ...getPackageState(nextRemainingHours), lastCharge: "сегодня", purchases, remainingHours: nextRemainingHours };
-		}));
-		setExpandedClientId(clientId);
-		notify({
-			message: modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена",
-			type: "success",
-		});
-		closeModal();
+	const deletePurchase = async () => {
+		if (!editingPurchase) return;
+		try {
+			await deleteSupportHoursPackage(editingPurchase.id);
+			await loadPackages();
+			notify({ message: "Пакет удалён", type: "success" });
+			closeModal();
+		} catch {
+			notify({ message: "Не удалось удалить пакет", type: "error" });
+		}
 	};
 
 	return (
@@ -117,7 +109,7 @@ export const ClientHoursPackagesPage = () => {
 			<header className={styles.header}>
 				<div>
 					<span className={styles.eyebrow}>Техподдержка</span>
-					<h1>Пакеты часов клиентов</h1>
+					<h1>Отчёт по техподдержке</h1>
 					<p>Покупки, списания и остатки по всем проектам в одном месте</p>
 				</div>
 				<button className={styles.addHoursButton} type="button" onClick={() => openModal("purchase", null)}>
@@ -181,7 +173,7 @@ export const ClientHoursPackagesPage = () => {
 				})}
 			</div>
 			<footer className={styles.footer}><span>Показано {visiblePackages.length} клиентов</span><strong>{formatHours(availableHours)} доступно</strong></footer>
-			<ClientHoursPackageModal clients={packages} clientId={modalClientId} isOpen={modalMode !== null} mode={modalMode ?? "purchase"} onClose={closeModal} onSubmit={savePurchase} purchase={editingPurchase} />
+			<ClientHoursPackageModal projects={projects} projectId={modalClientId} isOpen={modalMode !== null} mode={modalMode ?? "purchase"} onClose={closeModal} onDelete={deletePurchase} onSubmit={savePurchase} purchase={editingPurchase} />
 		</section>
 	);
 };
