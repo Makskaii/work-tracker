@@ -8,6 +8,18 @@ export type PackagePurchase = {
 	state: string;
 	amount: number | null;
 	comment: string | null;
+	consumptions: PackageConsumption[];
+};
+
+export type PackageConsumption = {
+	id: number;
+	hours: number;
+	report: {
+		bitrixReportId: string;
+		reportDate: string;
+		reportTitle: string | null;
+		reportDescription: string | null;
+	};
 };
 
 export type ClientPackage = {
