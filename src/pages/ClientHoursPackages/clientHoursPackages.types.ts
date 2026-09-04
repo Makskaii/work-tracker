@@ -6,6 +6,20 @@ export type PackagePurchase = {
 	hours: number;
 	remaining: number;
 	state: string;
+	amount: number | null;
+	comment: string | null;
+	consumptions: PackageConsumption[];
+};
+
+export type PackageConsumption = {
+	id: number;
+	hours: number;
+	report: {
+		bitrixReportId: string;
+		reportDate: string;
+		reportTitle: string | null;
+		reportDescription: string | null;
+	};
 };
 
 export type ClientPackage = {
@@ -17,5 +31,10 @@ export type ClientPackage = {
 	status: string;
 	statusHint: string;
 	progress: number;
-	purchases?: PackagePurchase[];
+	purchases: PackagePurchase[];
+};
+
+export type SupportProjectOption = {
+	id: number;
+	title: string;
 };
