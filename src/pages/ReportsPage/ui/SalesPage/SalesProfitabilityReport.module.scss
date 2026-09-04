@@ -132,6 +132,7 @@
 
 .responsibleFilter {
 	position: relative;
+	z-index: 30;
 	width: 100%;
 }
 
@@ -175,7 +176,7 @@
 
 .responsibleFilterOptions {
 	position: absolute;
-	z-index: 20;
+	z-index: 31;
 	top: calc(100% + 6px);
 	right: 0;
 	left: 0;
@@ -185,7 +186,7 @@
 	padding: 6px;
 	border: 1px solid var(--color-border);
 	border-radius: 12px;
-	background: #101315;
+	background: #15191b;
 	box-shadow: 0 16px 36px rgba(1, 8, 14, 0.34);
 
 	button {
@@ -241,6 +242,97 @@
 	flex-direction: column;
 	gap: 8px;
 	min-width: 0;
+}
+
+.projectsPlanSection {
+	display: grid;
+	gap: 8px;
+	padding: 4px 2px 8px;
+}
+
+.projectsPlanSectionTitle {
+	padding-left: 10px;
+	color: #7f8a8f;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.projectsPlanButton {
+	display: grid;
+	grid-template-columns: 36px minmax(0, 1fr) auto 16px;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px;
+	border: 1px solid #3e9db1;
+	border-radius: 12px;
+	background: #11191b;
+	color: var(--color-text);
+	cursor: pointer;
+	text-align: left;
+}
+
+.projectsPlanButton:hover {
+	border-color: #69d7f3;
+	background: #142125;
+}
+
+.projectsPlanIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border: 1px solid #367a8a;
+	border-radius: 9px;
+	background: #13252a;
+	color: #69d7f3;
+	font-size: 15px;
+}
+
+.projectsPlanCopy {
+	min-width: 0;
+
+	strong,
+	span {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	strong {
+		color: #edf1f2;
+		font-size: 13px;
+		font-weight: 800;
+	}
+
+	span {
+		margin-top: 3px;
+		color: #8f999d;
+		font-size: 10px;
+		font-weight: 600;
+	}
+}
+
+.projectsPlanCount {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 24px;
+	height: 24px;
+	border-radius: 8px;
+	background: #252b2e;
+	color: #8de0ef;
+	font-size: 11px;
+}
+
+.projectsPlanMore {
+	justify-self: end;
+	color: #9aa3a7;
+	font-size: 12px;
 }
 
 .projectSearchInput {
@@ -1639,6 +1731,11 @@
 	cursor: pointer;
 	appearance: none;
 	overflow: visible;
+}
+
+.ganttGroupSummaryEvent {
+	cursor: default;
+	filter: saturate(0.8);
 }
 
 .ganttCustomEventSegmentShell:hover {
@@ -3642,7 +3739,7 @@
 	flex-direction: column;
 	box-sizing: border-box;
 	padding: 8px 10px 8px 12px;
-	background: #121517;
+	background: #1a1f21;
 
 	.ganttCustomEventHeader {
 		grid-template-columns: auto minmax(0, 1fr) max-content max-content;
@@ -3761,6 +3858,7 @@
 
 .ganttRowInfo .ganttGroupType {
 	display: block;
+	margin-left: 24px;
 	margin-bottom: 2px;
 	color: #778087;
 	font-size: 9px;
@@ -5358,6 +5456,10 @@ input[type="date"].dealSummaryDateInput {
 	left: 0;
 	z-index: 6;
 	background: #111315;
+}
+
+.ganttRowInfo.ganttParentRowInfo {
+	background: linear-gradient(90deg, #1b2022 0%, #151a1c 35%, #111315 50%, #111315 100%);
 }
 
 .ganttRowInfo.ganttRowInfoWithOpenMenu {

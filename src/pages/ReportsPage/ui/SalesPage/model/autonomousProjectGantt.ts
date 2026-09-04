@@ -24,8 +24,79 @@ export type AutonomousGanttEventRow = {
 	factEnd: Date | null;
 	factStart: Date | null;
 	isDependencyDuration: boolean;
+	isCollapsedGroupSummary?: boolean;
 	planEnd: Date | null;
 	planStart: Date | null;
+};
+
+const getEarliestDate = (dates: Array<Date | null>) => {
+	const availableDates = dates.filter((date): date is Date => Boolean(date));
+
+	return availableDates.length
+		? new Date(Math.min(...availableDates.map((date) => date.getTime())))
+		: null;
+};
+
+const getLatestDate = (dates: Array<Date | null>) => {
+	const availableDates = dates.filter((date): date is Date => Boolean(date));
+
+	return availableDates.length
+		? new Date(Math.max(...availableDates.map((date) => date.getTime())))
+		: null;
+};
+
+const getCollapsedGroupSummaryRow = (
+	groupRow: AutonomousGanttStageRow,
+	childRows: AutonomousGanttStageRow[],
+): AutonomousGanttStageRow => {
+	const childEvents = childRows.flatMap((row) => row.events);
+	const sourceEvent = childEvents[0];
+
+	if (!sourceEvent) {
+		return groupRow;
+	}
+
+	const planStart = getEarliestDate(
+		childEvents.flatMap((event) => [event.planStart, event.displayDate]),
+	);
+	const planEnd = getLatestDate(
+		childEvents.flatMap((event) => [event.planEnd, event.displayDate]),
+	);
+	const factStart = getEarliestDate(
+		childEvents.map((event) => event.factStart),
+	);
+	const factEnd = getLatestDate(childEvents.map((event) => event.factEnd));
+	const displayStart = planStart ?? factStart;
+	const displayEnd = planEnd ?? factEnd ?? displayStart;
+
+	if (!displayStart || !displayEnd) {
+		return groupRow;
+	}
+
+	return {
+		...groupRow,
+		events: [
+			{
+				...sourceEvent,
+				displayDate: displayStart,
+				displayEnd,
+				displayStart,
+				event: {
+					...sourceEvent.event,
+					id: -groupRow.stage.id,
+					stageId: groupRow.stage.id,
+					title: `${groupRow.stage.title}: сводный период`,
+					eventKind: "duration",
+				},
+				factEnd,
+				factStart,
+				isCollapsedGroupSummary: true,
+				isDependencyDuration: false,
+				planEnd: planEnd ?? planStart,
+				planStart,
+			},
+		],
+	};
 };
 
 export type AutonomousGanttStageRow = {
@@ -65,14 +136,18 @@ export const getVisibleAutonomousGanttRows = (
 		}
 
 		if (stage.isGroup) {
-			appendRow(row);
+			const childRows = rows.filter(
+				(childRow) => childRow.stage.parentStageId === stage.id,
+			);
 
 			if (expandedGroupIds.has(stage.id)) {
-				for (const childRow of rows) {
-					if (childRow.stage.parentStageId === stage.id) {
-						appendRow(childRow);
-					}
+				appendRow(row);
+
+				for (const childRow of childRows) {
+					appendRow(childRow);
 				}
+			} else {
+				appendRow(getCollapsedGroupSummaryRow(row, childRows));
 			}
 
 			continue;

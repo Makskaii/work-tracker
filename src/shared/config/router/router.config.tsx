@@ -13,12 +13,14 @@ import {
 import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage";
 import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
 import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
+import { ClientHoursPackagesPage } from "@/pages/ClientHoursPackages/ClientHoursPackagesPage";
 import { MigratePage } from "@/pages/MigratePage";
 import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
 import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
 import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage";
 import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
 import { SalesProfitabilityPage } from "@/pages/ReportsPage/ui/SalesPage/SalesProfitabilityPage";
+import { ProjectPlanPage } from "@/pages/ReportsPage/ui/ProjectPlan/ProjectPlanPage";
 import { PieceStatsEmployeeHrs } from "@/pages/ReportsPage/ui/UserReports/EmployeePieceStatsHrs";
 import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
 import { WorkLoad } from "@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad";
@@ -106,6 +108,10 @@ export const router = createBrowserRouter(
 							),
 						},
 						{
+							path: "projects-plan",
+							element: <ProjectPlanPage />,
+						},
+						{
 							path: "clients",
 							element: (
 								<Suspense fallback={<Spinner />}>
@@ -154,6 +160,10 @@ export const router = createBrowserRouter(
 							<ClientForm />
 						</Suspense>
 					),
+				},
+				{
+					path: "/client-hours-packages",
+					element: <ClientHoursPackagesPage />,
 				},
 				{
 					path: "/employee/:id/stats",
