@@ -316,7 +316,7 @@ export const SalesPage = () => {
 							title: `${user.NAME} ${user.LAST_NAME}`,
 							position: user.WORK_POSITION,
 							photo: user.PERSONAL_PHOTO,
-							department: user.UF_DEPARTMENT[0],
+							department: Number(user.UF_DEPARTMENT?.[0] ?? 0),
 						}))
 						.toSorted((a, b) => a.department - b.department),
 				);
