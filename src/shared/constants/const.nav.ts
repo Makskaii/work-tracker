@@ -98,7 +98,7 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 			},
 			{
 				key: "client-hours-packages",
-				label: "Отчёты по техподдержке",
+				label: "Отчёт по техподдержке",
 				to: "/client-hours-packages",
 				type: "link",
 				icon: "ч",

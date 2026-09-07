@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import {
 	ClientHoursPackageModal,
@@ -22,13 +21,40 @@ import type {
 import { SupportProjectDetails } from "./SupportProjectDetails";
 import { SupportProjectsSidebar } from "./SupportProjectsSidebar";
 
+const selectedProjectStorageKey = "support-hours:selected-project-id";
+const selectedProjectHistoryStateKey = "support-hours:selected-project-id";
+let rememberedProjectId: number | null = null;
+
+const getProjectId = (value: unknown) => {
+	const projectId = Number(value);
+	return Number.isSafeInteger(projectId) && projectId > 0 ? projectId : null;
+};
+
+const getStoredProjectId = () => {
+	const historyProjectId = getProjectId(
+		(window.history.state as Record<string, unknown> | null)?.[
+			selectedProjectHistoryStateKey
+		],
+	);
+	if (historyProjectId != null) return historyProjectId;
+	if (rememberedProjectId != null) return rememberedProjectId;
+	const value = window.sessionStorage.getItem(selectedProjectStorageKey);
+	return getProjectId(value);
+};
+
 export const ClientHoursPackagesPage = () => {
 	const [packages, setPackages] = useState<ClientPackage[]>([]);
 	const [projects, setProjects] = useState<SupportProjectOption[]>([]);
 	const [projectQuery, setProjectQuery] = useState("");
 	const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+		getStoredProjectId,
+	);
+	const [selectedPurchaseId, setSelectedPurchaseId] = useState<number | null>(
 		null,
 	);
+	const selectedProjectIdRef = useRef<number | null>(selectedProjectId);
+	const loadRequestIdRef = useRef(0);
+	const hasInitializedProjectRef = useRef(false);
 	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(
 		null,
 	);
@@ -37,12 +63,18 @@ export const ClientHoursPackagesPage = () => {
 		useState<PackagePurchase | null>(null);
 
 	const loadData = useCallback(async (signal?: AbortSignal) => {
+		const requestId = ++loadRequestIdRef.current;
 		const [nextPackages, supportProjects] = await Promise.all([
 			fetchSupportHoursPackages(signal),
 			fetchSupportProjects(signal),
 		]);
+		if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
 		setPackages(nextPackages);
 		setProjects(supportProjects);
+	}, []);
+	const reloadPackages = useCallback(async () => {
+		const nextPackages = await fetchSupportHoursPackages();
+		setPackages(nextPackages);
 	}, []);
 
 	useEffect(() => {
@@ -61,18 +93,60 @@ export const ClientHoursPackagesPage = () => {
 	}, [loadData]);
 
 	useEffect(() => {
+		if (selectedProjectId == null) return;
+		window.sessionStorage.setItem(
+			selectedProjectStorageKey,
+			String(selectedProjectId),
+		);
+	}, [selectedProjectId]);
+
+	useEffect(() => {
+		if (!projects.length) return;
+		if (hasInitializedProjectRef.current) return;
+		hasInitializedProjectRef.current = true;
 		setSelectedProjectId((currentProjectId) => {
+			const initialProjectId = selectedProjectIdRef.current ?? currentProjectId;
 			if (
-				currentProjectId &&
-				projects.some((project) => project.id === currentProjectId)
-			)
-				return currentProjectId;
-			return projects[0]?.id ?? null;
+				initialProjectId != null &&
+				projects.some((project) => project.id === initialProjectId)
+			) {
+				selectedProjectIdRef.current = initialProjectId;
+				return initialProjectId;
+			}
+			const firstProjectId = projects[0]?.id ?? null;
+			selectedProjectIdRef.current = firstProjectId;
+			return firstProjectId;
 		});
 	}, [projects]);
 
+	const rememberProject = (projectId: number, resetPurchase = true) => {
+		rememberedProjectId = projectId;
+		selectedProjectIdRef.current = projectId;
+		window.sessionStorage.setItem(selectedProjectStorageKey, String(projectId));
+		const currentHistoryState = window.history.state;
+		window.history.replaceState(
+			{
+				...(currentHistoryState && typeof currentHistoryState === "object"
+					? currentHistoryState
+					: {}),
+				[selectedProjectHistoryStateKey]: projectId,
+			},
+			"",
+		);
+		setSelectedProjectId(projectId);
+		if (resetPurchase) setSelectedPurchaseId(null);
+	};
+
+	const selectPurchase = (projectId: number, purchaseId: number | null) => {
+		rememberProject(projectId, false);
+		setSelectedPurchaseId(purchaseId);
+	};
+
 	const selectedProject = useMemo(
-		() => projects.find((project) => project.id === selectedProjectId) ?? null,
+		() => {
+			const projectId = selectedProjectId ?? selectedProjectIdRef.current;
+			return projects.find((project) => project.id === projectId) ?? null;
+		},
 		[projects, selectedProjectId],
 	);
 	const selectedProjectPackages = useMemo(
@@ -100,33 +174,31 @@ export const ClientHoursPackagesPage = () => {
 		projectId,
 		date,
 		hours,
-		amount,
 		comment,
 	}: {
 		projectId: number;
 		date: string;
 		hours: number;
-		amount?: number;
 		comment?: string;
 	}) => {
+		const selectedId = Number(projectId);
+		rememberProject(selectedId, false);
 		try {
 			if (modalMode === "edit" && editingPurchase)
 				await updateSupportHoursPackage(editingPurchase.id, {
 					purchasedHours: hours,
 					purchaseDate: date,
-					amount,
 					comment,
 				});
 			else
 				await createSupportHoursPackage({
-					projectId,
+					projectId: selectedId,
 					purchasedHours: hours,
 					purchaseDate: date,
-					amount,
 					comment,
 				});
-			await loadData();
-			setSelectedProjectId(projectId);
+			await reloadPackages();
+			rememberProject(selectedId, false);
 			notify({
 				message:
 					modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена",
@@ -140,9 +212,13 @@ export const ClientHoursPackagesPage = () => {
 
 	const deletePurchase = async () => {
 		if (!editingPurchase) return;
+		const selectedId = modalProjectId == null ? null : Number(modalProjectId);
+		if (selectedId != null) rememberProject(selectedId, false);
 		try {
 			await deleteSupportHoursPackage(editingPurchase.id);
-			await loadData();
+			await reloadPackages();
+			if (selectedId != null) rememberProject(selectedId, false);
+			if (editingPurchase?.id === selectedPurchaseId) setSelectedPurchaseId(null);
 			notify({ message: "Пакет удалён", type: "success" });
 			closeModal();
 		} catch {
@@ -152,32 +228,20 @@ export const ClientHoursPackagesPage = () => {
 
 	return (
 		<section className={styles.page}>
-			<header className={styles.pageHeader}>
-				<div>
-					<span className={styles.eyebrow}>Техподдержка</span>
-					<h1>Отчёт по техподдержке</h1>
-					<p>Пакеты часов, списания и история отчётов по проектам</p>
-				</div>
-				<button
-					className={styles.addPackageButton}
-					type="button"
-					onClick={() => openModal("purchase", selectedProjectId)}
-				>
-					<FaPlus aria-hidden="true" /> Добавить покупку часов
-				</button>
-			</header>
 			<div className={styles.workspace}>
 				<SupportProjectsSidebar
 					packages={packages}
 					projects={projects}
 					query={projectQuery}
 					selectedProjectId={selectedProjectId}
+					selectedPurchaseId={selectedPurchaseId}
 					onQueryChange={setProjectQuery}
-					onSelect={setSelectedProjectId}
+					onSelectPurchase={selectPurchase}
 				/>
 				<SupportProjectDetails
 					project={selectedProject}
 					projectPackages={selectedProjectPackages}
+					selectedPurchaseId={selectedPurchaseId}
 					onAddPackage={() => openModal("new-package", selectedProjectId)}
 					onEditPackage={(purchase) =>
 						openModal("edit", selectedProjectId, purchase)
