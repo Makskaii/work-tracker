@@ -16,6 +16,11 @@ type ApiConsumption = {
 		taskTitle: string | null;
 		bitrixResponsibleId: string | null;
 		responsibleName: string | null;
+		bitrixCompanyId: string | null;
+		companyName: string | null;
+		projectTitle: string | null;
+		bitrixActivityId: string | null;
+		activityTitle: string | null;
 		reportDate: string;
 		reportTitle: string | null;
 		reportDescription: string | null;

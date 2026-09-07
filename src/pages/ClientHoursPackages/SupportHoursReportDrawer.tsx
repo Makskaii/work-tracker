@@ -1,4 +1,4 @@
-import { FaExternalLinkAlt, FaFileAlt } from "react-icons/fa";
+import { FaExternalLinkAlt } from "react-icons/fa";
 import Modal from "@/components/modal/Modal";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
@@ -41,7 +41,6 @@ export const SupportHoursReportDrawer = ({
 						<p>{formatDate(report.date)}</p>
 					</header>
 					<div className={styles.reportDrawerHours}>
-						<FaFileAlt aria-hidden="true" />
 						<div>
 							<span>Списано</span>
 							<strong>{formatHours(report.hours)}</strong>
@@ -50,6 +49,9 @@ export const SupportHoursReportDrawer = ({
 					<dl className={styles.reportDrawerFacts}>
 						<div><dt>Задача</dt><dd>{report.taskTitle || (report.taskId ? `Задача #${report.taskId}` : "Не указана")}</dd></div>
 						<div><dt>Ответственный</dt><dd>{report.responsibleName || "Не указан"}</dd></div>
+						<div><dt>Компания</dt><dd>{report.companyName || "Не указана"}</dd></div>
+						<div><dt>Проект</dt><dd>{report.projectTitle || "Не указан"}</dd></div>
+						<div><dt>Активность</dt><dd>{report.activityTitle || "Не указана"}</dd></div>
 						<div><dt>Дата отчёта</dt><dd>{formatDate(report.date)}</dd></div>
 					</dl>
 					<section className={styles.reportDrawerSection}>

@@ -20,6 +20,9 @@ export type SupportHoursReportItem = {
 	taskId: string | null;
 	taskTitle: string | null;
 	responsibleName: string | null;
+	companyName: string | null;
+	projectTitle: string | null;
+	activityTitle: string | null;
 	date: string;
 	hours: number;
 	title: string | null;
@@ -53,6 +56,9 @@ const collectReports = (purchases: PackagePurchase[]) => {
 				taskId: consumption.report.bitrixTaskId,
 				taskTitle: consumption.report.taskTitle,
 				responsibleName: consumption.report.responsibleName,
+				companyName: consumption.report.companyName,
+				projectTitle: consumption.report.projectTitle,
+				activityTitle: consumption.report.activityTitle,
 				date: consumption.report.reportDate,
 				hours: (current?.hours ?? 0) + consumption.hours,
 				title: consumption.report.reportTitle,
@@ -238,7 +244,7 @@ export const SupportProjectDetails = ({
 										<div className={styles.reportsList}>
 											<div className={styles.reportColumns}>
 												<span>Дата</span>
-												<span>Отчёт</span>
+								<span>Активность</span>
 												<span>Описание</span>
 												<span>Часы</span>
 											</div>
@@ -246,7 +252,7 @@ export const SupportProjectDetails = ({
 												<div className={styles.reportItem} key={report.id}>
 													<button className={styles.reportToggle} type="button" onClick={() => setSelectedReport(report)}>
 														<time>{formatDate(report.date)}</time>
-														<strong>{report.title || "Отчёт по техподдержке"}</strong>
+									<strong>{report.activityTitle || "Активность не указана"}</strong>
 														<span className={styles.reportPreview}>
 															{report.description || "Описание не указано"}
 														</span>
