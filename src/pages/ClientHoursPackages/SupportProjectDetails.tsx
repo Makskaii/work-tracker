@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { FaChevronDown, FaChevronRight, FaPen, FaPlus } from "react-icons/fa";
+import {
+	FiArchive,
+	FiCalendar,
+	FiChevronDown,
+	FiChevronRight,
+	FiClock,
+	FiEdit3,
+	FiFileText,
+	FiPlus,
+} from "react-icons/fi";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
 import type {
@@ -11,6 +20,7 @@ import type {
 type SupportProjectDetailsProps = {
 	project: SupportProjectOption | null;
 	projectPackages: ClientPackage | null;
+	selectedPurchaseId: number | null;
 	onAddPackage: () => void;
 	onEditPackage: (purchase: PackagePurchase) => void;
 };
@@ -104,6 +114,7 @@ const collectTasks = (purchases: PackagePurchase[]) => {
 export const SupportProjectDetails = ({
 	project,
 	projectPackages,
+	selectedPurchaseId,
 	onAddPackage,
 	onEditPackage,
 }: SupportProjectDetailsProps) => {
@@ -120,13 +131,36 @@ export const SupportProjectDetails = ({
 		);
 
 	const purchases = projectPackages?.purchases ?? [];
-	const tasks = collectTasks(purchases);
-	const purchasedHours = purchases.reduce((sum, purchase) => sum + purchase.hours, 0);
-	const consumedHours = purchases.reduce(
+	const effectivePurchaseId =
+		selectedPurchaseId != null &&
+		purchases.some((purchase) => purchase.id === selectedPurchaseId)
+			? selectedPurchaseId
+			: null;
+	const selectedPurchase =
+		effectivePurchaseId == null
+			? null
+			: purchases.find((purchase) => purchase.id === effectivePurchaseId) ?? null;
+	const displayedPurchaseDate = selectedPurchase
+		? formatDate(selectedPurchase.date)
+		: "Не указан";
+	const scopedPurchases = selectedPurchase ? [selectedPurchase] : purchases;
+	const tasks = collectTasks(scopedPurchases);
+	const reports = collectReports(scopedPurchases);
+	const visibleSelectedReport =
+		reports.find((report) => report.id === selectedReport?.id) ?? null;
+	const purchasedHours = scopedPurchases.reduce((sum, purchase) => sum + purchase.hours, 0);
+	const consumedHours = scopedPurchases.reduce(
 		(sum, purchase) =>
 			sum + purchase.consumptions.reduce((total, consumption) => total + consumption.hours, 0),
 		0,
 	);
+	const remainingHours = selectedPurchase
+		? selectedPurchase.remaining
+		: projectPackages?.remainingHours ?? 0;
+	const reportCount = tasks.reduce((sum, task) => sum + task.reports.length, 0);
+	const usagePercent = purchasedHours
+		? Math.min(100, Math.round((consumedHours / purchasedHours) * 100))
+		: 0;
 	const toggleTask = (taskId: string) => {
 		setExpandedTaskIds((current) => {
 			const next = new Set(current);
@@ -140,85 +174,55 @@ export const SupportProjectDetails = ({
 		<main className={styles.projectDetails}>
 			<header className={styles.detailsHeader}>
 				<div>
-					<span className={styles.eyebrow}>Техпод проект</span>
-					<h1>{project.title}</h1>
-					{projectPackages ? (
-						<p className={styles.detailsStatus}>
-							<b className={styles[projectPackages.state]}>
-								{formatHours(projectPackages.remainingHours)}
-							</b>
-							<span>{projectPackages.status}</span>
-						</p>
-					) : (
-						<p>Для проекта ещё не добавлены пакеты часов</p>
-					)}
-					{projectPackages ? (
-						<div className={styles.detailsMetrics}>
-							<span>
-								Куплено <b>{formatHours(purchasedHours)}</b>
-							</span>
-							<span>
-								Списано <b>{formatHours(consumedHours)}</b>
-							</span>
-							<span>
-								Осталось{" "}
-								<b className={styles[projectPackages.state]}>
-									{formatHours(projectPackages.remainingHours)}
-								</b>
-							</span>
-						</div>
+					<div className={styles.projectTitleLine}>
+						<h1>{project.title}</h1>
+						{projectPackages ? <span className={styles.packageState}>{projectPackages.status}</span> : null}
+					</div>
+					<p>Управление пакетами часов и историей списаний по проекту</p>
+				</div>
+				<div className={styles.detailsActions}>
+					<button className={styles.addPackageButton} type="button" onClick={onAddPackage}>
+						<FiPlus aria-hidden="true" /> Новый пакет
+					</button>
+					{selectedPurchase ? (
+						<button
+							className={styles.editPackageButton}
+							type="button"
+							onClick={() => onEditPackage(selectedPurchase)}
+							aria-label={`Изменить пакет от ${displayedPurchaseDate}`}
+						>
+							<FiEdit3 aria-hidden="true" />
+						</button>
 					) : null}
 				</div>
-				<button
-					className={styles.addPackageButton}
-					type="button"
-					onClick={onAddPackage}
-				>
-					<FaPlus aria-hidden="true" /> Новый пакет
-				</button>
 			</header>
-
-			<section className={styles.detailsSection}>
-				<div className={styles.sectionHeading}>
-					<h2>Пакеты часов</h2>
-					<span>{purchases.length}</span>
-				</div>
-				{purchases.length ? (
-					<div className={styles.purchaseList}>
-						{purchases.map((purchase) => (
-							<div className={styles.purchaseItem} key={purchase.id}>
-								<div>
-									<strong>Пакет от {formatDate(purchase.date)}</strong>
-									<small>{purchase.state}</small>
-								</div>
-								<div>
-									<span>Куплено</span>
-									<strong>{formatHours(purchase.hours)}</strong>
-								</div>
-								<div>
-									<span>Остаток</span>
-									<strong>{formatHours(purchase.remaining)}</strong>
-								</div>
-								<button
-									type="button"
-									onClick={() => onEditPackage(purchase)}
-									aria-label={`Изменить пакет от ${formatDate(purchase.date)}`}
-								>
-									<FaPen aria-hidden="true" />
-								</button>
-							</div>
-						))}
+			{projectPackages ? (
+				<section className={styles.packageOverview}>
+					<div className={styles.currentPackage}>
+						<FiArchive aria-hidden="true" />
+						<div><span>{selectedPurchase ? "Выбранный пакет" : "Все пакеты"}</span><strong>{selectedPurchase ? `Пакет от ${displayedPurchaseDate}` : "Все пакеты проекта"}</strong></div>
 					</div>
-				) : (
-					<p className={styles.sectionEmpty}>
-						Добавьте первый пакет, чтобы начать учитывать часы техподдержки.
-					</p>
-				)}
-			</section>
+					<div className={styles.packageMetric}><span>Куплено</span><strong>{formatHours(purchasedHours)}</strong></div>
+					<div className={styles.packageMetric}><span>Списано</span><strong>{formatHours(consumedHours)}</strong></div>
+					<div className={styles.packageMetric}><span>Остаток</span><strong className={styles[projectPackages.state]}>{formatHours(remainingHours)}</strong></div>
+					<div className={styles.usageProgress}><div><span style={{ width: `${usagePercent}%` }} /></div><small>{usagePercent}% использования</small></div>
+					<div className={styles.packageFacts}>
+						<span><FiCalendar aria-hidden="true" /><i>Период пакета</i><b>с {displayedPurchaseDate}</b></span>
+						<span><FiFileText aria-hidden="true" /><i>Количество отчётов</i><b>{reportCount}</b></span>
+						<span><FiClock aria-hidden="true" /><i>Среднее списание</i><b>{formatHours(reportCount ? consumedHours / reportCount : 0)} на отчёт</b></span>
+					</div>
+				</section>
+			) : (
+				<section className={styles.packageOverviewEmpty}>
+					<p>Для проекта ещё не добавлены пакеты часов.</p>
+					<button className={styles.addPackageButton} type="button" onClick={onAddPackage}><FiPlus aria-hidden="true" /> Добавить пакет</button>
+				</section>
+			)}
 
+			<div className={styles.reportingWorkspace}>
 			<section className={styles.detailsSection}>
 				<div className={styles.sectionHeading}>
-					<h2>Списания по отчётам</h2>
+					<h2>Списания по задачам и отчётам</h2>
 					<span>{tasks.length}</span>
 				</div>
 				{tasks.length ? (
@@ -233,7 +237,7 @@ export const SupportProjectDetails = ({
 										onClick={() => toggleTask(task.id)}
 										aria-expanded={isExpanded}
 									>
-										{isExpanded ? <FaChevronDown aria-hidden="true" /> : <FaChevronRight aria-hidden="true" />}
+										{isExpanded ? <FiChevronDown aria-hidden="true" /> : <FiChevronRight aria-hidden="true" />}
 										<div>
 											<strong>{task.title}</strong>
 											<small>{task.reports.length} отчётов</small>
@@ -271,9 +275,10 @@ export const SupportProjectDetails = ({
 				)}
 			</section>
 			<SupportHoursReportDrawer
-				report={selectedReport}
+				report={visibleSelectedReport}
 				onClose={() => setSelectedReport(null)}
 			/>
+			</div>
 		</main>
 	);
 };

@@ -44,10 +44,12 @@ export const ClientHoursPackageModal = ({
 	const [values, setValues] = useState<FormValues>(
 		getInitialValues(projectId, purchase),
 	);
+	const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
 
 	useEffect(() => {
 		if (isOpen) {
 			setValues(getInitialValues(projectId, purchase));
+			setIsDeleteConfirmationOpen(false);
 		}
 	}, [projectId, isOpen, purchase]);
 
@@ -77,7 +79,32 @@ export const ClientHoursPackageModal = ({
 				<label>Дата покупки<input type="date" value={values.date} onChange={(event) => setValues((current) => ({ ...current, date: event.target.value }))} /></label>
 				<label>Количество часов<input type="number" min="0.5" step="0.5" value={values.hours} onChange={(event) => setValues((current) => ({ ...current, hours: event.target.value }))}/></label>
 				<label>Комментарий<textarea value={values.comment} onChange={(event) => setValues((current) => ({ ...current, comment: event.target.value }))} /></label>
-				<footer>{mode === "edit" && onDelete ? <button type="button" onClick={onDelete}>Удалить</button> : null}<button type="button" onClick={onClose}>Отмена</button><button type="submit">Сохранить</button></footer>
+				<footer>
+					{mode === "edit" && onDelete ? (
+						<button
+							className={styles.deletePackageButton}
+							type="button"
+							onClick={() => setIsDeleteConfirmationOpen(true)}
+						>
+							Удалить
+						</button>
+					) : null}
+					<button type="button" onClick={onClose}>Отмена</button>
+					<button type="submit">Сохранить</button>
+				</footer>
+				{isDeleteConfirmationOpen ? (
+					<div className={styles.deletePackageConfirmation} role="alertdialog">
+						<strong>Удалить пакет часов?</strong>
+						<p>
+							Пакет будет удалён без возможности восстановления. Связанные списания
+							автоматически распределятся по другим доступным пакетам проекта.
+						</p>
+						<div>
+							<button type="button" onClick={() => setIsDeleteConfirmationOpen(false)}>Отмена</button>
+							<button className={styles.deletePackageButton} type="button" onClick={onDelete}>Удалить пакет</button>
+						</div>
+					</div>
+				) : null}
 			</form>
 		</Modal>
 	);

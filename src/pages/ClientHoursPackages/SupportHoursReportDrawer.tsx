@@ -1,4 +1,13 @@
-import { FaExternalLinkAlt } from "react-icons/fa";
+import {
+	FiActivity,
+	FiBriefcase,
+	FiCalendar,
+	FiClock,
+	FiExternalLink,
+	FiFileText,
+	FiFolder,
+	FiUser,
+} from "react-icons/fi";
 import Modal from "@/components/modal/Modal";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
@@ -8,6 +17,7 @@ import type { SupportHoursReportItem } from "./SupportProjectDetails";
 type SupportHoursReportDrawerProps = {
 	report: SupportHoursReportItem | null;
 	onClose: () => void;
+	embedded?: boolean;
 };
 
 const formatHours = (value: number) =>
@@ -22,8 +32,58 @@ const formatDate = (value: string) =>
 export const SupportHoursReportDrawer = ({
 	report,
 	onClose,
+	embedded = false,
 }: SupportHoursReportDrawerProps) => {
 	const { openTask } = useBitrixSlider();
+	const content = report ? (
+		<article className={`${styles.reportDrawer} ${styles.reportDrawerPanel}`}>
+			<header>
+				<span className={styles.eyebrow}>Детали отчёта</span>
+				<div className={styles.reportDrawerTitleLine}>
+					<h2>{report.title || "Отчёт по техподдержке"}</h2>
+					<span className={styles.reportDrawerStatus}>Списано</span>
+				</div>
+			</header>
+			<dl className={styles.reportDrawerFacts}>
+				<div><dt><FiCalendar aria-hidden="true" />Дата</dt><dd>{formatDate(report.date)}</dd></div>
+				<div><dt><FiUser aria-hidden="true" />Ответственный</dt><dd>{report.responsibleName || "Не указан"}</dd></div>
+				<div><dt><FiClock aria-hidden="true" />Списано часов</dt><dd className={styles.reportDrawerHoursValue}>{formatHours(report.hours)}</dd></div>
+				<div><dt><FiBriefcase aria-hidden="true" />Компания</dt><dd>{report.companyName || "Не указана"}</dd></div>
+				<div><dt><FiFolder aria-hidden="true" />Проект</dt><dd>{report.projectTitle || "Не указан"}</dd></div>
+				<div><dt><FiActivity aria-hidden="true" />Активность</dt><dd>{report.activityTitle || "Не указана"}</dd></div>
+				<div><dt><FiFileText aria-hidden="true" />Задача</dt><dd>{report.taskTitle || (report.taskId ? `Задача #${report.taskId}` : "Не указана")}</dd></div>
+			</dl>
+			<section className={styles.reportDrawerSection}>
+				<h3>Пакеты списания</h3>
+				{report.allocations.map((allocation) => (
+					<div className={styles.reportAllocation} key={allocation.purchaseId}>
+						<span>Пакет от {formatDate(allocation.purchaseDate)}</span>
+						<b>{formatHours(allocation.hours)}</b>
+					</div>
+				))}
+			</section>
+			<section className={styles.reportDrawerSection}>
+				<h3>Описание отчёта</h3>
+				<p className={styles.reportDrawerDescription}>
+					{report.description || "Описание не указано"}
+				</p>
+			</section>
+			<button
+				className={styles.openBitrixButton}
+				type="button"
+				onClick={() => openTask(report.id, EntityTypeIds.reports)}
+			>
+				<FiExternalLink aria-hidden="true" /> Открыть в Битрикс
+			</button>
+		</article>
+	) : (
+		<article className={`${styles.reportDrawer} ${styles.reportDrawerPanel} ${styles.reportDrawerEmpty}`}>
+			<span className={styles.eyebrow}>Детали отчёта</span>
+			<p>Выберите отчёт в списке, чтобы посмотреть его данные.</p>
+		</article>
+	);
+
+	if (embedded) return content;
 
 	return (
 		<Modal
@@ -33,51 +93,7 @@ export const SupportHoursReportDrawer = ({
 			size="full"
 			innerScroll
 		>
-			{report ? (
-				<article className={styles.reportDrawer}>
-					<header>
-						<span className={styles.eyebrow}>Списание часов</span>
-						<h2>{report.title || "Отчёт по техподдержке"}</h2>
-						<p>{formatDate(report.date)}</p>
-					</header>
-					<div className={styles.reportDrawerHours}>
-						<div>
-							<span>Списано</span>
-							<strong>{formatHours(report.hours)}</strong>
-						</div>
-					</div>
-					<dl className={styles.reportDrawerFacts}>
-						<div><dt>Задача</dt><dd>{report.taskTitle || (report.taskId ? `Задача #${report.taskId}` : "Не указана")}</dd></div>
-						<div><dt>Ответственный</dt><dd>{report.responsibleName || "Не указан"}</dd></div>
-						<div><dt>Компания</dt><dd>{report.companyName || "Не указана"}</dd></div>
-						<div><dt>Проект</dt><dd>{report.projectTitle || "Не указан"}</dd></div>
-						<div><dt>Активность</dt><dd>{report.activityTitle || "Не указана"}</dd></div>
-						<div><dt>Дата отчёта</dt><dd>{formatDate(report.date)}</dd></div>
-					</dl>
-					<section className={styles.reportDrawerSection}>
-						<h3>Пакеты списания</h3>
-						{report.allocations.map((allocation) => (
-							<div className={styles.reportAllocation} key={allocation.purchaseId}>
-								<span>Пакет от {formatDate(allocation.purchaseDate)}</span>
-								<b>{formatHours(allocation.hours)}</b>
-							</div>
-						))}
-					</section>
-					<section className={styles.reportDrawerSection}>
-						<h3>Описание отчёта</h3>
-						<p className={styles.reportDrawerDescription}>
-							{report.description || "Описание не указано"}
-						</p>
-					</section>
-					<button
-						className={styles.openBitrixButton}
-						type="button"
-						onClick={() => openTask(report.id, EntityTypeIds.reports)}
-					>
-						<FaExternalLinkAlt aria-hidden="true" /> Открыть в Битрикс
-					</button>
-				</article>
-			) : null}
+			{content}
 		</Modal>
 	);
 };

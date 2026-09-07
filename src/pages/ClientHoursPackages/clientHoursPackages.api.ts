@@ -73,7 +73,7 @@ const toClientPackage = (group: ApiProjectGroup): ClientPackage => {
 	const remainingHours = numberValue(group.remainingHours);
 	const [statusLabel, statusHint] = status(group.state);
 	const purchases: PackagePurchase[] = group.packages.map((item) => ({
-		id: item.id,
+		id: numberValue(item.id),
 		date: item.purchaseDate,
 		hours: numberValue(item.purchasedHours),
 		remaining: numberValue(item.remainingHours),
@@ -91,7 +91,7 @@ const toClientPackage = (group: ApiProjectGroup): ClientPackage => {
 	}));
 
 	return {
-		id: group.project.id,
+		id: numberValue(group.project.id),
 		client: group.project.clientCompany
 			? `${group.project.clientCompany} | ${group.project.title}`
 			: group.project.title,
@@ -139,7 +139,7 @@ export const fetchSupportProjects = async (signal?: AbortSignal) => {
 	>("support-hours-packages/projects", { signal });
 	return response.data.map(
 		(project): SupportProjectOption => ({
-			id: project.id,
+			id: numberValue(project.id),
 			title: project.clientCompany
 				? `${project.clientCompany} | ${project.title}`
 				: project.title,
