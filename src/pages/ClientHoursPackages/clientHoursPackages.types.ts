@@ -18,6 +18,8 @@ export type PackageConsumption = {
 		bitrixReportId: string;
 		bitrixTaskId: string | null;
 		taskTitle: string | null;
+		bitrixResponsibleId: string | null;
+		responsibleName: string | null;
 		reportDate: string;
 		reportTitle: string | null;
 		reportDescription: string | null;

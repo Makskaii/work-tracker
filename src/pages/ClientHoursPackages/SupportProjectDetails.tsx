@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { FaChevronDown, FaChevronRight, FaFileAlt, FaPen, FaPlus } from "react-icons/fa";
+import { FaChevronDown, FaChevronRight, FaPen, FaPlus } from "react-icons/fa";
 import styles from "./ClientHoursPackagesPage.module.scss";
+import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
 import type {
 	ClientPackage,
 	PackagePurchase,
@@ -14,21 +15,23 @@ type SupportProjectDetailsProps = {
 	onEditPackage: (purchase: PackagePurchase) => void;
 };
 
-type ReportRow = {
+export type SupportHoursReportItem = {
 	id: string;
 	taskId: string | null;
 	taskTitle: string | null;
+	responsibleName: string | null;
 	date: string;
 	hours: number;
 	title: string | null;
 	description: string | null;
+	allocations: { purchaseId: number; purchaseDate: string; hours: number }[];
 };
 
 type TaskGroup = {
 	id: string;
 	title: string;
 	hours: number;
-	reports: ReportRow[];
+	reports: SupportHoursReportItem[];
 };
 
 const formatHours = (value: number) =>
@@ -41,7 +44,7 @@ const formatDate = (value: string) =>
 	}).format(new Date(value));
 
 const collectReports = (purchases: PackagePurchase[]) => {
-	const reports = new Map<string, ReportRow>();
+	const reports = new Map<string, SupportHoursReportItem>();
 	purchases.forEach((purchase) =>
 		purchase.consumptions.forEach((consumption) => {
 			const current = reports.get(consumption.report.bitrixReportId);
@@ -49,10 +52,19 @@ const collectReports = (purchases: PackagePurchase[]) => {
 				id: consumption.report.bitrixReportId,
 				taskId: consumption.report.bitrixTaskId,
 				taskTitle: consumption.report.taskTitle,
+				responsibleName: consumption.report.responsibleName,
 				date: consumption.report.reportDate,
 				hours: (current?.hours ?? 0) + consumption.hours,
 				title: consumption.report.reportTitle,
 				description: consumption.report.reportDescription,
+				allocations: [
+					...(current?.allocations ?? []),
+					{
+						purchaseId: purchase.id,
+						purchaseDate: purchase.date,
+						hours: consumption.hours,
+					},
+				],
 			});
 		}),
 	);
@@ -90,6 +102,8 @@ export const SupportProjectDetails = ({
 	onEditPackage,
 }: SupportProjectDetailsProps) => {
 	const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+	const [selectedReport, setSelectedReport] =
+		useState<SupportHoursReportItem | null>(null);
 	if (!project)
 		return (
 			<main className={styles.projectDetails}>
@@ -101,6 +115,12 @@ export const SupportProjectDetails = ({
 
 	const purchases = projectPackages?.purchases ?? [];
 	const tasks = collectTasks(purchases);
+	const purchasedHours = purchases.reduce((sum, purchase) => sum + purchase.hours, 0);
+	const consumedHours = purchases.reduce(
+		(sum, purchase) =>
+			sum + purchase.consumptions.reduce((total, consumption) => total + consumption.hours, 0),
+		0,
+	);
 	const toggleTask = (taskId: string) => {
 		setExpandedTaskIds((current) => {
 			const next = new Set(current);
@@ -126,6 +146,22 @@ export const SupportProjectDetails = ({
 					) : (
 						<p>Для проекта ещё не добавлены пакеты часов</p>
 					)}
+					{projectPackages ? (
+						<div className={styles.detailsMetrics}>
+							<span>
+								Куплено <b>{formatHours(purchasedHours)}</b>
+							</span>
+							<span>
+								Списано <b>{formatHours(consumedHours)}</b>
+							</span>
+							<span>
+								Осталось{" "}
+								<b className={styles[projectPackages.state]}>
+									{formatHours(projectPackages.remainingHours)}
+								</b>
+							</span>
+						</div>
+					) : null}
 				</div>
 				<button
 					className={styles.addPackageButton}
@@ -200,15 +236,22 @@ export const SupportProjectDetails = ({
 									</button>
 									{isExpanded && (
 										<div className={styles.reportsList}>
+											<div className={styles.reportColumns}>
+												<span>Дата</span>
+												<span>Отчёт</span>
+												<span>Описание</span>
+												<span>Часы</span>
+											</div>
 											{task.reports.map((report) => (
 												<div className={styles.reportItem} key={report.id}>
-													<FaFileAlt aria-hidden="true" />
-													<div>
+													<button className={styles.reportToggle} type="button" onClick={() => setSelectedReport(report)}>
+														<time>{formatDate(report.date)}</time>
 														<strong>{report.title || "Отчёт по техподдержке"}</strong>
-														<small>{report.description || "Описание не указано"}</small>
-													</div>
-													<time>{formatDate(report.date)}</time>
-													<b>{formatHours(report.hours)}</b>
+														<span className={styles.reportPreview}>
+															{report.description || "Описание не указано"}
+														</span>
+														<b>{formatHours(report.hours)}</b>
+													</button>
 												</div>
 											))}
 										</div>
@@ -221,6 +264,10 @@ export const SupportProjectDetails = ({
 					<p className={styles.sectionEmpty}>Списаний по отчётам пока нет.</p>
 				)}
 			</section>
+			<SupportHoursReportDrawer
+				report={selectedReport}
+				onClose={() => setSelectedReport(null)}
+			/>
 		</main>
 	);
 };

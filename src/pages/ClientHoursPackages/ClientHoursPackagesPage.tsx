@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaPlus } from "react-icons/fa";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import {
 	ClientHoursPackageModal,
@@ -100,33 +99,30 @@ export const ClientHoursPackagesPage = () => {
 		projectId,
 		date,
 		hours,
-		amount,
 		comment,
 	}: {
 		projectId: number;
 		date: string;
 		hours: number;
-		amount?: number;
 		comment?: string;
 	}) => {
+		const selectedId = Number(projectId);
 		try {
 			if (modalMode === "edit" && editingPurchase)
 				await updateSupportHoursPackage(editingPurchase.id, {
 					purchasedHours: hours,
 					purchaseDate: date,
-					amount,
 					comment,
 				});
 			else
 				await createSupportHoursPackage({
-					projectId,
+					projectId: selectedId,
 					purchasedHours: hours,
 					purchaseDate: date,
-					amount,
 					comment,
 				});
 			await loadData();
-			setSelectedProjectId(projectId);
+			setSelectedProjectId(selectedId);
 			notify({
 				message:
 					modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена",
@@ -140,9 +136,11 @@ export const ClientHoursPackagesPage = () => {
 
 	const deletePurchase = async () => {
 		if (!editingPurchase) return;
+		const selectedId = modalProjectId == null ? null : Number(modalProjectId);
 		try {
 			await deleteSupportHoursPackage(editingPurchase.id);
 			await loadData();
+			if (selectedId != null) setSelectedProjectId(selectedId);
 			notify({ message: "Пакет удалён", type: "success" });
 			closeModal();
 		} catch {
@@ -158,13 +156,6 @@ export const ClientHoursPackagesPage = () => {
 					<h1>Отчёт по техподдержке</h1>
 					<p>Пакеты часов, списания и история отчётов по проектам</p>
 				</div>
-				<button
-					className={styles.addPackageButton}
-					type="button"
-					onClick={() => openModal("purchase", selectedProjectId)}
-				>
-					<FaPlus aria-hidden="true" /> Добавить покупку часов
-				</button>
 			</header>
 			<div className={styles.workspace}>
 				<SupportProjectsSidebar
