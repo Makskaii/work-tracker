@@ -16,6 +16,8 @@ export type PackageConsumption = {
 	hours: number;
 	report: {
 		bitrixReportId: string;
+		bitrixTaskId: string | null;
+		taskTitle: string | null;
 		reportDate: string;
 		reportTitle: string | null;
 		reportDescription: string | null;

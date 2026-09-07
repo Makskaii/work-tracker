@@ -1,4 +1,5 @@
-import { FaFileAlt, FaPen, FaPlus } from "react-icons/fa";
+import { useState } from "react";
+import { FaChevronDown, FaChevronRight, FaFileAlt, FaPen, FaPlus } from "react-icons/fa";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import type {
 	ClientPackage,
@@ -15,10 +16,19 @@ type SupportProjectDetailsProps = {
 
 type ReportRow = {
 	id: string;
+	taskId: string | null;
+	taskTitle: string | null;
 	date: string;
 	hours: number;
 	title: string | null;
 	description: string | null;
+};
+
+type TaskGroup = {
+	id: string;
+	title: string;
+	hours: number;
+	reports: ReportRow[];
 };
 
 const formatHours = (value: number) =>
@@ -37,6 +47,8 @@ const collectReports = (purchases: PackagePurchase[]) => {
 			const current = reports.get(consumption.report.bitrixReportId);
 			reports.set(consumption.report.bitrixReportId, {
 				id: consumption.report.bitrixReportId,
+				taskId: consumption.report.bitrixTaskId,
+				taskTitle: consumption.report.taskTitle,
 				date: consumption.report.reportDate,
 				hours: (current?.hours ?? 0) + consumption.hours,
 				title: consumption.report.reportTitle,
@@ -50,12 +62,34 @@ const collectReports = (purchases: PackagePurchase[]) => {
 	);
 };
 
+const collectTasks = (purchases: PackagePurchase[]) => {
+	const tasks = new Map<string, TaskGroup>();
+	collectReports(purchases).forEach((report) => {
+		const id = report.taskId ?? `report-${report.id}`;
+		const current = tasks.get(id);
+		tasks.set(id, {
+			id,
+			title:
+				report.taskTitle ||
+				(report.taskId ? `Задача #${report.taskId}` : "Задача не указана"),
+			hours: (current?.hours ?? 0) + report.hours,
+			reports: [...(current?.reports ?? []), report],
+		});
+	});
+	return Array.from(tasks.values()).toSorted(
+		(first, second) =>
+			new Date(second.reports[0].date).getTime() -
+			new Date(first.reports[0].date).getTime(),
+	);
+};
+
 export const SupportProjectDetails = ({
 	project,
 	projectPackages,
 	onAddPackage,
 	onEditPackage,
 }: SupportProjectDetailsProps) => {
+	const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 	if (!project)
 		return (
 			<main className={styles.projectDetails}>
@@ -66,7 +100,15 @@ export const SupportProjectDetails = ({
 		);
 
 	const purchases = projectPackages?.purchases ?? [];
-	const reports = collectReports(purchases);
+	const tasks = collectTasks(purchases);
+	const toggleTask = (taskId: string) => {
+		setExpandedTaskIds((current) => {
+			const next = new Set(current);
+			if (next.has(taskId)) next.delete(taskId);
+			else next.add(taskId);
+			return next;
+		});
+	};
 
 	return (
 		<main className={styles.projectDetails}>
@@ -135,21 +177,45 @@ export const SupportProjectDetails = ({
 			<section className={styles.detailsSection}>
 				<div className={styles.sectionHeading}>
 					<h2>Списания по отчётам</h2>
-					<span>{reports.length}</span>
+					<span>{tasks.length}</span>
 				</div>
-				{reports.length ? (
-					<div className={styles.reportsList}>
-						{reports.map((report) => (
-							<div className={styles.reportItem} key={report.id}>
-								<FaFileAlt aria-hidden="true" />
-								<div>
-									<strong>{report.title || "Отчёт по техподдержке"}</strong>
-									<small>{report.description || "Описание не указано"}</small>
+				{tasks.length ? (
+					<div className={styles.tasksList}>
+						{tasks.map((task) => {
+							const isExpanded = expandedTaskIds.has(task.id);
+							return (
+								<div className={styles.taskItem} key={task.id}>
+									<button
+										className={styles.taskToggle}
+										type="button"
+										onClick={() => toggleTask(task.id)}
+										aria-expanded={isExpanded}
+									>
+										{isExpanded ? <FaChevronDown aria-hidden="true" /> : <FaChevronRight aria-hidden="true" />}
+										<div>
+											<strong>{task.title}</strong>
+											<small>{task.reports.length} отчётов</small>
+										</div>
+										<b>{formatHours(task.hours)}</b>
+									</button>
+									{isExpanded && (
+										<div className={styles.reportsList}>
+											{task.reports.map((report) => (
+												<div className={styles.reportItem} key={report.id}>
+													<FaFileAlt aria-hidden="true" />
+													<div>
+														<strong>{report.title || "Отчёт по техподдержке"}</strong>
+														<small>{report.description || "Описание не указано"}</small>
+													</div>
+													<time>{formatDate(report.date)}</time>
+													<b>{formatHours(report.hours)}</b>
+												</div>
+											))}
+										</div>
+									)}
 								</div>
-								<time>{formatDate(report.date)}</time>
-								<b>{formatHours(report.hours)}</b>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				) : (
 					<p className={styles.sectionEmpty}>Списаний по отчётам пока нет.</p>
