@@ -52,6 +52,11 @@ export type SupportHoursPackagePayload = {
 	comment?: string;
 };
 
+export type SupportProjectTask = {
+	id: string;
+	title: string;
+};
+
 const numberValue = (value: number | string | null) => Number(value ?? 0);
 const dateLabel = (value: string | null) =>
 	value
@@ -145,6 +150,17 @@ export const fetchSupportProjects = async (signal?: AbortSignal) => {
 				: project.title,
 		}),
 	);
+};
+
+export const fetchSupportProjectTasks = async (
+	projectId: number,
+	signal?: AbortSignal,
+) => {
+	const response = await $backendApi.get<SupportProjectTask[]>(
+		`support-hours-packages/projects/${projectId}/tasks`,
+		{ signal },
+	);
+	return response.data.map((task) => ({ ...task, id: String(task.id) }));
 };
 
 export const syncSupportProjects = () =>

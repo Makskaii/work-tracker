@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
+import type { SupportProjectTask } from "./clientHoursPackages.api";
 import type {
 	ClientPackage,
 	PackagePurchase,
@@ -20,6 +21,7 @@ import type {
 type SupportProjectDetailsProps = {
 	project: SupportProjectOption | null;
 	projectPackages: ClientPackage | null;
+	projectTasks: SupportProjectTask[];
 	selectedPurchaseId: number | null;
 	onAddPackage: () => void;
 	onEditPackage: (purchase: PackagePurchase) => void;
@@ -90,7 +92,10 @@ const collectReports = (purchases: PackagePurchase[]) => {
 	);
 };
 
-const collectTasks = (purchases: PackagePurchase[]) => {
+const collectTasks = (
+	purchases: PackagePurchase[],
+	projectTasks: SupportProjectTask[],
+) => {
 	const tasks = new Map<string, TaskGroup>();
 	collectReports(purchases).forEach((report) => {
 		const id = report.taskId ?? `report-${report.id}`;
@@ -104,16 +109,22 @@ const collectTasks = (purchases: PackagePurchase[]) => {
 			reports: [...(current?.reports ?? []), report],
 		});
 	});
+	projectTasks.forEach((task) => {
+		if (tasks.has(task.id)) return;
+		tasks.set(task.id, { id: task.id, title: task.title, hours: 0, reports: [] });
+	});
 	return Array.from(tasks.values()).toSorted(
 		(first, second) =>
-			new Date(second.reports[0].date).getTime() -
-			new Date(first.reports[0].date).getTime(),
+			new Date(second.reports[0]?.date ?? 0).getTime() -
+			new Date(first.reports[0]?.date ?? 0).getTime() ||
+			first.title.localeCompare(second.title, "ru"),
 	);
 };
 
 export const SupportProjectDetails = ({
 	project,
 	projectPackages,
+	projectTasks,
 	selectedPurchaseId,
 	onAddPackage,
 	onEditPackage,
@@ -144,7 +155,7 @@ export const SupportProjectDetails = ({
 		? formatDate(selectedPurchase.date)
 		: "Не указан";
 	const scopedPurchases = selectedPurchase ? [selectedPurchase] : purchases;
-	const tasks = collectTasks(scopedPurchases);
+	const tasks = collectTasks(scopedPurchases, projectTasks);
 	const reports = collectReports(scopedPurchases);
 	const visibleSelectedReport =
 		reports.find((report) => report.id === selectedReport?.id) ?? null;
@@ -240,11 +251,15 @@ export const SupportProjectDetails = ({
 										{isExpanded ? <FiChevronDown aria-hidden="true" /> : <FiChevronRight aria-hidden="true" />}
 										<div>
 											<strong>{task.title}</strong>
-											<small>{task.reports.length} отчётов</small>
+											<small>
+												{task.reports.length
+													? `${task.reports.length} отчётов`
+													: "Списаний пока нет"}
+											</small>
 										</div>
 										<b>{formatHours(task.hours)}</b>
 									</button>
-									{isExpanded && (
+									{isExpanded && task.reports.length ? (
 										<div className={styles.reportsList}>
 											<div className={styles.reportColumns}>
 												<span>Дата</span>
@@ -265,13 +280,15 @@ export const SupportProjectDetails = ({
 												</div>
 											))}
 										</div>
-									)}
+									) : isExpanded ? (
+										<p className={styles.sectionEmpty}>Списаний по этой задаче пока нет.</p>
+									) : null}
 								</div>
 							);
 						})}
 					</div>
 				) : (
-					<p className={styles.sectionEmpty}>Списаний по отчётам пока нет.</p>
+					<p className={styles.sectionEmpty}>Задачи техпод-проекта пока не найдены.</p>
 				)}
 			</section>
 			<SupportHoursReportDrawer

@@ -10,7 +10,9 @@ import {
 	deleteSupportHoursPackage,
 	fetchSupportHoursPackages,
 	fetchSupportProjects,
+	fetchSupportProjectTasks,
 	syncSupportProjects,
+	type SupportProjectTask,
 	updateSupportHoursPackage,
 } from "./clientHoursPackages.api";
 import type {
@@ -45,6 +47,7 @@ const getStoredProjectId = () => {
 export const ClientHoursPackagesPage = () => {
 	const [packages, setPackages] = useState<ClientPackage[]>([]);
 	const [projects, setProjects] = useState<SupportProjectOption[]>([]);
+	const [projectTasks, setProjectTasks] = useState<SupportProjectTask[]>([]);
 	const [projectQuery, setProjectQuery] = useState("");
 	const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
 		getStoredProjectId,
@@ -55,6 +58,7 @@ export const ClientHoursPackagesPage = () => {
 	const selectedProjectIdRef = useRef<number | null>(selectedProjectId);
 	const loadRequestIdRef = useRef(0);
 	const hasInitializedProjectRef = useRef(false);
+	const hasLoadedProjectsRef = useRef(false);
 	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(
 		null,
 	);
@@ -69,8 +73,10 @@ export const ClientHoursPackagesPage = () => {
 			fetchSupportProjects(signal),
 		]);
 		if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
+		if (!supportProjects.length && hasLoadedProjectsRef.current) return;
 		setPackages(nextPackages);
 		setProjects(supportProjects);
+		if (supportProjects.length) hasLoadedProjectsRef.current = true;
 	}, []);
 	const reloadPackages = useCallback(async () => {
 		const nextPackages = await fetchSupportHoursPackages();
@@ -88,7 +94,13 @@ export const ClientHoursPackagesPage = () => {
 		});
 		syncSupportProjects()
 			.then(() => loadData(controller.signal))
-			.catch(() => undefined);
+			.catch(() => {
+				if (!controller.signal.aborted)
+					notify({
+						message: "Не удалось обновить список техпод-проектов",
+						type: "error",
+					});
+			});
 		return () => controller.abort();
 	}, [loadData]);
 
@@ -98,6 +110,24 @@ export const ClientHoursPackagesPage = () => {
 			selectedProjectStorageKey,
 			String(selectedProjectId),
 		);
+	}, [selectedProjectId]);
+
+	useEffect(() => {
+		if (selectedProjectId == null) {
+			setProjectTasks([]);
+			return;
+		}
+		const controller = new AbortController();
+		fetchSupportProjectTasks(selectedProjectId, controller.signal)
+			.then(setProjectTasks)
+			.catch(() => {
+				if (!controller.signal.aborted)
+					notify({
+						message: "Не удалось загрузить задачи техпод-проекта",
+						type: "error",
+					});
+			});
+		return () => controller.abort();
 	}, [selectedProjectId]);
 
 	useEffect(() => {
@@ -241,6 +271,7 @@ export const ClientHoursPackagesPage = () => {
 				<SupportProjectDetails
 					project={selectedProject}
 					projectPackages={selectedProjectPackages}
+					projectTasks={projectTasks}
 					selectedPurchaseId={selectedPurchaseId}
 					onAddPackage={() => openModal("new-package", selectedProjectId)}
 					onEditPackage={(purchase) =>
