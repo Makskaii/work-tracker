@@ -55,6 +55,7 @@ export const ClientHoursPackagesPage = () => {
 	const selectedProjectIdRef = useRef<number | null>(selectedProjectId);
 	const loadRequestIdRef = useRef(0);
 	const hasInitializedProjectRef = useRef(false);
+	const hasLoadedProjectsRef = useRef(false);
 	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(
 		null,
 	);
@@ -69,8 +70,10 @@ export const ClientHoursPackagesPage = () => {
 			fetchSupportProjects(signal),
 		]);
 		if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
+		if (!supportProjects.length && hasLoadedProjectsRef.current) return;
 		setPackages(nextPackages);
 		setProjects(supportProjects);
+		if (supportProjects.length) hasLoadedProjectsRef.current = true;
 	}, []);
 	const reloadPackages = useCallback(async () => {
 		const nextPackages = await fetchSupportHoursPackages();
@@ -88,7 +91,13 @@ export const ClientHoursPackagesPage = () => {
 		});
 		syncSupportProjects()
 			.then(() => loadData(controller.signal))
-			.catch(() => undefined);
+			.catch(() => {
+				if (!controller.signal.aborted)
+					notify({
+						message: "Не удалось обновить список техпод-проектов",
+						type: "error",
+					});
+			});
 		return () => controller.abort();
 	}, [loadData]);
 
