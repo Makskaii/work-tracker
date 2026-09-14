@@ -84,6 +84,18 @@
 .detailsSection { padding-top: 18px; }
 .sectionHeading { margin-bottom: 9px; }
 .sectionHeading h2 { font-size: 13px; }
+.taskFilters { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 8px; align-items: end; margin-bottom: 10px; }
+.taskSearch { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 34px; padding: 0 10px; border: 1px solid #2b393d; border-radius: 7px; background: #111719; color: #809196; }
+.taskSearch svg { flex: 0 0 auto; font-size: 14px; }
+.taskSearch input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #e2e9ea; font: inherit; font-size: 12px; }
+.taskSearch input::placeholder { color: #7e8b8f; }
+.taskFilterField { display: grid; gap: 4px; }
+.taskFilterField > span { color: #8d9ca0; font-size: 10px; font-weight: 700; }
+.taskFilterGroup { display: inline-flex; overflow: hidden; border: 1px solid #2b393d; border-radius: 7px; background: #111719; }
+.taskFilterButton, .taskFilterButtonActive { min-height: 32px; padding: 0 10px; border: 0; border-right: 1px solid #2b393d; background: transparent; color: #9ba8ab; cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap; }
+.taskFilterButton:last-child, .taskFilterButtonActive:last-child { border-right: 0; }
+.taskFilterButton:hover { background: #182124; color: #e3eaeb; }
+.taskFilterButtonActive { background: #123038; color: #71d8e9; font-weight: 700; }
 .tasksList { border: 1px solid #273338; border-radius: 7px; overflow: hidden; }
 .taskItem { border-bottom-color: #273338; }
 .taskItem:last-child { border-bottom: 0; }
