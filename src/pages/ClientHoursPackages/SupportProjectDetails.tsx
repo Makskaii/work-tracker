@@ -45,9 +45,12 @@ export type SupportHoursReportItem = {
 type TaskGroup = {
 	id: string;
 	title: string;
+	stageId: string | null;
 	hours: number;
 	reports: SupportHoursReportItem[];
 };
+
+const ARCHIVED_TASK_STAGE_ID = "DT1072_18:UC_6JNSDG";
 
 const formatHours = (value: number) =>
 	`${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(value)} ч`;
@@ -105,13 +108,24 @@ const collectTasks = (
 			title:
 				report.taskTitle ||
 				(report.taskId ? `Задача #${report.taskId}` : "Задача не указана"),
+			stageId: current?.stageId ?? null,
 			hours: (current?.hours ?? 0) + report.hours,
 			reports: [...(current?.reports ?? []), report],
 		});
 	});
 	projectTasks.forEach((task) => {
-		if (tasks.has(task.id)) return;
-		tasks.set(task.id, { id: task.id, title: task.title, hours: 0, reports: [] });
+		const current = tasks.get(task.id);
+		if (current) {
+			tasks.set(task.id, { ...current, stageId: task.stageId });
+			return;
+		}
+		tasks.set(task.id, {
+			id: task.id,
+			title: task.title,
+			stageId: task.stageId,
+			hours: 0,
+			reports: [],
+		});
 	});
 	return Array.from(tasks.values()).toSorted(
 		(first, second) =>
@@ -155,7 +169,10 @@ export const SupportProjectDetails = ({
 		? formatDate(selectedPurchase.date)
 		: "Не указан";
 	const scopedPurchases = selectedPurchase ? [selectedPurchase] : purchases;
-	const tasks = collectTasks(scopedPurchases, projectTasks);
+	const tasks = collectTasks(scopedPurchases, projectTasks).filter(
+		(task) =>
+			task.stageId !== ARCHIVED_TASK_STAGE_ID || task.reports.length > 0,
+	);
 	const reports = collectReports(scopedPurchases);
 	const visibleSelectedReport =
 		reports.find((report) => report.id === selectedReport?.id) ?? null;
@@ -226,7 +243,6 @@ export const SupportProjectDetails = ({
 			) : (
 				<section className={styles.packageOverviewEmpty}>
 					<p>Для проекта ещё не добавлены пакеты часов.</p>
-					<button className={styles.addPackageButton} type="button" onClick={onAddPackage}><FiPlus aria-hidden="true" /> Добавить пакет</button>
 				</section>
 			)}
 

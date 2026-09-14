@@ -55,6 +55,7 @@ export type SupportHoursPackagePayload = {
 export type SupportProjectTask = {
 	id: string;
 	title: string;
+	stageId: string | null;
 };
 
 const numberValue = (value: number | string | null) => Number(value ?? 0);

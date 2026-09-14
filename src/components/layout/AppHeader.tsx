@@ -29,7 +29,7 @@ const isSectionActive = (pathname: string, item: NavItem) => {
 
 export const AppHeader = () => {
 	const [openedKey, setOpenedKey] = useState<string | null>(null);
-	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 	const [collapsedSections, setCollapsedSections] = useState<
 		Record<string, boolean>
