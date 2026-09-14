@@ -177,8 +177,15 @@ export const SupportProjectDetails = ({
 		effectivePurchaseId == null
 			? null
 			: purchases.find((purchase) => purchase.id === effectivePurchaseId) ?? null;
-	const displayedPurchaseDate = selectedPurchase
-		? formatDate(selectedPurchase.date)
+	const periodPurchase =
+		selectedPurchase ??
+		purchases.toSorted(
+			(first, second) =>
+				new Date(first.date).getTime() - new Date(second.date).getTime(),
+		)[0] ??
+		null;
+	const displayedPurchaseDate = periodPurchase
+		? formatDate(periodPurchase.date)
 		: "Не указан";
 	const scopedPurchases = selectedPurchase ? [selectedPurchase] : purchases;
 	const tasks = collectTasks(scopedPurchases, projectTasks).filter(
