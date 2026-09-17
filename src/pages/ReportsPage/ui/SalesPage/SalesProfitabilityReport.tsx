@@ -118,6 +118,17 @@ const getReportProjectStatusLabel = (status: ReportProjectStatus | null | undefi
 	projectStatusOptions.find((option) => option.value === (status ?? "not_started"))
 		?.label ?? "Не начат";
 
+const REPORT_PROJECT_STATUS_ORDER: Record<ReportProjectStatus, number> = {
+	in_progress: 0,
+	not_started: 1,
+	inactive: 2,
+	completed: 3,
+};
+
+const getReportProjectStatusOrder = (
+	status: ReportProjectStatus | null | undefined,
+) => REPORT_PROJECT_STATUS_ORDER[status ?? "not_started"];
+
 const ProjectListSkeleton = () => (
 	<>
 		{Array.from({ length: 1 }, (_, index) => (
@@ -786,7 +797,12 @@ export const SalesProfitabilityReport = ({
 		return matchesResponsible && matchesSearch;
 	});
 	const visibleReportProjectGroups = Array.from(
-		visibleReportProjects
+		[...visibleReportProjects]
+			.sort(
+				(left, right) =>
+					getReportProjectStatusOrder(left.projectStatus) -
+					getReportProjectStatusOrder(right.projectStatus),
+			)
 			.reduce(
 				(groups, project) => {
 					const group = getProjectResponsibleGroup(project, users);
