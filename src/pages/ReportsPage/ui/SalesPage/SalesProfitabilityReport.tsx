@@ -125,6 +125,17 @@ const REPORT_PROJECT_STATUS_ORDER: Record<ReportProjectStatus, number> = {
 	completed: 3,
 };
 
+const REPORT_PROJECT_STATUS_FILTERS: Array<{
+	label: string;
+	value: "all" | ReportProjectStatus;
+}> = [
+	{ label: "Все", value: "all" },
+	{ label: "В работе", value: "in_progress" },
+	{ label: "Не начат", value: "not_started" },
+	{ label: "Неактивен", value: "inactive" },
+	{ label: "Завершён", value: "completed" },
+];
+
 const getReportProjectStatusOrder = (
 	status: ReportProjectStatus | null | undefined,
 ) => REPORT_PROJECT_STATUS_ORDER[status ?? "not_started"];
@@ -487,6 +498,8 @@ export const SalesProfitabilityReport = ({
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
 	const [projectSearchQuery, setProjectSearchQuery] = useState("");
+	const [selectedProjectStatusFilter, setSelectedProjectStatusFilter] =
+		useState<"all" | ReportProjectStatus>("all");
 	const [selectedResponsibleFilter, setSelectedResponsibleFilter] =
 		useState<string>("");
 	const [isResponsibleFilterOpen, setIsResponsibleFilterOpen] = useState(false);
@@ -796,8 +809,26 @@ export const SalesProfitabilityReport = ({
 
 		return matchesResponsible && matchesSearch;
 	});
+	const reportProjectStatusCounts = visibleReportProjects.reduce(
+		(counts, project) => {
+			counts[project.projectStatus ?? "not_started"] += 1;
+			return counts;
+		},
+		{
+			all: visibleReportProjects.length,
+			not_started: 0,
+			in_progress: 0,
+			inactive: 0,
+			completed: 0,
+		} as Record<"all" | ReportProjectStatus, number>,
+	);
+	const filteredReportProjects = visibleReportProjects.filter(
+		(project) =>
+			selectedProjectStatusFilter === "all" ||
+			(project.projectStatus ?? "not_started") === selectedProjectStatusFilter,
+	);
 	const visibleReportProjectGroups = Array.from(
-		[...visibleReportProjects]
+		[...filteredReportProjects]
 			.sort(
 				(left, right) =>
 					getReportProjectStatusOrder(left.projectStatus) -
@@ -1577,6 +1608,24 @@ export const SalesProfitabilityReport = ({
 									<b className={styles.projectsPlanCount}>{reportProjects.length}</b>
 									<FaEllipsisH aria-hidden="true" className={styles.projectsPlanMore} />
 								</button>
+								<div className={styles.projectStatusFilters}>
+									{REPORT_PROJECT_STATUS_FILTERS.map((filter) => (
+										<button
+											key={filter.value}
+											type="button"
+											className={
+												filter.value === selectedProjectStatusFilter
+													? styles.projectStatusFilterButtonActive
+													: styles.projectStatusFilterButton
+											}
+											aria-pressed={filter.value === selectedProjectStatusFilter}
+											onClick={() => setSelectedProjectStatusFilter(filter.value)}
+										>
+											<span>{filter.label}</span>
+											<b>{reportProjectStatusCounts[filter.value]}</b>
+										</button>
+									))}
+								</div>
 							</div>
 							{isReportProjectsLoading ? <ProjectListSkeleton /> : null}
 							{!isReportProjectsLoading &&
