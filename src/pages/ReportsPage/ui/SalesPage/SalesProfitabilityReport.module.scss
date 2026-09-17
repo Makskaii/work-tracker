@@ -335,6 +335,53 @@
 	font-size: 12px;
 }
 
+.projectStatusFilters {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 5px;
+	margin-top: 6px;
+}
+
+.projectStatusFilterButton,
+.projectStatusFilterButtonActive {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	padding: 0 10px;
+	border: 1px solid #2d373b;
+	border-radius: 7px;
+	background: #121719;
+	color: #9ca9ac;
+	cursor: pointer;
+	font: inherit;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.projectStatusFilterButton:hover {
+	border-color: #52656b;
+	color: #e2e9ea;
+}
+
+.projectStatusFilterButtonActive {
+	border-color: #56cbe3;
+	background: #123038;
+	color: #7adced;
+}
+
+.projectStatusFilterButton b,
+.projectStatusFilterButtonActive b {
+	min-width: 15px;
+	padding: 2px 5px;
+	border-radius: 5px;
+	background: rgba(255, 255, 255, 0.08);
+	color: inherit;
+	font-size: 10px;
+	text-align: center;
+}
+
 .projectSearchInput {
 	width: 100%;
 	min-height: 42px;
