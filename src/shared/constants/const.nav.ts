@@ -78,6 +78,13 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 				type: "link",
 				icon: "D",
 			},
+			{
+				key: "client-hours-packages",
+				label: "Отчёт по техподдержке",
+				to: "/client-hours-packages",
+				type: "link",
+				icon: "ч",
+			},
 		],
 	},
 	{
@@ -95,13 +102,6 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 				label: "Клиентские аккаунты",
 				to: "/create-client-form",
 				type: "link",
-			},
-			{
-				key: "client-hours-packages",
-				label: "Отчёт по техподдержке",
-				to: "/client-hours-packages",
-				type: "link",
-				icon: "ч",
 			},
 		],
 	},

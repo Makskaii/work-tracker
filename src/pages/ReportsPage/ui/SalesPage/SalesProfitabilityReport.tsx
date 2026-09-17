@@ -57,6 +57,7 @@ import {
 	getReportProjectForm,
 	getReportProjectPayload,
 	numberOrNull,
+	projectStatusOptions,
 	type ProjectSummaryFormState,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
@@ -75,6 +76,7 @@ import type {
 	ReportProject,
 	ReportProjectFile,
 	ReportProjectFileKind,
+	ReportProjectStatus,
 	SalesProfitabilityTab,
 	UpdateProjectReportEntryPayload,
 } from "./model/types";
@@ -98,6 +100,34 @@ const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
 	{ id: "reports", title: "Отчёты сотрудников" },
 	{ id: "projectReports", title: "Отчёты по проекту" },
 ];
+
+const getReportProjectStatusClassName = (status: ReportProjectStatus | null | undefined) => {
+	switch (status) {
+		case "in_progress":
+			return styles.ganttGroupStatusInProgress;
+		case "inactive":
+			return styles.ganttGroupStatusInactive;
+		case "completed":
+			return styles.ganttGroupStatusCompleted;
+		default:
+			return styles.ganttGroupStatusNotStarted;
+	}
+};
+
+const getReportProjectStatusLabel = (status: ReportProjectStatus | null | undefined) =>
+	projectStatusOptions.find((option) => option.value === (status ?? "not_started"))
+		?.label ?? "Не начат";
+
+const REPORT_PROJECT_STATUS_ORDER: Record<ReportProjectStatus, number> = {
+	in_progress: 0,
+	not_started: 1,
+	inactive: 2,
+	completed: 3,
+};
+
+const getReportProjectStatusOrder = (
+	status: ReportProjectStatus | null | undefined,
+) => REPORT_PROJECT_STATUS_ORDER[status ?? "not_started"];
 
 const ProjectListSkeleton = () => (
 	<>
@@ -767,7 +797,12 @@ export const SalesProfitabilityReport = ({
 		return matchesResponsible && matchesSearch;
 	});
 	const visibleReportProjectGroups = Array.from(
-		visibleReportProjects
+		[...visibleReportProjects]
+			.sort(
+				(left, right) =>
+					getReportProjectStatusOrder(left.projectStatus) -
+					getReportProjectStatusOrder(right.projectStatus),
+			)
 			.reduce(
 				(groups, project) => {
 					const group = getProjectResponsibleGroup(project, users);
@@ -1577,25 +1612,29 @@ export const SalesProfitabilityReport = ({
 													</span>
 													<span className={styles.reportProjectText}>
 														<strong className={styles.reportProjectTitle}>
-															{project.title}
-														</strong>
-														<small className={styles.reportProjectMeta}>
-															<span>Проект</span>
-															<span
-																className={`${styles.reportProjectNextReportDate} ${
+											{project.title}
+										</strong>
+										<small className={styles.reportProjectMeta}>
+											<span
+												className={`${styles.reportProjectNextReportDate} ${
 																	isProjectReportDateOverdue(
 																		project.nextProjectReportDate,
 																	)
 																		? styles.reportProjectNextReportDateOverdue
 																		: ""
-																}`}
-															>
-																{formatProjectReportDate(
-																	project.nextProjectReportDate,
-																)}
-															</span>
-														</small>
-													</span>
+										}`}
+									>
+											{formatProjectReportDate(
+												project.nextProjectReportDate,
+											)}
+										</span>
+										<span
+											className={`${styles.ganttGroupStatus} ${styles.reportProjectStatus} ${getReportProjectStatusClassName(project.projectStatus)}`}
+										>
+											{getReportProjectStatusLabel(project.projectStatus)}
+										</span>
+									</small>
+								</span>
 													<span
 														className={styles.reportProjectMenuButton}
 														onClick={(event) => {
