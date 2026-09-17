@@ -8,6 +8,7 @@ import {
 	FiEdit3,
 	FiFileText,
 	FiPlus,
+	FiSearch,
 } from "react-icons/fi";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
@@ -45,9 +46,18 @@ export type SupportHoursReportItem = {
 type TaskGroup = {
 	id: string;
 	title: string;
+	stageId: string | null;
 	hours: number;
 	reports: SupportHoursReportItem[];
 };
+
+type ConsumptionFilter = "all" | "with-consumption" | "without-consumption";
+type TaskStatusFilter = "all" | "open" | "closed";
+
+const CLOSED_TASK_STAGE_IDS = new Set([
+	"DT1072_18:UC_6JNSDG",
+	"DT1072_18:UC_JP9WR1",
+]);
 
 const formatHours = (value: number) =>
 	`${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(value)} ч`;
@@ -105,13 +115,24 @@ const collectTasks = (
 			title:
 				report.taskTitle ||
 				(report.taskId ? `Задача #${report.taskId}` : "Задача не указана"),
+			stageId: current?.stageId ?? null,
 			hours: (current?.hours ?? 0) + report.hours,
 			reports: [...(current?.reports ?? []), report],
 		});
 	});
 	projectTasks.forEach((task) => {
-		if (tasks.has(task.id)) return;
-		tasks.set(task.id, { id: task.id, title: task.title, hours: 0, reports: [] });
+		const current = tasks.get(task.id);
+		if (current) {
+			tasks.set(task.id, { ...current, stageId: task.stageId });
+			return;
+		}
+		tasks.set(task.id, {
+			id: task.id,
+			title: task.title,
+			stageId: task.stageId,
+			hours: 0,
+			reports: [],
+		});
 	});
 	return Array.from(tasks.values()).toSorted(
 		(first, second) =>
@@ -132,6 +153,11 @@ export const SupportProjectDetails = ({
 	const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 	const [selectedReport, setSelectedReport] =
 		useState<SupportHoursReportItem | null>(null);
+	const [taskQuery, setTaskQuery] = useState("");
+	const [consumptionFilter, setConsumptionFilter] =
+		useState<ConsumptionFilter>("all");
+	const [taskStatusFilter, setTaskStatusFilter] =
+		useState<TaskStatusFilter>("all");
 	if (!project)
 		return (
 			<main className={styles.projectDetails}>
@@ -151,11 +177,39 @@ export const SupportProjectDetails = ({
 		effectivePurchaseId == null
 			? null
 			: purchases.find((purchase) => purchase.id === effectivePurchaseId) ?? null;
-	const displayedPurchaseDate = selectedPurchase
-		? formatDate(selectedPurchase.date)
+	const periodPurchase =
+		selectedPurchase ??
+		purchases.toSorted(
+			(first, second) =>
+				new Date(first.date).getTime() - new Date(second.date).getTime(),
+		)[0] ??
+		null;
+	const displayedPurchaseDate = periodPurchase
+		? formatDate(periodPurchase.date)
 		: "Не указан";
 	const scopedPurchases = selectedPurchase ? [selectedPurchase] : purchases;
-	const tasks = collectTasks(scopedPurchases, projectTasks);
+	const tasks = collectTasks(scopedPurchases, projectTasks).filter(
+		(task) =>
+			!CLOSED_TASK_STAGE_IDS.has(task.stageId ?? "") || task.reports.length > 0,
+	);
+	const normalizedTaskQuery = taskQuery.trim().toLocaleLowerCase("ru");
+	const visibleTasks = tasks.filter((task) => {
+		const hasConsumption = task.reports.length > 0;
+		const isClosed = CLOSED_TASK_STAGE_IDS.has(task.stageId ?? "");
+		const matchesQuery =
+			!normalizedTaskQuery ||
+			task.title.toLocaleLowerCase("ru").includes(normalizedTaskQuery);
+		const matchesConsumption =
+			consumptionFilter === "all" ||
+			(consumptionFilter === "with-consumption" && hasConsumption) ||
+			(consumptionFilter === "without-consumption" && !hasConsumption);
+		const matchesStatus =
+			taskStatusFilter === "all" ||
+			(taskStatusFilter === "open" && !isClosed) ||
+			(taskStatusFilter === "closed" && isClosed);
+
+		return matchesQuery && matchesConsumption && matchesStatus;
+	});
 	const reports = collectReports(scopedPurchases);
 	const visibleSelectedReport =
 		reports.find((report) => report.id === selectedReport?.id) ?? null;
@@ -226,7 +280,6 @@ export const SupportProjectDetails = ({
 			) : (
 				<section className={styles.packageOverviewEmpty}>
 					<p>Для проекта ещё не добавлены пакеты часов.</p>
-					<button className={styles.addPackageButton} type="button" onClick={onAddPackage}><FiPlus aria-hidden="true" /> Добавить пакет</button>
 				</section>
 			)}
 
@@ -234,11 +287,60 @@ export const SupportProjectDetails = ({
 			<section className={styles.detailsSection}>
 				<div className={styles.sectionHeading}>
 					<h2>Списания по задачам и отчётам</h2>
-					<span>{tasks.length}</span>
+					<span>{visibleTasks.length}</span>
 				</div>
-				{tasks.length ? (
+				<div className={styles.taskFilters}>
+					<label className={styles.taskSearch}>
+						<FiSearch aria-hidden="true" />
+						<input
+							type="search"
+							value={taskQuery}
+							onChange={(event) => setTaskQuery(event.target.value)}
+							placeholder="Поиск по задачам"
+						/>
+					</label>
+					<div className={styles.taskFilterField}>
+						<span>Списания</span>
+						<div className={styles.taskFilterGroup} aria-label="Фильтр по списаниям">
+							{([
+								["all", "Все"],
+								["with-consumption", "Со списаниями"],
+								["without-consumption", "Без списаний"],
+							] as const).map(([value, label]) => (
+								<button
+									className={value === consumptionFilter ? styles.taskFilterButtonActive : styles.taskFilterButton}
+									type="button"
+									key={value}
+									onClick={() => setConsumptionFilter(value)}
+								>
+									{label}
+								</button>
+							))}
+						</div>
+					</div>
+					<div className={styles.taskFilterField}>
+						<span>Статус задачи</span>
+						<div className={styles.taskFilterGroup} aria-label="Фильтр по статусу задачи">
+							{([
+								["all", "Все статусы"],
+								["open", "Открытые"],
+								["closed", "Завершённые"],
+							] as const).map(([value, label]) => (
+								<button
+									className={value === taskStatusFilter ? styles.taskFilterButtonActive : styles.taskFilterButton}
+									type="button"
+									key={value}
+									onClick={() => setTaskStatusFilter(value)}
+								>
+									{label}
+								</button>
+							))}
+						</div>
+					</div>
+				</div>
+				{visibleTasks.length ? (
 					<div className={styles.tasksList}>
-						{tasks.map((task) => {
+						{visibleTasks.map((task) => {
 							const isExpanded = expandedTaskIds.has(task.id);
 							return (
 								<div className={styles.taskItem} key={task.id}>
@@ -288,7 +390,11 @@ export const SupportProjectDetails = ({
 						})}
 					</div>
 				) : (
-					<p className={styles.sectionEmpty}>Задачи техпод-проекта пока не найдены.</p>
+					<p className={styles.sectionEmpty}>
+						{tasks.length
+							? "Задачи по выбранным фильтрам не найдены."
+							: "Задачи техпод-проекта пока не найдены."}
+					</p>
 				)}
 			</section>
 			<SupportHoursReportDrawer
