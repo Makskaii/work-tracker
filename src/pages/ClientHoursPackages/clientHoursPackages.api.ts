@@ -164,5 +164,25 @@ export const fetchSupportProjectTasks = async (
 	return response.data.map((task) => ({ ...task, id: String(task.id) }));
 };
 
-export const syncSupportProjects = () =>
-	$backendApi.post("support-hours-packages/projects/sync");
+export const syncSupportProjects = (signal?: AbortSignal) =>
+	$backendApi.post("support-hours-packages/projects/sync", {}, { signal });
+
+export const syncSupportHoursReports = (signal?: AbortSignal) =>
+	$backendApi.post(
+		"support-hours-packages/sync",
+		{},
+		{ signal, timeout: 120_000 },
+	);
+
+export const fetchSupportHoursPackageReport = async (packageId: number) => {
+	const response = await $backendApi.post<Blob>(
+		`support-hours-packages/${packageId}/report`,
+		{},
+		{
+			responseType: "blob",
+			headers: { Accept: "application/pdf" },
+			timeout: 120_000,
+		},
+	);
+	return response.data;
+};

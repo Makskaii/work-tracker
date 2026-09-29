@@ -22,6 +22,15 @@ import {
 import { Modal } from "../modal";
 import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
 import cls from "./Calendar.module.scss";
+import {
+	DayHoursSummary,
+	DayHoursWarning,
+	describeDayHourDeficits,
+} from "./DayHoursWarning";
+import {
+	getDayHourDeficits,
+	type DayHourDeficit,
+} from "./helpers/dayHourDeficits";
 import { ProjectCodes } from "./constants/const";
 import {
 	CALENDAR_DAY_STATE_TITLES,
@@ -165,21 +174,33 @@ const CalendarMonth = ({
 	getCurrentMonthName,
 	isLoading,
 	selectedUserId,
+	userIds,
 }: {
 	monthDays: MonthDays[];
 	selectedYear: number;
 	getCurrentMonthName: () => string;
 	isLoading?: boolean;
 	selectedUserId?: string;
+	userIds?: string[];
 }) => {
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const [activeDayTitle, setActiveDayTitle] = useState("");
+	const [activeDeficits, setActiveDeficits] = useState<DayHourDeficit[]>([]);
 	const [selectedProjectId, setSelectedProjectId] = useState("");
 	const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
 	const { projects, activities, clientsList, users } =
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
+	const scopeUsers = useMemo(
+		() =>
+			users.filter((user) =>
+				selectedUserId
+					? user.id === selectedUserId
+					: userIds?.includes(user.id),
+			),
+		[users, userIds, selectedUserId],
+	);
 	const internalProjectIds = useMemo(
 		() => getInternalProjectIds(projects, clientsList),
 		[projects, clientsList],
@@ -280,23 +301,31 @@ const CalendarMonth = ({
 							internalProjectIds,
 						);
 						const reports = day.reports ?? [];
+						const deficits = getDayHourDeficits({
+							date: day.date,
+							reports,
+							users: scopeUsers,
+							isPadding: !day.isCurrentMonth,
+						});
 						const dayState = getCalendarDayState({
 							date: day.date,
 							reports,
 							activities,
 							isPadding: !day.isCurrentMonth,
+							hasHourDeficit: deficits.length > 0,
 						});
 						const hasReports = dayState !== "blank" && reports.length > 0;
+						const canOpenDay = hasReports || deficits.length > 0;
 						const dayTitle =
 							dayState === "blank"
 								? undefined
-								: `${day.date?.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}`;
+								: `${day.date?.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}${deficits.length ? `. Сотрудников с недобором: ${deficits.length}` : ""}`;
 
 						return (
 							<div
 								key={day.id}
-								role={hasReports ? "button" : undefined}
-								tabIndex={hasReports ? 0 : undefined}
+								role={canOpenDay ? "button" : undefined}
+								tabIndex={canOpenDay ? 0 : undefined}
 								onKeyDown={(event) => {
 									if (event.key === "Enter" || event.key === " ") {
 										event.preventDefault();
@@ -307,11 +336,13 @@ const CalendarMonth = ({
 									[cls.today]: day.isToday,
 								})}
 								data-state={dayState}
+								data-deficit={deficits.length > 0}
 								data-weekend={day.isWeekend && dayState !== "blank"}
-								title={dayTitle}
+								title={`${dayTitle ?? ""}${deficits.length ? `. ${describeDayHourDeficits(deficits)}` : ""}`}
 								aria-label={dayTitle}
 								onClick={() => {
-									if (!hasReports) return;
+									if (!canOpenDay) return;
+									setActiveDeficits(deficits);
 
 									resetModalFilters();
 									setActiveReports(day.reports ?? []);
@@ -341,6 +372,10 @@ const CalendarMonth = ({
 										{CALENDAR_DAY_STATE_TITLES[dayState]}
 									</div>
 								)}
+								<DayHoursWarning
+									deficits={deficits}
+									isIndividual={!!selectedUserId}
+								/>
 								{!!day.totalHours && (
 									<div className={cls.dayReportMeta}>
 										<span>{confirmedReports.length} отчетов</span>
@@ -392,6 +427,7 @@ const CalendarMonth = ({
 						))}
 					</div>
 				</div>
+				<DayHoursSummary deficits={activeDeficits} />
 				<div className={cls.dayModalFilters}>
 					<select
 						value={selectedProjectId}

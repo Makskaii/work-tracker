@@ -12,7 +12,7 @@ import Modal from "@/components/modal/Modal";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import styles from "./ClientHoursPackagesPage.module.scss";
-import type { SupportHoursReportItem } from "./SupportProjectDetails";
+import type { SupportHoursReportItem } from "./supportReportEntries";
 
 type SupportHoursReportDrawerProps = {
 	report: SupportHoursReportItem | null;
@@ -45,13 +45,72 @@ export const SupportHoursReportDrawer = ({
 				</div>
 			</header>
 			<dl className={styles.reportDrawerFacts}>
-				<div><dt><FiCalendar aria-hidden="true" />Дата</dt><dd>{formatDate(report.date)}</dd></div>
-				<div><dt><FiUser aria-hidden="true" />Ответственный</dt><dd>{report.responsibleName || "Не указан"}</dd></div>
-				<div><dt><FiClock aria-hidden="true" />Списано часов</dt><dd className={styles.reportDrawerHoursValue}>{formatHours(report.hours)}</dd></div>
-				<div><dt><FiBriefcase aria-hidden="true" />Компания</dt><dd>{report.companyName || "Не указана"}</dd></div>
-				<div><dt><FiFolder aria-hidden="true" />Проект</dt><dd>{report.projectTitle || "Не указан"}</dd></div>
-				<div><dt><FiActivity aria-hidden="true" />Активность</dt><dd>{report.activityTitle || "Не указана"}</dd></div>
-				<div><dt><FiFileText aria-hidden="true" />Задача</dt><dd>{report.taskTitle || (report.taskId ? `Задача #${report.taskId}` : "Не указана")}</dd></div>
+				<div>
+					<dt>
+						<FiCalendar aria-hidden="true" />
+						Дата
+					</dt>
+					<dd>{formatDate(report.date)}</dd>
+				</div>
+				<div>
+					<dt>
+						<FiUser aria-hidden="true" />
+						Ответственный
+					</dt>
+					<dd>{report.responsibleName || "Не указан"}</dd>
+				</div>
+				<div>
+					<dt>
+						<FiClock aria-hidden="true" />
+						Списано часов
+					</dt>
+					<dd className={styles.reportDrawerHoursValue}>
+						{formatHours(report.hours)}
+					</dd>
+				</div>
+				<div>
+					<dt>
+						<FiBriefcase aria-hidden="true" />
+						Компания
+					</dt>
+					<dd>{report.companyName || "Не указана"}</dd>
+				</div>
+				<div>
+					<dt>
+						<FiFolder aria-hidden="true" />
+						Проект
+					</dt>
+					<dd>{report.projectTitle || "Не указан"}</dd>
+				</div>
+				<div>
+					<dt>
+						<FiActivity aria-hidden="true" />
+						Активность
+					</dt>
+					<dd>{report.activityTitle || "Не указана"}</dd>
+				</div>
+				{report.taskId ? (
+					<div>
+						<dt>
+							<FiFileText aria-hidden="true" />
+							Задача
+						</dt>
+						<dd>
+							<button
+								className={styles.linkedTaskButton}
+								type="button"
+								onClick={() => {
+									if (report.taskId)
+										openTask(report.taskId, EntityTypeIds.tasks);
+								}}
+								aria-label={`Открыть связанную задачу: ${report.taskTitle || `#${report.taskId}`}`}
+							>
+								{report.taskTitle || `Задача #${report.taskId}`}{" "}
+								<FiExternalLink aria-hidden="true" />
+							</button>
+						</dd>
+					</div>
+				) : null}
 			</dl>
 			<section className={styles.reportDrawerSection}>
 				<h3>Пакеты списания</h3>
@@ -73,11 +132,13 @@ export const SupportHoursReportDrawer = ({
 				type="button"
 				onClick={() => openTask(report.id, EntityTypeIds.reports)}
 			>
-				<FiExternalLink aria-hidden="true" /> Открыть в Битрикс
+				<FiExternalLink aria-hidden="true" /> Открыть отчёт в Битрикс
 			</button>
 		</article>
 	) : (
-		<article className={`${styles.reportDrawer} ${styles.reportDrawerPanel} ${styles.reportDrawerEmpty}`}>
+		<article
+			className={`${styles.reportDrawer} ${styles.reportDrawerPanel} ${styles.reportDrawerEmpty}`}
+		>
 			<span className={styles.eyebrow}>Детали отчёта</span>
 			<p>Выберите отчёт в списке, чтобы посмотреть его данные.</p>
 		</article>

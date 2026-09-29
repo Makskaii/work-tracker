@@ -25,14 +25,26 @@ describe("calendar day state", () => {
 	});
 
 	it("compares local calendar dates rather than report times", () => {
-		expect(state(new Date(2026, 8, 29, 23, 59))).toBe("missing");
+		expect(state(new Date(2026, 8, 29, 23, 59))).toBe("empty");
 		expect(state(new Date(2026, 8, 29, 23, 59), [work])).toBe("reported");
 	});
 
-	it("marks today and past weekdays without reports red", () => {
-		for (const date of [new Date(2026, 8, 29), new Date(2026, 8, 28)]) {
-			expect(state(date)).toBe("missing");
-		}
+	it("only marks past weekdays without reports red", () => {
+		expect(state(new Date(2026, 8, 29))).toBe("empty");
+		expect(state(new Date(2026, 8, 28))).toBe("missing");
+	});
+
+	it("shows incomplete work days but preserves the absence surface", () => {
+		const options = { date: new Date(2026, 8, 28), now, hasHourDeficit: true };
+		expect(getCalendarDayState({ ...options, reports: [work] })).toBe(
+			"incomplete",
+		);
+		expect(getCalendarDayState({ ...options, reports: [absence] })).toBe(
+			"absence",
+		);
+		expect(
+			getCalendarDayState({ ...options, reports: [], hasHourDeficit: false }),
+		).toBe("empty");
 	});
 
 	it("keeps empty past and present weekends gray", () => {

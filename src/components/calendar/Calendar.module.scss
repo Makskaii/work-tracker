@@ -122,7 +122,8 @@
     position: relative;
     transition: filter 0.18s ease, transform 0.18s ease;
 
-    &[data-state="reported"] {
+    &[data-state="reported"],
+    &[data-state="empty"] {
         --day-color: var(--color-accent-blue);
         --day-surface: rgba(130, 227, 250, 0.16);
     }
@@ -138,10 +139,13 @@
         --day-surface: rgba(146, 154, 164, 0.10);
     }
 
-    &[data-state="missing"] {
+    &[data-state="missing"],
+    &[data-state="incomplete"] {
         --day-color: var(--color-danger);
         --day-surface: rgba(229, 93, 102, 0.16);
     }
+
+    &[data-deficit="true"] { border-color: var(--color-danger); }
 
     &[data-weekend="true"] {
         border-color: var(--color-warning);
