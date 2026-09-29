@@ -6,7 +6,9 @@ export type CalendarDayState =
 	| "blank"
 	| "future"
 	| "weekend"
+	| "empty"
 	| "missing"
+	| "incomplete"
 	| "absence"
 	| "reported";
 
@@ -14,7 +16,9 @@ export const CALENDAR_DAY_STATE_TITLES: Record<CalendarDayState, string> = {
 	blank: "",
 	future: "Будущий день",
 	weekend: "Выходной",
+	empty: "Нет отчётов",
 	missing: "Нет отчётов",
+	incomplete: "Меньше 8 часов",
 	absence: "Not at work",
 	reported: "Есть отчёты",
 };
@@ -28,20 +32,28 @@ export const getCalendarDayState = ({
 	activities = [],
 	now = new Date(),
 	isPadding = false,
+	hasHourDeficit,
 }: {
 	date: Date | null;
 	reports: readonly Pick<GroupedReportFields, "activity">[];
 	activities?: ActivityListItem[];
 	now?: Date;
 	isPadding?: boolean;
+	hasHourDeficit?: boolean;
 }): CalendarDayState => {
 	if (isPadding || !date) return "blank";
 	if (startOfLocalDay(date) > startOfLocalDay(now)) return "future";
 	if (!reports.length) {
-		return date.getDay() === 0 || date.getDay() === 6 ? "weekend" : "missing";
+		if (date.getDay() === 0 || date.getDay() === 6) return "weekend";
+		if (
+			startOfLocalDay(date) === startOfLocalDay(now) ||
+			hasHourDeficit === false
+		)
+			return "empty";
+		return "missing";
 	}
 	if (reports.some((report) => isNotAtWorkReport(report, activities))) {
 		return "absence";
 	}
-	return "reported";
+	return hasHourDeficit ? "incomplete" : "reported";
 };

@@ -124,7 +124,7 @@ export const Calendar = ({
 		};
 	}, [selectedMonth, selectedYear, view, weekRange]);
 
-	const { data, loading, setFilters } = useLoadAllData<ReportProps>({
+	const { data, loading, error, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
@@ -256,6 +256,13 @@ export const Calendar = ({
 	if (!isVisible) {
 		return null;
 	}
+	if (error) {
+		return (
+			<div role="alert">
+				Не удалось загрузить отчёты. Обновите страницу, чтобы повторить попытку.
+			</div>
+		);
+	}
 
 	return (
 		<>
@@ -266,6 +273,7 @@ export const Calendar = ({
 					selectedYear={selectedYear}
 					isLoading={loading}
 					selectedUserId={userId}
+					userIds={userIds}
 				/>
 			) : (
 				<WeekCalendar

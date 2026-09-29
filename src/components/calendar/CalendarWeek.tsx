@@ -9,6 +9,15 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
 import { Modal } from "../modal";
+import {
+	DayHoursSummary,
+	DayHoursWarning,
+	describeDayHourDeficits,
+} from "./DayHoursWarning";
+import {
+	getDayHourDeficits,
+	type DayHourDeficit,
+} from "./helpers/dayHourDeficits";
 import { ReportCodes, ReportStageIds } from "./constants/const";
 import {
 	CALENDAR_DAY_STATE_TITLES,
@@ -67,10 +76,18 @@ const WeekCalendar = ({
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReports, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const [activeDayTitle, setActiveDayTitle] = useState("");
+	const [activeDeficits, setActiveDeficits] = useState<DayHourDeficit[]>([]);
 	const [activeCategory, setActiveCategory] = useState<ReportCategory>();
 	const { activities, users, projects, clientsList } =
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
+	const scopeUsers = useMemo(
+		() =>
+			users.filter((user) =>
+				userId ? user.id === userId : userIds?.includes(user.id),
+			),
+		[users, userIds, userId],
+	);
 	const internalProjectIds = useMemo(
 		() => getInternalProjectIds(projects, clientsList),
 		[projects, clientsList],
@@ -99,7 +116,7 @@ const WeekCalendar = ({
 		return { assignedById: "__empty__" };
 	}, [userId, userIds]);
 
-	const { data, setFilters } = useLoadAllData<ReportProps>({
+	const { data, loading, error, setFilters } = useLoadAllData<ReportProps>({
 		initialEndpoint: Endpoints.crmItems,
 		initialFilters: {
 			params: {
@@ -174,6 +191,19 @@ const WeekCalendar = ({
 		);
 	}, [data, selectedRange]);
 
+	if (loading)
+		return (
+			<div className={cls.container} role="status">
+				Загружаем отчёты…
+			</div>
+		);
+	if (error)
+		return (
+			<div className={cls.container} role="alert">
+				Не удалось загрузить отчёты. Обновите страницу, чтобы повторить попытку.
+			</div>
+		);
+
 	return (
 		<div className={cls.container}>
 			<h2 className={cls.weekTitle}>{formatWeekTitle(selectedRange)}</h2>
@@ -199,18 +229,32 @@ const WeekCalendar = ({
 				{weekCalendar.map((day) => {
 					const reports = day.reports ?? [];
 					const groupedReports = reports.map(mapReportToGroupedFields);
+					const deficits = getDayHourDeficits({
+						date: day.date,
+						reports: groupedReports,
+						users: scopeUsers,
+					});
+					const confirmedReports = groupedReports.filter(
+						(report) => report.stageId === ReportStageIds.confirmed,
+					);
+					const totalHours = confirmedReports.reduce(
+						(total, report) => total + parseTimeSpent(report.timeSpent),
+						0,
+					);
 					const dayState = getCalendarDayState({
 						date: day.date,
 						reports: groupedReports,
 						activities,
+						hasHourDeficit: deficits.length > 0,
 					});
-					const dayTitle = `${day.date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}`;
+					const dayTitle = `${day.date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}${deficits.length ? `. Сотрудников с недобором: ${deficits.length}` : ""}`;
 					const categorySummary = getReportCategorySummary(
-						groupedReports,
+						confirmedReports,
 						activities,
 						internalProjectIds,
 					);
 					const openDayReports = (category?: ReportCategory) => {
+						setActiveDeficits(deficits);
 						setActiveReports(
 							category
 								? groupedReports.filter(
@@ -243,21 +287,22 @@ const WeekCalendar = ({
 							className={cls.dayCard}
 							data-today={day.isToday}
 							data-state={dayState}
+							data-deficit={deficits.length > 0}
 							data-weekend={day.isWeekend && dayState !== "blank"}
-							title={dayTitle}
+							title={`${dayTitle ?? ""}${deficits.length ? `. ${describeDayHourDeficits(deficits)}` : ""}`}
 							aria-label={dayTitle}
 						>
 							<button
 								type="button"
 								className={cls.dayTopline}
-								disabled={!reports.length}
+								disabled={!reports.length && !deficits.length}
 								onClick={() => openDayReports()}
 								aria-label={`Все отчёты за ${day.dayNumber}: ${reports.length}`}
 							>
 								<span className={cls.dayNumber}>{day.dayNumber}</span>
-								{!!day.totalHours && (
+								{!!totalHours && (
 									<span className={cls.dayHours}>
-										{formatHours(day.totalHours)}
+										{formatHours(totalHours)}
 									</span>
 								)}
 							</button>
@@ -267,12 +312,13 @@ const WeekCalendar = ({
 									{CALENDAR_DAY_STATE_TITLES[dayState]}
 								</div>
 							)}
-							{!!day.totalHours && (
+							<DayHoursWarning deficits={deficits} isIndividual={!!userId} />
+							{!!totalHours && (
 								<div className={cls.dayReportMeta}>
-									<span>{reports.length} отчетов</span>
+									<span>{confirmedReports.length} отчетов</span>
 								</div>
 							)}
-							{!!day.totalHours && (
+							{!!totalHours && (
 								<div className={cls.categoryBadges}>
 									{getVisibleCategories(categorySummary).map((category) => (
 										<button
@@ -311,6 +357,7 @@ const WeekCalendar = ({
 							</span>
 						)}
 					</div>
+					<DayHoursSummary deficits={activeDeficits} />
 					{activeReports.map((report) => (
 						<CompactReportRow
 							key={report.id}
