@@ -12,6 +12,7 @@ import {
 	fetchSupportProjects,
 	fetchSupportProjectTasks,
 	syncSupportProjects,
+	syncSupportHoursReports,
 	type SupportProjectTask,
 	updateSupportHoursPackage,
 } from "./clientHoursPackages.api";
@@ -47,6 +48,10 @@ const getStoredProjectId = () => {
 export const ClientHoursPackagesPage = () => {
 	const [packages, setPackages] = useState<ClientPackage[]>([]);
 	const [projects, setProjects] = useState<SupportProjectOption[]>([]);
+	const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
+		"loading",
+	);
+	const [refreshVersion, setRefreshVersion] = useState(0);
 	const [projectTasks, setProjectTasks] = useState<SupportProjectTask[]>([]);
 	const [projectQuery, setProjectQuery] = useState("");
 	const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
@@ -85,24 +90,25 @@ export const ClientHoursPackagesPage = () => {
 
 	useEffect(() => {
 		const controller = new AbortController();
-		loadData(controller.signal).catch(() => {
-			if (!controller.signal.aborted)
+		setLoadState("loading");
+		// Reconcile deleted/changed reports before displaying cached balances.
+		syncSupportProjects(controller.signal)
+			.then(() => syncSupportHoursReports(controller.signal))
+			.then(() => loadData(controller.signal))
+			.then(() => {
+				if (!controller.signal.aborted) setLoadState("ready");
+			})
+			.catch(() => {
+				if (controller.signal.aborted) return;
+				setLoadState("error");
 				notify({
-					message: "Не удалось загрузить данные техподдержки",
+					message:
+						"Не удалось сверить отчёты с Битрикс24. Остатки часов не обновлены.",
 					type: "error",
 				});
-		});
-		syncSupportProjects()
-			.then(() => loadData(controller.signal))
-			.catch(() => {
-				if (!controller.signal.aborted)
-					notify({
-						message: "Не удалось обновить список техпод-проектов",
-						type: "error",
-					});
 			});
 		return () => controller.abort();
-	}, [loadData]);
+	}, [loadData, refreshVersion]);
 
 	useEffect(() => {
 		if (selectedProjectId == null) return;
@@ -118,8 +124,11 @@ export const ClientHoursPackagesPage = () => {
 			return;
 		}
 		const controller = new AbortController();
+		setProjectTasks([]);
 		fetchSupportProjectTasks(selectedProjectId, controller.signal)
-			.then(setProjectTasks)
+			.then((tasks) => {
+				if (!controller.signal.aborted) setProjectTasks(tasks);
+			})
 			.catch(() => {
 				if (!controller.signal.aborted)
 					notify({
@@ -172,13 +181,10 @@ export const ClientHoursPackagesPage = () => {
 		setSelectedPurchaseId(purchaseId);
 	};
 
-	const selectedProject = useMemo(
-		() => {
-			const projectId = selectedProjectId ?? selectedProjectIdRef.current;
-			return projects.find((project) => project.id === projectId) ?? null;
-		},
-		[projects, selectedProjectId],
-	);
+	const selectedProject = useMemo(() => {
+		const projectId = selectedProjectId ?? selectedProjectIdRef.current;
+		return projects.find((project) => project.id === projectId) ?? null;
+	}, [projects, selectedProjectId]);
 	const selectedProjectPackages = useMemo(
 		() => packages.find((item) => item.id === selectedProjectId) ?? null,
 		[packages, selectedProjectId],
@@ -248,7 +254,8 @@ export const ClientHoursPackagesPage = () => {
 			await deleteSupportHoursPackage(editingPurchase.id);
 			await reloadPackages();
 			if (selectedId != null) rememberProject(selectedId, false);
-			if (editingPurchase?.id === selectedPurchaseId) setSelectedPurchaseId(null);
+			if (editingPurchase?.id === selectedPurchaseId)
+				setSelectedPurchaseId(null);
 			notify({ message: "Пакет удалён", type: "success" });
 			closeModal();
 		} catch {
@@ -258,27 +265,49 @@ export const ClientHoursPackagesPage = () => {
 
 	return (
 		<section className={styles.page}>
-			<div className={styles.workspace}>
-				<SupportProjectsSidebar
-					packages={packages}
-					projects={projects}
-					query={projectQuery}
-					selectedProjectId={selectedProjectId}
-					selectedPurchaseId={selectedPurchaseId}
-					onQueryChange={setProjectQuery}
-					onSelectPurchase={selectPurchase}
-				/>
-				<SupportProjectDetails
-					project={selectedProject}
-					projectPackages={selectedProjectPackages}
-					projectTasks={projectTasks}
-					selectedPurchaseId={selectedPurchaseId}
-					onAddPackage={() => openModal("new-package", selectedProjectId)}
-					onEditPackage={(purchase) =>
-						openModal("edit", selectedProjectId, purchase)
-					}
-				/>
-			</div>
+			{loadState !== "ready" ? (
+				<div
+					className={styles.projectDetails}
+					role={loadState === "error" ? "alert" : "status"}
+				>
+					<p>
+						{loadState === "loading"
+							? "Сверяем отчёты и остатки часов с Битрикс24…"
+							: "Не удалось обновить отчёты. Повторите попытку, чтобы получить актуальный остаток часов."}
+					</p>
+					{loadState === "error" && (
+						<button
+							type="button"
+							className={styles.addPackageButton}
+							onClick={() => setRefreshVersion((value) => value + 1)}
+						>
+							Повторить загрузку
+						</button>
+					)}
+				</div>
+			) : (
+				<div className={styles.workspace}>
+					<SupportProjectsSidebar
+						packages={packages}
+						projects={projects}
+						query={projectQuery}
+						selectedProjectId={selectedProjectId}
+						selectedPurchaseId={selectedPurchaseId}
+						onQueryChange={setProjectQuery}
+						onSelectPurchase={selectPurchase}
+					/>
+					<SupportProjectDetails
+						project={selectedProject}
+						projectPackages={selectedProjectPackages}
+						projectTasks={projectTasks}
+						selectedPurchaseId={selectedPurchaseId}
+						onAddPackage={() => openModal("new-package", selectedProjectId)}
+						onEditPackage={(purchase) =>
+							openModal("edit", selectedProjectId, purchase)
+						}
+					/>
+				</div>
+			)}
 			<ClientHoursPackageModal
 				projects={projects}
 				projectId={modalProjectId}
