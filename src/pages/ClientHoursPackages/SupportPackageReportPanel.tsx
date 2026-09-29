@@ -18,6 +18,7 @@ import {
 type Props = {
 	projectId: number;
 	packageId: number | null;
+	historyPackageId: number | null;
 	hasPackages: boolean;
 	refreshKey?: number;
 	onCardClosed?: () => Promise<void>;
@@ -25,6 +26,7 @@ type Props = {
 export const SupportPackageReportPanel = ({
 	projectId,
 	packageId,
+	historyPackageId,
 	hasPackages,
 	refreshKey,
 	onCardClosed,
@@ -56,7 +58,7 @@ export const SupportPackageReportPanel = ({
 			try {
 				const data = await fetchSupportReportVersions(
 					projectId,
-					packageId ?? undefined,
+					historyPackageId ?? undefined,
 					signal,
 				);
 				if (current()) {
@@ -70,7 +72,7 @@ export const SupportPackageReportPanel = ({
 				if (current()) setVersionsLoading(false);
 			}
 		},
-		[projectId, packageId],
+		[projectId, historyPackageId],
 	);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refreshing source data invalidates checks and reloads saved versions.
 	useEffect(() => {
@@ -84,7 +86,7 @@ export const SupportPackageReportPanel = ({
 			controller.abort();
 			generationRef.current += 1;
 		};
-	}, [loadVersions, refreshKey]);
+	}, [loadVersions, refreshKey, packageId]);
 	const action = async (kind: "download" | "save", confirmed = false) => {
 		if (!packageId || pendingRef.current) return;
 		pendingRef.current = true;

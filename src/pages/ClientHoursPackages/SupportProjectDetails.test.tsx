@@ -20,9 +20,17 @@ import {
 	matchesSupportEntry,
 } from "./supportReportEntries";
 
-const { openTask, fetchSupportHoursPackageReport, notify } = vi.hoisted(() => ({
+const {
+	openTask,
+	fetchSupportHoursPackageReport,
+	fetchSupportReportVersions,
+	downloadSupportReportVersion,
+	notify,
+} = vi.hoisted(() => ({
 	openTask: vi.fn(),
 	fetchSupportHoursPackageReport: vi.fn(),
+	fetchSupportReportVersions: vi.fn(),
+	downloadSupportReportVersion: vi.fn(),
 	notify: vi.fn(),
 }));
 vi.mock("./clientHoursPackages.api", () => ({
@@ -35,7 +43,8 @@ vi.mock("./supportAnalyst.api", async (importOriginal) => ({
 		blocking: false,
 		issues: [],
 	}),
-	fetchSupportReportVersions: vi.fn().mockResolvedValue([]),
+	fetchSupportReportVersions,
+	downloadSupportReportVersion,
 }));
 vi.mock("@/shared/ui/NotificationPopup/notify", () => ({ notify }));
 vi.mock("@/shared/hooks/useBitrixSlider", () => ({
@@ -121,6 +130,8 @@ const props = {
 beforeEach(() => {
 	openTask.mockReset();
 	fetchSupportHoursPackageReport.mockReset();
+	fetchSupportReportVersions.mockReset().mockResolvedValue([]);
+	downloadSupportReportVersion.mockReset();
 	notify.mockReset();
 	vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
 });
@@ -325,6 +336,92 @@ describe("selected support package PDF", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
 		await waitFor(() => expect(downloads).toHaveLength(1));
 		expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(1);
+	});
+
+	it("keeps deleted-package PDFs available in project history while generating for the sole remaining package", async () => {
+		const archivedVersion = {
+			id: 10,
+			packageId: 1,
+			projectId: 1,
+			versionNumber: 1,
+			createdAt: "2026-09-28T10:00:00Z",
+			filename: "archived-package-1.pdf",
+			spentHours: 6,
+			remainingHours: 4,
+		};
+		const currentVersion = {
+			...archivedVersion,
+			id: 20,
+			packageId: 2,
+			filename: "current-package-2.pdf",
+		};
+		fetchSupportReportVersions.mockImplementation(
+			async (_projectId, packageId) =>
+				packageId == null
+					? [archivedVersion, currentVersion]
+					: [currentVersion],
+		);
+		const archivedPdf = new Blob(["unchanged archived PDF"], {
+			type: "application/pdf",
+		});
+		downloadSupportReportVersion.mockResolvedValue(archivedPdf);
+		fetchSupportHoursPackageReport.mockResolvedValue(new Blob(["fresh PDF"]));
+		const view = render(<SupportProjectDetails {...props} refreshKey={1} />);
+		fireEvent.click(screen.getByText(/Сохранённые версии/));
+		await screen.findByText("Пакет №1 · Версия 1");
+		// Delete package 1: project history must not start filtering by the sole survivor.
+		view.rerender(
+			<SupportProjectDetails
+				{...props}
+				refreshKey={2}
+				projectPackages={{ ...projectPackages, purchases: [purchases[1]] }}
+			/>,
+		);
+		await waitFor(() =>
+			expect(fetchSupportReportVersions).toHaveBeenLastCalledWith(
+				1,
+				undefined,
+				expect.any(AbortSignal),
+			),
+		);
+		const archivedRow = (await screen.findByText("Пакет №1 · Версия 1"))
+			.parentElement?.parentElement;
+		expect(archivedRow).not.toBeNull();
+		expect(screen.getByText("Пакет №2 · Версия 1")).toBeInTheDocument();
+		fireEvent.click(
+			within(archivedRow as HTMLElement).getByRole("button", {
+				name: "Скачать PDF",
+			}),
+		);
+		await waitFor(() =>
+			expect(downloadSupportReportVersion).toHaveBeenCalledExactlyOnceWith(10),
+		);
+		expect(downloads).toContainEqual({
+			filename: "archived-package-1.pdf",
+			href: "blob:package-pdf",
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		await waitFor(() =>
+			expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(2),
+		);
+		// Explicit package selection, unlike «Все пакеты», narrows the history.
+		view.rerender(
+			<SupportProjectDetails
+				{...props}
+				refreshKey={2}
+				selectedPurchaseId={2}
+				projectPackages={{ ...projectPackages, purchases: [purchases[1]] }}
+			/>,
+		);
+		await waitFor(() =>
+			expect(fetchSupportReportVersions).toHaveBeenLastCalledWith(
+				1,
+				2,
+				expect.any(AbortSignal),
+			),
+		);
+		await screen.findByText("Пакет №2 · Версия 1");
+		expect(screen.queryByText("Пакет №1 · Версия 1")).not.toBeInTheDocument();
 	});
 
 	it("reports generation errors and re-enables the button for another attempt", async () => {
