@@ -1,41 +1,58 @@
 import { $api } from "@/shared/config";
 import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
 
-export const getDevelopers = async (): Promise<
-	{
-		ID: string;
-		NAME: string;
-		LAST_NAME: string;
-		UF_DEPARTMENT: number[];
-		WORK_POSITION: string;
-		PERSONAL_PHOTO: string;
-	}[]
-> => {
+export type DeveloperUser = {
+	ID: string;
+	NAME: string;
+	LAST_NAME: string;
+	UF_DEPARTMENT: number[];
+	WORK_POSITION: string;
+	PERSONAL_PHOTO: string;
+	ACTIVE?: boolean | "Y" | "N" | 0 | 1 | "0" | "1";
+};
+
+type UserListResponse = {
+	result?: DeveloperUser[];
+	next?: number | null;
+};
+
+export const getDevelopers = async (): Promise<DeveloperUser[]> => {
 	try {
-		const response = await $api.get(Endpoints.users, {
-			params: {
-				filter: {
-					"@UF_DEPARTMENT": [DEPARTMENT_IDS.ANALYTICS, DEPARTMENT_IDS.DEV],
+		const users: DeveloperUser[] = [];
+		let start = 0;
+
+		while (true) {
+			const response = await $api.get<UserListResponse>(Endpoints.users, {
+				params: {
+					start,
+					filter: {
+						"@UF_DEPARTMENT": [DEPARTMENT_IDS.ANALYTICS, DEPARTMENT_IDS.DEV],
+					},
+					select: [
+						"NAME",
+						"ID",
+						"LAST_NAME",
+						"UF_DEPARTMENT",
+						"WORK_POSITION",
+						"PERSONAL_PHOTO",
+						"ACTIVE",
+					],
 				},
-				select: [
-					"NAME",
-					"ID",
-					"LAST_NAME",
-					"UF_DEPARTMENT",
-					"WORK_POSITION",
-					"PERSONAL_PHOTO",
-				],
-			},
-		});
+			});
 
-		const items = response.data?.result;
+			const items = response.data?.result;
+			if (!Array.isArray(items)) {
+				console.warn("Expected user.get result to be an array");
+				return [];
+			}
+			users.push(...items);
 
-		if (!Array.isArray(items)) {
-			console.warn("Expected items to be an array, but got:", items);
-			return [];
+			const next = response.data.next;
+			if (next === null || next === undefined || next <= start) break;
+			start = next;
 		}
 
-		return items;
+		return users;
 	} catch (error) {
 		console.error("Failed to fetch developers", error);
 		return [];

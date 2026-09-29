@@ -90,6 +90,7 @@ export const Calendar = ({
 	handleNextMonth,
 	handleToday,
 	onLoadingChange,
+	onPeriodReportsChange,
 }: {
 	view: "month" | "week";
 	userId?: string;
@@ -104,20 +105,23 @@ export const Calendar = ({
 	handleNextMonth: () => void;
 	handleToday: () => void;
 	onLoadingChange?: (value: boolean) => void;
+	onPeriodReportsChange?: (reports: GroupedReportFields[]) => void;
 }) => {
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
 	const [weekRange, setWeekRange] = useState<WeekRange>(() => getWeekRange());
+	const scopeUserId = userIds?.length ? "" : userId;
 	const scopeFilter = useMemo(() => {
-		if (userId) {
-			return { assignedById: userId };
-		}
-
+		// Keep the full period roster available while displaying one employee.
 		if (userIds?.length) {
 			return { "@assignedById": userIds };
 		}
 
+		if (scopeUserId) {
+			return { assignedById: scopeUserId };
+		}
+
 		return { assignedById: "__empty__" };
-	}, [userId, userIds]);
+	}, [scopeUserId, userIds]);
 	const periodRange = useMemo(() => {
 		if (view === "week") {
 			return {
@@ -128,7 +132,15 @@ export const Calendar = ({
 
 		return {
 			start: new Date(selectedYear, selectedMonth, 1).toISOString(),
-			end: new Date(selectedYear, selectedMonth + 1, 1).toISOString(),
+			end: new Date(
+				selectedYear,
+				selectedMonth + 1,
+				0,
+				23,
+				59,
+				59,
+				999,
+			).toISOString(),
 		};
 	}, [selectedMonth, selectedYear, view, weekRange]);
 
@@ -168,6 +180,7 @@ export const Calendar = ({
 	useEffect(() => {
 		setReports([]);
 		setGroupByActivity([]);
+		onPeriodReportsChange?.([]);
 		setFilters({
 			params: {
 				entityTypeId: EntityTypeIds.reports,
@@ -182,7 +195,13 @@ export const Calendar = ({
 				},
 			},
 		});
-	}, [periodRange, setFilters, scopeFilter, setGroupByActivity]);
+	}, [
+		periodRange,
+		setFilters,
+		scopeFilter,
+		setGroupByActivity,
+		onPeriodReportsChange,
+	]);
 
 	useEffect(() => {
 		const taskIds = Array.from(
@@ -220,19 +239,30 @@ export const Calendar = ({
 					taskTypeById.get(String(report[ReportCodes.parentId])),
 				),
 			);
-			const confirmedReports = normalizedReports.filter(
-				(report) => report.stageId === ReportStageIds.confirmed,
-			);
-
 			setReports(normalizedReports);
-			setGroupByActivity(confirmedReports);
+			if (!loading) onPeriodReportsChange?.(normalizedReports);
 		}
-	}, [data, tasks, setGroupByActivity]);
+	}, [data, tasks, loading, onPeriodReportsChange]);
+
+	const visibleReports = useMemo(
+		() =>
+			userId
+				? reports.filter((report) => report.assignedById === userId)
+				: reports,
+		[reports, userId],
+	);
+	useEffect(() => {
+		setGroupByActivity(
+			visibleReports.filter(
+				(report) => report.stageId === ReportStageIds.confirmed,
+			),
+		);
+	}, [visibleReports, setGroupByActivity]);
 
 	const monthDays = generateMonthDays({
 		selectedYear,
 		selectedMonth,
-		reports,
+		reports: visibleReports,
 	});
 
 	const getCurrentMonthName = () => {

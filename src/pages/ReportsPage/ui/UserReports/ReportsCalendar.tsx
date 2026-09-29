@@ -1,6 +1,7 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Modal } from "../../../../components/modal";
+import { ReportStageIds } from "@/components/calendar/constants/const";
 import { Calendar } from "../../../../components/calendar/Calendar";
 import {
 	getInternalProjectIds,
@@ -12,12 +13,11 @@ import type { GroupedReportFields } from "../../../../shared/types/table";
 import type { ReportsContext } from "../../../../shared/types/types";
 import { getEmployeeMetricsFromReports } from "./model/employeeMetrics";
 import { groupReportsByProject } from "./model/groupReportsByProject";
-import type { EmployeeMetrics, ViewCalendar } from "./model/types";
+import type { ViewCalendar } from "./model/types";
 import {
-	createEmptyEmployeeMetrics,
 	getCapacityByView,
 	getDepartmentUsers,
-	parseTimeSpent,
+	getVisibleEmployees,
 } from "./model/utils";
 import cls from "./ReportsCalendar.module.scss";
 import { EmployeesPanel } from "./ui/EmployeesPanel";
@@ -40,9 +40,7 @@ const ReportsCalendar = () => {
 		GroupedReportFields[]
 	>([]);
 	const [isReportDataLoading, setIsReportDataLoading] = useState(false);
-	const [employeeMetrics, setEmployeeMetrics] = useState<EmployeeMetrics>(
-		createEmptyEmployeeMetrics,
-	);
+	const [periodReports, setPeriodReports] = useState<GroupedReportFields[]>([]);
 	const [selectedProjectKey, setSelectedProjectKey] = useState("");
 	const [isProjectReportsOpen, setIsProjectReportsOpen] = useState(false);
 
@@ -50,9 +48,17 @@ const ReportsCalendar = () => {
 		() => getDepartmentUsers(context.users),
 		[context.users],
 	);
-	const selectedUser = departmentUsers.find(
+	const visibleEmployees = useMemo(
+		() => getVisibleEmployees(departmentUsers, periodReports),
+		[departmentUsers, periodReports],
+	);
+	const selectedUser = visibleEmployees.find(
 		(user) => user.id === selectedUserId,
 	);
+	const effectiveUserId = selectedUser?.id ?? "";
+	useEffect(() => {
+		context.setUser(effectiveUserId);
+	}, [effectiveUserId, context.setUser]);
 	const departmentUserIds = useMemo(
 		() => departmentUsers.map((user) => user.id),
 		[departmentUsers],
@@ -77,18 +83,14 @@ const ReportsCalendar = () => {
 	};
 
 	const handleMonthChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
 		setSelectedMonth(Number(event.target.value));
 	};
 
 	const handleYearChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
 		setSelectedYear(Number(event.target.value));
 	};
 
 	const handlePrevMonth = () => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-
 		if (selectedMonth === 0) {
 			setSelectedMonth(11);
 			setSelectedYear((year) => year - 1);
@@ -99,8 +101,6 @@ const ReportsCalendar = () => {
 	};
 
 	const handleNextMonth = () => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-
 		if (selectedMonth === 11) {
 			setSelectedMonth(0);
 			setSelectedYear((year) => year + 1);
@@ -113,7 +113,6 @@ const ReportsCalendar = () => {
 	const handleToday = () => {
 		const today = new Date();
 
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
 		setSelectedMonth(today.getMonth());
 		setSelectedYear(today.getFullYear());
 	};
@@ -153,51 +152,16 @@ const ReportsCalendar = () => {
 		/>
 	);
 
-	const currentEmployeeMetrics = useMemo(
-		() => getEmployeeMetricsFromReports(groupedByActivity, context.activities),
-		[groupedByActivity, context.activities],
+	const employeeMetrics = useMemo(
+		() =>
+			getEmployeeMetricsFromReports(
+				periodReports.filter(
+					(report) => report.stageId === ReportStageIds.confirmed,
+				),
+				context.activities,
+			),
+		[periodReports, context.activities],
 	);
-
-	useEffect(() => {
-		if (isReportDataLoading) return;
-		if (!groupedByActivity.length && employeeMetrics.hasLoaded) return;
-
-		if (!selectedUserId) {
-			setEmployeeMetrics(currentEmployeeMetrics);
-			return;
-		}
-
-		setEmployeeMetrics((prev) => {
-			const hours = new Map(prev.hours);
-			const notAtWork = new Map(prev.notAtWork);
-			const previousUserHours = hours.get(selectedUserId) ?? 0;
-			const nextUserHours =
-				currentEmployeeMetrics.hours.get(selectedUserId) ?? 0;
-			const nextTotalHours =
-				prev.hasLoaded && prev.totalHours
-					? prev.totalHours - previousUserHours + nextUserHours
-					: currentEmployeeMetrics.totalHours;
-
-			hours.set(selectedUserId, nextUserHours);
-			notAtWork.set(
-				selectedUserId,
-				currentEmployeeMetrics.notAtWork.get(selectedUserId) ?? 0,
-			);
-
-			return {
-				hours,
-				notAtWork,
-				totalHours: nextTotalHours,
-				hasLoaded: prev.hasLoaded || currentEmployeeMetrics.hasLoaded,
-			};
-		});
-	}, [
-		currentEmployeeMetrics,
-		employeeMetrics.hasLoaded,
-		groupedByActivity.length,
-		isReportDataLoading,
-		selectedUserId,
-	]);
 
 	const internalProjectIds = useMemo(
 		() => getInternalProjectIds(context.projects, context.clientsList),
@@ -208,24 +172,17 @@ const ReportsCalendar = () => {
 		context.activities,
 		internalProjectIds,
 	);
-	const totalHours = groupedByActivity.reduce(
-		(acc, report) => acc + parseTimeSpent(report.timeSpent),
-		0,
-	);
 	const periodCapacity = getCapacityByView(view);
-	const totalCapacity = periodCapacity * departmentUsers.length;
-	const employeeMetricsLoading =
-		isReportDataLoading && !employeeMetrics.hasLoaded;
-	const sidebarTotalHours = employeeMetrics.hasLoaded
-		? employeeMetrics.totalHours
-		: totalHours;
+	const totalCapacity = periodCapacity * visibleEmployees.length;
+	const employeeMetricsLoading = isReportDataLoading;
+	const sidebarTotalHours = employeeMetrics.totalHours;
 	const isEmployeeSidebarCompact =
 		isCalendarVisible && isEmployeeSidebarCollapsed;
 	const employeesPanel = (
 		<EmployeesPanel
-			users={departmentUsers}
+			users={visibleEmployees}
 			view={view}
-			selectedUserId={selectedUserId}
+			selectedUserId={effectiveUserId}
 			employeeMetrics={employeeMetrics}
 			isCompact={isEmployeeSidebarCompact}
 			isCalendarVisible={isCalendarVisible}
@@ -273,7 +230,6 @@ const ReportsCalendar = () => {
 								type="button"
 								className={view === "month" ? cls.activeTab : ""}
 								onClick={() => {
-									setEmployeeMetrics(createEmptyEmployeeMetrics());
 									setView("month");
 								}}
 							>
@@ -283,7 +239,6 @@ const ReportsCalendar = () => {
 								type="button"
 								className={view === "week" ? cls.activeTab : ""}
 								onClick={() => {
-									setEmployeeMetrics(createEmptyEmployeeMetrics());
 									setView("week");
 								}}
 							>
@@ -333,7 +288,7 @@ const ReportsCalendar = () => {
 							</div>
 							<Calendar
 								view={view}
-								userId={selectedUserId}
+								userId={effectiveUserId}
 								userIds={departmentUserIds}
 								setGroupByActivity={setGroupByActivity}
 								selectedMonth={selectedMonth}
@@ -344,6 +299,7 @@ const ReportsCalendar = () => {
 								handleNextMonth={handleNextMonth}
 								handleToday={handleToday}
 								onLoadingChange={setIsReportDataLoading}
+								onPeriodReportsChange={setPeriodReports}
 							/>
 						</main>
 					</div>
@@ -351,7 +307,7 @@ const ReportsCalendar = () => {
 					<>
 						<Calendar
 							view={view}
-							userId={selectedUserId}
+							userId={effectiveUserId}
 							userIds={departmentUserIds}
 							isVisible={false}
 							setGroupByActivity={setGroupByActivity}
@@ -363,6 +319,7 @@ const ReportsCalendar = () => {
 							handleNextMonth={handleNextMonth}
 							handleToday={handleToday}
 							onLoadingChange={setIsReportDataLoading}
+							onPeriodReportsChange={setPeriodReports}
 						/>
 						<div className={cls.hiddenCalendarLayout}>
 							{employeesPanel}
