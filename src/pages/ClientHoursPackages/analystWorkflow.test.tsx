@@ -130,16 +130,14 @@ beforeEach(() => {
 		blocking: false,
 		issues: [],
 	});
-	make = vi
-		.fn()
-		.mockImplementation(async ({ method }) =>
-			method === "user.current"
-				? { getData: () => ({ result: { ID: "42" } }) }
-				: {
-						isSuccess: true,
-						getData: () => ({ result: { item: { id: 6000 } } }),
-					},
-		);
+	make = vi.fn().mockImplementation(async ({ method }) =>
+		method === "user.current"
+			? { getData: () => ({ result: { ID: "42" } }) }
+			: {
+					isSuccess: true,
+					getData: () => ({ result: { item: { id: 6000 } } }),
+				},
+	);
 	reportProps.onSaved.mockReset().mockResolvedValue(undefined);
 });
 
@@ -227,13 +225,11 @@ describe("package form safety and impact", () => {
 		);
 	});
 	it("invalidates stale confirmation instead of silently saving against changed balances", async () => {
-		const save = vi
-			.fn()
-			.mockRejectedValue({
-				response: {
-					data: { message: "Данные изменились. Проверьте изменения ещё раз." },
-				},
-			});
+		const save = vi.fn().mockRejectedValue({
+			response: {
+				data: { message: "Данные изменились. Проверьте изменения ещё раз." },
+			},
+		});
 		render(
 			<ClientHoursPackageModal
 				isOpen
@@ -463,7 +459,12 @@ describe("client PDF checks and immutable versions", () => {
 			],
 		});
 		render(
-			<SupportPackageReportPanel projectId={31} packageId={7} hasPackages />,
+			<SupportPackageReportPanel
+				projectId={31}
+				packageId={7}
+				historyPackageId={7}
+				hasPackages
+			/>,
 		);
 		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
 		expect(await screen.findByText("Нужно проверить: 1")).toBeInTheDocument();
@@ -489,7 +490,12 @@ describe("client PDF checks and immutable versions", () => {
 		});
 		fetchPdf.mockResolvedValue(new Blob(["pdf"]));
 		render(
-			<SupportPackageReportPanel projectId={31} packageId={7} hasPackages />,
+			<SupportPackageReportPanel
+				projectId={31}
+				packageId={7}
+				historyPackageId={7}
+				hasPackages
+			/>,
 		);
 		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
 		fireEvent.click(
@@ -501,7 +507,12 @@ describe("client PDF checks and immutable versions", () => {
 	it("ignores a late manual version refresh after switching project", async () => {
 		api.fetchSupportReportVersions.mockRejectedValueOnce(new Error("Offline"));
 		const view = render(
-			<SupportPackageReportPanel projectId={31} packageId={7} hasPackages />,
+			<SupportPackageReportPanel
+				projectId={31}
+				packageId={7}
+				historyPackageId={7}
+				hasPackages
+			/>,
 		);
 		fireEvent.click(screen.getByText(/Сохранённые версии/));
 		await screen.findByText(/Не удалось загрузить сохранённые версии/);
@@ -521,7 +532,12 @@ describe("client PDF checks and immutable versions", () => {
 			},
 		]);
 		view.rerender(
-			<SupportPackageReportPanel projectId={32} packageId={8} hasPackages />,
+			<SupportPackageReportPanel
+				projectId={32}
+				packageId={8}
+				historyPackageId={8}
+				hasPackages
+			/>,
 		);
 		await screen.findByText("Пакет №8 · Версия 1");
 		await act(async () =>
@@ -558,7 +574,12 @@ describe("client PDF checks and immutable versions", () => {
 		const pdf = new Blob(["immutable pdf"]);
 		api.downloadSupportReportVersion.mockResolvedValue(pdf);
 		render(
-			<SupportPackageReportPanel projectId={31} packageId={7} hasPackages />,
+			<SupportPackageReportPanel
+				projectId={31}
+				packageId={7}
+				historyPackageId={7}
+				hasPackages
+			/>,
 		);
 		fireEvent.click(
 			screen.getByRole("button", { name: "Зафиксировать версию" }),
