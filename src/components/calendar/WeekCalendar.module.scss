@@ -182,29 +182,61 @@
 }
 
 .dayCard {
-	box-sizing: border-box;
-	min-height: 116px;
-	display: flex;
-	flex-direction: column;
-	padding: 12px 10px;
-	border: 1px solid var(--color-border);
-	border-radius: 12px;
-	background: var(--color-surface-soft);
-	text-align: left;
+    box-sizing: border-box;
+    min-height: 136px;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 10px;
+    border: 1px solid color-mix(in srgb, var(--day-color) 55%, transparent);
+    border-radius: 12px;
+    background: var(--day-surface);
+    text-align: left;
+
+    &[data-state="reported"] {
+        --day-color: #72b7ff;
+        --day-surface: rgba(114, 183, 255, 0.14);
+    }
+
+    &[data-state="absence"] {
+        --day-color: #b8a0e8;
+        --day-surface: rgba(184, 160, 232, 0.16);
+    }
+
+    &[data-state="future"],
+    &[data-state="weekend"] {
+        --day-color: #929aa4;
+        --day-surface: rgba(146, 154, 164, 0.10);
+    }
+
+    &[data-state="missing"] {
+        --day-color: #ef7d86;
+        --day-surface: rgba(239, 125, 134, 0.13);
+    }
+
+    &[data-weekend="true"] {
+        border-color: var(--color-warning);
+
+        .dayNumber {
+            color: var(--color-warning);
+        }
+    }
+
+    &[data-state="blank"] {
+        background: var(--color-bg);
+        border-color: var(--color-border);
+    }
+
+    &[data-today="true"] {
+        box-shadow: inset 0 0 0 1px var(--day-color);
+    }
 }
 
-.dayCard[data-today="true"] {
-	border-color: var(--color-accent);
-	box-shadow: inset 0 0 0 1px rgba(38, 231, 223, 0.2);
-}
-
-.dayCard[data-weekend="true"] {
-	border-color: var(--color-warning);
-	background: rgba(247, 163, 19, 0.08);
-}
-
-.dayCard[data-empty="true"] {
-	background: var(--color-surface);
+.dayStatus {
+    color: var(--day-color);
+    font-size: 10px;
+    line-height: 1.25;
+    font-weight: 600;
+    margin: 4px 0 8px;
 }
 
 .dayTopline {
@@ -241,11 +273,15 @@
 }
 
 .dayName {
+    display: flex;
+    align-items: center;
+    gap: 3px 5px;
+    flex-wrap: wrap;
 	margin-top: 8px;
 	color: rgba(238, 245, 255, 0.68);
 	font-size: 12px;
 	font-weight: 800;
-	text-transform: lowercase;
+	text-transform: capitalize;
 }
 
 .dayReportMeta {

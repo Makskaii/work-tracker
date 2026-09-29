@@ -10,6 +10,10 @@ import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
 import { Modal } from "../modal";
 import { months, ReportCodes, ReportStageIds } from "./constants/const";
+import {
+	CALENDAR_DAY_STATE_TITLES,
+	getCalendarDayState,
+} from "./helpers/calendarDayState";
 import { buildWeekCalendarFromReports } from "./helpers/generateWeek";
 import {
 	getInternalProjectIds,
@@ -304,6 +308,12 @@ const WeekCalendar = ({
 				{weekCalendar.map((day) => {
 					const reports = day.reports ?? [];
 					const groupedReports = reports.map(mapReportToGroupedFields);
+					const dayState = getCalendarDayState({
+						date: day.date,
+						reports: groupedReports,
+						activities,
+					});
+					const dayTitle = `${day.date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}`;
 					const categorySummary = getReportCategorySummary(
 						groupedReports,
 						activities,
@@ -341,8 +351,10 @@ const WeekCalendar = ({
 							key={day.id}
 							className={cls.dayCard}
 							data-today={day.isToday}
-							data-weekend={day.isWeekend}
-							data-empty={!reports.length}
+							data-state={dayState}
+							data-weekend={day.isWeekend && dayState !== "blank"}
+							title={dayTitle}
+							aria-label={dayTitle}
 						>
 							<button
 								type="button"
@@ -359,6 +371,11 @@ const WeekCalendar = ({
 								)}
 							</button>
 							<div className={cls.dayName}>{day.dayName}</div>
+							{(dayState === "missing" || dayState === "absence") && (
+								<div className={cls.dayStatus}>
+									{CALENDAR_DAY_STATE_TITLES[dayState]}
+								</div>
+							)}
 							{!!day.totalHours && (
 								<div className={cls.dayReportMeta}>
 									<span>{reports.length} отчетов</span>

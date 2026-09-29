@@ -24,9 +24,12 @@ import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
 import cls from "./Calendar.module.scss";
 import { months, ProjectCodes, years } from "./constants/const";
 import {
+	CALENDAR_DAY_STATE_TITLES,
+	getCalendarDayState,
+} from "./helpers/calendarDayState";
+import {
 	getInternalProjectIds,
 	getReportCategorySummary,
-	isNotAtWorkReport,
 	REPORT_CATEGORIES,
 	REPORT_CATEGORY_TITLES,
 	type ReportCategory,
@@ -41,21 +44,6 @@ const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
 
 const getVisibleCategories = (summary: Record<ReportCategory, number>) =>
 	REPORT_CATEGORIES.filter((category) => summary[category] > 0);
-
-const getPrimaryCategory = (
-	reports: GroupedReportFields[],
-	activities: ActivityListItem[],
-	internalProjectIds: ReturnType<typeof getInternalProjectIds>,
-) => {
-	const summary = getReportCategorySummary(
-		reports,
-		activities,
-		internalProjectIds,
-	);
-	return getVisibleCategories(summary).toSorted(
-		(a, b) => summary[b] - summary[a],
-	)[0];
-};
 
 const getProjectTitle = (
 	projectId: number,
@@ -344,12 +332,18 @@ const CalendarMonth = ({
 							activities,
 							internalProjectIds,
 						);
-						const primaryCategory = getPrimaryCategory(
-							confirmedReports,
+						const reports = day.reports ?? [];
+						const dayState = getCalendarDayState({
+							date: day.date,
+							reports,
 							activities,
-							internalProjectIds,
-						);
-						const hasReports = Boolean(day.reports?.length);
+							isPadding: !day.isCurrentMonth,
+						});
+						const hasReports = dayState !== "blank" && reports.length > 0;
+						const dayTitle =
+							dayState === "blank"
+								? undefined
+								: `${day.date?.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}`;
 
 						return (
 							<div
@@ -364,24 +358,11 @@ const CalendarMonth = ({
 								}}
 								className={classNames(cls["calendar-day"], {
 									[cls.today]: day.isToday,
-									[cls.weekend]: day.isWeekend,
-									[cls["other-month"]]: !day.isCurrentMonth,
-									[cls.empty]: day.isEmpty,
-									[cls.fullday]: day.totalHours === 8,
-									[cls.incompleteday]:
-										Boolean(day.totalHours) && Number(day.totalHours) < 8,
-									[cls.overTime]:
-										Boolean(day.totalHours) && Number(day.totalHours) > 8,
-									[cls.hasUnconfirmedReports]: !!day.unconfirmedReports?.length,
-									[cls.notAtWorkDay]:
-										confirmedReports.length > 0 &&
-										confirmedReports.every((report) =>
-											isNotAtWorkReport(report, activities),
-										),
-									[cls.client]: primaryCategory === "client",
-									[cls.internal]: primaryCategory === "internal",
-									[cls.notAtWork]: primaryCategory === "notAtWork",
 								})}
+								data-state={dayState}
+								data-weekend={day.isWeekend && dayState !== "blank"}
+								title={dayTitle}
+								aria-label={dayTitle}
 								onClick={() => {
 									if (!hasReports) return;
 
@@ -408,6 +389,11 @@ const CalendarMonth = ({
 									)}
 								</div>
 								<div className={cls["day-name"]}>{day.dayName}</div>
+								{(dayState === "missing" || dayState === "absence") && (
+									<div className={cls.dayStatus}>
+										{CALENDAR_DAY_STATE_TITLES[dayState]}
+									</div>
+								)}
 								{!!day.totalHours && (
 									<div className={cls.dayReportMeta}>
 										<span>{confirmedReports.length} отчетов</span>

@@ -181,64 +181,38 @@
 .calendar-day {
     box-sizing: border-box;
     min-width: 0;
-    border: 1px solid var(--color-border);
+    border: 1px solid color-mix(in srgb, var(--day-color) 55%, transparent);
     border-radius: 12px;
     padding: 12px 10px;
     min-height: 108px;
-    background: var(--color-surface-soft);
+    background: var(--day-surface);
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
-    cursor: pointer;
+    transition: filter 0.18s ease, transform 0.18s ease;
 
-    .worked-hours-bg {
-        border-radius: 5px 0 0 5px;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        max-width: 100%;
-        height: 100%;
-        display: flex;
-        overflow: hidden;
-        transition: width 0.3s ease-out;
-        border-radius: none;
-        z-index: 0;
-        pointer-events: none;
+    &[data-state="reported"] {
+        --day-color: #72b7ff;
+        --day-surface: rgba(114, 183, 255, 0.14);
     }
 
-    .workedHoursSegment {
-        height: 100%;
-        flex: 0 0 auto;
-        transition: width 0.3s ease-out;
+    &[data-state="absence"] {
+        --day-color: #b8a0e8;
+        --day-surface: rgba(184, 160, 232, 0.16);
     }
 
-    &.empty {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        cursor: default;
+    &[data-state="future"],
+    &[data-state="weekend"] {
+        --day-color: #929aa4;
+        --day-surface: rgba(146, 154, 164, 0.10);
     }
 
-    &:hover:not(.empty) {
-        background: var(--color-surface-hover);
-        border-color: var(--color-accent);
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    &[data-state="missing"] {
+        --day-color: #ef7d86;
+        --day-surface: rgba(239, 125, 134, 0.13);
     }
 
-    &.today {
-        background: rgba(57, 214, 238, 0.12);
-        border-color: var(--color-accent);
-
-        .day-number {
-            color: var(--color-accent);
-            font-weight: bold;
-        }
-    }
-
-    &.weekend {
-        background: rgba(247, 163, 19, 0.08);
+    &[data-weekend="true"] {
         border-color: var(--color-warning);
 
         .day-number {
@@ -246,51 +220,37 @@
         }
     }
 
-    &.other-month {
+    &[data-state="blank"] {
         background: var(--color-bg);
-        color: var(--color-muted);
         border-color: var(--color-border);
     }
 
-
-    &.fullday {
-        border-color: rgba(57, 214, 238, 0.42);
+    &[role="button"] {
+        cursor: pointer;
     }
 
-    &.incompleteday {
-        border-color: var(--color-danger);
+    &[role="button"]:hover {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
     }
 
-
-    &.overTime {
-        border-color: var(--color-accent-blue);
-    }
-
-    &.hasUnconfirmedReports {
-        border-color: var(--color-payment-unpaid);
-    }
-
-    &.notAtWorkDay {
-        border-color: var(--color-border-active);
-        color: var(--color-text);
-    }
-
-    &.client,
-    &.internal,
-    &.notAtWork {
-        background: var(--color-surface-soft);
-        border-color: color-mix(in srgb, var(--report-category-color) 48%, transparent);
-    }
-
-    &.hasUnconfirmedReports {
-        border-color: var(--color-danger);
+    &.today {
+        box-shadow: inset 0 0 0 1px var(--day-color);
     }
 
     &:focus-visible {
         outline: 2px solid var(--color-accent);
         outline-offset: 3px;
     }
+}
 
+.dayStatus {
+    color: var(--day-color);
+    font-size: 10px;
+    line-height: 1.25;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: left;
 }
 
 .dayTopline {
@@ -319,9 +279,14 @@
 }
 
 .day-name {
+    display: flex;
+    align-items: center;
+    gap: 3px 5px;
+    flex-wrap: wrap;
     font-size: 12px;
     color: rgba(238, 245, 255, 0.68);
-    margin-bottom: 10px;
+    margin-bottom: 4px;
+    text-transform: capitalize;
     align-self: flex-start;
     position: relative;
     z-index: 1;
