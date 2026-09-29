@@ -117,6 +117,7 @@ beforeEach(() => {
 	api.previewPackageImpact.mockResolvedValue(impact);
 	api.fetchSupportReportOptions.mockResolvedValue({
 		activities: [{ id: 392, title: "Разработка" }],
+		reportTypes: [{ id: 396, title: "Оплачиваемая клиентом задача" }, { id: 397, title: "Не оплачиваемая клиентом задача" }, { id: 398, title: "Внутренняя задача (от нашей компании)" }],
 	});
 	api.prepareSupportReportFields.mockResolvedValue({
 		entityTypeId: 1060,
@@ -288,8 +289,32 @@ const fillReport = async () => {
 	fireEvent.change(screen.getByLabelText("Вид работы"), {
 		target: { value: "392" },
 	});
+	fireEvent.change(screen.getByLabelText("Тип активности"), { target: { value: "396" } });
 };
 describe("report creation and editing", () => {
+	it("requires an explicit report type and keeps it independent of package inclusion", async () => {
+		render(<B24Context.Provider value={{ b24: frame() }}><SupportReportModal {...reportProps} /></B24Context.Provider>);
+		await fillReport();
+		fireEvent.change(screen.getByLabelText("Тип активности"), { target: { value: "" } });
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить отчёт" }));
+		expect(api.prepareSupportReportFields).not.toHaveBeenCalled();
+		expect(make).not.toHaveBeenCalled();
+		fireEvent.change(screen.getByRole("combobox", { name: /Тип активности/ }), { target: { value: "398" } });
+		fireEvent.click(screen.getByLabelText(/Учитывать в пакете/));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить отчёт" }));
+		await waitFor(() => expect(reportProps.onSaved).toHaveBeenCalledOnce());
+		expect(api.prepareSupportReportFields).toHaveBeenCalledWith(31, expect.objectContaining({ reportTypeId: 398, includeInPackage: false }));
+	});
+	it("loads the existing report type without replacing it from the package checkbox", async () => {
+		api.getSupportReportForEdit.mockResolvedValue({ taskId: null, description: "Работа", hours: 2, reportDate: "2026-09-28", includeInPackage: false, activityId: 392, reportTypeId: 397 });
+		render(<B24Context.Provider value={{ b24: frame() }}><SupportReportModal {...reportProps} reportId="5430" /></B24Context.Provider>);
+		await screen.findByRole("option", { name: "Разработка" });
+		expect(screen.getByLabelText("Тип активности")).toHaveValue("397");
+		fireEvent.click(screen.getByLabelText(/Учитывать в пакете/));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить отчёт" }));
+		await waitFor(() => expect(reportProps.onSaved).toHaveBeenCalledOnce());
+		expect(api.prepareSupportReportFields).toHaveBeenCalledWith(31, expect.objectContaining({ reportId: 5430, reportTypeId: 397, includeInPackage: true }));
+	});
 	it("prefills the task and creates the report under the authenticated Bitrix user", async () => {
 		render(
 			<B24Context.Provider value={{ b24: frame() }}>

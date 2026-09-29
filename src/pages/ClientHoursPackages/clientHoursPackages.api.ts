@@ -35,7 +35,7 @@ type ApiPackage = {
 	remainingHours: number | string;
 	consumptions?: ApiConsumption[];
 };
-type ApiProjectGroup = {
+export type ApiProjectGroup = {
 	project: { id: number; title: string; clientCompany: string | null };
 	purchasedHours: number | string;
 	remainingHours: number | string;
@@ -74,7 +74,7 @@ const status = (state: PackageState) =>
 		overdue: ["Перерасход", "Работы сверх пакета"],
 	})[state];
 
-const toClientPackage = (group: ApiProjectGroup): ClientPackage => {
+export const toClientPackage = (group: ApiProjectGroup): ClientPackage => {
 	const purchasedHours = numberValue(group.purchasedHours);
 	const remainingHours = numberValue(group.remainingHours);
 	const [statusLabel, statusHint] = status(group.state);

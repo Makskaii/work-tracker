@@ -44,10 +44,12 @@ export const SupportReportModal = ({
 		reportDate: today(),
 		includeInPackage: true,
 		activityId: "",
+		reportTypeId: "",
 	});
 	const [activities, setActivities] = useState<
 		Array<{ id: number; title: string }>
 	>([]);
+	const [reportTypes, setReportTypes] = useState<Array<{ id: number; title: string }>>([]);
 	const [loading, setLoading] = useState(true);
 	const [loaded, setLoaded] = useState(false);
 	const [uncertainCreate, setUncertainCreate] = useState(false);
@@ -68,6 +70,7 @@ export const SupportReportModal = ({
 			.then(([options, report]) => {
 				if (!active) return;
 				setActivities(options.activities);
+				setReportTypes(options.reportTypes ?? []);
 				setLoaded(true);
 				if (report)
 					setValues({
@@ -75,6 +78,7 @@ export const SupportReportModal = ({
 						taskId: report.taskId ? String(report.taskId) : "",
 						hours: String(report.hours),
 						activityId: report.activityId ? String(report.activityId) : "",
+						reportTypeId: report.reportTypeId ? String(report.reportTypeId) : "",
 					});
 			})
 			.catch((cause) => {
@@ -125,6 +129,7 @@ export const SupportReportModal = ({
 				"Укажите положительное число часов, не более двух знаков после запятой";
 		if (!values.reportDate) errors.reportDate = "Укажите дату работы";
 		if (!values.activityId) errors.activityId = "Выберите вид работы";
+		if (!values.reportTypeId || !reportTypes.some((item) => item.id === Number(values.reportTypeId))) errors.reportTypeId = "Выберите тип активности";
 		setFieldErrors(errors);
 		if (Object.keys(errors).length) return;
 		pendingRef.current = true;
@@ -139,6 +144,7 @@ export const SupportReportModal = ({
 				reportDate: values.reportDate,
 				includeInPackage: values.includeInPackage,
 				activityId: Number(values.activityId),
+				reportTypeId: Number(values.reportTypeId),
 				...(reportId ? { reportId: Number(reportId) } : {}),
 			});
 			const fields = { ...prepared.fields };
@@ -301,6 +307,14 @@ export const SupportReportModal = ({
 									{fieldErrors.activityId}
 								</span>
 							)}
+						</label>
+						<label>
+							Тип активности
+							<select value={values.reportTypeId} disabled={pending} onChange={(event) => update("reportTypeId", event.target.value)} aria-invalid={!!fieldErrors.reportTypeId}>
+								<option value="">Выберите тип активности</option>
+								{reportTypes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+							</select>
+							{fieldErrors.reportTypeId && <span className={styles.formError}>{fieldErrors.reportTypeId}</span>}
 						</label>
 						<label className={styles.packageCheckbox}>
 							<input

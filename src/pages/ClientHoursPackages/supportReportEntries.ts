@@ -11,6 +11,9 @@ export type SupportHoursReportItem = {
 	activityTitle: string | null;
 	date: string;
 	hours: number;
+	totalHours?: number;
+	hourScope?: "allocated" | "unallocated" | "excluded";
+	includeInPackage?: boolean;
 	title: string | null;
 	description: string | null;
 	allocations: { purchaseId: number; purchaseDate: string; hours: number }[];
