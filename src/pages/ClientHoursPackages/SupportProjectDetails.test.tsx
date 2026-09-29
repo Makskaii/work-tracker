@@ -1,5 +1,12 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EntityTypeIds } from "@/shared/constants/const";
 import type {
 	ClientPackage,
@@ -13,7 +20,15 @@ import {
 	matchesSupportEntry,
 } from "./supportReportEntries";
 
-const { openTask } = vi.hoisted(() => ({ openTask: vi.fn() }));
+const { openTask, fetchSupportHoursPackageReport, notify } = vi.hoisted(() => ({
+	openTask: vi.fn(),
+	fetchSupportHoursPackageReport: vi.fn(),
+	notify: vi.fn(),
+}));
+vi.mock("./clientHoursPackages.api", () => ({
+	fetchSupportHoursPackageReport,
+}));
+vi.mock("@/shared/ui/NotificationPopup/notify", () => ({ notify }));
 vi.mock("@/shared/hooks/useBitrixSlider", () => ({
 	useBitrixSlider: () => ({ openTask }),
 }));
@@ -96,6 +111,8 @@ const props = {
 
 beforeEach(() => {
 	openTask.mockReset();
+	fetchSupportHoursPackageReport.mockReset();
+	notify.mockReset();
 	vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
 });
 
@@ -215,5 +232,105 @@ describe("support report list", () => {
 			drawer.getByRole("button", { name: "Открыть отчёт в Битрикс" }),
 		);
 		expect(openTask).toHaveBeenLastCalledWith("1", EntityTypeIds.reports);
+	});
+});
+
+describe("selected support package PDF", () => {
+	const createObjectURL = vi.fn(() => "blob:package-pdf");
+	const revokeObjectURL = vi.fn();
+	let downloads: Array<{ filename: string; href: string }>;
+	beforeEach(() => {
+		downloads = [];
+		createObjectURL.mockClear();
+		revokeObjectURL.mockClear();
+		vi.stubGlobal(
+			"URL",
+			Object.assign(class extends URL {}, { createObjectURL, revokeObjectURL }),
+		);
+		vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+			this: HTMLAnchorElement,
+		) {
+			downloads.push({ filename: this.download, href: this.href });
+		});
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	it("requires an explicit package when several packages are listed", () => {
+		const { rerender } = render(<SupportProjectDetails {...props} />);
+		const button = screen.getByRole("button", { name: "Отчёт по пакету" });
+		expect(button).toBeDisabled();
+		expect(screen.getByText("Выберите пакет для отчёта")).toBeInTheDocument();
+		fireEvent.click(button);
+		expect(fetchSupportHoursPackageReport).not.toHaveBeenCalled();
+		rerender(<SupportProjectDetails {...props} selectedPurchaseId={2} />);
+		expect(button).toBeEnabled();
+		expect(
+			screen.getByText("За весь пакет по сегодняшний день"),
+		).toBeInTheDocument();
+	});
+
+	it("downloads the entire selected package once, blocks duplicate clicks, and releases its URL", async () => {
+		vi.useFakeTimers();
+		let finish!: (blob: Blob) => void;
+		const pending = new Promise<Blob>((resolve) => {
+			finish = resolve;
+		});
+		fetchSupportHoursPackageReport.mockReturnValueOnce(pending);
+		render(<SupportProjectDetails {...props} selectedPurchaseId={2} />);
+		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		const loading = screen.getByRole("button", { name: "Готовим отчёт…" });
+		expect(loading).toBeDisabled();
+		expect(loading).toHaveAttribute("aria-busy", "true");
+		fireEvent.click(loading);
+		expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(2);
+		const pdf = new Blob(["%PDF-1.4 test"], { type: "application/pdf" });
+		await act(async () => finish(pdf));
+		expect(createObjectURL).toHaveBeenCalledWith(pdf);
+		expect(downloads).toEqual([
+			{ filename: "support-package-2.pdf", href: "blob:package-pdf" },
+		]);
+		expect(document.querySelector("a[download]")).toBeNull();
+		expect(
+			screen.getByRole("button", { name: "Отчёт по пакету" }),
+		).toBeEnabled();
+		expect(revokeObjectURL).not.toHaveBeenCalled();
+		act(() => vi.advanceTimersByTime(1000));
+		expect(revokeObjectURL).toHaveBeenCalledWith("blob:package-pdf");
+	});
+
+	it("uses the only package when all packages is selected", async () => {
+		fetchSupportHoursPackageReport.mockResolvedValue(new Blob(["pdf"]));
+		render(
+			<SupportProjectDetails
+				{...props}
+				projectPackages={{ ...projectPackages, purchases: [purchases[0]] }}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		await waitFor(() => expect(downloads).toHaveLength(1));
+		expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(1);
+	});
+
+	it("reports generation errors and re-enables the button for another attempt", async () => {
+		fetchSupportHoursPackageReport.mockRejectedValueOnce(
+			new Error("Generation unavailable"),
+		);
+		render(<SupportProjectDetails {...props} selectedPurchaseId={1} />);
+		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		await waitFor(() =>
+			expect(notify).toHaveBeenCalledWith({
+				message: "Не удалось сформировать отчёт по пакету. Повторите попытку.",
+				type: "error",
+			}),
+		);
+		expect(
+			screen.getByRole("button", { name: "Отчёт по пакету" }),
+		).toBeEnabled();
+		expect(createObjectURL).not.toHaveBeenCalled();
+		expect(downloads).toHaveLength(0);
 	});
 });

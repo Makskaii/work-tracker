@@ -5,6 +5,7 @@ import {
 	FiChevronDown,
 	FiChevronRight,
 	FiClock,
+	FiDownload,
 	FiEdit3,
 	FiExternalLink,
 	FiFileText,
@@ -13,8 +14,12 @@ import {
 } from "react-icons/fi";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
+import { notify } from "@/shared/ui/NotificationPopup/notify";
 import styles from "./ClientHoursPackagesPage.module.scss";
-import type { SupportProjectTask } from "./clientHoursPackages.api";
+import {
+	fetchSupportHoursPackageReport,
+	type SupportProjectTask,
+} from "./clientHoursPackages.api";
 import type {
 	ClientPackage,
 	PackagePurchase,
@@ -90,6 +95,7 @@ export const SupportProjectDetails = ({
 	const [selectedReport, setSelectedReport] =
 		useState<SupportHoursReportItem | null>(null);
 	const [taskQuery, setTaskQuery] = useState("");
+	const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 	const [taskStatusFilter, setTaskStatusFilter] =
 		useState<TaskStatusFilter>("all");
 	if (!project)
@@ -112,6 +118,13 @@ export const SupportProjectDetails = ({
 			? null
 			: (purchases.find((purchase) => purchase.id === effectivePurchaseId) ??
 				null);
+	const reportPurchase =
+		selectedPurchase ?? (purchases.length === 1 ? purchases[0] : null);
+	const reportHint = reportPurchase
+		? "За весь пакет по сегодняшний день"
+		: purchases.length
+			? "Выберите пакет для отчёта"
+			: "Добавьте пакет для отчёта";
 	const periodPurchase =
 		selectedPurchase ??
 		purchases.toSorted(
@@ -159,6 +172,33 @@ export const SupportProjectDetails = ({
 		});
 	};
 
+	const downloadPackageReport = async () => {
+		if (!reportPurchase || isGeneratingReport) return;
+		setIsGeneratingReport(true);
+		try {
+			const pdf = await fetchSupportHoursPackageReport(reportPurchase.id);
+			const objectUrl = URL.createObjectURL(pdf);
+			const link = document.createElement("a");
+			try {
+				link.href = objectUrl;
+				link.download = `support-package-${reportPurchase.id}.pdf`;
+				document.body.appendChild(link);
+				link.click();
+			} finally {
+				link.remove();
+				// Give the browser time to start reading the download before releasing it.
+				window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+			}
+		} catch {
+			notify({
+				message: "Не удалось сформировать отчёт по пакету. Повторите попытку.",
+				type: "error",
+			});
+		} finally {
+			setIsGeneratingReport(false);
+		}
+	};
+
 	return (
 		<main className={styles.projectDetails}>
 			<header className={styles.detailsHeader}>
@@ -174,6 +214,20 @@ export const SupportProjectDetails = ({
 					<p>Управление пакетами часов и историей списаний по проекту</p>
 				</div>
 				<div className={styles.detailsActions}>
+					<div className={styles.packageReportAction}>
+						<button
+							className={styles.packageReportButton}
+							type="button"
+							disabled={!reportPurchase || isGeneratingReport}
+							aria-busy={isGeneratingReport}
+							title={reportHint}
+							onClick={downloadPackageReport}
+						>
+							<FiDownload aria-hidden="true" />
+							{isGeneratingReport ? "Готовим отчёт…" : "Отчёт по пакету"}
+						</button>
+						<small>{reportHint}</small>
+					</div>
 					<button
 						className={styles.addPackageButton}
 						type="button"

@@ -173,3 +173,16 @@ export const syncSupportHoursReports = (signal?: AbortSignal) =>
 		{},
 		{ signal, timeout: 120_000 },
 	);
+
+export const fetchSupportHoursPackageReport = async (packageId: number) => {
+	const response = await $backendApi.post<Blob>(
+		`support-hours-packages/${packageId}/report`,
+		{},
+		{
+			responseType: "blob",
+			headers: { Accept: "application/pdf" },
+			timeout: 120_000,
+		},
+	);
+	return response.data;
+};
