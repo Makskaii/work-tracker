@@ -1,29 +1,27 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
+import { Modal } from "../../../../components/modal";
 import { Calendar } from "../../../../components/calendar/Calendar";
-import { getPaymentSummary } from "../../../../components/calendar/helpers/paymentType";
+import {
+	getInternalProjectIds,
+	getReportCategorySummary,
+} from "../../../../components/calendar/helpers/reportCategory";
 import { EntityTypeIds } from "../../../../shared/constants/const";
 import { useBitrixSlider } from "../../../../shared/hooks/useBitrixSlider";
 import type { GroupedReportFields } from "../../../../shared/types/table";
 import type { ReportsContext } from "../../../../shared/types/types";
-import { fetchCompanyTitlesByIds } from "./model/companyTitles";
 import { getEmployeeMetricsFromReports } from "./model/employeeMetrics";
-import {
-	buildClientTitleMap,
-	groupReportsByClientsProjectsAndActivities,
-} from "./model/groupReports";
+import { groupReportsByProject } from "./model/groupReportsByProject";
 import type { EmployeeMetrics, ViewCalendar } from "./model/types";
 import {
 	createEmptyEmployeeMetrics,
 	getCapacityByView,
 	getDepartmentUsers,
-	getProjectKey,
 	parseTimeSpent,
 } from "./model/utils";
 import cls from "./ReportsCalendar.module.scss";
 import { EmployeesPanel } from "./ui/EmployeesPanel";
 import { PeriodControls } from "./ui/PeriodControls";
-import { ProjectActivitiesTree } from "./ui/ProjectActivitiesTree/ProjectActivitiesTree";
 import { ProjectCardsPanel } from "./ui/ProjectCardsPanel";
 import { ReportsPanel } from "./ui/ReportsPanel";
 import { SummaryCard } from "./ui/SummaryCard";
@@ -45,14 +43,8 @@ const ReportsCalendar = () => {
 	const [employeeMetrics, setEmployeeMetrics] = useState<EmployeeMetrics>(
 		createEmptyEmployeeMetrics,
 	);
-	const [expandedClients, setExpandedClients] = useState<Set<number>>(
-		() => new Set(),
-	);
 	const [selectedProjectKey, setSelectedProjectKey] = useState("");
-	const [reportCompanyTitleById, setReportCompanyTitleById] = useState<
-		Map<number, string>
-	>(() => new Map());
-	const requestedCompanyIdsRef = useRef<Set<number>>(new Set());
+	const [isProjectReportsOpen, setIsProjectReportsOpen] = useState(false);
 
 	const departmentUsers = useMemo(
 		() => getDepartmentUsers(context.users),
@@ -126,143 +118,40 @@ const ReportsCalendar = () => {
 		setSelectedYear(today.getFullYear());
 	};
 
+	const reportProjects = useMemo(
+		() => groupReportsByProject(groupedByActivity, context.projects),
+		[groupedByActivity, context.projects],
+	);
 	useEffect(() => {
-		const clientTitleMap = buildClientTitleMap(context.clientsList);
-		const missingCompanyIds = Array.from(
-			new Set(
-				groupedByActivity
-					.map((report) => Number(report.company ?? report.client))
-					.filter(
-						(companyId) =>
-							companyId &&
-							!clientTitleMap.has(companyId) &&
-							!reportCompanyTitleById.has(companyId) &&
-							!requestedCompanyIdsRef.current.has(companyId),
-					),
-			),
-		);
-
-		if (!missingCompanyIds.length) return;
-
-		let isCancelled = false;
-		let shouldRetryOnCleanup = true;
-
-		for (const companyId of missingCompanyIds) {
-			requestedCompanyIdsRef.current.add(companyId);
+		if (!reportProjects.some((project) => project.key === selectedProjectKey)) {
+			setSelectedProjectKey(reportProjects[0]?.key ?? "");
 		}
-
-		fetchCompanyTitlesByIds(missingCompanyIds)
-			.then((companyTitleMap) => {
-				if (isCancelled || !companyTitleMap.size) return;
-
-				shouldRetryOnCleanup = false;
-
-				setReportCompanyTitleById((prev) => {
-					const next = new Map(prev);
-
-					for (const [companyId, title] of companyTitleMap) {
-						next.set(companyId, title);
-					}
-
-					return next;
-				});
-			})
-			.catch((error) => {
-				shouldRetryOnCleanup = false;
-
-				for (const companyId of missingCompanyIds) {
-					requestedCompanyIdsRef.current.delete(companyId);
-				}
-
-				console.error("Failed to fetch report companies", error);
-			});
-
-		return () => {
-			isCancelled = true;
-
-			if (shouldRetryOnCleanup) {
-				for (const companyId of missingCompanyIds) {
-					requestedCompanyIdsRef.current.delete(companyId);
-				}
-			}
-		};
-	}, [context.clientsList, groupedByActivity, reportCompanyTitleById]);
-
-	const groupedClientActivities = useMemo(() => {
-		return groupReportsByClientsProjectsAndActivities({
-			reports: groupedByActivity,
-			projects: context.projects,
-			activities: context.activities,
-			clients: context.clientsList,
-			companyTitleById: reportCompanyTitleById,
-		});
-	}, [
-		context.activities,
-		context.projects,
-		groupedByActivity,
-		context.clientsList,
-		reportCompanyTitleById,
-	]);
-
-	const firstProjectKey = groupedClientActivities[0]?.projects[0]
-		? getProjectKey(
-				groupedClientActivities[0].clientId,
-				groupedClientActivities[0].projects[0].projectId,
-			)
-		: "";
-
-	useEffect(() => {
-		if (!firstProjectKey) {
-			setSelectedProjectKey("");
-			return;
-		}
-
-		const hasSelectedProject = groupedClientActivities.some((client) =>
-			client.projects.some(
-				(project) =>
-					getProjectKey(client.clientId, project.projectId) ===
-					selectedProjectKey,
-			),
-		);
-
-		if (!hasSelectedProject) {
-			setSelectedProjectKey(firstProjectKey);
-		}
-	}, [firstProjectKey, groupedClientActivities, selectedProjectKey]);
-
-	const selectedClientProject = useMemo(() => {
-		for (const client of groupedClientActivities) {
-			const project = client.projects.find(
-				(project) =>
-					getProjectKey(client.clientId, project.projectId) ===
-					selectedProjectKey,
-			);
-
-			if (project) {
-				return { client, project };
-			}
-		}
-
-		return null;
-	}, [groupedClientActivities, selectedProjectKey]);
-
-	const selectedProjectReports = useMemo(() => {
-		if (!selectedClientProject) return [];
-
-		return groupedByActivity
-			.filter((report) => {
-				const clientId = Number(report.company ?? report.client);
-				const projectId = Number(report.parentproject ?? report.project);
-
-				return (
-					clientId === selectedClientProject.client.clientId &&
-					projectId === selectedClientProject.project.projectId
-				);
-			})
-			.toSorted(
-				(a, b) => new Date(b.day).getTime() - new Date(a.day).getTime(),
-			);
-	}, [groupedByActivity, selectedClientProject]);
+	}, [reportProjects, selectedProjectKey]);
+	const selectedProject = reportProjects.find(
+		(project) => project.key === selectedProjectKey,
+	);
+	const selectProject = (key: string) => {
+		setSelectedProjectKey(key);
+		if (isCalendarVisible) setIsProjectReportsOpen(true);
+	};
+	const projectPanel = (
+		<ProjectCardsPanel
+			projects={reportProjects}
+			selectedProjectKey={selectedProjectKey}
+			isLoading={isReportDataLoading}
+			onSelectProject={selectProject}
+		/>
+	);
+	const reportsPanel = (
+		<ReportsPanel
+			projectTitle={selectedProject?.title}
+			reports={selectedProject?.reports ?? []}
+			users={context.users}
+			activities={context.activities}
+			isLoading={isReportDataLoading}
+			onOpenReport={(reportId) => openTask(reportId, EntityTypeIds.reports)}
+		/>
+	);
 
 	const currentEmployeeMetrics = useMemo(
 		() => getEmployeeMetricsFromReports(groupedByActivity, context.activities),
@@ -310,9 +199,14 @@ const ReportsCalendar = () => {
 		selectedUserId,
 	]);
 
-	const paymentSummary = getPaymentSummary(
+	const internalProjectIds = useMemo(
+		() => getInternalProjectIds(context.projects, context.clientsList),
+		[context.projects, context.clientsList],
+	);
+	const categorySummary = getReportCategorySummary(
 		groupedByActivity,
 		context.activities,
+		internalProjectIds,
 	);
 	const totalHours = groupedByActivity.reduce(
 		(acc, report) => acc + parseTimeSpent(report.timeSpent),
@@ -325,9 +219,6 @@ const ReportsCalendar = () => {
 	const sidebarTotalHours = employeeMetrics.hasLoaded
 		? employeeMetrics.totalHours
 		: totalHours;
-	const selectedUserNotAtWork = selectedUserId
-		? (employeeMetrics.notAtWork.get(selectedUserId) ?? 0)
-		: 0;
 	const isEmployeeSidebarCompact =
 		isCalendarVisible && isEmployeeSidebarCollapsed;
 	const employeesPanel = (
@@ -346,28 +237,6 @@ const ReportsCalendar = () => {
 			onUserChange={handleUserChange}
 		/>
 	);
-
-	const getActivityTitle = (activityId: number) =>
-		context.activities.find((activity) => Number(activity.ID) === activityId)
-			?.NAME ?? `Активность #${activityId}`;
-
-	const getEmployeeTitle = (userId: string | number) =>
-		context.users.find((user) => String(user.id) === String(userId))?.title ??
-		`Сотрудник #${userId}`;
-
-	const toggleClient = (clientId: number) => {
-		setExpandedClients((prev) => {
-			const next = new Set(prev);
-
-			if (next.has(clientId)) {
-				next.delete(clientId);
-			} else {
-				next.add(clientId);
-			}
-
-			return next;
-		});
-	};
 
 	return (
 		<div className={cls.page}>
@@ -450,15 +319,10 @@ const ReportsCalendar = () => {
 							{employeesPanel}
 							{!isEmployeeSidebarCollapsed && (
 								<>
-									<section className={cls.clientsTree}>
-										<div className={cls.treeTitle}>Клиенты</div>
-										<ProjectActivitiesTree data={groupedClientActivities} />
-									</section>
+									{projectPanel}
 									<SummaryCard
 										title={selectedUser?.title ?? "Весь отдел"}
-										paymentSummary={paymentSummary}
-										showNotAtWork={Boolean(selectedUserId)}
-										notAtWorkHours={selectedUserNotAtWork}
+										summary={categorySummary}
 									/>
 								</>
 							)}
@@ -502,28 +366,18 @@ const ReportsCalendar = () => {
 						/>
 						<div className={cls.hiddenCalendarLayout}>
 							{employeesPanel}
-							<ProjectCardsPanel
-								clients={groupedClientActivities}
-								expandedClients={expandedClients}
-								selectedProjectKey={selectedProjectKey}
-								isLoading={isReportDataLoading}
-								onToggleClient={toggleClient}
-								onSelectProject={setSelectedProjectKey}
-							/>
-							<ReportsPanel
-								selectedClientProject={selectedClientProject}
-								reports={selectedProjectReports}
-								activities={context.activities}
-								isLoading={isReportDataLoading}
-								onOpenReport={(reportId) =>
-									openTask(reportId, EntityTypeIds.reports)
-								}
-								getEmployeeTitle={getEmployeeTitle}
-								getActivityTitle={getActivityTitle}
-							/>
+							{projectPanel}
+							{reportsPanel}
 						</div>
 					</>
 				)}
+				<Modal
+					isOpen={isProjectReportsOpen}
+					onClose={() => setIsProjectReportsOpen(false)}
+					innerScroll
+				>
+					{reportsPanel}
+				</Modal>
 			</div>
 		</div>
 	);

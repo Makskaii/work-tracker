@@ -1,3 +1,42 @@
+.client {
+    --report-category-color: #69d79b;
+    --report-category-surface: rgba(105, 215, 155, 0.14);
+}
+
+.internal {
+    --report-category-color: #72b7ff;
+    --report-category-surface: rgba(114, 183, 255, 0.14);
+}
+
+.notAtWork {
+    --report-category-color: #a9b1ba;
+    --report-category-surface: rgba(169, 177, 186, 0.14);
+}
+
+.categoryLegend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: 0 0 16px;
+    color: var(--color-muted);
+    font-size: 12px;
+
+    span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--report-category-color);
+    }
+}
+
 .container {
     overflow-x: auto;
     scrollbar-width: thin;
@@ -32,7 +71,7 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 20px;
-    box-shadow: 0 12px 28px rgba(1, 8, 14, 0.28);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 
@@ -40,7 +79,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     gap: 8px;
     min-width: 0;
     flex-wrap: wrap;
@@ -108,7 +147,7 @@
 .calendar-title {
     text-align: center;
     color: var(--color-text);
-    margin: 0 0 22px;
+    margin: 0 0 14px;
     font-size: 30px;
     line-height: 1.2;
 }
@@ -176,16 +215,16 @@
     }
 
     &.empty {
-        background: #15191b;
+        background: var(--color-surface);
         border: 1px solid var(--color-border);
         cursor: default;
     }
 
     &:hover:not(.empty) {
-        background: #1b1e21;
+        background: var(--color-surface-hover);
         border-color: var(--color-accent);
         transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(1, 8, 14, 0.2);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
     }
 
     &.today {
@@ -236,19 +275,20 @@
         color: var(--color-text);
     }
 
-    &.clientPaid {
-        background: linear-gradient(135deg, var(--color-payment-client-surface), var(--color-surface-soft));
-        border-color: color-mix(in srgb, var(--color-payment-client) 58%, transparent);
+    &.client,
+    &.internal,
+    &.notAtWork {
+        background: var(--color-surface-soft);
+        border-color: color-mix(in srgb, var(--report-category-color) 48%, transparent);
     }
 
-    &.companyPaid {
-        background: linear-gradient(135deg, var(--color-payment-company-surface), var(--color-surface-soft));
-        border-color: rgba(255, 191, 63, 0.5);
+    &.hasUnconfirmedReports {
+        border-color: var(--color-danger);
     }
 
-    &.unpaid {
-        background: linear-gradient(135deg, var(--color-payment-unpaid-surface), var(--color-surface-soft));
-        border-color: rgba(255, 104, 117, 0.52);
+    &:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 3px;
     }
 
 }
@@ -306,7 +346,7 @@
     }
 }
 
-.paymentBadges {
+.categoryBadges {
     position: relative;
     z-index: 1;
     display: flex;
@@ -315,7 +355,7 @@
     flex-wrap: wrap;
 }
 
-.paymentBadge {
+.categoryBadge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -323,25 +363,11 @@
     height: 20px;
     padding: 0 6px;
     border-radius: 999px;
-    background: var(--color-payment-neutral-surface);
-    color: var(--color-payment-neutral);
+    background: var(--report-category-surface);
+    color: var(--report-category-color);
     font-size: 11px;
     font-weight: 800;
 
-    &.clientPaid {
-        background: var(--color-payment-client-surface);
-        color: var(--color-payment-client);
-    }
-
-    &.companyPaid {
-        background: var(--color-payment-company-surface);
-        color: var(--color-payment-company);
-    }
-
-    &.unpaid {
-        background: var(--color-payment-unpaid-surface);
-        color: var(--color-payment-unpaid);
-    }
 }
 
 .skeletonGrid {
@@ -358,7 +384,7 @@
     padding: 12px 10px;
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: linear-gradient(135deg, #171b1e, #101315);
+    background: var(--color-surface-soft);
     overflow: hidden;
 }
 
@@ -375,7 +401,7 @@
 .skeletonBadges span {
     display: block;
     border-radius: 999px;
-    background: linear-gradient(90deg, #30363a, #4b5358, #30363a);
+    background: linear-gradient(90deg, #25282b, #373c40, #25282b);
     background-size: 220% 100%;
     animation: skeletonShimmer 1.25s ease-in-out infinite;
 }
@@ -493,60 +519,29 @@
         font-size: 15px;
     }
 
-    &.clientPaid {
-        border-color: color-mix(in srgb, var(--color-payment-client) 42%, transparent);
-        background: var(--color-payment-client-surface);
+    &.client,
+    &.internal,
+    &.notAtWork {
+        border-color: color-mix(in srgb, var(--report-category-color) 35%, transparent);
+        background: var(--report-category-surface);
 
         strong {
-            color: var(--color-payment-client);
-        }
-    }
-
-    &.companyPaid {
-        border-color: rgba(255, 191, 63, 0.36);
-        background: var(--color-payment-company-surface);
-
-        strong {
-            color: var(--color-payment-company);
-        }
-    }
-
-    &.unpaid {
-        border-color: rgba(255, 104, 117, 0.36);
-        background: var(--color-payment-unpaid-surface);
-
-        strong {
-            color: var(--color-payment-unpaid);
+            color: var(--report-category-color);
         }
     }
 }
 
-.activitySummary {
+.dayReportsList {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 0 0;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
 }
 
-.activitySummaryItem {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: var(--color-surface-soft);
-    color: rgba(238, 245, 255, 0.78);
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.activitySummaryItem:hover,
-.activitySummaryItemActive {
-    border-color: var(--color-accent);
-    background: rgba(57, 214, 238, 0.12);
-    color: var(--color-accent);
+.emptyReports {
+    padding: 24px 12px;
+    color: var(--color-muted);
+    text-align: center;
 }
 
 .dayModalFilters {
@@ -683,12 +678,12 @@
         margin-bottom: 6px;
     }
 
-    .paymentBadges {
+    .categoryBadges {
         gap: 4px;
         margin-top: 6px;
     }
 
-    .paymentBadge {
+    .categoryBadge {
         min-width: 22px;
         height: 18px;
         padding: 0 5px;
@@ -701,9 +696,6 @@
         min-height: 88px;
     }
 
-    .dayReportMeta span:last-child {
-        display: none;
-    }
 }
 
 @media (max-width: 900px) {

@@ -1,26 +1,24 @@
 import dayjs, { type Dayjs } from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
+import { parseTimeSpent } from "@/pages/ReportsPage/ui/UserReports/model/utils";
+import { CompactReportRow } from "@/pages/ReportsPage/ui/UserReports/ui/CompactReportRow";
 import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
+import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
-import { convertToMinutesOrHours } from "@/shared/utils/utils";
 import { Modal } from "../modal";
-import {
-	ActivityTitle,
-	months,
-	ReportCodes,
-	ReportStageIds,
-} from "./constants/const";
+import { months, ReportCodes, ReportStageIds } from "./constants/const";
 import { buildWeekCalendarFromReports } from "./helpers/generateWeek";
-import { getColorAdnBorder } from "./helpers/getReportItemColors";
 import {
-	getPaymentSummary,
-	PAYMENT_KIND_BY_SORT,
-	PAYMENT_SORT_TITLES,
-	type PaymentSort,
-} from "./helpers/paymentType";
+	getInternalProjectIds,
+	getReportCategory,
+	getReportCategorySummary,
+	REPORT_CATEGORIES,
+	REPORT_CATEGORY_TITLES,
+	type ReportCategory,
+} from "./helpers/reportCategory";
 import type { ReportProps } from "./types/types";
 import cls from "./WeekCalendar.module.scss";
 
@@ -76,13 +74,8 @@ const formatWeekTitle = (range: WeekRange) => {
 
 const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
 
-const getVisiblePaymentSorts = (summary: Record<PaymentSort, number>) => {
-	const paidSorts = ([0, 1, 2] as PaymentSort[]).filter(
-		(sort) => summary[sort] > 0,
-	);
-
-	return paidSorts.length ? paidSorts : ([0, 1, 2] as PaymentSort[]);
-};
+const getVisibleCategories = (summary: Record<ReportCategory, number>) =>
+	REPORT_CATEGORIES.filter((category) => summary[category] > 0);
 
 const mapReportToGroupedFields = (
 	report: ReportProps,
@@ -117,9 +110,17 @@ const WeekCalendar = ({
 	onWeekRangeChange?: (range: WeekRange) => void;
 }) => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [activeReport, setActiveReport] = useState<ReportProps>();
+	const [activeReports, setActiveReports] = useState<GroupedReportFields[]>([]);
+	const [activeDayTitle, setActiveDayTitle] = useState("");
+	const [activeCategory, setActiveCategory] = useState<ReportCategory>();
 	const [selectedDay, setSelectedDay] = useState(() => dayjs());
-	const { activities } = useOutletContext<ReportsContext>();
+	const { activities, users, projects, clientsList } =
+		useOutletContext<ReportsContext>();
+	const { openTask } = useBitrixSlider();
+	const internalProjectIds = useMemo(
+		() => getInternalProjectIds(projects, clientsList),
+		[projects, clientsList],
+	);
 
 	const selectedRange = useMemo(() => getWeekRange(selectedDay), [selectedDay]);
 	const selectedFilterRange = useMemo(
@@ -164,6 +165,7 @@ const WeekCalendar = ({
 					ReportCodes.taskType,
 					ReportCodes.activityType,
 					"assignedById",
+					"stageId",
 					"createdTime",
 					"lastActivityTime",
 					`parentId${EntityTypeIds.tasks}`,
@@ -197,6 +199,7 @@ const WeekCalendar = ({
 					ReportCodes.taskType,
 					ReportCodes.activityType,
 					"assignedById",
+					"stageId",
 					"createdTime",
 					"lastActivityTime",
 					`parentId${EntityTypeIds.tasks}`,
@@ -280,6 +283,15 @@ const WeekCalendar = ({
 
 			<h2 className={cls.weekTitle}>{formatWeekTitle(selectedRange)}</h2>
 
+			<div className={cls.categoryLegend} aria-label="Категории отчётов">
+				{REPORT_CATEGORIES.map((category) => (
+					<span key={category} className={cls[category]}>
+						<i aria-hidden="true" />
+						{REPORT_CATEGORY_TITLES[category]}
+					</span>
+				))}
+			</div>
+
 			<div className={cls.weekGridHeader}>
 				{weekCalendar.map((day) => (
 					<div key={day.id} data-weekend={day.isWeekend}>
@@ -292,7 +304,34 @@ const WeekCalendar = ({
 				{weekCalendar.map((day) => {
 					const reports = day.reports ?? [];
 					const groupedReports = reports.map(mapReportToGroupedFields);
-					const paymentSummary = getPaymentSummary(groupedReports, activities);
+					const categorySummary = getReportCategorySummary(
+						groupedReports,
+						activities,
+						internalProjectIds,
+					);
+					const openDayReports = (category?: ReportCategory) => {
+						setActiveReports(
+							category
+								? groupedReports.filter(
+										(report) =>
+											getReportCategory(
+												report,
+												activities,
+												internalProjectIds,
+											) === category,
+									)
+								: groupedReports,
+						);
+						setActiveCategory(category);
+						setActiveDayTitle(
+							day.date.toLocaleDateString("ru-RU", {
+								day: "numeric",
+								month: "long",
+								year: "numeric",
+							}),
+						);
+						setIsModalOpen(true);
+					};
 					const unconfirmedCount = reports.filter(
 						(report) => report.stageId === ReportStageIds.unconfirmed,
 					).length;
@@ -305,53 +344,39 @@ const WeekCalendar = ({
 							data-weekend={day.isWeekend}
 							data-empty={!reports.length}
 						>
-							<div className={cls.dayTopline}>
-								<div className={cls.dayNumber}>{day.dayNumber}</div>
-								{day.totalHours && (
-									<div className={cls.dayHours}>
+							<button
+								type="button"
+								className={cls.dayTopline}
+								disabled={!reports.length}
+								onClick={() => openDayReports()}
+								aria-label={`Все отчёты за ${day.dayNumber}: ${reports.length}`}
+							>
+								<span className={cls.dayNumber}>{day.dayNumber}</span>
+								{!!day.totalHours && (
+									<span className={cls.dayHours}>
 										{formatHours(day.totalHours)}
-									</div>
+									</span>
 								)}
-							</div>
+							</button>
 							<div className={cls.dayName}>{day.dayName}</div>
-							{day.totalHours && (
+							{!!day.totalHours && (
 								<div className={cls.dayReportMeta}>
-									<span>{formatHours(day.totalHours)}</span>
 									<span>{reports.length} отчетов</span>
 								</div>
 							)}
 							{!!day.totalHours && (
-								<div className={cls.paymentBadges}>
-									{getVisiblePaymentSorts(paymentSummary).map((sort) => {
-										const hours = paymentSummary[sort];
-										const kind = PAYMENT_KIND_BY_SORT[sort];
-
-										return (
-											<button
-												type="button"
-												key={sort}
-												className={`${cls.paymentBadge} ${cls[kind]}`}
-												title={PAYMENT_SORT_TITLES[sort]}
-												onClick={() => {
-													const firstReport = reports.find((report) => {
-														const reportSummary = getPaymentSummary(
-															[mapReportToGroupedFields(report)],
-															activities,
-														);
-
-														return reportSummary[sort] > 0;
-													});
-
-													if (firstReport) {
-														setIsModalOpen(true);
-														setActiveReport(firstReport);
-													}
-												}}
-											>
-												{Number(hours.toFixed(1))}
-											</button>
-										);
-									})}
+								<div className={cls.categoryBadges}>
+									{getVisibleCategories(categorySummary).map((category) => (
+										<button
+											type="button"
+											key={category}
+											className={`${cls.categoryBadge} ${cls[category]}`}
+											title={`${REPORT_CATEGORY_TITLES[category]}: ${formatHours(categorySummary[category])}`}
+											onClick={() => openDayReports(category)}
+										>
+											{Number(categorySummary[category].toFixed(1))}
+										</button>
+									))}
 								</div>
 							)}
 							{!!unconfirmedCount && (
@@ -369,22 +394,36 @@ const WeekCalendar = ({
 				onClose={() => setIsModalOpen(false)}
 				innerScroll
 			>
-				{activeReport && (
-					<div className={cls.modalContent}>
-						<div
-							className={cls.modalActivity}
-							style={getColorAdnBorder(activeReport, activities)}
-						>
-							{ActivityTitle[activeReport?.[ReportCodes.activityType]]}
-							<strong>
-								{convertToMinutesOrHours(+activeReport[ReportCodes.timeSpent])}
-							</strong>
-						</div>
-						<div className={cls.modalTitle}>
-							{activeReport?.[ReportCodes.title]}
-						</div>
+				<div className={cls.modalContent}>
+					<div className={cls.modalHeading}>
+						<h3>{activeDayTitle}</h3>
+						{activeCategory && (
+							<span className={`${cls.categoryBadge} ${cls[activeCategory]}`}>
+								{REPORT_CATEGORY_TITLES[activeCategory]}
+							</span>
+						)}
 					</div>
-				)}
+					{activeReports.map((report) => (
+						<CompactReportRow
+							key={report.id}
+							report={report}
+							users={users}
+							activities={activities}
+							onOpenReport={(id) => {
+								void openTask(id, EntityTypeIds.reports);
+							}}
+						/>
+					))}
+					<div className={cls.modalTotal}>
+						Всего:{" "}
+						{formatHours(
+							activeReports.reduce(
+								(sum, report) => sum + parseTimeSpent(report.timeSpent),
+								0,
+							),
+						)}
+					</div>
+				</div>
 			</Modal>
 		</div>
 	);

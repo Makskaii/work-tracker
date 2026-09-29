@@ -1,26 +1,8 @@
-import { ActivityType } from "@/components/calendar/constants/const";
+import { isNotAtWorkReport } from "@/components/calendar/helpers/reportCategory";
 import type { GroupedReportFields } from "@/shared/types/table";
 import type { ActivityListItem } from "../../../types/types";
 import type { EmployeeMetrics } from "./types";
 import { parseTimeSpent } from "./utils";
-
-const isNotAtWorkReport = (
-	report: GroupedReportFields,
-	activities: ActivityListItem[],
-) => {
-	const activityId = Number(report.activity);
-
-	if (activityId === ActivityType.notAtWork) {
-		return true;
-	}
-
-	const activity = activities.find((item) => Number(item.ID) === activityId);
-	const searchableText = `${activity?.NAME ?? ""} ${activity?.CODE ?? ""}`
-		.trim()
-		.toLowerCase();
-
-	return searchableText.includes("not at work");
-};
 
 export const getEmployeeMetricsFromReports = (
 	reports: GroupedReportFields[],

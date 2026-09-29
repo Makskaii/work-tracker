@@ -1,97 +1,53 @@
-import {
-	getPaymentKindFromReportTaskType,
-	getPaymentSortFromReportTaskType,
-	PAYMENT_SORT_TITLES,
-} from "@/components/calendar/helpers/paymentType";
 import type { GroupedReportFields } from "@/shared/types/table";
-import type {
-	ActivityListItem,
-	GroupedClientItem,
-	GroupedProjectItem,
-} from "../../../types/types";
-import { formatHours, parseTimeSpent } from "../model/utils";
+import type { User } from "@/shared/types/types";
+import type { ActivityListItem } from "../../../types/types";
 import cls from "../ReportsCalendar.module.scss";
+import { CompactReportRow } from "./CompactReportRow";
 import { PanelSkeleton } from "./PanelSkeleton";
 
-type SelectedClientProject = {
-	client: GroupedClientItem;
-	project: GroupedProjectItem;
-} | null;
-
 type ReportsPanelProps = {
-	selectedClientProject: SelectedClientProject;
+	projectTitle?: string;
 	reports: GroupedReportFields[];
+	users: User[];
 	activities: ActivityListItem[];
 	isLoading: boolean;
 	onOpenReport: (reportId: string) => void;
-	getEmployeeTitle: (userId: string | number) => string;
-	getActivityTitle: (activityId: number) => string;
 };
 
 export const ReportsPanel = ({
-	selectedClientProject,
+	projectTitle,
 	reports,
+	users,
 	activities,
 	isLoading,
 	onOpenReport,
-	getEmployeeTitle,
-	getActivityTitle,
 }: ReportsPanelProps) => (
-	<section className={`${cls.panel} ${cls.reportsPanel}`}>
+	<section
+		className={`${cls.panel} ${cls.reportsPanel}`}
+		aria-label="Отчёты проекта"
+	>
 		<div className={cls.panelHeader}>
-			<h3>
-				Отчеты: {selectedClientProject?.client.clientTitle ?? "клиент"} -{" "}
-				{selectedClientProject?.project.projectTitle ?? "проект"}
-			</h3>
+			<h3>{projectTitle ? `Отчёты: ${projectTitle}` : "Отчёты"}</h3>
 			<span>{reports.length}</span>
 		</div>
 		<div className={cls.reportList}>
 			{isLoading ? (
 				<PanelSkeleton rows={8} variant="report" />
 			) : (
-				reports.map((report) => {
-					const paymentKind = getPaymentKindFromReportTaskType(
-						report,
-						activities,
-					);
-
-					return (
-						<button
-							type="button"
-							key={report.id}
-							className={cls.reportRow}
-							onClick={() => onOpenReport(report.id)}
-						>
-							<div className={cls.reportMain}>
-								<strong>{report.title}</strong>
-								<small>
-									{getEmployeeTitle(report.assignedById)} ·{" "}
-									{new Date(report.day).toLocaleDateString("ru-RU")}
-								</small>
-							</div>
-							<span className={cls.activityBadge}>
-								{getActivityTitle(Number(report.activity))}
-							</span>
-							<span
-								className={`${cls.paymentLabel} ${
-									paymentKind ? cls[paymentKind] : ""
-								}`}
-							>
-								{paymentKind
-									? PAYMENT_SORT_TITLES[
-											getPaymentSortFromReportTaskType(report, activities) ?? 0
-										]
-									: "Без типа"}
-							</span>
-							<strong className={cls.reportHours}>
-								{formatHours(parseTimeSpent(report.timeSpent))}
-							</strong>
-						</button>
-					);
-				})
+				reports.map((report) => (
+					<CompactReportRow
+						key={report.id}
+						report={report}
+						users={users}
+						activities={activities}
+						onOpenReport={onOpenReport}
+					/>
+				))
 			)}
 			{!isLoading && !reports.length && (
-				<div className={cls.emptyState}>Выберите клиента или проект</div>
+				<div className={cls.emptyState}>
+					{projectTitle ? "Нет отчётов за выбранный период" : "Выберите проект"}
+				</div>
 			)}
 		</div>
 	</section>
