@@ -99,6 +99,7 @@ export interface TaskProps {
 }
 
 export interface User {
+	isActive?: boolean;
 	id: string;
 	value: string;
 	title: string;

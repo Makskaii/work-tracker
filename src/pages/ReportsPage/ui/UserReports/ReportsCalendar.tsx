@@ -1,29 +1,28 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
+import { Modal } from "../../../../components/modal";
+import { ReportStageIds } from "@/components/calendar/constants/const";
 import { Calendar } from "../../../../components/calendar/Calendar";
-import { getPaymentSummary } from "../../../../components/calendar/helpers/paymentType";
+import {
+	getInternalProjectIds,
+	getReportCategorySummary,
+} from "../../../../components/calendar/helpers/reportCategory";
 import { EntityTypeIds } from "../../../../shared/constants/const";
 import { useBitrixSlider } from "../../../../shared/hooks/useBitrixSlider";
 import type { GroupedReportFields } from "../../../../shared/types/table";
 import type { ReportsContext } from "../../../../shared/types/types";
-import { fetchCompanyTitlesByIds } from "./model/companyTitles";
 import { getEmployeeMetricsFromReports } from "./model/employeeMetrics";
+import { groupReportsByProject } from "./model/groupReportsByProject";
+import type { ViewCalendar } from "./model/types";
 import {
-	buildClientTitleMap,
-	groupReportsByClientsProjectsAndActivities,
-} from "./model/groupReports";
-import type { EmployeeMetrics, ViewCalendar } from "./model/types";
-import {
-	createEmptyEmployeeMetrics,
 	getCapacityByView,
 	getDepartmentUsers,
-	getProjectKey,
-	parseTimeSpent,
+	getVisibleEmployees,
 } from "./model/utils";
 import cls from "./ReportsCalendar.module.scss";
 import { EmployeesPanel } from "./ui/EmployeesPanel";
 import { PeriodControls } from "./ui/PeriodControls";
-import { ProjectActivitiesTree } from "./ui/ProjectActivitiesTree/ProjectActivitiesTree";
 import { ProjectCardsPanel } from "./ui/ProjectCardsPanel";
 import { ReportsPanel } from "./ui/ReportsPanel";
 import { SummaryCard } from "./ui/SummaryCard";
@@ -38,29 +37,32 @@ const ReportsCalendar = () => {
 	const [selectedUserId, setSelectedUserId] = useState("");
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+	const [selectedDate, setSelectedDate] = useState(() =>
+		dayjs().format("YYYY-MM-DD"),
+	);
 	const [groupedByActivity, setGroupByActivity] = useState<
 		GroupedReportFields[]
 	>([]);
 	const [isReportDataLoading, setIsReportDataLoading] = useState(false);
-	const [employeeMetrics, setEmployeeMetrics] = useState<EmployeeMetrics>(
-		createEmptyEmployeeMetrics,
-	);
-	const [expandedClients, setExpandedClients] = useState<Set<number>>(
-		() => new Set(),
-	);
+	const [periodReports, setPeriodReports] = useState<GroupedReportFields[]>([]);
 	const [selectedProjectKey, setSelectedProjectKey] = useState("");
-	const [reportCompanyTitleById, setReportCompanyTitleById] = useState<
-		Map<number, string>
-	>(() => new Map());
-	const requestedCompanyIdsRef = useRef<Set<number>>(new Set());
+	const [isProjectReportsOpen, setIsProjectReportsOpen] = useState(false);
 
 	const departmentUsers = useMemo(
 		() => getDepartmentUsers(context.users),
 		[context.users],
 	);
-	const selectedUser = departmentUsers.find(
+	const visibleEmployees = useMemo(
+		() => getVisibleEmployees(departmentUsers, periodReports),
+		[departmentUsers, periodReports],
+	);
+	const selectedUser = visibleEmployees.find(
 		(user) => user.id === selectedUserId,
 	);
+	const effectiveUserId = selectedUser?.id ?? "";
+	useEffect(() => {
+		context.setUser(effectiveUserId);
+	}, [effectiveUserId, context.setUser]);
 	const departmentUserIds = useMemo(
 		() => departmentUsers.map((user) => user.id),
 		[departmentUsers],
@@ -84,257 +86,104 @@ const ReportsCalendar = () => {
 		});
 	};
 
+	const selectPeriod = (date: dayjs.Dayjs) => {
+		setSelectedDate(date.format("YYYY-MM-DD"));
+		setSelectedMonth(date.month());
+		setSelectedYear(date.year());
+	};
 	const handleMonthChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-		setSelectedMonth(Number(event.target.value));
+		selectPeriod(
+			dayjs(selectedDate)
+				.startOf("month")
+				.year(selectedYear)
+				.month(Number(event.target.value)),
+		);
 	};
-
 	const handleYearChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-		setSelectedYear(Number(event.target.value));
-	};
-
-	const handlePrevMonth = () => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-
-		if (selectedMonth === 0) {
-			setSelectedMonth(11);
-			setSelectedYear((year) => year - 1);
-			return;
-		}
-
-		setSelectedMonth((month) => month - 1);
-	};
-
-	const handleNextMonth = () => {
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-
-		if (selectedMonth === 11) {
-			setSelectedMonth(0);
-			setSelectedYear((year) => year + 1);
-			return;
-		}
-
-		setSelectedMonth((month) => month + 1);
-	};
-
-	const handleToday = () => {
-		const today = new Date();
-
-		setEmployeeMetrics(createEmptyEmployeeMetrics());
-		setSelectedMonth(today.getMonth());
-		setSelectedYear(today.getFullYear());
-	};
-
-	useEffect(() => {
-		const clientTitleMap = buildClientTitleMap(context.clientsList);
-		const missingCompanyIds = Array.from(
-			new Set(
-				groupedByActivity
-					.map((report) => Number(report.company ?? report.client))
-					.filter(
-						(companyId) =>
-							companyId &&
-							!clientTitleMap.has(companyId) &&
-							!reportCompanyTitleById.has(companyId) &&
-							!requestedCompanyIdsRef.current.has(companyId),
-					),
-			),
+		selectPeriod(
+			dayjs(selectedDate)
+				.startOf("month")
+				.month(selectedMonth)
+				.year(Number(event.target.value)),
 		);
-
-		if (!missingCompanyIds.length) return;
-
-		let isCancelled = false;
-		let shouldRetryOnCleanup = true;
-
-		for (const companyId of missingCompanyIds) {
-			requestedCompanyIdsRef.current.add(companyId);
+	};
+	const changePeriod = (direction: number) => {
+		if (view === "week") {
+			selectPeriod(dayjs(selectedDate).add(direction * 7, "day"));
+		} else {
+			selectPeriod(
+				dayjs(new Date(selectedYear, selectedMonth, 1)).add(direction, "month"),
+			);
 		}
+	};
+	const handleToday = () => selectPeriod(dayjs());
 
-		fetchCompanyTitlesByIds(missingCompanyIds)
-			.then((companyTitleMap) => {
-				if (isCancelled || !companyTitleMap.size) return;
-
-				shouldRetryOnCleanup = false;
-
-				setReportCompanyTitleById((prev) => {
-					const next = new Map(prev);
-
-					for (const [companyId, title] of companyTitleMap) {
-						next.set(companyId, title);
-					}
-
-					return next;
-				});
-			})
-			.catch((error) => {
-				shouldRetryOnCleanup = false;
-
-				for (const companyId of missingCompanyIds) {
-					requestedCompanyIdsRef.current.delete(companyId);
-				}
-
-				console.error("Failed to fetch report companies", error);
-			});
-
-		return () => {
-			isCancelled = true;
-
-			if (shouldRetryOnCleanup) {
-				for (const companyId of missingCompanyIds) {
-					requestedCompanyIdsRef.current.delete(companyId);
-				}
-			}
-		};
-	}, [context.clientsList, groupedByActivity, reportCompanyTitleById]);
-
-	const groupedClientActivities = useMemo(() => {
-		return groupReportsByClientsProjectsAndActivities({
-			reports: groupedByActivity,
-			projects: context.projects,
-			activities: context.activities,
-			clients: context.clientsList,
-			companyTitleById: reportCompanyTitleById,
-		});
-	}, [
-		context.activities,
-		context.projects,
-		groupedByActivity,
-		context.clientsList,
-		reportCompanyTitleById,
-	]);
-
-	const firstProjectKey = groupedClientActivities[0]?.projects[0]
-		? getProjectKey(
-				groupedClientActivities[0].clientId,
-				groupedClientActivities[0].projects[0].projectId,
-			)
-		: "";
-
+	const reportProjects = useMemo(
+		() => groupReportsByProject(groupedByActivity, context.projects),
+		[groupedByActivity, context.projects],
+	);
 	useEffect(() => {
-		if (!firstProjectKey) {
-			setSelectedProjectKey("");
-			return;
+		if (!reportProjects.some((project) => project.key === selectedProjectKey)) {
+			setSelectedProjectKey(reportProjects[0]?.key ?? "");
 		}
-
-		const hasSelectedProject = groupedClientActivities.some((client) =>
-			client.projects.some(
-				(project) =>
-					getProjectKey(client.clientId, project.projectId) ===
-					selectedProjectKey,
-			),
-		);
-
-		if (!hasSelectedProject) {
-			setSelectedProjectKey(firstProjectKey);
-		}
-	}, [firstProjectKey, groupedClientActivities, selectedProjectKey]);
-
-	const selectedClientProject = useMemo(() => {
-		for (const client of groupedClientActivities) {
-			const project = client.projects.find(
-				(project) =>
-					getProjectKey(client.clientId, project.projectId) ===
-					selectedProjectKey,
-			);
-
-			if (project) {
-				return { client, project };
-			}
-		}
-
-		return null;
-	}, [groupedClientActivities, selectedProjectKey]);
-
-	const selectedProjectReports = useMemo(() => {
-		if (!selectedClientProject) return [];
-
-		return groupedByActivity
-			.filter((report) => {
-				const clientId = Number(report.company ?? report.client);
-				const projectId = Number(report.parentproject ?? report.project);
-
-				return (
-					clientId === selectedClientProject.client.clientId &&
-					projectId === selectedClientProject.project.projectId
-				);
-			})
-			.toSorted(
-				(a, b) => new Date(b.day).getTime() - new Date(a.day).getTime(),
-			);
-	}, [groupedByActivity, selectedClientProject]);
-
-	const currentEmployeeMetrics = useMemo(
-		() => getEmployeeMetricsFromReports(groupedByActivity, context.activities),
-		[groupedByActivity, context.activities],
+	}, [reportProjects, selectedProjectKey]);
+	const selectedProject = reportProjects.find(
+		(project) => project.key === selectedProjectKey,
+	);
+	const selectProject = (key: string) => {
+		setSelectedProjectKey(key);
+		if (isCalendarVisible) setIsProjectReportsOpen(true);
+	};
+	const projectPanel = (
+		<ProjectCardsPanel
+			projects={reportProjects}
+			selectedProjectKey={selectedProjectKey}
+			isLoading={isReportDataLoading}
+			onSelectProject={selectProject}
+		/>
+	);
+	const reportsPanel = (
+		<ReportsPanel
+			projectTitle={selectedProject?.title}
+			reports={selectedProject?.reports ?? []}
+			users={context.users}
+			activities={context.activities}
+			isLoading={isReportDataLoading}
+			onOpenReport={(reportId) => openTask(reportId, EntityTypeIds.reports)}
+		/>
 	);
 
-	useEffect(() => {
-		if (isReportDataLoading) return;
-		if (!groupedByActivity.length && employeeMetrics.hasLoaded) return;
+	const employeeMetrics = useMemo(
+		() =>
+			getEmployeeMetricsFromReports(
+				periodReports.filter(
+					(report) => report.stageId === ReportStageIds.confirmed,
+				),
+				context.activities,
+			),
+		[periodReports, context.activities],
+	);
 
-		if (!selectedUserId) {
-			setEmployeeMetrics(currentEmployeeMetrics);
-			return;
-		}
-
-		setEmployeeMetrics((prev) => {
-			const hours = new Map(prev.hours);
-			const notAtWork = new Map(prev.notAtWork);
-			const previousUserHours = hours.get(selectedUserId) ?? 0;
-			const nextUserHours =
-				currentEmployeeMetrics.hours.get(selectedUserId) ?? 0;
-			const nextTotalHours =
-				prev.hasLoaded && prev.totalHours
-					? prev.totalHours - previousUserHours + nextUserHours
-					: currentEmployeeMetrics.totalHours;
-
-			hours.set(selectedUserId, nextUserHours);
-			notAtWork.set(
-				selectedUserId,
-				currentEmployeeMetrics.notAtWork.get(selectedUserId) ?? 0,
-			);
-
-			return {
-				hours,
-				notAtWork,
-				totalHours: nextTotalHours,
-				hasLoaded: prev.hasLoaded || currentEmployeeMetrics.hasLoaded,
-			};
-		});
-	}, [
-		currentEmployeeMetrics,
-		employeeMetrics.hasLoaded,
-		groupedByActivity.length,
-		isReportDataLoading,
-		selectedUserId,
-	]);
-
-	const paymentSummary = getPaymentSummary(
+	const internalProjectIds = useMemo(
+		() => getInternalProjectIds(context.projects, context.clientsList),
+		[context.projects, context.clientsList],
+	);
+	const categorySummary = getReportCategorySummary(
 		groupedByActivity,
 		context.activities,
-	);
-	const totalHours = groupedByActivity.reduce(
-		(acc, report) => acc + parseTimeSpent(report.timeSpent),
-		0,
+		internalProjectIds,
 	);
 	const periodCapacity = getCapacityByView(view);
-	const totalCapacity = periodCapacity * departmentUsers.length;
-	const employeeMetricsLoading =
-		isReportDataLoading && !employeeMetrics.hasLoaded;
-	const sidebarTotalHours = employeeMetrics.hasLoaded
-		? employeeMetrics.totalHours
-		: totalHours;
-	const selectedUserNotAtWork = selectedUserId
-		? (employeeMetrics.notAtWork.get(selectedUserId) ?? 0)
-		: 0;
+	const totalCapacity = periodCapacity * visibleEmployees.length;
+	const employeeMetricsLoading = isReportDataLoading;
+	const sidebarTotalHours = employeeMetrics.totalHours;
 	const isEmployeeSidebarCompact =
 		isCalendarVisible && isEmployeeSidebarCollapsed;
 	const employeesPanel = (
 		<EmployeesPanel
-			users={departmentUsers}
+			users={visibleEmployees}
 			view={view}
-			selectedUserId={selectedUserId}
+			selectedUserId={effectiveUserId}
 			employeeMetrics={employeeMetrics}
 			isCompact={isEmployeeSidebarCompact}
 			isCalendarVisible={isCalendarVisible}
@@ -346,28 +195,6 @@ const ReportsCalendar = () => {
 			onUserChange={handleUserChange}
 		/>
 	);
-
-	const getActivityTitle = (activityId: number) =>
-		context.activities.find((activity) => Number(activity.ID) === activityId)
-			?.NAME ?? `Активность #${activityId}`;
-
-	const getEmployeeTitle = (userId: string | number) =>
-		context.users.find((user) => String(user.id) === String(userId))?.title ??
-		`Сотрудник #${userId}`;
-
-	const toggleClient = (clientId: number) => {
-		setExpandedClients((prev) => {
-			const next = new Set(prev);
-
-			if (next.has(clientId)) {
-				next.delete(clientId);
-			} else {
-				next.add(clientId);
-			}
-
-			return next;
-		});
-	};
 
 	return (
 		<div className={cls.page}>
@@ -403,8 +230,8 @@ const ReportsCalendar = () => {
 							<button
 								type="button"
 								className={view === "month" ? cls.activeTab : ""}
+								aria-pressed={view === "month"}
 								onClick={() => {
-									setEmployeeMetrics(createEmptyEmployeeMetrics());
 									setView("month");
 								}}
 							>
@@ -413,26 +240,26 @@ const ReportsCalendar = () => {
 							<button
 								type="button"
 								className={view === "week" ? cls.activeTab : ""}
+								aria-pressed={view === "week"}
 								onClick={() => {
-									setEmployeeMetrics(createEmptyEmployeeMetrics());
 									setView("week");
 								}}
 							>
 								Неделя
 							</button>
 						</div>
-						{!isCalendarVisible && (
-							<PeriodControls
-								selectedMonth={selectedMonth}
-								selectedYear={selectedYear}
-								showToday={isCalendarVisible}
-								onMonthChange={handleMonthChange}
-								onYearChange={handleYearChange}
-								onPrevMonth={handlePrevMonth}
-								onNextMonth={handleNextMonth}
-								onToday={handleToday}
-							/>
-						)}
+						<PeriodControls
+							selectedMonth={selectedMonth}
+							selectedYear={selectedYear}
+							selectedDate={selectedDate}
+							view={view}
+							onWeekChange={setSelectedDate}
+							onMonthChange={handleMonthChange}
+							onYearChange={handleYearChange}
+							onPrevPeriod={() => changePeriod(-1)}
+							onNextPeriod={() => changePeriod(1)}
+							onToday={handleToday}
+						/>
 					</div>
 				</header>
 
@@ -450,15 +277,10 @@ const ReportsCalendar = () => {
 							{employeesPanel}
 							{!isEmployeeSidebarCollapsed && (
 								<>
-									<section className={cls.clientsTree}>
-										<div className={cls.treeTitle}>Клиенты</div>
-										<ProjectActivitiesTree data={groupedClientActivities} />
-									</section>
+									{projectPanel}
 									<SummaryCard
 										title={selectedUser?.title ?? "Весь отдел"}
-										paymentSummary={paymentSummary}
-										showNotAtWork={Boolean(selectedUserId)}
-										notAtWorkHours={selectedUserNotAtWork}
+										summary={categorySummary}
 									/>
 								</>
 							)}
@@ -469,17 +291,14 @@ const ReportsCalendar = () => {
 							</div>
 							<Calendar
 								view={view}
-								userId={selectedUserId}
+								userId={effectiveUserId}
 								userIds={departmentUserIds}
 								setGroupByActivity={setGroupByActivity}
 								selectedMonth={selectedMonth}
 								selectedYear={selectedYear}
-								handleMonthChange={handleMonthChange}
-								handleYearChange={handleYearChange}
-								handlePrevMonth={handlePrevMonth}
-								handleNextMonth={handleNextMonth}
-								handleToday={handleToday}
+								selectedDate={selectedDate}
 								onLoadingChange={setIsReportDataLoading}
+								onPeriodReportsChange={setPeriodReports}
 							/>
 						</main>
 					</div>
@@ -487,43 +306,30 @@ const ReportsCalendar = () => {
 					<>
 						<Calendar
 							view={view}
-							userId={selectedUserId}
+							userId={effectiveUserId}
 							userIds={departmentUserIds}
 							isVisible={false}
 							setGroupByActivity={setGroupByActivity}
 							selectedMonth={selectedMonth}
 							selectedYear={selectedYear}
-							handleMonthChange={handleMonthChange}
-							handleYearChange={handleYearChange}
-							handlePrevMonth={handlePrevMonth}
-							handleNextMonth={handleNextMonth}
-							handleToday={handleToday}
+							selectedDate={selectedDate}
 							onLoadingChange={setIsReportDataLoading}
+							onPeriodReportsChange={setPeriodReports}
 						/>
 						<div className={cls.hiddenCalendarLayout}>
 							{employeesPanel}
-							<ProjectCardsPanel
-								clients={groupedClientActivities}
-								expandedClients={expandedClients}
-								selectedProjectKey={selectedProjectKey}
-								isLoading={isReportDataLoading}
-								onToggleClient={toggleClient}
-								onSelectProject={setSelectedProjectKey}
-							/>
-							<ReportsPanel
-								selectedClientProject={selectedClientProject}
-								reports={selectedProjectReports}
-								activities={context.activities}
-								isLoading={isReportDataLoading}
-								onOpenReport={(reportId) =>
-									openTask(reportId, EntityTypeIds.reports)
-								}
-								getEmployeeTitle={getEmployeeTitle}
-								getActivityTitle={getActivityTitle}
-							/>
+							{projectPanel}
+							{reportsPanel}
 						</div>
 					</>
 				)}
+				<Modal
+					isOpen={isProjectReportsOpen}
+					onClose={() => setIsProjectReportsOpen(false)}
+					innerScroll
+				>
+					{reportsPanel}
+				</Modal>
 			</div>
 		</div>
 	);

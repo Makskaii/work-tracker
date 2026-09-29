@@ -1,4 +1,5 @@
 import { DEPARTMENT_IDS } from "@/shared/constants/const";
+import type { GroupedReportFields } from "@/shared/types/table";
 import type { User } from "@/shared/types/types";
 import type { EmployeeMetrics, ViewCalendar } from "./types";
 
@@ -40,4 +41,14 @@ export const getWorkloadPercent = (spent: number, capacity: number) => {
 	if (!capacity) return 0;
 
 	return Math.min(100, Math.round((spent / capacity) * 100));
+};
+
+export const getVisibleEmployees = (
+	users: User[],
+	reports: readonly Pick<GroupedReportFields, "assignedById">[],
+) => {
+	const authors = new Set(reports.map((report) => String(report.assignedById)));
+	return users.filter(
+		(user) => user.isActive !== false || authors.has(user.id),
+	);
 };

@@ -3,7 +3,9 @@ import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import type { ProjectFromList } from "@/pages/ReportsPage/ReportsPage";
 import type { ActivityListItem } from "@/pages/ReportsPage/types/types";
-import { ClientsCodes } from "@/shared/constants/const";
+import { parseTimeSpent } from "@/pages/ReportsPage/ui/UserReports/model/utils";
+import { CompactReportRow } from "@/pages/ReportsPage/ui/UserReports/ui/CompactReportRow";
+import { ClientsCodes, EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { GroupedReportFields, Header } from "@/shared/types/table";
 import type {
@@ -19,84 +21,29 @@ import {
 } from "@/shared/utils/utils";
 import { Modal } from "../modal";
 import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
-import { UniversalTable } from "../Table/universalTable/UniversalTable";
 import cls from "./Calendar.module.scss";
-import { ActivityType, months, ProjectCodes, years } from "./constants/const";
+import { ProjectCodes } from "./constants/const";
 import {
-	getPaymentSummary,
-	PAYMENT_CLASS_BY_KIND,
-	PAYMENT_KIND_BY_SORT,
-	PAYMENT_SORT_TITLES,
-	type PaymentSort,
-} from "./helpers/paymentType";
+	CALENDAR_DAY_STATE_TITLES,
+	getCalendarDayState,
+} from "./helpers/calendarDayState";
+import {
+	getInternalProjectIds,
+	getReportCategorySummary,
+	REPORT_CATEGORIES,
+	REPORT_CATEGORY_TITLES,
+	type ReportCategory,
+} from "./helpers/reportCategory";
 import type { MonthDays } from "./types/types";
 
 const getProjectCompanyId = (project: ClientProjectProps) => {
 	return Number(project[ProjectCodes.company] ?? 0);
 };
 
-const isNotAtWorkDay = (day: MonthDays) => {
-	return (
-		!!day.confirmedReports?.length &&
-		day.confirmedReports.every(
-			(report) => report.activity === ActivityType.notAtWork,
-		)
-	);
-};
-
 const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
 
-const getVisiblePaymentSorts = (summary: Record<PaymentSort, number>) => {
-	const paidSorts = ([0, 1, 2] as PaymentSort[]).filter(
-		(sort) => summary[sort] > 0,
-	);
-
-	return paidSorts.length ? paidSorts : ([0, 1, 2] as PaymentSort[]);
-};
-
-const getPrimaryPaymentClass = (
-	reports: GroupedReportFields[] = [],
-	activities: ActivityListItem[],
-) => {
-	const summary = getPaymentSummary(reports, activities);
-	const primary = ([0, 1, 2] as PaymentSort[]).toSorted(
-		(a, b) => summary[b] - summary[a],
-	)[0];
-
-	if (!summary[primary]) return null;
-
-	return PAYMENT_CLASS_BY_KIND[PAYMENT_KIND_BY_SORT[primary]];
-};
-
-type ActivitySummaryItem = {
-	id: number;
-	title: string;
-	hours: number;
-};
-
-const getActivitySummary = (
-	reports: GroupedReportFields[],
-	activities: ActivityListItem[],
-) => {
-	const activityMap = new Map<number, ActivitySummaryItem>();
-
-	for (const report of reports) {
-		const activityId = Number(report.activity);
-		const title =
-			activities.find((activity) => Number(activity.ID) === activityId)?.NAME ??
-			`Активность #${activityId}`;
-		const current = activityMap.get(activityId) ?? {
-			id: activityId,
-			title,
-			hours: 0,
-		};
-
-		current.hours += Number(report.timeSpent) || 0;
-		activityMap.set(activityId, current);
-	}
-
-	return Array.from(activityMap.values()).sort((a, b) => b.hours - a.hours);
-};
+const getVisibleCategories = (summary: Record<ReportCategory, number>) =>
+	REPORT_CATEGORIES.filter((category) => summary[category] > 0);
 
 const getProjectTitle = (
 	projectId: number,
@@ -116,9 +63,7 @@ const getProjectTitle = (
 	}
 
 	const listProject = projects.find(
-		(project) =>
-			Number(project[ClientsCodes.client]) === projectId ||
-			Number(project.id) === projectId,
+		(project) => Number(project.id) === projectId,
 	);
 
 	return listProject?.title || listProject?.name || `Проект #${projectId}`;
@@ -216,42 +161,30 @@ export const headers: Header<GroupedReportFields>[] = [
 
 const CalendarMonth = ({
 	monthDays,
-	handlePrevMonth,
-	selectedMonth,
-	handleMonthChange,
 	selectedYear,
-	handleYearChange,
-	handleNextMonth,
 	getCurrentMonthName,
-	handleToday,
 	isLoading,
 	selectedUserId,
 }: {
 	monthDays: MonthDays[];
-	handlePrevMonth: () => void;
-	selectedMonth: number;
 	selectedYear: number;
-	handleMonthChange: (e: any) => void;
-	handleYearChange: (e: any) => void;
-	handleNextMonth: () => void;
 	getCurrentMonthName: () => string;
-	handleToday: () => void;
 	isLoading?: boolean;
 	selectedUserId?: string;
 }) => {
 	const [open, setOpen] = useState(false);
 	const [activeReport, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const [activeDayTitle, setActiveDayTitle] = useState("");
-	const [selectedActivityIds, setSelectedActivityIds] = useState<Set<number>>(
-		() => new Set(),
-	);
 	const [selectedProjectId, setSelectedProjectId] = useState("");
 	const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
 	const { projects, activities, clientsList, users } =
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
+	const internalProjectIds = useMemo(
+		() => getInternalProjectIds(projects, clientsList),
+		[projects, clientsList],
+	);
 
-	const activeActivitySummary = getActivitySummary(activeReport, activities);
 	const projectFilterOptions = useMemo(() => {
 		const projectIds = Array.from(
 			new Set(
@@ -287,9 +220,6 @@ const CalendarMonth = ({
 	const effectiveEmployeeId = selectedUserId || selectedEmployeeId;
 	const filteredActiveReports = useMemo(() => {
 		return activeReport.filter((report) => {
-			const activityMatches =
-				!selectedActivityIds.size ||
-				selectedActivityIds.has(Number(report.activity));
 			const projectMatches =
 				!selectedProjectId ||
 				String(report.parentproject ?? report.project) === selectedProjectId;
@@ -297,90 +227,38 @@ const CalendarMonth = ({
 				!effectiveEmployeeId ||
 				String(report.assignedById) === effectiveEmployeeId;
 
-			return activityMatches && projectMatches && employeeMatches;
+			return projectMatches && employeeMatches;
 		});
-	}, [
-		activeReport,
-		effectiveEmployeeId,
-		selectedActivityIds,
-		selectedProjectId,
-	]);
-	const activePaymentSummary = getPaymentSummary(
+	}, [activeReport, effectiveEmployeeId, selectedProjectId]);
+	const activeCategorySummary = getReportCategorySummary(
 		filteredActiveReports,
 		activities,
+		internalProjectIds,
 	);
-	const visibleModalPaymentSorts = getVisiblePaymentSorts(activePaymentSummary);
 	const selectedEmployeeTitle =
 		selectedUserId &&
 		(employeeFilterOptions.find((item) => item.id === selectedUserId)?.title ??
 			users.find((item: User) => String(item.id) === selectedUserId)?.title);
 
-	const toggleActivityFilter = (activityId: number) => {
-		setSelectedActivityIds((prev) => {
-			const next = new Set(prev);
-
-			if (next.has(activityId)) {
-				next.delete(activityId);
-			} else {
-				next.add(activityId);
-			}
-
-			return next;
-		});
-	};
-
 	const resetModalFilters = () => {
-		setSelectedActivityIds(new Set());
 		setSelectedProjectId("");
 		setSelectedEmployeeId("");
 	};
 
 	return (
 		<div className={cls.calendar}>
-			<div className={cls["calendar-controls"]}>
-				<button onClick={handlePrevMonth} className={cls["nav-button"]}>
-					‹
-				</button>
-
-				<div className={cls["month-year-selector"]}>
-					<select
-						name="month"
-						value={selectedMonth}
-						onChange={handleMonthChange}
-						className={cls["month-select"]}
-					>
-						{months.map((month, index) => (
-							<option key={month} value={index}>
-								{month}
-							</option>
-						))}
-					</select>
-
-					<select
-						value={selectedYear}
-						onChange={handleYearChange}
-						className={cls["year-select"]}
-					>
-						{years.map((year) => (
-							<option key={year} value={year}>
-								{year}
-							</option>
-						))}
-					</select>
-				</div>
-
-				<button onClick={handleNextMonth} className={cls["nav-button"]}>
-					›
-				</button>
-
-				<button onClick={handleToday} className={cls["today-button"]}>
-					Сегодня
-				</button>
-			</div>
-
 			<h2 className={cls["calendar-title"]}>
 				{getCurrentMonthName()} {selectedYear}
 			</h2>
+
+			<div className={cls.categoryLegend} aria-label="Категории отчётов">
+				{REPORT_CATEGORIES.map((category) => (
+					<span key={category} className={cls[category]}>
+						<i aria-hidden="true" />
+						{REPORT_CATEGORY_TITLES[category]}
+					</span>
+				))}
+			</div>
 
 			<div className={cls["weekdays-header"]}>
 				{["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => (
@@ -396,35 +274,42 @@ const CalendarMonth = ({
 				<div className={cls["calendar-grid"]}>
 					{monthDays.map((day) => {
 						const confirmedReports = day.confirmedReports ?? [];
-						const paymentSummary = getPaymentSummary(
+						const categorySummary = getReportCategorySummary(
 							confirmedReports,
 							activities,
+							internalProjectIds,
 						);
-						const primaryPaymentClass = getPrimaryPaymentClass(
-							confirmedReports,
+						const reports = day.reports ?? [];
+						const dayState = getCalendarDayState({
+							date: day.date,
+							reports,
 							activities,
-						);
-						const hasReports = Boolean(day.reports?.length);
+							isPadding: !day.isCurrentMonth,
+						});
+						const hasReports = dayState !== "blank" && reports.length > 0;
+						const dayTitle =
+							dayState === "blank"
+								? undefined
+								: `${day.date?.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}`;
 
 						return (
 							<div
 								key={day.id}
+								role={hasReports ? "button" : undefined}
+								tabIndex={hasReports ? 0 : undefined}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" || event.key === " ") {
+										event.preventDefault();
+										event.currentTarget.click();
+									}
+								}}
 								className={classNames(cls["calendar-day"], {
 									[cls.today]: day.isToday,
-									[cls.weekend]: day.isWeekend,
-									[cls["other-month"]]: !day.isCurrentMonth,
-									[cls.empty]: day.isEmpty,
-									[cls.fullday]: day.totalHours === 8,
-									[cls.incompleteday]:
-										Boolean(day.totalHours) && Number(day.totalHours) < 8,
-									[cls.overTime]:
-										Boolean(day.totalHours) && Number(day.totalHours) > 8,
-									[cls.hasUnconfirmedReports]: !!day.unconfirmedReports?.length,
-									[cls.notAtWorkDay]: isNotAtWorkDay(day),
-									[cls.clientPaid]: primaryPaymentClass === "clientPaid",
-									[cls.companyPaid]: primaryPaymentClass === "companyPaid",
-									[cls.unpaid]: primaryPaymentClass === "unpaid",
 								})}
+								data-state={dayState}
+								data-weekend={day.isWeekend && dayState !== "blank"}
+								title={dayTitle}
+								aria-label={dayTitle}
 								onClick={() => {
 									if (!hasReports) return;
 
@@ -444,39 +329,34 @@ const CalendarMonth = ({
 							>
 								<div className={cls.dayTopline}>
 									<div className={cls["day-number"]}>{day.dayNumber}</div>
-									{day.totalHours && (
+									{!!day.totalHours && (
 										<div className={cls.dayHours}>
 											{formatHours(day.totalHours)}
 										</div>
 									)}
 								</div>
 								<div className={cls["day-name"]}>{day.dayName}</div>
-								{day.totalHours && (
+								{(dayState === "missing" || dayState === "absence") && (
+									<div className={cls.dayStatus}>
+										{CALENDAR_DAY_STATE_TITLES[dayState]}
+									</div>
+								)}
+								{!!day.totalHours && (
 									<div className={cls.dayReportMeta}>
-										<span>{formatHours(day.totalHours)}</span>
 										<span>{confirmedReports.length} отчетов</span>
 									</div>
 								)}
-								{day.totalHours && (
-									<div className={cls.paymentBadges}>
-										{getVisiblePaymentSorts(paymentSummary).map((sort) => {
-											const hours = paymentSummary[sort];
-											const kind = PAYMENT_KIND_BY_SORT[sort];
-
-											return (
-												<span
-													key={sort}
-													className={classNames(cls.paymentBadge, {
-														[cls.clientPaid]: kind === "client",
-														[cls.companyPaid]: kind === "company",
-														[cls.unpaid]: kind === "unpaid",
-													})}
-													title={PAYMENT_SORT_TITLES[sort]}
-												>
-													{Number(hours.toFixed(1))}
-												</span>
-											);
-										})}
+								{!!day.totalHours && (
+									<div className={cls.categoryBadges}>
+										{getVisibleCategories(categorySummary).map((category) => (
+											<span
+												key={category}
+												className={`${cls.categoryBadge} ${cls[category]}`}
+												title={`${REPORT_CATEGORY_TITLES[category]}: ${formatHours(categorySummary[category])}`}
+											>
+												{Number(categorySummary[category].toFixed(1))}
+											</span>
+										))}
 									</div>
 								)}
 								{!!day.unconfirmedReports?.length && (
@@ -501,43 +381,17 @@ const CalendarMonth = ({
 						<h3 className={cls.dayModalTitle}>{activeDayTitle}</h3>
 					</div>
 					<div className={cls.dayModalWidgets}>
-						{visibleModalPaymentSorts.map((sort) => {
-							const kind = PAYMENT_KIND_BY_SORT[sort];
-
-							return (
-								<div
-									key={sort}
-									className={classNames(cls.dayModalWidget, {
-										[cls.clientPaid]: kind === "client",
-										[cls.companyPaid]: kind === "company",
-										[cls.unpaid]: kind === "unpaid",
-									})}
-								>
-									<span>{PAYMENT_SORT_TITLES[sort]}</span>
-									<strong>{formatHours(activePaymentSummary[sort])}</strong>
-								</div>
-							);
-						})}
-					</div>
-				</div>
-				{!!activeActivitySummary.length && (
-					<div className={cls.activitySummary}>
-						{activeActivitySummary.map((activity) => (
-							<button
-								type="button"
-								key={activity.id}
-								className={classNames(cls.activitySummaryItem, {
-									[cls.activitySummaryItemActive]: selectedActivityIds.has(
-										activity.id,
-									),
-								})}
-								onClick={() => toggleActivityFilter(activity.id)}
+						{REPORT_CATEGORIES.map((category) => (
+							<div
+								key={category}
+								className={`${cls.dayModalWidget} ${cls[category]}`}
 							>
-								{activity.title}: <strong>{formatHours(activity.hours)}</strong>
-							</button>
+								<span>{REPORT_CATEGORY_TITLES[category]}</span>
+								<strong>{formatHours(activeCategorySummary[category])}</strong>
+							</div>
 						))}
 					</div>
-				)}
+				</div>
 				<div className={cls.dayModalFilters}>
 					<select
 						value={selectedProjectId}
@@ -569,38 +423,39 @@ const CalendarMonth = ({
 						</select>
 					)}
 
-					{(selectedActivityIds.size > 0 ||
-						selectedProjectId ||
-						selectedEmployeeId) && (
+					{(selectedProjectId || selectedEmployeeId) && (
 						<button type="button" onClick={resetModalFilters}>
 							Сбросить
 						</button>
 					)}
 				</div>
-				<UniversalTable<GroupedReportFields>
-					activeItems={filteredActiveReports.toSorted(
-						(a, b) => a.client - b.client,
+				<div className={cls.dayReportsList}>
+					{filteredActiveReports.map((report) => (
+						<CompactReportRow
+							key={report.id}
+							report={report}
+							users={users}
+							activities={activities}
+							onOpenReport={(id) => {
+								void openTask(id, EntityTypeIds.reports);
+							}}
+						/>
+					))}
+					{!filteredActiveReports.length && (
+						<p className={cls.emptyReports}>
+							Нет отчётов по выбранным фильтрам
+						</p>
 					)}
-					headers={headers}
-					additionalData={{
-						projects,
-						activities,
-						report: filteredActiveReports,
-						clients: clientsList,
-						openTask,
-					}}
-					totalRow={
-						<div className={cls.dayModalTotal}>
-							Часов за день:{" "}
-							{filteredActiveReports
-								.reduce(
-									(acc, report) => acc + (Number(report.timeSpent) || 0),
-									0,
-								)
-								.toFixed(2)}
-						</div>
-					}
-				/>
+				</div>
+				<div className={cls.dayModalTotal}>
+					Всего:{" "}
+					{formatHours(
+						filteredActiveReports.reduce(
+							(sum, report) => sum + parseTimeSpent(report.timeSpent),
+							0,
+						),
+					)}
+				</div>
 			</Modal>
 		</div>
 	);

@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-	ReportCodes,
-	TaskCodes,
-} from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import { $api } from "@/shared/config";
 import { TaskStageIds } from "@/shared/constants/const";
 import { getDevelopmentReportData } from "./getDevelopmentReportData";
@@ -13,7 +10,7 @@ vi.mock("@/shared/config", () => ({
 	},
 }));
 
-const crmPage = <T,>(items: T[], next: number | null = null) => ({
+const crmPage = <T>(items: T[], next: number | null = null) => ({
 	data: {
 		result: { items },
 		next,
@@ -97,10 +94,19 @@ describe("getDevelopmentReportData", () => {
 				},
 			}),
 		);
-		expect(secondTaskRequest?.params?.start).toBe(50);
-		expect(firstTaskRequest?.params?.select).toContain("createdTime");
-		expect(firstTaskRequest?.params?.select).not.toContain(TaskCodes.description);
-		expect(firstTaskRequest?.params?.select).not.toContain(TaskCodes.comment);
+		expect(secondTaskRequest?.params).toHaveProperty("start", 50);
+		expect(firstTaskRequest?.params).toHaveProperty(
+			"select",
+			expect.arrayContaining(["createdTime"]),
+		);
+		expect(firstTaskRequest?.params).toHaveProperty(
+			"select",
+			expect.not.arrayContaining([TaskCodes.description]),
+		);
+		expect(firstTaskRequest?.params).toHaveProperty(
+			"select",
+			expect.not.arrayContaining([TaskCodes.comment]),
+		);
 
 		expect(firstReportRequest?.params).toEqual(
 			expect.objectContaining({
@@ -111,10 +117,11 @@ describe("getDevelopmentReportData", () => {
 				},
 			}),
 		);
-		expect(firstReportRequest?.params?.filter).not.toHaveProperty("stageId");
-		expect(firstReportRequest?.params?.filter).not.toHaveProperty(
+		expect(firstReportRequest?.params).not.toHaveProperty("filter.stageId");
+		expect(firstReportRequest?.params).not.toHaveProperty([
+			"filter",
 			`@${ReportCodes.taskId}`,
-		);
-		expect(secondReportRequest?.params?.start).toBe(50);
+		]);
+		expect(secondReportRequest?.params).toHaveProperty("start", 50);
 	});
 });

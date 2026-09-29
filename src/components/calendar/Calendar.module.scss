@@ -1,3 +1,42 @@
+.client {
+    --report-category-color: #69d79b;
+    --report-category-surface: rgba(105, 215, 155, 0.14);
+}
+
+.internal {
+    --report-category-color: #72b7ff;
+    --report-category-surface: rgba(114, 183, 255, 0.14);
+}
+
+.notAtWork {
+    --report-category-color: #a9b1ba;
+    --report-category-surface: rgba(169, 177, 186, 0.14);
+}
+
+.categoryLegend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: 0 0 16px;
+    color: var(--color-muted);
+    font-size: 12px;
+
+    span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--report-category-color);
+    }
+}
+
 .container {
     overflow-x: auto;
     scrollbar-width: thin;
@@ -32,83 +71,14 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 20px;
-    box-shadow: 0 12px 28px rgba(1, 8, 14, 0.28);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
-
-.calendar-controls {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    margin-bottom: 24px;
-    gap: 8px;
-    min-width: 0;
-    flex-wrap: wrap;
-}
-
-.month-year-selector {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
-.month-select,
-.year-select {
-    padding: 8px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface-soft);
-    color: var(--color-text);
-    font-size: 14px;
-    cursor: pointer;
-
-    &:hover,
-    &:focus {
-        border-color: var(--color-accent);
-        outline: none;
-    }
-
-    option {
-        background: var(--color-surface-soft);
-        color: var(--color-text);
-    }
-}
-
-.nav-button {
-    background: var(--color-accent);
-    color: #06111c;
-    border: 1px solid var(--color-accent);
-    min-width: 46px;
-    min-height: 42px;
-    padding: 8px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background 0.3s;
-
-    &:hover {
-        background: var(--color-accent-blue);
-    }
-}
-
-.today-button {
-    background: var(--color-surface-soft);
-    color: var(--color-accent-blue);
-    border: 1px solid var(--color-border-active);
-    padding: 8px 16px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.3s;
-
-    &:hover {
-        background: var(--color-surface-hover);
-    }
-}
 
 .calendar-title {
     text-align: center;
     color: var(--color-text);
-    margin: 0 0 22px;
+    margin: 0 0 14px;
     font-size: 30px;
     line-height: 1.2;
 }
@@ -142,64 +112,38 @@
 .calendar-day {
     box-sizing: border-box;
     min-width: 0;
-    border: 1px solid var(--color-border);
+    border: 1px solid color-mix(in srgb, var(--day-color) 58%, transparent);
     border-radius: 12px;
     padding: 12px 10px;
     min-height: 108px;
-    background: var(--color-surface-soft);
+    background: linear-gradient(135deg, var(--day-surface), var(--color-surface-soft));
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
-    cursor: pointer;
+    transition: filter 0.18s ease, transform 0.18s ease;
 
-    .worked-hours-bg {
-        border-radius: 5px 0 0 5px;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        max-width: 100%;
-        height: 100%;
-        display: flex;
-        overflow: hidden;
-        transition: width 0.3s ease-out;
-        border-radius: none;
-        z-index: 0;
-        pointer-events: none;
+    &[data-state="reported"] {
+        --day-color: var(--color-accent-blue);
+        --day-surface: rgba(130, 227, 250, 0.16);
     }
 
-    .workedHoursSegment {
-        height: 100%;
-        flex: 0 0 auto;
-        transition: width 0.3s ease-out;
+    &[data-state="absence"] {
+        --day-color: #b8a0e8;
+        --day-surface: rgba(184, 160, 232, 0.16);
     }
 
-    &.empty {
-        background: #15191b;
-        border: 1px solid var(--color-border);
-        cursor: default;
+    &[data-state="future"],
+    &[data-state="weekend"] {
+        --day-color: #929aa4;
+        --day-surface: rgba(146, 154, 164, 0.10);
     }
 
-    &:hover:not(.empty) {
-        background: #1b1e21;
-        border-color: var(--color-accent);
-        transform: translateY(-1px);
-        box-shadow: 0 12px 24px rgba(1, 8, 14, 0.2);
+    &[data-state="missing"] {
+        --day-color: var(--color-danger);
+        --day-surface: rgba(229, 93, 102, 0.16);
     }
 
-    &.today {
-        background: rgba(57, 214, 238, 0.12);
-        border-color: var(--color-accent);
-
-        .day-number {
-            color: var(--color-accent);
-            font-weight: bold;
-        }
-    }
-
-    &.weekend {
-        background: rgba(247, 163, 19, 0.08);
+    &[data-weekend="true"] {
         border-color: var(--color-warning);
 
         .day-number {
@@ -207,50 +151,37 @@
         }
     }
 
-    &.other-month {
+    &[data-state="blank"] {
         background: var(--color-bg);
-        color: var(--color-muted);
         border-color: var(--color-border);
     }
 
-
-    &.fullday {
-        border-color: rgba(57, 214, 238, 0.42);
+    &[role="button"] {
+        cursor: pointer;
     }
 
-    &.incompleteday {
-        border-color: var(--color-danger);
+    &[role="button"]:hover {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
     }
 
-
-    &.overTime {
-        border-color: var(--color-accent-blue);
+    &.today {
+        box-shadow: inset 0 0 0 1px var(--day-color);
     }
 
-    &.hasUnconfirmedReports {
-        border-color: var(--color-payment-unpaid);
+    &:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 3px;
     }
+}
 
-    &.notAtWorkDay {
-        border-color: var(--color-border-active);
-        color: var(--color-text);
-    }
-
-    &.clientPaid {
-        background: linear-gradient(135deg, var(--color-payment-client-surface), var(--color-surface-soft));
-        border-color: color-mix(in srgb, var(--color-payment-client) 58%, transparent);
-    }
-
-    &.companyPaid {
-        background: linear-gradient(135deg, var(--color-payment-company-surface), var(--color-surface-soft));
-        border-color: rgba(255, 191, 63, 0.5);
-    }
-
-    &.unpaid {
-        background: linear-gradient(135deg, var(--color-payment-unpaid-surface), var(--color-surface-soft));
-        border-color: rgba(255, 104, 117, 0.52);
-    }
-
+.dayStatus {
+    color: var(--day-color);
+    font-size: 10px;
+    line-height: 1.25;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: left;
 }
 
 .dayTopline {
@@ -279,9 +210,14 @@
 }
 
 .day-name {
+    display: flex;
+    align-items: center;
+    gap: 3px 5px;
+    flex-wrap: wrap;
     font-size: 12px;
     color: rgba(238, 245, 255, 0.68);
-    margin-bottom: 10px;
+    margin-bottom: 4px;
+    text-transform: capitalize;
     align-self: flex-start;
     position: relative;
     z-index: 1;
@@ -306,7 +242,7 @@
     }
 }
 
-.paymentBadges {
+.categoryBadges {
     position: relative;
     z-index: 1;
     display: flex;
@@ -315,7 +251,7 @@
     flex-wrap: wrap;
 }
 
-.paymentBadge {
+.categoryBadge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -323,25 +259,11 @@
     height: 20px;
     padding: 0 6px;
     border-radius: 999px;
-    background: var(--color-payment-neutral-surface);
-    color: var(--color-payment-neutral);
+    background: var(--report-category-surface);
+    color: var(--report-category-color);
     font-size: 11px;
     font-weight: 800;
 
-    &.clientPaid {
-        background: var(--color-payment-client-surface);
-        color: var(--color-payment-client);
-    }
-
-    &.companyPaid {
-        background: var(--color-payment-company-surface);
-        color: var(--color-payment-company);
-    }
-
-    &.unpaid {
-        background: var(--color-payment-unpaid-surface);
-        color: var(--color-payment-unpaid);
-    }
 }
 
 .skeletonGrid {
@@ -358,7 +280,7 @@
     padding: 12px 10px;
     border: 1px solid var(--color-border);
     border-radius: 12px;
-    background: linear-gradient(135deg, #171b1e, #101315);
+    background: var(--color-surface-soft);
     overflow: hidden;
 }
 
@@ -375,7 +297,7 @@
 .skeletonBadges span {
     display: block;
     border-radius: 999px;
-    background: linear-gradient(90deg, #30363a, #4b5358, #30363a);
+    background: linear-gradient(90deg, #25282b, #373c40, #25282b);
     background-size: 220% 100%;
     animation: skeletonShimmer 1.25s ease-in-out infinite;
 }
@@ -493,60 +415,29 @@
         font-size: 15px;
     }
 
-    &.clientPaid {
-        border-color: color-mix(in srgb, var(--color-payment-client) 42%, transparent);
-        background: var(--color-payment-client-surface);
+    &.client,
+    &.internal,
+    &.notAtWork {
+        border-color: color-mix(in srgb, var(--report-category-color) 35%, transparent);
+        background: var(--report-category-surface);
 
         strong {
-            color: var(--color-payment-client);
-        }
-    }
-
-    &.companyPaid {
-        border-color: rgba(255, 191, 63, 0.36);
-        background: var(--color-payment-company-surface);
-
-        strong {
-            color: var(--color-payment-company);
-        }
-    }
-
-    &.unpaid {
-        border-color: rgba(255, 104, 117, 0.36);
-        background: var(--color-payment-unpaid-surface);
-
-        strong {
-            color: var(--color-payment-unpaid);
+            color: var(--report-category-color);
         }
     }
 }
 
-.activitySummary {
+.dayReportsList {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 0 0;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
 }
 
-.activitySummaryItem {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: var(--color-surface-soft);
-    color: rgba(238, 245, 255, 0.78);
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.activitySummaryItem:hover,
-.activitySummaryItemActive {
-    border-color: var(--color-accent);
-    background: rgba(57, 214, 238, 0.12);
-    color: var(--color-accent);
+.emptyReports {
+    padding: 24px 12px;
+    color: var(--color-muted);
+    text-align: center;
 }
 
 .dayModalFilters {
@@ -625,25 +516,6 @@
 
 // Адаптивность
 @media (max-width: 768px) {
-    .calendar-controls {
-        flex-direction: column;
-    }
-
-    .month-year-selector {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .month-select,
-    .year-select {
-        width: 100%;
-    }
-
-    .nav-button,
-    .today-button {
-        width: 100%;
-    }
-
     .calendar-day {
         min-height: 96px;
         padding: 5px;
@@ -683,12 +555,12 @@
         margin-bottom: 6px;
     }
 
-    .paymentBadges {
+    .categoryBadges {
         gap: 4px;
         margin-top: 6px;
     }
 
-    .paymentBadge {
+    .categoryBadge {
         min-width: 22px;
         height: 18px;
         padding: 0 5px;
@@ -701,9 +573,6 @@
         min-height: 88px;
     }
 
-    .dayReportMeta span:last-child {
-        display: none;
-    }
 }
 
 @media (max-width: 900px) {

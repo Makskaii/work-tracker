@@ -5,10 +5,12 @@ import {
 	ProjectCodes,
 	TaskCodes as UserCodes,
 } from "@/components/calendar/constants/const";
+import { normalizeUserActive } from "@/components/calendar/helpers/formatUserFilds";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { $api } from "@/shared/config";
 import {
 	ClientsCodes,
+	DEPARTMENT_IDS,
 	Endpoints,
 	EntityTypeIds,
 	TASK_SELECT_FIELDS,
@@ -162,11 +164,19 @@ const ReportsPage = () => {
 				response
 					.map((user) => ({
 						id: user.ID,
+						isActive: normalizeUserActive(user.ACTIVE),
 						value: user.NAME + user.LAST_NAME,
 						title: user.NAME + " " + user.LAST_NAME,
 						position: user.WORK_POSITION,
 						photo: user.PERSONAL_PHOTO,
-						department: user.UF_DEPARTMENT[0],
+						department:
+							user.UF_DEPARTMENT.find((department) =>
+								[DEPARTMENT_IDS.ANALYTICS, DEPARTMENT_IDS.DEV].includes(
+									department,
+								),
+							) ??
+							user.UF_DEPARTMENT[0] ??
+							0,
 					}))
 					.toSorted((a, b) => a.department - b.department),
 			);
