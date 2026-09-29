@@ -7,6 +7,8 @@ export type SupportWorkspaceReport = {
 	taskId: string | null;
 	taskTitle: string | null;
 	responsibleName: string | null;
+	companyName?: string | null;
+	activityTitle?: string | null;
 	date: string;
 	hours: number;
 	title: string | null;
@@ -20,7 +22,7 @@ export type SupportWorkspaceReport = {
 export type SupportProjectWorkspace = {
 	projectId: number;
 	reports: SupportWorkspaceReport[];
-	tasks: SupportProjectTask[];
+	tasks: (SupportProjectTask & { purchaseId?: number | null })[];
 	packageGroup: ClientPackage;
 };
 

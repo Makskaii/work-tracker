@@ -155,7 +155,7 @@ $backendApi.interceptors.request.use((config) => {
 $backendApi.interceptors.response.use(
 	(response) => response,
 	(error) => {
-		if (error.response?.status === 401) {
+		if (error.response?.status === 401 && !error.config?.headers?.["X-Bitrix-Token"]) {
 			authStorage.clear();
 
 			if (window.location.pathname !== "/client-profile") {

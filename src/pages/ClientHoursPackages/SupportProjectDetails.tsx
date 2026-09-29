@@ -18,8 +18,9 @@ import { collectSupportReports } from "./supportReportEntries";
 import type { SupportProjectWorkspace } from "./supportWorkspace.api";
 import { SupportProjectWorklists } from "./SupportProjectWorklists";
 import { SupportPackageBalances } from "./SupportPackageBalances";
+import type { SupportTransferCallbacks } from "./supportTransfer.model";
 
-type SupportProjectDetailsProps = {
+type SupportProjectDetailsProps = SupportTransferCallbacks & {
 	project: SupportProjectOption | null;
 	projectPackages: ClientPackage | null;
 	projectTasks: SupportProjectTask[];
@@ -62,6 +63,8 @@ export const SupportProjectDetails = ({
 	onCardClosed,
 	refreshKey,
 	onEditPackage,
+	onPreviewTransfer,
+	onTransfer,
 }: SupportProjectDetailsProps) => {
 	if (!project)
 		return (
@@ -242,6 +245,10 @@ export const SupportProjectDetails = ({
 				projectId={project.id}
 				projectTitle={project.title}
 				selectedPurchaseId={effectivePurchaseId}
+				purchases={purchases}
+				onSelectPackage={onSelectPackage}
+				onPreviewTransfer={onPreviewTransfer}
+				onTransfer={onTransfer}
 				allocatedReports={reports}
 				projectTasks={projectTasks}
 				workspace={workspace}

@@ -316,3 +316,61 @@
 .reportDrawerStatus.reportStatusExcluded { background: #293134; color: #c0c9cb; }
 .reportDrawerStatus.reportStatusUnallocated { background: #342c17; color: #e0c27b; }
 @media (max-width: 760px) { .worklistTabs { display: grid; grid-template-columns: 1fr 1fr; } .worklistTab, .worklistTabActive { padding: 8px 10px; } .worklistNotice, .workspaceError { flex-direction: column; align-items: stretch; gap: 10px; } .emptyTaskActions { gap: 4px; } }
+
+// Allocation workspace: all table surfaces stay inside the app's black theme.
+.packageBalances table, .packageBalances thead, .packageBalances tbody, .packageBalances tr, .packageBalances th, .packageBalances td { background: #101516; }
+.packageBalances thead th { background: #151b1d; }
+.transferWorkspace { margin-top: 24px; min-width: 0; }
+.transferWorkspaceHeading { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 14px; }
+.transferWorkspaceHeading h2 { margin: 0; color: #e3ebed; font-size: 16px; }
+.transferWorkspaceHeading p { margin: 7px 0 0; color: #96a7ac; font-size: 12px; line-height: 1.5; }
+.transferWorkspace > .taskSearch { margin-bottom: 12px; }
+.transferColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.transferColumn { min-width: 0; border: 1px solid #2d3a3f; border-radius: 10px; background: #0f1416; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.transferColumnDrop { border-color: #73d9ec; box-shadow: 0 0 0 2px #73d9ec55; }
+.transferColumnHeader { display: grid; gap: 10px; padding: 15px; border-bottom: 1px solid #293438; background: #141a1d; }
+.transferColumnHeader label { display: grid; gap: 7px; color: #c7d5d9; font-size: 12px; }
+.transferColumnHeader select { width: 100%; min-width: 0; height: 36px; padding: 0 9px; border: 1px solid #3a4b51; border-radius: 6px; background: #0f1416; color: #e3edef; font: inherit; font-size: 12px; }
+.transferColumnHeader select option { background: #0f1416; color: #e3edef; }
+.transferColumnCount { color: #95a8af; font-size: 11px; }
+.transferColumnCount b { color: #75d8e8; font-weight: 600; }
+.transferColumnHint { margin: 0; padding: 10px 15px; border-bottom: 1px solid #263137; background: #10181b; color: #97aab1; font-size: 11px; line-height: 1.5; }
+.transferList { min-height: 250px; max-height: 650px; overflow-y: auto; }
+.transferEmpty { margin: 0; padding: 25px 18px; color: #90a2a9; font-size: 12px; line-height: 1.6; }
+.transferReportRow { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 4px 8px 4px 4px; border-bottom: 1px solid #263137; background: #111719; }
+.transferReportRow:last-child { border-bottom: 0; }
+.transferReportRow .supportReportRow { flex: 1; min-width: 0; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; padding: 8px 3px; min-height: 65px; }
+.transferReportRow .supportReportSummary strong { font-size: 12px; }
+.transferReportRow .supportReportSummary small { font-size: 10px; line-height: 1.5; }
+.transferReportRow .supportReportRow > b { font-size: 12px; }
+.dragHandle { display: grid; width: 17px; flex: 0 0 17px; place-items: center; color: #6c848e; cursor: grab; }
+.transferButton { display: grid; place-items: center; flex: 0 0 29px; width: 29px; height: 30px; padding: 0; border: 1px solid #36515b; border-radius: 6px; background: #13232a; color: #7dd8eb; font-size: 17px; cursor: pointer; }
+.transferButton:hover:not(:disabled) { background: #1b3740; border-color: #5eb0c5; }
+.transferButton:disabled { opacity: .35; cursor: default; }
+.transferButton:focus-visible, .transferColumnHeader select:focus-visible { outline: 2px solid #79dced; outline-offset: 2px; }
+.transferTask { border-bottom: 1px solid #2c383e; background: #111a1e; }
+.transferTask:last-child { border-bottom: 0; }
+.transferTaskHeader { display: flex; align-items: center; gap: 3px; padding: 5px 8px 0 4px; }
+.transferTaskHeader .taskToggle { flex: 1; min-width: 0; padding: 5px 3px; min-height: 54px; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 7px; }
+.transferTaskHeader .taskSummary strong { color: #e1ebef; font-size: 12px; white-space: normal; }
+.transferTaskHeader .taskSummary small { font-size: 10px; }
+.transferTaskHeader .taskToggle > b { font-size: 12px; color: #76d398; }
+.transferTaskActions { display: flex; gap: 12px; padding: 0 10px 7px 38px; }
+.transferTaskActions .inlineAction { min-height: 24px; padding: 0; font-size: 10px; }
+.transferNestedReports { border-top: 1px solid #2c3a40; margin-left: 17px; border-left: 2px solid #355760; }
+.transferUnchecked { display: inline-block; margin-right: 6px; color: #c5b57b; }
+.transferDialog { padding: 24px; border: 1px solid #35454c; border-radius: 10px; background: #111719; color: #dce6ea; }
+.transferDialog h2 { margin: 0 25px 10px 0; font-size: 20px; }
+.transferDialogTitle { margin: 0; color: #b5c6cd; font-size: 13px; line-height: 1.5; }
+.transferRoute { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; padding: 12px; border: 1px solid #30444e; border-radius: 7px; background: #15232a; color: #92dfed; font-size: 13px; }
+.transferSummary { display: grid; gap: 12px; margin: 17px 0; }
+.transferSummary > div { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.transferSummary dt { color: #a9bac2; font-size: 12px; }
+.transferSummary dd { margin: 0; color: #e0f4ef; font-size: 18px; font-weight: 700; white-space: nowrap; }
+.transferCapacityNotice { padding: 10px 12px; border: 1px solid #635534; border-radius: 6px; background: #211e16; color: #dac68e; font-size: 12px; line-height: 1.5; }
+.transferBalancePreview { margin: 15px 0; font-size: 12px; }
+.transferBalancePreview > strong { display: block; color: #d4e1e7; margin-bottom: 5px; }
+.transferBalancePreview > div { display: flex; justify-content: space-between; gap: 15px; padding: 10px 0; border-bottom: 1px solid #2c383e; color: #aebfc7; }
+.transferDialogActions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+@media (max-width: 1050px) { .transferColumns { grid-template-columns: minmax(0, 1fr); } .transferList { max-height: 440px; } }
+@media (max-width: 760px) { .transferDialog { padding: 18px; } .transferWorkspaceHeading { align-items: stretch; flex-direction: column; } }
