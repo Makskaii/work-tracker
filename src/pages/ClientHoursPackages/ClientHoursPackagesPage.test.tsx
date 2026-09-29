@@ -31,14 +31,27 @@ vi.mock("./ClientHoursPackageModal", () => ({
 vi.mock("./SupportProjectDetails", () => ({
 	SupportProjectDetails: ({
 		projectPackages,
+		onAddReport,
 	}: {
 		projectPackages: ClientPackage | null;
+		onAddReport: () => void;
 	}) => (
 		<div data-testid="support-details">
+			<button type="button" onClick={onAddReport}>
+				Добавить тестовый отчёт
+			</button>
 			{projectPackages
 				? `Остаток: ${projectPackages.remainingHours} ч`
 				: "Выберите проект"}
 		</div>
+	),
+}));
+
+vi.mock("./SupportReportModal", () => ({
+	SupportReportModal: ({ onSaved }: { onSaved: () => Promise<void> }) => (
+		<button type="button" onClick={() => void onSaved()}>
+			Сохранить тестовый отчёт
+		</button>
 	),
 }));
 
@@ -183,4 +196,27 @@ describe("support hours reconciliation on page load", () => {
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 		expect(notify).not.toHaveBeenCalled();
 	});
+});
+
+it("runs a new reconciliation after a report save even if an earlier focus refresh is still running", async () => {
+	render(<ClientHoursPackagesPage />);
+	await screen.findByTestId("support-details");
+	const olderRefresh = deferred<void>();
+	api.syncSupportHoursReports.mockReturnValueOnce(olderRefresh.promise);
+	fireEvent.click(screen.getByRole("button", { name: "Обновить данные" }));
+	await waitFor(() =>
+		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2),
+	);
+	fireEvent.click(
+		screen.getByRole("button", { name: "Добавить тестовый отчёт" }),
+	);
+	fireEvent.click(
+		screen.getByRole("button", { name: "Сохранить тестовый отчёт" }),
+	);
+	expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2);
+	await act(async () => olderRefresh.resolve());
+	await waitFor(() =>
+		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(3),
+	);
+	expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(3);
 });

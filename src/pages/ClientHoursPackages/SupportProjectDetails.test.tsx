@@ -28,6 +28,15 @@ const { openTask, fetchSupportHoursPackageReport, notify } = vi.hoisted(() => ({
 vi.mock("./clientHoursPackages.api", () => ({
 	fetchSupportHoursPackageReport,
 }));
+vi.mock("./supportAnalyst.api", async (importOriginal) => ({
+	...(await importOriginal<typeof import("./supportAnalyst.api")>()),
+	fetchPackageChecks: vi.fn().mockResolvedValue({
+		checkedAt: "2026-09-29T10:00:00Z",
+		blocking: false,
+		issues: [],
+	}),
+	fetchSupportReportVersions: vi.fn().mockResolvedValue([]),
+}));
 vi.mock("@/shared/ui/NotificationPopup/notify", () => ({ notify }));
 vi.mock("@/shared/hooks/useBitrixSlider", () => ({
 	useBitrixSlider: () => ({ openTask }),
@@ -286,6 +295,9 @@ describe("selected support package PDF", () => {
 		expect(loading).toBeDisabled();
 		expect(loading).toHaveAttribute("aria-busy", "true");
 		fireEvent.click(loading);
+		await act(async () => {
+			/* Let the pre-export check resolve before inspecting generation. */
+		});
 		expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(2);
 		const pdf = new Blob(["%PDF-1.4 test"], { type: "application/pdf" });
 		await act(async () => finish(pdf));

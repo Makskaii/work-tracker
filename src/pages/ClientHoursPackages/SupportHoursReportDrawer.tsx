@@ -18,6 +18,8 @@ type SupportHoursReportDrawerProps = {
 	report: SupportHoursReportItem | null;
 	onClose: () => void;
 	embedded?: boolean;
+	onCardClosed?: () => Promise<void>;
+	onEdit?: (reportId: string) => void;
 };
 
 const formatHours = (value: number) =>
@@ -33,6 +35,8 @@ export const SupportHoursReportDrawer = ({
 	report,
 	onClose,
 	embedded = false,
+	onCardClosed,
+	onEdit,
 }: SupportHoursReportDrawerProps) => {
 	const { openTask } = useBitrixSlider();
 	const content = report ? (
@@ -99,9 +103,11 @@ export const SupportHoursReportDrawer = ({
 							<button
 								className={styles.linkedTaskButton}
 								type="button"
-								onClick={() => {
-									if (report.taskId)
-										openTask(report.taskId, EntityTypeIds.tasks);
+								onClick={async () => {
+									if (report.taskId) {
+										await openTask(report.taskId, EntityTypeIds.tasks);
+										await onCardClosed?.();
+									}
 								}}
 								aria-label={`Открыть связанную задачу: ${report.taskTitle || `#${report.taskId}`}`}
 							>
@@ -127,10 +133,22 @@ export const SupportHoursReportDrawer = ({
 					{report.description || "Описание не указано"}
 				</p>
 			</section>
+			{onEdit && (
+				<button
+					className={styles.packageReportButton}
+					type="button"
+					onClick={() => onEdit(report.id)}
+				>
+					Изменить отчёт
+				</button>
+			)}
 			<button
 				className={styles.openBitrixButton}
 				type="button"
-				onClick={() => openTask(report.id, EntityTypeIds.reports)}
+				onClick={async () => {
+					await openTask(report.id, EntityTypeIds.reports);
+					await onCardClosed?.();
+				}}
 			>
 				<FiExternalLink aria-hidden="true" /> Открыть отчёт в Битрикс
 			</button>
