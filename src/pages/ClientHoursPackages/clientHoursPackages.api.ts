@@ -49,7 +49,7 @@ export type SupportHoursPackagePayload = {
 	purchasedHours: number;
 	purchaseDate: string;
 	amount?: number;
-	comment?: string;
+	comment?: string | null;
 };
 
 export type SupportProjectTask = {
@@ -135,9 +135,15 @@ export const createSupportHoursPackage = async (
 export const updateSupportHoursPackage = async (
 	id: number,
 	payload: Omit<SupportHoursPackagePayload, "projectId">,
-) => $backendApi.patch(`support-hours-packages/${id}`, payload);
-export const deleteSupportHoursPackage = (id: number) =>
-	$backendApi.delete(`support-hours-packages/${id}`);
+	fingerprint?: string,
+) =>
+	$backendApi.patch(`support-hours-packages/${id}`, payload, {
+		headers: fingerprint ? { "If-Match": fingerprint } : undefined,
+	});
+export const deleteSupportHoursPackage = (id: number, fingerprint?: string) =>
+	$backendApi.delete(`support-hours-packages/${id}`, {
+		headers: fingerprint ? { "If-Match": fingerprint } : undefined,
+	});
 
 export const fetchSupportProjects = async (signal?: AbortSignal) => {
 	const response = await $backendApi.get<

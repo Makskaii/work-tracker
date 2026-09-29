@@ -3,6 +3,7 @@ import { notify } from "@/shared/ui/NotificationPopup/notify";
 import {
 	ClientHoursPackageModal,
 	type HoursPackageModalMode,
+	type PurchaseFormValues,
 } from "./ClientHoursPackageModal";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import {
@@ -22,6 +23,7 @@ import type {
 	SupportProjectOption,
 } from "./clientHoursPackages.types";
 import { SupportProjectDetails } from "./SupportProjectDetails";
+import { SupportReportModal } from "./SupportReportModal";
 import { SupportProjectsSidebar } from "./SupportProjectsSidebar";
 
 const selectedProjectStorageKey = "support-hours:selected-project-id";
@@ -47,11 +49,21 @@ const getStoredProjectId = () => {
 
 export const ClientHoursPackagesPage = () => {
 	const [packages, setPackages] = useState<ClientPackage[]>([]);
+	const packagesRef = useRef<ClientPackage[]>([]);
 	const [projects, setProjects] = useState<SupportProjectOption[]>([]);
 	const [loadState, setLoadState] = useState<"loading" | "ready" | "error">(
 		"loading",
 	);
 	const [refreshVersion, setRefreshVersion] = useState(0);
+	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+	const [refreshError, setRefreshError] = useState(false);
+	const refreshPromiseRef = useRef<Promise<void> | null>(null);
+	const mountedRef = useRef(true);
+	const [reportEditor, setReportEditor] = useState<{
+		taskId?: string;
+		reportId?: string;
+	} | null>(null);
 	const [projectTasks, setProjectTasks] = useState<SupportProjectTask[]>([]);
 	const [projectQuery, setProjectQuery] = useState("");
 	const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
@@ -63,7 +75,6 @@ export const ClientHoursPackagesPage = () => {
 	const selectedProjectIdRef = useRef<number | null>(selectedProjectId);
 	const loadRequestIdRef = useRef(0);
 	const hasInitializedProjectRef = useRef(false);
-	const hasLoadedProjectsRef = useRef(false);
 	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(
 		null,
 	);
@@ -78,37 +89,82 @@ export const ClientHoursPackagesPage = () => {
 			fetchSupportProjects(signal),
 		]);
 		if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
-		if (!supportProjects.length && hasLoadedProjectsRef.current) return;
 		setPackages(nextPackages);
+		packagesRef.current = nextPackages;
 		setProjects(supportProjects);
-		if (supportProjects.length) hasLoadedProjectsRef.current = true;
-	}, []);
-	const reloadPackages = useCallback(async () => {
-		const nextPackages = await fetchSupportHoursPackages();
-		setPackages(nextPackages);
 	}, []);
 
-	useEffect(() => {
-		const controller = new AbortController();
-		setLoadState("loading");
-		// Reconcile deleted/changed reports before displaying cached balances.
-		syncSupportProjects(controller.signal)
-			.then(() => syncSupportHoursReports(controller.signal))
-			.then(() => loadData(controller.signal))
-			.then(() => {
-				if (!controller.signal.aborted) setLoadState("ready");
-			})
-			.catch(() => {
-				if (controller.signal.aborted) return;
-				setLoadState("error");
-				notify({
-					message:
-						"Не удалось сверить отчёты с Битрикс24. Остатки часов не обновлены.",
-					type: "error",
+	const reconcile = useCallback(
+		(signal?: AbortSignal) => {
+			if (refreshPromiseRef.current) return refreshPromiseRef.current;
+			setIsRefreshing(true);
+			setRefreshError(false);
+			const promise = syncSupportProjects(signal)
+				.then(() => syncSupportHoursReports(signal))
+				.then(() => loadData(signal))
+				.then(() => {
+					if (signal?.aborted || !mountedRef.current) return;
+					setLoadState("ready");
+					setLastRefreshed(new Date());
+					setRefreshVersion((value) => value + 1);
+				})
+				.catch((cause) => {
+					if (signal?.aborted || !mountedRef.current) return;
+					setRefreshError(true);
+					setLoadState((state) => (state === "ready" ? "ready" : "error"));
+					notify({
+						message:
+							"Не удалось сверить отчёты с Битрикс24. Остатки часов не обновлены.",
+						type: "error",
+					});
+					throw cause;
+				})
+				.finally(() => {
+					if (refreshPromiseRef.current === promise) {
+						refreshPromiseRef.current = null;
+						if (mountedRef.current) setIsRefreshing(false);
+					}
 				});
-			});
-		return () => controller.abort();
-	}, [loadData, refreshVersion]);
+			refreshPromiseRef.current = promise;
+			return promise;
+		},
+		[loadData],
+	);
+	const reconcileAfterChange = useCallback(async () => {
+		// A refresh that started before a write cannot confirm the new balances.
+		await refreshPromiseRef.current?.catch(() => undefined);
+		await reconcile();
+	}, [reconcile]);
+
+	useEffect(() => {
+		mountedRef.current = true;
+		const controller = new AbortController();
+		void reconcile(controller.signal).catch(() => undefined);
+		return () => {
+			mountedRef.current = false;
+			controller.abort();
+			refreshPromiseRef.current = null;
+		};
+	}, [reconcile]);
+	useEffect(() => {
+		const refresh = () => {
+			if (
+				document.visibilityState === "hidden" ||
+				modalMode ||
+				reportEditor ||
+				!lastRefreshed ||
+				Date.now() - lastRefreshed.getTime() < 1500
+			)
+				return;
+			void reconcile().catch(() => undefined);
+		};
+		window.addEventListener("focus", refresh);
+		document.addEventListener("visibilitychange", refresh);
+		return () => {
+			window.removeEventListener("focus", refresh);
+			document.removeEventListener("visibilitychange", refresh);
+		};
+	}, [reconcile, modalMode, reportEditor, lastRefreshed]);
 
 	useEffect(() => {
 		if (selectedProjectId == null) return;
@@ -118,6 +174,7 @@ export const ClientHoursPackagesPage = () => {
 		);
 	}, [selectedProjectId]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: successful reconciliation also refreshes task names and statuses for the same project.
 	useEffect(() => {
 		if (selectedProjectId == null) {
 			setProjectTasks([]);
@@ -137,7 +194,7 @@ export const ClientHoursPackagesPage = () => {
 					});
 			});
 		return () => controller.abort();
-	}, [selectedProjectId]);
+	}, [selectedProjectId, refreshVersion]);
 
 	useEffect(() => {
 		if (!projects.length) return;
@@ -206,65 +263,86 @@ export const ClientHoursPackagesPage = () => {
 		setEditingPurchase(purchase);
 	};
 
-	const savePurchase = async ({
-		projectId,
-		date,
-		hours,
-		comment,
-	}: {
-		projectId: number;
-		date: string;
-		hours: number;
-		comment?: string;
-	}) => {
+	const savePurchase = async (
+		{ projectId, date, hours, comment }: PurchaseFormValues,
+		fingerprint?: string,
+	) => {
 		const selectedId = Number(projectId);
 		rememberProject(selectedId, false);
+		if (modalMode === "edit" && editingPurchase)
+			await updateSupportHoursPackage(
+				editingPurchase.id,
+				{ purchasedHours: hours, purchaseDate: date, comment },
+				fingerprint,
+			);
+		else
+			await createSupportHoursPackage({
+				projectId: selectedId,
+				purchasedHours: hours,
+				purchaseDate: date,
+				comment,
+			});
+		closeModal();
+		notify({
+			message:
+				modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена",
+			type: "success",
+		});
 		try {
-			if (modalMode === "edit" && editingPurchase)
-				await updateSupportHoursPackage(editingPurchase.id, {
-					purchasedHours: hours,
-					purchaseDate: date,
-					comment,
-				});
-			else
-				await createSupportHoursPackage({
-					projectId: selectedId,
-					purchasedHours: hours,
-					purchaseDate: date,
-					comment,
-				});
-			await reloadPackages();
-			rememberProject(selectedId, false);
+			await reconcileAfterChange();
+		} catch {
 			notify({
 				message:
-					modalMode === "edit" ? "Пакет обновлён" : "Покупка часов добавлена",
-				type: "success",
+					"Пакет сохранён. Нажмите «Обновить данные», чтобы увидеть новые остатки.",
+				type: "error",
 			});
-			closeModal();
-		} catch {
-			notify({ message: "Не удалось сохранить пакет", type: "error" });
 		}
+		setRefreshVersion((value) => value + 1);
 	};
-
-	const deletePurchase = async () => {
+	const deletePurchase = async (fingerprint: string) => {
 		if (!editingPurchase) return;
-		const selectedId = modalProjectId == null ? null : Number(modalProjectId);
-		if (selectedId != null) rememberProject(selectedId, false);
+		await deleteSupportHoursPackage(editingPurchase.id, fingerprint);
+		if (editingPurchase.id === selectedPurchaseId) setSelectedPurchaseId(null);
+		closeModal();
+		notify({ message: "Пакет удалён", type: "success" });
 		try {
-			await deleteSupportHoursPackage(editingPurchase.id);
-			await reloadPackages();
-			if (selectedId != null) rememberProject(selectedId, false);
-			if (editingPurchase?.id === selectedPurchaseId)
-				setSelectedPurchaseId(null);
-			notify({ message: "Пакет удалён", type: "success" });
-			closeModal();
+			await reconcileAfterChange();
 		} catch {
-			notify({ message: "Не удалось удалить пакет", type: "error" });
+			notify({
+				message:
+					"Пакет удалён. Нажмите «Обновить данные», чтобы увидеть новые остатки.",
+				type: "error",
+			});
 		}
+		setRefreshVersion((value) => value + 1);
 	};
 
 	return (
 		<section className={styles.page}>
+			{loadState === "ready" && (
+				<div className={styles.refreshBar}>
+					<span>
+						{isRefreshing
+							? "Сверяем данные с Битрикс24…"
+							: lastRefreshed
+								? `Последняя сверка: ${lastRefreshed.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Moscow" })}`
+								: ""}
+					</span>
+					{refreshError && (
+						<span className={styles.formError} role="alert">
+							Сверка не завершена. Показаны данные последней успешной загрузки.
+						</span>
+					)}
+					<button
+						className={styles.inlineAction}
+						type="button"
+						disabled={isRefreshing}
+						onClick={() => void reconcile().catch(() => undefined)}
+					>
+						Обновить данные
+					</button>
+				</div>
+			)}
 			{loadState !== "ready" ? (
 				<div
 					className={styles.projectDetails}
@@ -279,7 +357,10 @@ export const ClientHoursPackagesPage = () => {
 						<button
 							type="button"
 							className={styles.addPackageButton}
-							onClick={() => setRefreshVersion((value) => value + 1)}
+							onClick={() => {
+								setLoadState("loading");
+								void reconcile().catch(() => undefined);
+							}}
 						>
 							Повторить загрузку
 						</button>
@@ -298,6 +379,10 @@ export const ClientHoursPackagesPage = () => {
 					/>
 					<SupportProjectDetails
 						project={selectedProject}
+						refreshKey={refreshVersion}
+						onCardClosed={() => reconcileAfterChange().catch(() => undefined)}
+						onAddReport={(taskId) => setReportEditor({ taskId })}
+						onEditReport={(reportId) => setReportEditor({ reportId })}
 						projectPackages={selectedProjectPackages}
 						projectTasks={projectTasks}
 						selectedPurchaseId={selectedPurchaseId}
@@ -307,6 +392,33 @@ export const ClientHoursPackagesPage = () => {
 						}
 					/>
 				</div>
+			)}
+			{reportEditor && selectedProject && (
+				<SupportReportModal
+					key={`${selectedProject.id}:${reportEditor.reportId ?? "new"}:${reportEditor.taskId ?? ""}`}
+					projectId={selectedProject.id}
+					projectTitle={selectedProject.title}
+					tasks={projectTasks}
+					initialTaskId={reportEditor.taskId}
+					reportId={reportEditor.reportId}
+					onClose={() => setReportEditor(null)}
+					onSaved={async () => {
+						const before = packagesRef.current.find(
+							(item) => item.id === selectedProject.id,
+						)?.remainingHours;
+						await reconcileAfterChange();
+						const after = packagesRef.current.find(
+							(item) => item.id === selectedProject.id,
+						)?.remainingHours;
+						notify({
+							message:
+								before != null && after != null && before !== after
+									? `Отчёт сохранён. Остаток проекта: ${before} → ${after} ч.`
+									: "Отчёт сохранён. Списания и остатки пересчитаны.",
+							type: "success",
+						});
+					}}
+				/>
 			)}
 			<ClientHoursPackageModal
 				projects={projects}

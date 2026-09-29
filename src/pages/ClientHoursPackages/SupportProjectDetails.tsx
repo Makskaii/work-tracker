@@ -5,7 +5,6 @@ import {
 	FiChevronDown,
 	FiChevronRight,
 	FiClock,
-	FiDownload,
 	FiEdit3,
 	FiExternalLink,
 	FiFileText,
@@ -14,17 +13,14 @@ import {
 } from "react-icons/fi";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
-import { notify } from "@/shared/ui/NotificationPopup/notify";
 import styles from "./ClientHoursPackagesPage.module.scss";
-import {
-	fetchSupportHoursPackageReport,
-	type SupportProjectTask,
-} from "./clientHoursPackages.api";
+import { type SupportProjectTask } from "./clientHoursPackages.api";
 import type {
 	ClientPackage,
 	PackagePurchase,
 	SupportProjectOption,
 } from "./clientHoursPackages.types";
+import { SupportPackageReportPanel } from "./SupportPackageReportPanel";
 import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
 import {
 	collectSupportEntries,
@@ -40,6 +36,10 @@ type SupportProjectDetailsProps = {
 	projectTasks: SupportProjectTask[];
 	selectedPurchaseId: number | null;
 	onAddPackage: () => void;
+	onAddReport?: (taskId?: string) => void;
+	onEditReport?: (reportId: string) => void;
+	onCardClosed?: () => Promise<void>;
+	refreshKey?: number;
 	onEditPackage: (purchase: PackagePurchase) => void;
 };
 
@@ -86,6 +86,10 @@ export const SupportProjectDetails = ({
 	projectTasks,
 	selectedPurchaseId,
 	onAddPackage,
+	onAddReport,
+	onEditReport,
+	onCardClosed,
+	refreshKey,
 	onEditPackage,
 }: SupportProjectDetailsProps) => {
 	const { openTask } = useBitrixSlider();
@@ -95,7 +99,6 @@ export const SupportProjectDetails = ({
 	const [selectedReport, setSelectedReport] =
 		useState<SupportHoursReportItem | null>(null);
 	const [taskQuery, setTaskQuery] = useState("");
-	const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 	const [taskStatusFilter, setTaskStatusFilter] =
 		useState<TaskStatusFilter>("all");
 	if (!project)
@@ -120,11 +123,7 @@ export const SupportProjectDetails = ({
 				null);
 	const reportPurchase =
 		selectedPurchase ?? (purchases.length === 1 ? purchases[0] : null);
-	const reportHint = reportPurchase
-		? "За весь пакет по сегодняшний день"
-		: purchases.length
-			? "Выберите пакет для отчёта"
-			: "Добавьте пакет для отчёта";
+
 	const periodPurchase =
 		selectedPurchase ??
 		purchases.toSorted(
@@ -172,33 +171,6 @@ export const SupportProjectDetails = ({
 		});
 	};
 
-	const downloadPackageReport = async () => {
-		if (!reportPurchase || isGeneratingReport) return;
-		setIsGeneratingReport(true);
-		try {
-			const pdf = await fetchSupportHoursPackageReport(reportPurchase.id);
-			const objectUrl = URL.createObjectURL(pdf);
-			const link = document.createElement("a");
-			try {
-				link.href = objectUrl;
-				link.download = `support-package-${reportPurchase.id}.pdf`;
-				document.body.appendChild(link);
-				link.click();
-			} finally {
-				link.remove();
-				// Give the browser time to start reading the download before releasing it.
-				window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-			}
-		} catch {
-			notify({
-				message: "Не удалось сформировать отчёт по пакету. Повторите попытку.",
-				type: "error",
-			});
-		} finally {
-			setIsGeneratingReport(false);
-		}
-	};
-
 	return (
 		<main className={styles.projectDetails}>
 			<header className={styles.detailsHeader}>
@@ -214,20 +186,17 @@ export const SupportProjectDetails = ({
 					<p>Управление пакетами часов и историей списаний по проекту</p>
 				</div>
 				<div className={styles.detailsActions}>
-					<div className={styles.packageReportAction}>
+					{onAddReport && (
 						<button
 							className={styles.packageReportButton}
 							type="button"
-							disabled={!reportPurchase || isGeneratingReport}
-							aria-busy={isGeneratingReport}
-							title={reportHint}
-							onClick={downloadPackageReport}
+							onClick={() => onAddReport()}
 						>
-							<FiDownload aria-hidden="true" />
-							{isGeneratingReport ? "Готовим отчёт…" : "Отчёт по пакету"}
+							<FiPlus aria-hidden="true" />
+							Добавить отчёт
 						</button>
-						<small>{reportHint}</small>
-					</div>
+					)}
+
 					<button
 						className={styles.addPackageButton}
 						type="button"
@@ -307,6 +276,13 @@ export const SupportProjectDetails = ({
 				</section>
 			)}
 
+			<SupportPackageReportPanel
+				projectId={project.id}
+				packageId={reportPurchase?.id ?? null}
+				hasPackages={purchases.length > 0}
+				refreshKey={refreshKey}
+				onCardClosed={onCardClosed}
+			/>
 			<div className={styles.reportingWorkspace}>
 				<section className={styles.detailsSection}>
 					<div className={styles.sectionHeading}>
@@ -397,10 +373,24 @@ export const SupportProjectDetails = ({
 												</span>
 												<b>{formatHours(entry.hours)}</b>
 											</button>
+											{onAddReport && (
+												<button
+													className={styles.openTaskButton}
+													type="button"
+													onClick={() => onAddReport(entry.id)}
+													aria-label={`Добавить отчёт по задаче: ${entry.title}`}
+												>
+													<FiPlus aria-hidden="true" />
+													<span>Добавить отчёт</span>
+												</button>
+											)}
 											<button
 												className={styles.openTaskButton}
 												type="button"
-												onClick={() => openTask(entry.id, EntityTypeIds.tasks)}
+												onClick={async () => {
+													await openTask(entry.id, EntityTypeIds.tasks);
+													await onCardClosed?.();
+												}}
 												aria-label={`Открыть задачу: ${entry.title}`}
 												title="Открыть задачу в Битрикс"
 											>
@@ -434,6 +424,15 @@ export const SupportProjectDetails = ({
 				<SupportHoursReportDrawer
 					report={visibleSelectedReport}
 					onClose={() => setSelectedReport(null)}
+					onCardClosed={onCardClosed}
+					onEdit={
+						onEditReport
+							? (reportId) => {
+									setSelectedReport(null);
+									onEditReport(reportId);
+								}
+							: undefined
+					}
 				/>
 			</div>
 		</main>
