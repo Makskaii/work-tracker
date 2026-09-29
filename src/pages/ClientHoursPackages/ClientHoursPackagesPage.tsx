@@ -51,6 +51,15 @@ const getStoredProjectId = () => {
 	return getProjectId(value);
 };
 
+const isInactiveSupportProjectError = (cause: unknown) => {
+	if (!cause || typeof cause !== "object") return false;
+	const response = (cause as {
+		response?: { status?: number; data?: { message?: unknown } };
+	}).response;
+	return response?.status === 400 && response.data?.message ===
+		"Проект больше не относится к техподдержке. Обновите данные";
+};
+
 export const ClientHoursPackagesPage = () => {
   const { b24 } = useB24();
   const [pendingTransfer, setPendingTransfer] = useState<{projectId: number; id: string} | null>(null);
@@ -95,13 +104,45 @@ export const ClientHoursPackagesPage = () => {
 	);
 	const selectedProjectIdRef = useRef<number | null>(selectedProjectId);
 	const loadRequestIdRef = useRef(0);
-	const hasInitializedProjectRef = useRef(false);
 	const [modalMode, setModalMode] = useState<HoursPackageModalMode | null>(
 		null,
 	);
 	const [modalProjectId, setModalProjectId] = useState<number | null>(null);
 	const [editingPurchase, setEditingPurchase] =
 		useState<PackagePurchase | null>(null);
+
+	const rememberProject = useCallback((projectId: number | null, resetPurchase = true) => {
+		if (selectedProjectIdRef.current !== projectId) {
+			// A late response for the previous project must not restore its workspace.
+			workspaceRequestIdRef.current += 1;
+			workspacePromiseRef.current = null;
+			workspaceSnapshotRef.current = null;
+			setProjectWorkspace(null);
+			setProjectTasks([]);
+			setWorkspaceLoading(false);
+			setWorkspaceError(null);
+			setReportEditor(null);
+			setModalMode(null);
+			setModalProjectId(null);
+			setEditingPurchase(null);
+		}
+		rememberedProjectId = projectId;
+		selectedProjectIdRef.current = projectId;
+		if (projectId == null) window.sessionStorage.removeItem(selectedProjectStorageKey);
+		else window.sessionStorage.setItem(selectedProjectStorageKey, String(projectId));
+		const currentHistoryState = window.history.state;
+		window.history.replaceState(
+			{
+				...(currentHistoryState && typeof currentHistoryState === "object"
+					? currentHistoryState
+					: {}),
+				[selectedProjectHistoryStateKey]: projectId,
+			},
+			"",
+		);
+		setSelectedProjectId(projectId);
+		if (resetPurchase) setSelectedPurchaseId(null);
+	}, []);
 
 	const loadWorkspace = useCallback((projectId: number, signal?: AbortSignal) => {
 		const current = workspacePromiseRef.current;
@@ -124,9 +165,15 @@ export const ClientHoursPackagesPage = () => {
 			})
 			.catch((cause) => {
 				if (!signal?.aborted && mountedRef.current && requestId === workspaceRequestIdRef.current && selectedProjectIdRef.current === projectId) {
-					const pendingId = pendingTransferFromError(cause);
-          if (pendingId) setPendingTransfer({projectId, id: pendingId});
-          setWorkspaceError(supportErrorMessage(cause, "Не удалось загрузить все работы проекта. Повторите загрузку, чтобы проверить отчёты и остатки."));
+					if (isInactiveSupportProjectError(cause)) {
+						// The project may change type between catalogue sync and workspace loading.
+						// Hide it only in this view; do not delete any stored package or report.
+						setProjects((currentProjects) => currentProjects.filter((project) => project.id !== projectId));
+					} else {
+						const pendingId = pendingTransferFromError(cause);
+						if (pendingId) setPendingTransfer({projectId, id: pendingId});
+						setWorkspaceError(supportErrorMessage(cause, "Не удалось загрузить все работы проекта. Повторите загрузку, чтобы проверить отчёты и остатки."));
+					}
 				}
 				throw cause;
 			})
@@ -144,16 +191,24 @@ export const ClientHoursPackagesPage = () => {
 			fetchSupportHoursPackages(signal),
 			fetchSupportProjects(signal),
 		]);
-		if (signal?.aborted || requestId !== loadRequestIdRef.current) return;
+		if (signal?.aborted || !mountedRef.current || requestId !== loadRequestIdRef.current) return;
 		setPackages(nextPackages);
 		packagesRef.current = nextPackages;
 		setProjects(supportProjects);
+		// The catalogue and reconciled balances are usable even if one workspace fails.
+		setLoadState("ready");
 		const projectId = selectedProjectIdRef.current;
 		if (projectId != null && supportProjects.some((project) => project.id === projectId)) {
 			// A snapshot started before the reconciliation can miss a just-saved report.
 			await workspacePromiseRef.current?.promise.catch(() => undefined);
-			if (signal?.aborted || requestId !== loadRequestIdRef.current || selectedProjectIdRef.current !== projectId) return;
-			await loadWorkspace(projectId, signal);
+			if (signal?.aborted || !mountedRef.current || requestId !== loadRequestIdRef.current || selectedProjectIdRef.current !== projectId) return;
+			try {
+				await loadWorkspace(projectId, signal);
+			} catch (cause) {
+				// A type transition is recovered by selecting another catalogue entry.
+				// Other failures remain visible and still reject mutation reconciliation.
+				if (!isInactiveSupportProjectError(cause)) throw cause;
+			}
 		}
 	}, [loadWorkspace]);
 
@@ -281,6 +336,7 @@ export const ClientHoursPackagesPage = () => {
 
 	useEffect(() => {
 		if (loadState !== "ready" || workspaceSnapshotRef.current?.projectId === selectedProjectId) return;
+		if (selectedProjectId != null && !projects.some((project) => project.id === selectedProjectId)) return;
 		setProjectWorkspace(null);
 		workspaceSnapshotRef.current = null;
 		setProjectTasks([]);
@@ -291,44 +347,15 @@ export const ClientHoursPackagesPage = () => {
 		const controller = new AbortController();
 		void loadWorkspace(selectedProjectId, controller.signal).catch(() => undefined);
 		return () => controller.abort();
-	}, [selectedProjectId, loadWorkspace, loadState]);
+	}, [selectedProjectId, loadWorkspace, loadState, projects]);
 
 	useEffect(() => {
-		if (!projects.length) return;
-		if (hasInitializedProjectRef.current) return;
-		hasInitializedProjectRef.current = true;
-		setSelectedProjectId((currentProjectId) => {
-			const initialProjectId = selectedProjectIdRef.current ?? currentProjectId;
-			if (
-				initialProjectId != null &&
-				projects.some((project) => project.id === initialProjectId)
-			) {
-				selectedProjectIdRef.current = initialProjectId;
-				return initialProjectId;
-			}
-			const firstProjectId = projects[0]?.id ?? null;
-			selectedProjectIdRef.current = firstProjectId;
-			return firstProjectId;
-		});
-	}, [projects]);
-
-	const rememberProject = (projectId: number, resetPurchase = true) => {
-		rememberedProjectId = projectId;
-		selectedProjectIdRef.current = projectId;
-		window.sessionStorage.setItem(selectedProjectStorageKey, String(projectId));
-		const currentHistoryState = window.history.state;
-		window.history.replaceState(
-			{
-				...(currentHistoryState && typeof currentHistoryState === "object"
-					? currentHistoryState
-					: {}),
-				[selectedProjectHistoryStateKey]: projectId,
-			},
-			"",
-		);
-		setSelectedProjectId(projectId);
-		if (resetPurchase) setSelectedPurchaseId(null);
-	};
+		if (loadState !== "ready") return;
+		const currentProjectId = selectedProjectIdRef.current;
+		if (currentProjectId != null && projects.some((project) => project.id === currentProjectId)) return;
+		const nextProjectId = projects[0]?.id ?? null;
+		if (currentProjectId !== nextProjectId) rememberProject(nextProjectId);
+	}, [projects, loadState, rememberProject]);
 
 	const selectPurchase = (projectId: number, purchaseId: number | null) => {
 		rememberProject(projectId, false);
@@ -343,6 +370,10 @@ export const ClientHoursPackagesPage = () => {
 		() => packages.find((item) => item.id === selectedProjectId) ?? null,
 		[packages, selectedProjectId],
 	);
+	const supportPackages = useMemo(() => {
+		const projectIds = new Set(projects.map((project) => project.id));
+		return packages.filter((item) => projectIds.has(item.id));
+	}, [packages, projects]);
 
 	const closeModal = () => {
 		setModalMode(null);
@@ -458,7 +489,7 @@ export const ClientHoursPackagesPage = () => {
 					{loadState === "error" && (
 						<button
 							type="button"
-							className={styles.addPackageButton}
+								className={styles.addPackageButton}
 							onClick={() => {
 								setLoadState("loading");
 								void reconcile().catch(() => undefined);
@@ -471,7 +502,7 @@ export const ClientHoursPackagesPage = () => {
 			) : (
 				<div className={styles.workspace}>
 					<SupportProjectsSidebar
-						packages={packages}
+						packages={supportPackages}
 						projects={projects}
 						query={projectQuery}
 						selectedProjectId={selectedProjectId}
