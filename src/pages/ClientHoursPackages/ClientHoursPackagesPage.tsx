@@ -11,7 +11,6 @@ import {
 	deleteSupportHoursPackage,
 	fetchSupportHoursPackages,
 	fetchSupportProjects,
-	fetchSupportProjectTasks,
 	syncSupportProjects,
 	syncSupportHoursReports,
 	type SupportProjectTask,
@@ -25,6 +24,7 @@ import type {
 import { SupportProjectDetails } from "./SupportProjectDetails";
 import { SupportReportModal } from "./SupportReportModal";
 import { SupportProjectsSidebar } from "./SupportProjectsSidebar";
+import { fetchSupportProjectWorkspace, type SupportProjectWorkspace } from "./supportWorkspace.api";
 
 const selectedProjectStorageKey = "support-hours:selected-project-id";
 const selectedProjectHistoryStateKey = "support-hours:selected-project-id";
@@ -65,6 +65,12 @@ export const ClientHoursPackagesPage = () => {
 		reportId?: string;
 	} | null>(null);
 	const [projectTasks, setProjectTasks] = useState<SupportProjectTask[]>([]);
+	const [projectWorkspace, setProjectWorkspace] = useState<SupportProjectWorkspace | null>(null);
+	const workspaceSnapshotRef = useRef<SupportProjectWorkspace | null>(null);
+	const [workspaceLoading, setWorkspaceLoading] = useState(false);
+	const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+	const workspaceRequestIdRef = useRef(0);
+	const workspacePromiseRef = useRef<{ projectId: number; signal?: AbortSignal; promise: Promise<SupportProjectWorkspace> } | null>(null);
 	const [projectQuery, setProjectQuery] = useState("");
 	const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
 		getStoredProjectId,
@@ -82,6 +88,39 @@ export const ClientHoursPackagesPage = () => {
 	const [editingPurchase, setEditingPurchase] =
 		useState<PackagePurchase | null>(null);
 
+	const loadWorkspace = useCallback((projectId: number, signal?: AbortSignal) => {
+		const current = workspacePromiseRef.current;
+		if (current?.projectId === projectId && !current.signal?.aborted) return current.promise;
+		const requestId = ++workspaceRequestIdRef.current;
+		setWorkspaceLoading(true);
+		setWorkspaceError(null);
+		const promise = fetchSupportProjectWorkspace(projectId, signal)
+			.then((workspace) => {
+				if (!signal?.aborted && mountedRef.current && requestId === workspaceRequestIdRef.current && selectedProjectIdRef.current === projectId) {
+					setProjectWorkspace(workspace);
+					workspaceSnapshotRef.current = workspace;
+					setProjectTasks(workspace.tasks);
+					const next = packagesRef.current.filter((item) => item.id !== projectId);
+					if (workspace.packageGroup.purchases.length) next.push(workspace.packageGroup);
+					packagesRef.current = next;
+					setPackages(next);
+				}
+				return workspace;
+			})
+			.catch((cause) => {
+				if (!signal?.aborted && mountedRef.current && requestId === workspaceRequestIdRef.current && selectedProjectIdRef.current === projectId) {
+					setWorkspaceError("Не удалось загрузить все работы проекта. Повторите загрузку, чтобы проверить отчёты и остатки.");
+				}
+				throw cause;
+			})
+			.finally(() => {
+				if (workspacePromiseRef.current?.promise === promise) workspacePromiseRef.current = null;
+				if (mountedRef.current && requestId === workspaceRequestIdRef.current) setWorkspaceLoading(false);
+			});
+		workspacePromiseRef.current = { projectId, signal, promise };
+		return promise;
+	}, []);
+
 	const loadData = useCallback(async (signal?: AbortSignal) => {
 		const requestId = ++loadRequestIdRef.current;
 		const [nextPackages, supportProjects] = await Promise.all([
@@ -92,7 +131,14 @@ export const ClientHoursPackagesPage = () => {
 		setPackages(nextPackages);
 		packagesRef.current = nextPackages;
 		setProjects(supportProjects);
-	}, []);
+		const projectId = selectedProjectIdRef.current;
+		if (projectId != null && supportProjects.some((project) => project.id === projectId)) {
+			// A snapshot started before the reconciliation can miss a just-saved report.
+			await workspacePromiseRef.current?.promise.catch(() => undefined);
+			if (signal?.aborted || requestId !== loadRequestIdRef.current || selectedProjectIdRef.current !== projectId) return;
+			await loadWorkspace(projectId, signal);
+		}
+	}, [loadWorkspace]);
 
 	const reconcile = useCallback(
 		(signal?: AbortSignal) => {
@@ -133,6 +179,7 @@ export const ClientHoursPackagesPage = () => {
 	const reconcileAfterChange = useCallback(async () => {
 		// A refresh that started before a write cannot confirm the new balances.
 		await refreshPromiseRef.current?.catch(() => undefined);
+		await workspacePromiseRef.current?.promise.catch(() => undefined);
 		await reconcile();
 	}, [reconcile]);
 
@@ -174,27 +221,19 @@ export const ClientHoursPackagesPage = () => {
 		);
 	}, [selectedProjectId]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: successful reconciliation also refreshes task names and statuses for the same project.
 	useEffect(() => {
+		if (loadState !== "ready" || workspaceSnapshotRef.current?.projectId === selectedProjectId) return;
+		setProjectWorkspace(null);
+		workspaceSnapshotRef.current = null;
+		setProjectTasks([]);
+		setWorkspaceError(null);
 		if (selectedProjectId == null) {
-			setProjectTasks([]);
 			return;
 		}
 		const controller = new AbortController();
-		setProjectTasks([]);
-		fetchSupportProjectTasks(selectedProjectId, controller.signal)
-			.then((tasks) => {
-				if (!controller.signal.aborted) setProjectTasks(tasks);
-			})
-			.catch(() => {
-				if (!controller.signal.aborted)
-					notify({
-						message: "Не удалось загрузить задачи техпод-проекта",
-						type: "error",
-					});
-			});
+		void loadWorkspace(selectedProjectId, controller.signal).catch(() => undefined);
 		return () => controller.abort();
-	}, [selectedProjectId, refreshVersion]);
+	}, [selectedProjectId, loadWorkspace, loadState]);
 
 	useEffect(() => {
 		if (!projects.length) return;
@@ -385,6 +424,15 @@ export const ClientHoursPackagesPage = () => {
 						onEditReport={(reportId) => setReportEditor({ reportId })}
 						projectPackages={selectedProjectPackages}
 						projectTasks={projectTasks}
+						workspace={projectWorkspace?.projectId === selectedProjectId ? projectWorkspace : null}
+						workspaceLoading={workspaceLoading}
+						workspaceError={workspaceError}
+						onRetryWorkspace={() => {
+							if (selectedProjectId != null) void loadWorkspace(selectedProjectId).catch(() => undefined);
+						}}
+						onSelectPackage={(id) => {
+							if (selectedProjectId != null) selectPurchase(selectedProjectId, id);
+						}}
 						selectedPurchaseId={selectedPurchaseId}
 						onAddPackage={() => openModal("new-package", selectedProjectId)}
 						onEditPackage={(purchase) =>

@@ -45,7 +45,15 @@ export const SupportHoursReportDrawer = ({
 				<span className={styles.eyebrow}>Детали отчёта</span>
 				<div className={styles.reportDrawerTitleLine}>
 					<h2>{report.title || "Отчёт по техподдержке"}</h2>
-					<span className={styles.reportDrawerStatus}>Списано</span>
+					<span
+						className={`${styles.reportDrawerStatus} ${report.hourScope === "excluded" ? styles.reportStatusExcluded : report.hourScope === "unallocated" ? styles.reportStatusUnallocated : ""}`}
+					>
+						{report.hourScope === "excluded"
+							? "Не учитывается"
+							: report.hourScope === "unallocated"
+								? "Без пакета"
+								: "Списано"}
+					</span>
 				</div>
 			</header>
 			<dl className={styles.reportDrawerFacts}>
@@ -66,12 +74,22 @@ export const SupportHoursReportDrawer = ({
 				<div>
 					<dt>
 						<FiClock aria-hidden="true" />
-						Списано часов
+						{report.hourScope === "excluded"
+							? "Не учитывается часов"
+							: report.hourScope === "unallocated"
+								? "Часов без пакета"
+								: "Списано часов"}
 					</dt>
 					<dd className={styles.reportDrawerHoursValue}>
 						{formatHours(report.hours)}
 					</dd>
 				</div>
+				{report.totalHours != null && report.totalHours !== report.hours && (
+					<div>
+						<dt>Всего часов по отчёту</dt>
+						<dd>{formatHours(report.totalHours)}</dd>
+					</div>
+				)}
 				<div>
 					<dt>
 						<FiBriefcase aria-hidden="true" />
@@ -120,6 +138,13 @@ export const SupportHoursReportDrawer = ({
 			</dl>
 			<section className={styles.reportDrawerSection}>
 				<h3>Пакеты списания</h3>
+				{report.allocations.length === 0 && (
+					<p className={styles.worklistScope}>
+						{report.hourScope === "excluded"
+							? "Учёт в пакете выключен. Часы не списываются и не включаются в клиентский PDF."
+							: "Часы пока не распределены по пакетам. После добавления пакета они распределятся автоматически."}
+					</p>
+				)}
 				{report.allocations.map((allocation) => (
 					<div className={styles.reportAllocation} key={allocation.purchaseId}>
 						<span>Пакет от {formatDate(allocation.purchaseDate)}</span>

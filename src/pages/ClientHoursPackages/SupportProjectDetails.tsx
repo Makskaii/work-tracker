@@ -1,18 +1,11 @@
-import { useState } from "react";
 import {
 	FiArchive,
 	FiCalendar,
-	FiChevronDown,
-	FiChevronRight,
 	FiClock,
 	FiEdit3,
-	FiExternalLink,
 	FiFileText,
 	FiPlus,
-	FiSearch,
 } from "react-icons/fi";
-import { EntityTypeIds } from "@/shared/constants/const";
-import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import { type SupportProjectTask } from "./clientHoursPackages.api";
 import type {
@@ -21,19 +14,20 @@ import type {
 	SupportProjectOption,
 } from "./clientHoursPackages.types";
 import { SupportPackageReportPanel } from "./SupportPackageReportPanel";
-import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
-import {
-	collectSupportEntries,
-	collectSupportReports,
-	matchesSupportEntry,
-	type SupportHoursReportItem,
-	type TaskStatusFilter,
-} from "./supportReportEntries";
+import { collectSupportReports } from "./supportReportEntries";
+import type { SupportProjectWorkspace } from "./supportWorkspace.api";
+import { SupportProjectWorklists } from "./SupportProjectWorklists";
+import { SupportPackageBalances } from "./SupportPackageBalances";
 
 type SupportProjectDetailsProps = {
 	project: SupportProjectOption | null;
 	projectPackages: ClientPackage | null;
 	projectTasks: SupportProjectTask[];
+	workspace?: SupportProjectWorkspace | null;
+	workspaceLoading?: boolean;
+	workspaceError?: string | null;
+	onRetryWorkspace?: () => void;
+	onSelectPackage?: (id: number | null) => void;
 	selectedPurchaseId: number | null;
 	onAddPackage: () => void;
 	onAddReport?: (taskId?: string) => void;
@@ -52,38 +46,15 @@ const formatDate = (value: string) =>
 		year: "numeric",
 	}).format(new Date(value));
 
-const SupportReportRow = ({
-	report,
-	onOpen,
-}: {
-	report: SupportHoursReportItem;
-	onOpen: () => void;
-}) => (
-	<button
-		className={styles.supportReportRow}
-		type="button"
-		onClick={onOpen}
-		aria-label={`Посмотреть отчёт: ${report.description || report.title || `#${report.id}`}`}
-	>
-		<FiFileText aria-hidden="true" />
-		<span className={styles.supportReportSummary}>
-			<strong>
-				{report.description || report.title || `Отчёт #${report.id}`}
-			</strong>
-			<small>
-				<time dateTime={report.date}>{formatDate(report.date)}</time>
-				{report.responsibleName ? ` · ${report.responsibleName}` : ""}
-			</small>
-		</span>
-		<b>{formatHours(report.hours)}</b>
-		<FiChevronRight aria-hidden="true" />
-	</button>
-);
-
 export const SupportProjectDetails = ({
 	project,
 	projectPackages,
 	projectTasks,
+	workspace,
+	workspaceLoading,
+	workspaceError,
+	onRetryWorkspace,
+	onSelectPackage,
 	selectedPurchaseId,
 	onAddPackage,
 	onAddReport,
@@ -92,15 +63,6 @@ export const SupportProjectDetails = ({
 	refreshKey,
 	onEditPackage,
 }: SupportProjectDetailsProps) => {
-	const { openTask } = useBitrixSlider();
-	const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(
-		new Set(),
-	);
-	const [selectedReport, setSelectedReport] =
-		useState<SupportHoursReportItem | null>(null);
-	const [taskQuery, setTaskQuery] = useState("");
-	const [taskStatusFilter, setTaskStatusFilter] =
-		useState<TaskStatusFilter>("all");
 	if (!project)
 		return (
 			<main className={styles.projectDetails}>
@@ -136,12 +98,6 @@ export const SupportProjectDetails = ({
 		: "Не указан";
 	const scopedPurchases = selectedPurchase ? [selectedPurchase] : purchases;
 	const reports = collectSupportReports(scopedPurchases);
-	const entries = collectSupportEntries(reports, projectTasks);
-	const visibleEntries = entries.filter((entry) =>
-		matchesSupportEntry(entry, taskQuery, taskStatusFilter),
-	);
-	const visibleSelectedReport =
-		reports.find((report) => report.id === selectedReport?.id) ?? null;
 	const purchasedHours = scopedPurchases.reduce(
 		(sum, purchase) => sum + purchase.hours,
 		0,
@@ -162,14 +118,6 @@ export const SupportProjectDetails = ({
 	const usagePercent = purchasedHours
 		? Math.min(100, Math.round((consumedHours / purchasedHours) * 100))
 		: 0;
-	const toggleTask = (taskId: string) => {
-		setExpandedTaskIds((current) => {
-			const next = new Set(current);
-			if (next.has(taskId)) next.delete(taskId);
-			else next.add(taskId);
-			return next;
-		});
-	};
 
 	return (
 		<main className={styles.projectDetails}>
@@ -276,164 +224,35 @@ export const SupportProjectDetails = ({
 				</section>
 			)}
 
+			{onSelectPackage && (
+				<SupportPackageBalances
+					purchases={purchases}
+					selectedPurchaseId={effectivePurchaseId}
+					onSelectPackage={onSelectPackage}
+					onEditPackage={onEditPackage}
+				/>
+			)}
 			<SupportPackageReportPanel
 				packageId={reportPurchase?.id ?? null}
 				hasPackages={purchases.length > 0}
 				refreshKey={refreshKey}
 				onCardClosed={onCardClosed}
 			/>
-			<div className={styles.reportingWorkspace}>
-				<section className={styles.detailsSection}>
-					<div className={styles.sectionHeading}>
-						<h2>Списания по задачам и отчётам</h2>
-						<span>{visibleEntries.length}</span>
-					</div>
-					<div className={styles.taskFilters}>
-						<label className={styles.taskSearch}>
-							<FiSearch aria-hidden="true" />
-							<input
-								type="search"
-								value={taskQuery}
-								onChange={(event) => setTaskQuery(event.target.value)}
-								placeholder="Поиск по задачам и отчётам"
-								aria-label="Поиск по задачам и отчётам"
-							/>
-						</label>
-						<div className={styles.taskFilterField}>
-							<span>Статус задачи</span>
-							<div
-								className={styles.taskFilterGroup}
-								aria-label="Фильтр по статусу задачи"
-							>
-								{(
-									[
-										["all", "Все статусы"],
-										["open", "Открытые"],
-										["closed", "Завершённые"],
-									] as const
-								).map(([value, label]) => (
-									<button
-										className={
-											value === taskStatusFilter
-												? styles.taskFilterButtonActive
-												: styles.taskFilterButton
-										}
-										type="button"
-										key={value}
-										onClick={() => setTaskStatusFilter(value)}
-										aria-pressed={value === taskStatusFilter}
-									>
-										{label}
-									</button>
-								))}
-							</div>
-						</div>
-					</div>
-					{taskStatusFilter !== "all" ? (
-						<p className={styles.filterHint}>
-							Фильтр статуса применяется к задачам. Отдельные отчёты остаются в
-							списке.
-						</p>
-					) : null}
-					{visibleEntries.length ? (
-						<div className={styles.tasksList}>
-							{visibleEntries.map((entry) => {
-								if (entry.kind === "report")
-									return (
-										<div
-											className={styles.standaloneReport}
-											key={`report-${entry.id}`}
-										>
-											<SupportReportRow
-												report={entry.report}
-												onOpen={() => setSelectedReport(entry.report)}
-											/>
-										</div>
-									);
-								const isExpanded = expandedTaskIds.has(entry.id);
-								return (
-									<div className={styles.taskItem} key={`task-${entry.id}`}>
-										<div className={styles.taskHeader}>
-											<button
-												className={styles.taskToggle}
-												type="button"
-												onClick={() => toggleTask(entry.id)}
-												aria-expanded={isExpanded}
-												aria-label={`Отчёты по задаче: ${entry.title}`}
-											>
-												{isExpanded ? (
-													<FiChevronDown aria-hidden="true" />
-												) : (
-													<FiChevronRight aria-hidden="true" />
-												)}
-												<span className={styles.taskSummary}>
-													<strong>{entry.title}</strong>
-													<small>Отчётов: {entry.reports.length}</small>
-												</span>
-												<b>{formatHours(entry.hours)}</b>
-											</button>
-											{onAddReport && (
-												<button
-													className={styles.openTaskButton}
-													type="button"
-													onClick={() => onAddReport(entry.id)}
-													aria-label={`Добавить отчёт по задаче: ${entry.title}`}
-												>
-													<FiPlus aria-hidden="true" />
-													<span>Добавить отчёт</span>
-												</button>
-											)}
-											<button
-												className={styles.openTaskButton}
-												type="button"
-												onClick={async () => {
-													await openTask(entry.id, EntityTypeIds.tasks);
-													await onCardClosed?.();
-												}}
-												aria-label={`Открыть задачу: ${entry.title}`}
-												title="Открыть задачу в Битрикс"
-											>
-												<FiExternalLink aria-hidden="true" />
-												<span>Открыть задачу</span>
-											</button>
-										</div>
-										{isExpanded ? (
-											<div className={styles.reportsList}>
-												{entry.reports.map((report) => (
-													<SupportReportRow
-														key={report.id}
-														report={report}
-														onOpen={() => setSelectedReport(report)}
-													/>
-												))}
-											</div>
-										) : null}
-									</div>
-								);
-							})}
-						</div>
-					) : (
-						<p className={styles.sectionEmpty}>
-							{entries.length
-								? "Задачи и отчёты по выбранным фильтрам не найдены."
-								: "Списаний за выбранный период пока нет."}
-						</p>
-					)}
-				</section>
-				<SupportHoursReportDrawer
-					report={visibleSelectedReport}
-					onClose={() => setSelectedReport(null)}
-					onCardClosed={onCardClosed}
-					onEdit={
-						onEditReport
-							? (reportId) => {
-									setSelectedReport(null);
-									onEditReport(reportId);
-								}
-							: undefined
-					}
-				/>
-			</div>
+			<SupportProjectWorklists
+				projectId={project.id}
+				projectTitle={project.title}
+				selectedPurchaseId={effectivePurchaseId}
+				allocatedReports={reports}
+				projectTasks={projectTasks}
+				workspace={workspace}
+				workspaceLoading={workspaceLoading}
+				workspaceError={workspaceError}
+				onRetryWorkspace={onRetryWorkspace}
+				onAddPackage={onAddPackage}
+				onAddReport={onAddReport}
+				onEditReport={onEditReport}
+				onCardClosed={onCardClosed}
+			/>
 		</main>
 	);
 };

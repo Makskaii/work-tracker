@@ -15,15 +15,17 @@ const api = vi.hoisted(() => ({
 	fetchSupportHoursPackages: vi.fn(),
 	fetchSupportProjects: vi.fn(),
 	fetchSupportProjectTasks: vi.fn(),
+	fetchSupportProjectWorkspace: vi.fn(),
 	syncSupportProjects: vi.fn(),
 	syncSupportHoursReports: vi.fn(),
 	updateSupportHoursPackage: vi.fn(),
 }));
 const { notify } = vi.hoisted(() => ({ notify: vi.fn() }));
 vi.mock("./clientHoursPackages.api", () => api);
+vi.mock("./supportWorkspace.api", () => ({ fetchSupportProjectWorkspace: api.fetchSupportProjectWorkspace }));
 vi.mock("@/shared/ui/NotificationPopup/notify", () => ({ notify }));
 vi.mock("./SupportProjectsSidebar", () => ({
-	SupportProjectsSidebar: () => <nav aria-label="Проекты" />,
+	SupportProjectsSidebar: ({ onSelectPurchase }: { onSelectPurchase: (projectId: number, purchaseId: number | null) => void }) => <nav aria-label="Проекты"><button type="button" onClick={() => onSelectPurchase(1, null)}>Первый проект</button><button type="button" onClick={() => onSelectPurchase(2, null)}>Второй проект</button></nav>,
 }));
 vi.mock("./ClientHoursPackageModal", () => ({
 	ClientHoursPackageModal: () => null,
@@ -32,11 +34,17 @@ vi.mock("./SupportProjectDetails", () => ({
 	SupportProjectDetails: ({
 		projectPackages,
 		onAddReport,
+		workspace,
+		onRetryWorkspace,
 	}: {
 		projectPackages: ClientPackage | null;
 		onAddReport: () => void;
+		workspace?: { projectId: number; reports: unknown[] } | null;
+		onRetryWorkspace?: () => void;
 	}) => (
 		<div data-testid="support-details">
+			<span data-testid="workspace-state">{workspace ? `Проект ${workspace.projectId}, отчётов ${workspace.reports.length}` : "Список не загружен"}</span>
+			<button type="button" onClick={onRetryWorkspace}>Повторить список</button>
 			<button type="button" onClick={onAddReport}>
 				Добавить тестовый отчёт
 			</button>
@@ -89,6 +97,10 @@ beforeEach(() => {
 		.mockReset()
 		.mockResolvedValue([{ id: 1, title: "МРК ТП" }]);
 	api.fetchSupportProjectTasks.mockReset().mockResolvedValue([]);
+	api.fetchSupportProjectWorkspace.mockReset().mockResolvedValue({
+		projectId: 1, tasks: [], reports: [],
+		packageGroup: { ...packages[0], purchases: [{ id: 7, date: "2026-09-01", hours: 80, remaining: 65.5, state: "Активный", amount: null, comment: null, consumptions: [] }] },
+	});
 });
 
 describe("support hours reconciliation on page load", () => {
@@ -219,4 +231,52 @@ it("runs a new reconciliation after a report save even if an earlier focus refre
 		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(3),
 	);
 	expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(3);
+});
+
+it("reloads the previous project when returning before the next project's workspace finishes", async () => {
+	api.fetchSupportProjects.mockResolvedValue([{ id: 1, title: "Первый" }, { id: 2, title: "Второй" }]);
+	const firstWorkspace = { projectId: 1, tasks: [], reports: [], packageGroup: { ...packages[0], purchases: [{ id: 7, date: "2026-09-01", hours: 80, remaining: 65.5, state: "Активный", amount: null, comment: null, consumptions: [] }] } };
+	const pendingSecond = deferred<typeof firstWorkspace>();
+	api.fetchSupportProjectWorkspace.mockImplementation((projectId: number) => projectId === 2 ? pendingSecond.promise : Promise.resolve(firstWorkspace));
+	render(<ClientHoursPackagesPage />);
+	await waitFor(() => expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 1"));
+	fireEvent.click(screen.getByRole("button", { name: "Второй проект" }));
+	await waitFor(() => expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledWith(2, expect.any(AbortSignal)));
+	expect(screen.getByTestId("workspace-state")).toHaveTextContent("Список не загружен");
+	fireEvent.click(screen.getByRole("button", { name: "Первый проект" }));
+	await waitFor(() => expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 1"));
+	await act(async () => pendingSecond.resolve({ ...firstWorkspace, projectId: 2, packageGroup: { ...firstWorkspace.packageGroup, id: 2, remainingHours: -90 } }));
+	expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 1");
+	expect(screen.getByTestId("support-details")).toHaveTextContent("Остаток: 65.5 ч");
+});
+
+it("uses the fully reconciled workspace balance after saving, not the older package listing", async () => {
+	render(<ClientHoursPackagesPage />);
+	await waitFor(() => expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 1"));
+	api.fetchSupportProjectWorkspace.mockResolvedValue({ projectId: 1, tasks: [], reports: [{ id: "5430" }], packageGroup: { ...packages[0], remainingHours: 0.5, purchases: [{ id: 7, date: "2026-09-01", hours: 80, remaining: 0.5, state: "Активный", amount: null, comment: null, consumptions: [] }] } });
+	fireEvent.click(screen.getByRole("button", { name: "Добавить тестовый отчёт" }));
+	fireEvent.click(screen.getByRole("button", { name: "Сохранить тестовый отчёт" }));
+	await waitFor(() => expect(screen.getByTestId("support-details")).toHaveTextContent("Остаток: 0.5 ч"));
+	expect(screen.getByTestId("workspace-state")).toHaveTextContent("отчётов 1");
+	expect(notify).toHaveBeenCalledWith(expect.objectContaining({ message: "Отчёт сохранён. Остаток проекта: 65.5 → 0.5 ч.", type: "success" }));
+});
+
+it("does not let an older reconciliation invalidate the newly selected project's request", async () => {
+	api.fetchSupportProjects.mockResolvedValue([{ id: 1, title: "Первый" }, { id: 2, title: "Второй" }]);
+	render(<ClientHoursPackagesPage />);
+	await waitFor(() => expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 1"));
+	const firstWorkspace = await api.fetchSupportProjectWorkspace.mock.results[0].value;
+	const pendingFirst = deferred<typeof firstWorkspace>();
+	const pendingSecond = deferred<typeof firstWorkspace>();
+	api.fetchSupportProjectWorkspace.mockImplementation((projectId: number) => projectId === 1 ? pendingFirst.promise : pendingSecond.promise);
+	const initialCalls = api.fetchSupportProjectWorkspace.mock.calls.length;
+	fireEvent.click(screen.getByRole("button", { name: "Повторить список" }));
+	fireEvent.click(screen.getByRole("button", { name: "Обновить данные" }));
+	await waitFor(() => expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(2));
+	fireEvent.click(screen.getByRole("button", { name: "Второй проект" }));
+	await waitFor(() => expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledWith(2, expect.any(AbortSignal)));
+	await act(async () => pendingFirst.resolve(firstWorkspace));
+	await act(async () => pendingSecond.resolve({ ...firstWorkspace, projectId: 2, packageGroup: { ...firstWorkspace.packageGroup, id: 2, remainingHours: 10 } }));
+	await waitFor(() => expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 2"));
+	expect(api.fetchSupportProjectWorkspace.mock.calls).toHaveLength(initialCalls + 2);
 });

@@ -40,6 +40,7 @@ export const previewPackageImpact = async (
 export type SupportReportValues = {
 	taskId?: number | null;
 	activityId: number;
+	reportTypeId?: number | null;
 	description: string;
 	hours: number;
 	reportDate: string;
@@ -124,6 +125,7 @@ export const downloadSupportPdf = (pdf: Blob, filename: string) => {
 export const fetchSupportReportOptions = async (signal?: AbortSignal) => {
 	const response = await $backendApi.get<{
 		activities: Array<{ id: number; title: string }>;
+		reportTypes: Array<{ id: number; title: string }>;
 	}>("support-hours-packages/reports/form-options", { signal });
 	return response.data;
 };
