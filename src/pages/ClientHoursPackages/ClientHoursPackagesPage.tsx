@@ -1,3 +1,7 @@
+import { useB24 } from "@/shared/config/bitrixProvider/bitrixContext";
+import { supportErrorMessage } from "./supportAnalyst.api";
+import { commitSupportTransfer, previewSupportTransfer, resumeSupportTransfer, pendingTransferFromError } from "./supportTransfer.api";
+import type { SupportTransferDraft } from "./supportTransfer.model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import {
@@ -48,6 +52,17 @@ const getStoredProjectId = () => {
 };
 
 export const ClientHoursPackagesPage = () => {
+  const { b24 } = useB24();
+  const [pendingTransfer, setPendingTransfer] = useState<{projectId: number; id: string} | null>(null);
+  const [transferBusy, setTransferBusy] = useState(false);
+  const transferKeyRef = useRef<{fingerprint: string; id: string} | null>(null);
+  const getTransferToken = useCallback(async () => {
+    if (!b24) throw new Error("Откройте приложение внутри Битрикс24, чтобы переносить работы со своими правами");
+    const auth = b24.auth.getAuthData();
+    const current = !auth || auth.expires * 1000 <= Date.now() + 60_000 ? await b24.auth.refreshAuth() : auth;
+    if (!current.access_token) throw new Error("Обновите сессию Битрикс24");
+    return current.access_token;
+  }, [b24]);
 	const [packages, setPackages] = useState<ClientPackage[]>([]);
 	const packagesRef = useRef<ClientPackage[]>([]);
 	const [projects, setProjects] = useState<SupportProjectOption[]>([]);
@@ -109,7 +124,9 @@ export const ClientHoursPackagesPage = () => {
 			})
 			.catch((cause) => {
 				if (!signal?.aborted && mountedRef.current && requestId === workspaceRequestIdRef.current && selectedProjectIdRef.current === projectId) {
-					setWorkspaceError("Не удалось загрузить все работы проекта. Повторите загрузку, чтобы проверить отчёты и остатки.");
+					const pendingId = pendingTransferFromError(cause);
+          if (pendingId) setPendingTransfer({projectId, id: pendingId});
+          setWorkspaceError(supportErrorMessage(cause, "Не удалось загрузить все работы проекта. Повторите загрузку, чтобы проверить отчёты и остатки."));
 				}
 				throw cause;
 			})
@@ -183,6 +200,45 @@ export const ClientHoursPackagesPage = () => {
 		await reconcile();
 	}, [reconcile]);
 
+
+  const previewTransfer = useCallback(async (draft: SupportTransferDraft) => {
+    try { return await previewSupportTransfer(draft, await getTransferToken()); }
+    catch (error) {
+      const id = pendingTransferFromError(error);
+      if (id) setPendingTransfer({projectId: draft.projectId, id});
+      throw new Error(supportErrorMessage(error, error instanceof Error ? error.message : "Не удалось рассчитать перенос"));
+    }
+  }, [getTransferToken]);
+  const transfer = useCallback(async (draft: SupportTransferDraft, fingerprint: string) => {
+    setTransferBusy(true);
+    if (transferKeyRef.current?.fingerprint !== fingerprint) transferKeyRef.current = {fingerprint, id: crypto.randomUUID()};
+    try {
+      await commitSupportTransfer(draft, fingerprint, await getTransferToken(), transferKeyRef.current.id);
+      setPendingTransfer(null);
+      transferKeyRef.current = null;
+      try {
+        await reconcileAfterChange();
+        notify({message: "Работы перенесены, остатки пересчитаны", type: "success"});
+      } catch { notify({message: "Перенос сохранён. Обновите данные, чтобы увидеть новые остатки", type: "error"}); }
+    } catch (error) {
+      const id = pendingTransferFromError(error);
+      if (id) setPendingTransfer({projectId: draft.projectId, id});
+      throw new Error(supportErrorMessage(error, "Не удалось подтвердить перенос. Повторите запрос: повторного списания не будет"));
+    } finally { setTransferBusy(false); }
+  }, [getTransferToken, reconcileAfterChange]);
+  const resolvePendingTransfer = async (cancel: boolean) => {
+    if (!pendingTransfer || transferBusy) return;
+    setTransferBusy(true);
+    try {
+      await resumeSupportTransfer(pendingTransfer.projectId, pendingTransfer.id, await getTransferToken(), cancel);
+      setPendingTransfer(null);
+      transferKeyRef.current = null;
+      await reconcileAfterChange();
+      notify({message: cancel ? "Незавершённый перенос отменён" : "Перенос завершён", type: "success"});
+    } catch (error) { notify({message: supportErrorMessage(error, "Не удалось завершить действие. Повторите после обновления сессии Битрикса"), type: "error"}); }
+    finally { setTransferBusy(false); }
+  };
+
 	useEffect(() => {
 		mountedRef.current = true;
 		const controller = new AbortController();
@@ -199,6 +255,8 @@ export const ClientHoursPackagesPage = () => {
 				document.visibilityState === "hidden" ||
 				modalMode ||
 				reportEditor ||
+        transferBusy ||
+        pendingTransfer ||
 				!lastRefreshed ||
 				Date.now() - lastRefreshed.getTime() < 1500
 			)
@@ -211,7 +269,7 @@ export const ClientHoursPackagesPage = () => {
 			window.removeEventListener("focus", refresh);
 			document.removeEventListener("visibilitychange", refresh);
 		};
-	}, [reconcile, modalMode, reportEditor, lastRefreshed]);
+	}, [reconcile, modalMode, reportEditor, lastRefreshed, transferBusy, pendingTransfer]);
 
 	useEffect(() => {
 		if (selectedProjectId == null) return;
@@ -358,6 +416,11 @@ export const ClientHoursPackagesPage = () => {
 
 	return (
 		<section className={styles.page}>
+      {pendingTransfer && <div className={styles.workspaceError} role="alert">
+        <span>Перенос не завершён. До завершения или отмены его распределение защищено от автоматического пересчёта.</span>
+        <button type="button" className={styles.inlineAction} disabled={transferBusy} onClick={() => void resolvePendingTransfer(false)}>Продолжить перенос</button>
+        <button type="button" className={styles.inlineAction} disabled={transferBusy} onClick={() => void resolvePendingTransfer(true)}>Отменить перенос</button>
+      </div>}
 			{loadState === "ready" && (
 				<div className={styles.refreshBar}>
 					<span>
@@ -418,6 +481,8 @@ export const ClientHoursPackagesPage = () => {
 					/>
 					<SupportProjectDetails
 						project={selectedProject}
+            onPreviewTransfer={previewTransfer}
+            onTransfer={transfer}
 						refreshKey={refreshVersion}
 						onCardClosed={() => reconcileAfterChange().catch(() => undefined)}
 						onAddReport={(taskId) => setReportEditor({ taskId })}

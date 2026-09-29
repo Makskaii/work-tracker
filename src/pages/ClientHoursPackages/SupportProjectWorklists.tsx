@@ -1,28 +1,35 @@
-import { useMemo, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import {
+	FiArrowLeft,
+	FiArrowRight,
 	FiChevronDown,
 	FiChevronRight,
 	FiExternalLink,
 	FiFileText,
+	FiMove,
 	FiPlus,
 	FiSearch,
 } from "react-icons/fi";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { SupportProjectTask } from "./clientHoursPackages.api";
+import type { PackagePurchase } from "./clientHoursPackages.types";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import { SupportHoursReportDrawer } from "./SupportHoursReportDrawer";
+import { SupportTransferDialog } from "./SupportTransferDialog";
 import {
 	collectSupportEntries,
 	matchesSupportEntry,
 	type SupportHoursReportItem,
-	type TaskStatusFilter,
+	type SupportReportEntry,
 } from "./supportReportEntries";
-import type { SupportProjectWorkspace } from "./supportWorkspace.api";
 import {
-	buildSupportWorkspaceLists,
-	type SupportWorklistTab,
-} from "./supportWorkspaceLists";
+	getTasksWithoutReports,
+	getTransferReports,
+	type SupportTransferCallbacks,
+	type SupportTransferDraft,
+} from "./supportTransfer.model";
+import type { SupportProjectWorkspace } from "./supportWorkspace.api";
 
 const hours = (value: number) =>
 	`${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(value)} ч`;
@@ -34,59 +41,26 @@ const dateLabel = (value: string) =>
 	}).format(new Date(value));
 const reportSum = (reports: SupportHoursReportItem[]) =>
 	reports.reduce((sum, report) => sum + report.hours, 0);
-const titles: Record<SupportWorklistTab, string> = {
-	allocated: "В пакетах",
-	unallocated: "Без пакета",
-	excluded: "Не учитываются",
-	tasks: "Задачи без отчётов",
+type MoveSelection = {
+	projectId: number;
+	fromPurchaseId: number | null;
+	reports: SupportHoursReportItem[];
+	taskId?: string;
+	title: string;
 };
-const emptyText: Record<SupportWorklistTab, string> = {
-	allocated: "Списаний за выбранный период пока нет.",
-	unallocated: "Нет отчётов, ожидающих распределения по пакетам.",
-	excluded: "Нет отчётов с выключенным учётом в пакете.",
-	tasks: "У всех задач проекта уже есть отчёты.",
-};
-const SupportReportRow = ({
-	report,
-	onOpen,
-}: {
-	report: SupportHoursReportItem;
-	onOpen: () => void;
-}) => (
-	<button
-		className={`${styles.supportReportRow} ${report.hourScope === "excluded" ? styles.excludedReportRow : report.hourScope === "unallocated" ? styles.unallocatedReportRow : ""}`}
-		type="button"
-		onClick={onOpen}
-		aria-label={`Посмотреть отчёт: ${report.description || report.title || `#${report.id}`}`}
-	>
-		<FiFileText aria-hidden="true" />
-		<span className={styles.supportReportSummary}>
-			<strong>
-				{report.description || report.title || `Отчёт #${report.id}`}
-			</strong>
-			<small>
-				<time dateTime={report.date}>{dateLabel(report.date)}</time>
-				{report.responsibleName ? ` · ${report.responsibleName}` : ""}
-				{report.totalHours != null && report.totalHours !== report.hours
-					? ` · Всего по отчёту ${hours(report.totalHours)}`
-					: ""}
-			</small>
-		</span>
-		<b>{hours(report.hours)}</b>
-		<FiChevronRight aria-hidden="true" />
-	</button>
-);
-
-type Props = {
+type DraftDialog = { draft: SupportTransferDraft; title: string };
+type Props = SupportTransferCallbacks & {
 	projectId: number;
 	projectTitle: string;
 	selectedPurchaseId: number | null;
+	purchases: PackagePurchase[];
 	allocatedReports: SupportHoursReportItem[];
 	projectTasks: SupportProjectTask[];
 	workspace?: SupportProjectWorkspace | null;
 	workspaceLoading?: boolean;
 	workspaceError?: string | null;
 	onRetryWorkspace?: () => void;
+	onSelectPackage?: (id: number | null) => void;
 	onAddPackage: () => void;
 	onAddReport?: (taskId?: string) => void;
 	onEditReport?: (reportId: string) => void;
@@ -96,383 +70,522 @@ export const SupportProjectWorklists = ({
 	projectId,
 	projectTitle,
 	selectedPurchaseId,
+	purchases,
 	allocatedReports,
 	projectTasks,
 	workspace,
 	workspaceLoading = false,
 	workspaceError,
 	onRetryWorkspace,
+	onSelectPackage,
 	onAddPackage,
 	onAddReport,
 	onEditReport,
 	onCardClosed,
+	onPreviewTransfer,
+	onTransfer,
 }: Props) => {
 	const { openTask } = useBitrixSlider();
-	const [selection, setSelection] = useState<{
+	const [source, setSource] = useState<{
 		projectId: number;
-		tab: SupportWorklistTab;
-	}>({ projectId, tab: "allocated" });
-	const activeTab =
-		selection.projectId === projectId ? selection.tab : "allocated";
-	const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(
-		new Set(),
-	);
-	const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+		purchaseId: number | null;
+	}>({ projectId, purchaseId: null });
+	const sourcePurchaseId =
+		source.projectId === projectId &&
+		source.purchaseId !== selectedPurchaseId &&
+		purchases.some((purchase) => purchase.id === source.purchaseId)
+			? source.purchaseId
+			: null;
+	const [expanded, setExpanded] = useState<Set<string>>(new Set());
+	const [selectedReport, setSelectedReport] = useState<{
+		projectId: number;
+		report: SupportHoursReportItem;
+	} | null>(null);
 	const [query, setQuery] = useState("");
-	const [status, setStatus] = useState<TaskStatusFilter>("all");
+	const [draftDialog, setDraftDialog] = useState<DraftDialog | null>(null);
+	const [dropSide, setDropSide] = useState<"left" | "right" | null>(null);
+	const dragSelection = useRef<MoveSelection | null>(null);
 	const currentWorkspace =
 		workspace?.projectId === projectId ? workspace : null;
-	const lists = useMemo(
-		() =>
-			currentWorkspace
-				? buildSupportWorkspaceLists(currentWorkspace, projectTitle)
-				: null,
-		[currentWorkspace, projectTitle],
+	const isFresh = !!currentWorkspace && !workspaceLoading && !workspaceError;
+	const tasks = currentWorkspace?.tasks ?? projectTasks;
+	const leftReports =
+		currentWorkspace && selectedPurchaseId !== null
+			? getTransferReports(currentWorkspace, projectTitle, selectedPurchaseId)
+			: allocatedReports;
+	const rightReports = currentWorkspace
+		? getTransferReports(currentWorkspace, projectTitle, sourcePurchaseId)
+		: [];
+	const emptyTasks = currentWorkspace
+		? getTasksWithoutReports(currentWorkspace)
+		: [];
+	const selectedPackage = purchases.find(
+		(purchase) => purchase.id === selectedPurchaseId,
 	);
-	const reports =
-		activeTab === "allocated"
-			? allocatedReports
-			: activeTab === "unallocated"
-				? (lists?.unallocated ?? [])
-				: activeTab === "excluded"
-					? (lists?.excluded ?? [])
-					: [];
-	const entries = collectSupportEntries(
-		reports,
-		currentWorkspace?.tasks ?? projectTasks,
+	const sourcePackage = purchases.find(
+		(purchase) => purchase.id === sourcePurchaseId,
 	);
-	const visibleEntries = entries.filter((entry) =>
-		matchesSupportEntry(entry, query, status),
-	);
-	const tasks = (lists?.tasks ?? []).filter((task) =>
-		matchesSupportEntry(
-			{ kind: "task", ...task, hours: 0, reports: [] },
-			query,
-			status,
-		),
-	);
-	const selectedReport =
-		reports.find((report) => report.id === selectedReportId) ?? null;
-	const hasFreshWorkspace = !!lists && !workspaceLoading && !workspaceError;
-	const tabDetails = (tab: SupportWorklistTab) => {
-		if (tab === "allocated")
-			return `${allocatedReports.length} · ${hours(reportSum(allocatedReports))}`;
-		if (!hasFreshWorkspace || !lists) return "—";
-		if (tab === "tasks") return String(lists.tasks.length);
-		return `${lists[tab].length} · ${hours(reportSum(lists[tab]))}`;
-	};
-	const changeTab = (tab: SupportWorklistTab) => {
-		setSelection({ projectId, tab });
-		setSelectedReportId(null);
-	};
-	const toggleTask = (taskId: string) =>
-		setExpandedTaskIds((current) => {
-			const next = new Set(current);
-			if (next.has(taskId)) next.delete(taskId);
-			else next.add(taskId);
-			return next;
-		});
+	const packageLabel = (purchase: PackagePurchase) =>
+		`№${purchase.id} · ${dateLabel(purchase.date)} · остаток ${hours(purchase.remaining)}`;
+	const taskBinding = (
+		task: SupportProjectTask & { purchaseId?: number | null },
+	) => task.purchaseId ?? null;
+	const entriesFor = (
+		reports: SupportHoursReportItem[],
+		purchaseId: number | null,
+		includeEmpty: boolean,
+	): SupportReportEntry[] =>
+		[
+			...collectSupportEntries(reports, tasks),
+			...(includeEmpty
+				? emptyTasks
+						.filter((task) => taskBinding(task) === purchaseId)
+						.map(
+							(task): SupportReportEntry => ({
+								...task,
+								kind: "task",
+								hours: 0,
+								reports: [],
+							}),
+						)
+				: []),
+		].filter((entry) => matchesSupportEntry(entry, query, "all"));
 	const openTaskCard = async (taskId: string) => {
 		await openTask(taskId, EntityTypeIds.tasks);
 		await onCardClosed?.();
 	};
-	const canShowList = activeTab === "allocated" || hasFreshWorkspace;
-	return (
-		<div className={styles.reportingWorkspace}>
-			<section className={styles.detailsSection}>
-				<div className={styles.sectionHeading}>
-					<h2>Задачи и отчёты проекта</h2>
-				</div>
-				<div
-					className={styles.worklistTabs}
-					role="group"
-					aria-label="Списки проекта"
+	const toggleTask = (key: string) =>
+		setExpanded((current) => {
+			const next = new Set(current);
+			if (next.has(key)) next.delete(key);
+			else next.add(key);
+			return next;
+		});
+	const beginTransfer = (
+		selection: MoveSelection,
+		toPurchaseId: number | null,
+	) => {
+		if (
+			!isFresh ||
+			selection.projectId !== projectId ||
+			selection.fromPurchaseId === toPurchaseId ||
+			(!selection.taskId &&
+				!selection.reports.some((report) => report.hours > 0))
+		)
+			return;
+		setDraftDialog({
+			title: selection.title,
+			draft: {
+				projectId,
+				fromPurchaseId: selection.fromPurchaseId,
+				toPurchaseId,
+				items: selection.reports
+					.filter((report) => report.hours > 0)
+					.map((report) => ({
+						reportId: report.id,
+						hours: report.hours,
+					})),
+				...(selection.taskId ? { taskId: selection.taskId } : {}),
+			},
+		});
+	};
+	const dragStart = (event: DragEvent, selection: MoveSelection) => {
+		if (
+			!isFresh ||
+			(!selection.taskId &&
+				!selection.reports.some((report) => report.hours > 0))
+		) {
+			event.preventDefault();
+			return;
+		}
+		dragSelection.current = selection;
+		event.dataTransfer.effectAllowed = "move";
+		event.dataTransfer.setData(
+			"application/x-work-tracker-transfer",
+			JSON.stringify({
+				projectId,
+				reportIds: selection.reports.map((report) => report.id),
+				taskId: selection.taskId,
+			}),
+		);
+	};
+	const drop = (event: DragEvent, side: "left" | "right") => {
+		event.preventDefault();
+		const selection = dragSelection.current;
+		dragSelection.current = null;
+		setDropSide(null);
+		if (!selection || (side === "left" && selectedPurchaseId === null)) return;
+		beginTransfer(
+			selection,
+			side === "left" ? selectedPurchaseId : sourcePurchaseId,
+		);
+	};
+	const endDrag = () => {
+		dragSelection.current = null;
+		setDropSide(null);
+	};
+	const transferButton = (selection: MoveSelection, side: "left" | "right") => (
+		<button
+			type="button"
+			className={styles.transferButton}
+			disabled={
+				!isFresh ||
+				selectedPurchaseId === null ||
+				(!selection.taskId &&
+					!selection.reports.some((report) => report.hours > 0))
+			}
+			onClick={() =>
+				beginTransfer(
+					selection,
+					side === "right" ? selectedPurchaseId : sourcePurchaseId,
+				)
+			}
+			aria-label={`Перенести ${selection.taskId ? "задачу" : "отчёт"}: ${selection.title} ${side === "right" ? "в выбранный пакет" : sourcePurchaseId === null ? "в нераспределённое" : `в пакет №${sourcePurchaseId}`}`}
+			title={
+				selectedPurchaseId === null
+					? "Сначала выберите пакет слева"
+					: "Перенести"
+			}
+		>
+			{side === "right" ? (
+				<FiArrowLeft aria-hidden="true" />
+			) : (
+				<FiArrowRight aria-hidden="true" />
+			)}
+		</button>
+	);
+	const reportRow = (
+		report: SupportHoursReportItem,
+		side: "left" | "right",
+		fromPurchaseId: number | null,
+	) => {
+		const selection: MoveSelection = {
+			projectId,
+			fromPurchaseId,
+			reports: [report],
+			title: report.description || report.title || `Отчёт #${report.id}`,
+		};
+		return (
+			<div
+				key={report.id}
+				className={styles.transferReportRow}
+				draggable={isFresh && selectedPurchaseId !== null && report.hours > 0}
+				onDragStart={(event) => {
+					event.stopPropagation();
+					dragStart(event, selection);
+				}}
+				onDragEnd={endDrag}
+			>
+				<span className={styles.dragHandle} title="Перетащить отчёт">
+					<FiMove aria-hidden="true" />
+				</span>
+				<button
+					className={styles.supportReportRow}
+					type="button"
+					onClick={() => setSelectedReport({ projectId, report })}
+					aria-label={`Посмотреть отчёт: ${selection.title}`}
 				>
-					{(Object.keys(titles) as SupportWorklistTab[]).map((tab) => (
-						<button
-							className={
-								activeTab === tab
-									? styles.worklistTabActive
-									: styles.worklistTab
-							}
-							type="button"
-							key={tab}
-							onClick={() => changeTab(tab)}
-							aria-pressed={activeTab === tab}
-							aria-label={`${titles[tab]} ${tabDetails(tab)}`}
-						>
-							<span>{titles[tab]}</span>
-							<b>{tabDetails(tab)}</b>
-						</button>
-					))}
-				</div>
-				<p className={styles.worklistScope}>
-					{activeTab === "allocated"
-						? selectedPurchaseId == null
-							? "Списания по всем пакетам проекта. Часы учитываются в остатках пакетов."
-							: `Списания по пакету №${selectedPurchaseId}. Показана только часть часов, списанная с этого пакета.`
-						: "Весь проект · выбор пакета не ограничивает этот список."}
+					<FiFileText aria-hidden="true" />
+					<span className={styles.supportReportSummary}>
+						<strong>{selection.title}</strong>
+						<small>
+							<time dateTime={report.date}>{dateLabel(report.date)}</time>
+							{report.responsibleName ? ` · ${report.responsibleName}` : ""}
+						</small>
+						<small>
+							{report.includeInPackage === false && (
+								<span className={styles.transferUnchecked}>
+									Не учитывается в пакете
+								</span>
+							)}
+							{report.totalHours != null && report.totalHours !== report.hours
+								? `Всего по отчёту ${hours(report.totalHours)}`
+								: ""}
+						</small>
+					</span>
+					<b>{hours(report.hours)}</b>
+				</button>
+				{transferButton(selection, side)}
+			</div>
+		);
+	};
+	const renderEntries = (
+		side: "left" | "right",
+		reports: SupportHoursReportItem[],
+		fromPurchaseId: number | null,
+	) => {
+		const entries = entriesFor(
+			reports,
+			fromPurchaseId,
+			side === "right" || selectedPurchaseId !== null,
+		);
+		if (!entries.length)
+			return (
+				<p className={styles.transferEmpty}>
+					{query.trim()
+						? "По вашему запросу ничего не найдено."
+						: side === "left"
+							? "В этом пакете пока нет работ. Перенесите их из списка справа."
+							: sourcePurchaseId === null
+								? "Нет нераспределённых отчётов и задач."
+								: "В этом пакете нет работ для переноса."}
 				</p>
-				{workspaceError && (
-					<div className={styles.workspaceError} role="alert">
-						<span>{workspaceError}</span>
-						{onRetryWorkspace && (
+			);
+		return entries.map((entry) => {
+			if (entry.kind === "report")
+				return reportRow(entry.report, side, fromPurchaseId);
+			const key = `${side}-${entry.id}`;
+			const isExpanded = expanded.has(key);
+			const selection: MoveSelection = {
+				projectId,
+				fromPurchaseId,
+				reports: entry.reports,
+				taskId: entry.id,
+				title: entry.title,
+			};
+			return (
+				<div className={styles.transferTask} key={entry.id}>
+					<div
+						className={styles.transferTaskHeader}
+						draggable={isFresh && selectedPurchaseId !== null}
+						onDragStart={(event) => dragStart(event, selection)}
+						onDragEnd={endDrag}
+					>
+						<span className={styles.dragHandle} title="Перетащить задачу">
+							<FiMove aria-hidden="true" />
+						</span>
+						<button
+							className={styles.taskToggle}
+							type="button"
+							onClick={() => toggleTask(key)}
+							aria-expanded={isExpanded}
+							aria-label={`Отчёты по задаче: ${entry.title}`}
+						>
+							{isExpanded ? (
+								<FiChevronDown aria-hidden="true" />
+							) : (
+								<FiChevronRight aria-hidden="true" />
+							)}
+							<span className={styles.taskSummary}>
+								<strong>{entry.title}</strong>
+								<small>
+									{entry.reports.length
+										? `Отчётов: ${entry.reports.length}`
+										: "Отчётов пока нет"}
+								</small>
+							</span>
+							{entry.reports.length > 0 && <b>{hours(entry.hours)}</b>}
+						</button>
+						{transferButton(selection, side)}
+					</div>
+					<div className={styles.transferTaskActions}>
+						<button
+							className={styles.inlineAction}
+							type="button"
+							onClick={() => void openTaskCard(entry.id)}
+							aria-label={`Открыть задачу: ${entry.title}`}
+						>
+							<FiExternalLink aria-hidden="true" />
+							Открыть
+						</button>
+						{onAddReport && (
 							<button
 								className={styles.inlineAction}
 								type="button"
-								onClick={onRetryWorkspace}
-							>
-								Повторить загрузку списка
-							</button>
-						)}
-					</div>
-				)}
-				{activeTab === "unallocated" && hasFreshWorkspace && (
-					<div className={styles.worklistNotice}>
-						<p>
-							Здесь отчёты с включённым учётом, часы которых пока не
-							распределены по пакетам. После добавления пакета распределение
-							выполнится автоматически.
-						</p>
-						{lists && lists.unallocated.length > 0 && (
-							<button
-								className={styles.packageReportButton}
-								type="button"
-								onClick={onAddPackage}
+								onClick={() => onAddReport(entry.id)}
+								aria-label={`Добавить отчёт по задаче: ${entry.title}`}
 							>
 								<FiPlus aria-hidden="true" />
-								Добавить пакет часов
+								Добавить отчёт
 							</button>
 						)}
 					</div>
-				)}
-				{activeTab === "excluded" && hasFreshWorkspace && (
-					<p className={styles.worklistScope}>
-						Эти часы не списываются и не попадают в клиентский PDF. Чтобы
-						включить работу, откройте отчёт, нажмите «Изменить отчёт» и включите
-						«Учитывать в пакете».
-					</p>
-				)}
-				{activeTab === "tasks" && hasFreshWorkspace && (
-					<p className={styles.worklistScope}>
-						У этих задач нет ни одного отчёта, в том числе исключённого из
-						учёта. Задача сама по себе не списывает часы.
-					</p>
-				)}
-				{!canShowList ? (
-					!workspaceError && (
-						<div className={styles.workspaceLoading} role="status">
-							<p>
-								{workspaceLoading
-									? "Загружаем отчёты и задачи всего проекта…"
-									: "Данные всего проекта ещё не загружены."}
-							</p>
-							{!workspaceLoading && onRetryWorkspace && (
-								<button
-									className={styles.inlineAction}
-									type="button"
-									onClick={onRetryWorkspace}
-								>
-									Загрузить список
-								</button>
+					{isExpanded && (
+						<div className={styles.transferNestedReports}>
+							{entry.reports.map((report) =>
+								reportRow(report, side, fromPurchaseId),
 							)}
 						</div>
+					)}
+				</div>
+			);
+		});
+	};
+	const renderColumn = (side: "left" | "right") => {
+		const isLeft = side === "left";
+		const reports = isLeft ? leftReports : rightReports;
+		const packageId = isLeft ? selectedPurchaseId : sourcePurchaseId;
+		const canDisplay =
+			isFresh ||
+			(isLeft && !currentWorkspace && !workspaceLoading && !workspaceError);
+		return (
+			<section
+				className={`${styles.transferColumn} ${dropSide === side ? styles.transferColumnDrop : ""}`}
+				aria-label={isLeft ? "Выбранный пакет" : "Источник работ"}
+				onDragOver={(event) => {
+					if (
+						!dragSelection.current ||
+						!isFresh ||
+						selectedPurchaseId === null ||
+						dragSelection.current.fromPurchaseId === packageId
 					)
-				) : (
-					<>
-						<div className={styles.taskFilters}>
-							<label className={styles.taskSearch}>
-								<FiSearch aria-hidden="true" />
-								<input
-									type="search"
-									value={query}
-									onChange={(event) => setQuery(event.target.value)}
-									placeholder="Поиск по задачам и отчётам"
-									aria-label="Поиск по задачам и отчётам"
-								/>
-							</label>
-							<div className={styles.taskFilterField}>
-								<span>Статус задачи</span>
-								<div
-									className={styles.taskFilterGroup}
-									aria-label="Фильтр по статусу задачи"
-								>
-									{(
-										[
-											["all", "Все статусы"],
-											["open", "Открытые"],
-											["closed", "Завершённые"],
-										] as const
-									).map(([value, label]) => (
-										<button
-											className={
-												value === status
-													? styles.taskFilterButtonActive
-													: styles.taskFilterButton
-											}
-											type="button"
-											key={value}
-											onClick={() => setStatus(value)}
-											aria-pressed={value === status}
-										>
-											{label}
-										</button>
-									))}
-								</div>
-							</div>
+						return;
+					event.preventDefault();
+					event.dataTransfer.dropEffect = "move";
+					setDropSide(side);
+				}}
+				onDragLeave={(event) => {
+					if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+						setDropSide(null);
+				}}
+				onDrop={(event) => drop(event, side)}
+			>
+				<header className={styles.transferColumnHeader}>
+					<label>
+						<span>{isLeft ? "Выбранный пакет" : "Откуда переносить"}</span>
+						<select
+							aria-label={isLeft ? "Пакет для распределения" : "Источник работ"}
+							value={packageId ?? "unallocated"}
+							disabled={isLeft && !onSelectPackage}
+							onChange={(event) => {
+								const value =
+									event.target.value === "unallocated"
+										? null
+										: Number(event.target.value);
+								if (isLeft) onSelectPackage?.(value);
+								else setSource({ projectId, purchaseId: value });
+							}}
+						>
+							<option value="unallocated">
+								{isLeft ? "Выберите пакет" : "Нераспределённое"}
+							</option>
+							{purchases
+								.filter(
+									(purchase) => isLeft || purchase.id !== selectedPurchaseId,
+								)
+								.map((purchase) => (
+									<option key={purchase.id} value={purchase.id}>
+										{packageLabel(purchase)}
+									</option>
+								))}
+						</select>
+					</label>
+					{canDisplay && (
+						<div className={styles.transferColumnCount}>
+							{reports.length} отчётов · <b>{hours(reportSum(reports))}</b>
 						</div>
-						{status !== "all" && activeTab !== "tasks" && (
-							<p className={styles.filterHint}>
-								Фильтр статуса применяется к задачам. Отдельные отчёты остаются
-								в списке.
-							</p>
-						)}
-						{activeTab === "tasks" ? (
-							tasks.length ? (
-								<div className={styles.tasksList}>
-									{tasks.map((task) => (
-										<div className={styles.emptyTaskRow} key={task.id}>
-											<div>
-												<strong>{task.title}</strong>
-												<small>Отчётов пока нет</small>
-											</div>
-											<div className={styles.emptyTaskActions}>
-												{onAddReport && (
-													<button
-														className={styles.openTaskButton}
-														type="button"
-														onClick={() => onAddReport(task.id)}
-														aria-label={`Добавить отчёт по задаче: ${task.title}`}
-													>
-														<FiPlus aria-hidden="true" />
-														<span>Добавить отчёт</span>
-													</button>
-												)}
-												<button
-													className={styles.openTaskButton}
-													type="button"
-													onClick={() => void openTaskCard(task.id)}
-													aria-label={`Открыть задачу: ${task.title}`}
-												>
-													<FiExternalLink aria-hidden="true" />
-													<span>Открыть задачу</span>
-												</button>
-											</div>
-										</div>
-									))}
-								</div>
-							) : (
-								<p className={styles.sectionEmpty}>
-									{query.trim() || status !== "all"
-										? "Задачи по выбранным фильтрам не найдены."
-										: emptyText.tasks}
-								</p>
-							)
-						) : visibleEntries.length ? (
-							<div className={styles.tasksList}>
-								{visibleEntries.map((entry) => {
-									if (entry.kind === "report")
-										return (
-											<div
-												className={styles.standaloneReport}
-												key={`report-${entry.id}`}
-											>
-												<SupportReportRow
-													report={entry.report}
-													onOpen={() => setSelectedReportId(entry.report.id)}
-												/>
-											</div>
-										);
-									const expanded = expandedTaskIds.has(entry.id);
-									return (
-										<div className={styles.taskItem} key={`task-${entry.id}`}>
-											<div className={styles.taskHeader}>
-												<button
-													className={styles.taskToggle}
-													type="button"
-													onClick={() => toggleTask(entry.id)}
-													aria-expanded={expanded}
-													aria-label={`Отчёты по задаче: ${entry.title}`}
-												>
-													{expanded ? (
-														<FiChevronDown aria-hidden="true" />
-													) : (
-														<FiChevronRight aria-hidden="true" />
-													)}
-													<span className={styles.taskSummary}>
-														<strong>{entry.title}</strong>
-														<small>Отчётов: {entry.reports.length}</small>
-													</span>
-													<b
-														className={
-															activeTab === "excluded"
-																? styles.excludedHours
-																: undefined
-														}
-													>
-														{hours(entry.hours)}
-													</b>
-												</button>
-												{onAddReport && (
-													<button
-														className={styles.openTaskButton}
-														type="button"
-														onClick={() => onAddReport(entry.id)}
-														aria-label={`Добавить отчёт по задаче: ${entry.title}`}
-													>
-														<FiPlus aria-hidden="true" />
-														<span>Добавить отчёт</span>
-													</button>
-												)}
-												<button
-													className={styles.openTaskButton}
-													type="button"
-													onClick={() => void openTaskCard(entry.id)}
-													aria-label={`Открыть задачу: ${entry.title}`}
-													title="Открыть задачу в Битрикс"
-												>
-													<FiExternalLink aria-hidden="true" />
-													<span>Открыть задачу</span>
-												</button>
-											</div>
-											{expanded && (
-												<div className={styles.reportsList}>
-													{entry.reports.map((report) => (
-														<SupportReportRow
-															key={report.id}
-															report={report}
-															onOpen={() => setSelectedReportId(report.id)}
-														/>
-													))}
-												</div>
-											)}
-										</div>
-									);
-								})}
-							</div>
-						) : (
-							<p className={styles.sectionEmpty}>
-								{entries.length || query.trim() || status !== "all"
-									? "Задачи и отчёты по выбранным фильтрам не найдены."
-									: emptyText[activeTab]}
-							</p>
-						)}
-					</>
+					)}
+				</header>
+				{isLeft && selectedPurchaseId === null && (
+					<p className={styles.transferColumnHint}>
+						Выберите пакет для переноса. Сейчас показаны списания всех пакетов.
+					</p>
 				)}
+				{!isLeft && sourcePurchaseId === null && (
+					<p className={styles.transferColumnHint}>
+						Все отчёты вне пакетов, включая те, у которых выключен учёт, и
+						задачи без отчётов.
+					</p>
+				)}
+				{(isLeft ? selectedPackage : sourcePackage) && (
+					<p className={styles.transferColumnHint}>
+						Остаток пакета:{" "}
+						{hours((isLeft ? selectedPackage : sourcePackage)?.remaining ?? 0)}
+					</p>
+				)}
+				<div className={styles.transferList}>
+					{canDisplay ? (
+						renderEntries(side, reports, packageId)
+					) : (
+						<p
+							className={styles.transferEmpty}
+							role={workspaceError ? undefined : "status"}
+						>
+							{workspaceError
+								? "Список временно недоступен."
+								: workspaceLoading
+									? "Загружаем работы проекта…"
+									: "Загрузите данные проекта, чтобы увидеть работы."}
+						</p>
+					)}
+				</div>
 			</section>
+		);
+	};
+	return (
+		<section className={styles.transferWorkspace}>
+			<div className={styles.transferWorkspaceHeading}>
+				<div>
+					<h2>Распределение работ по пакетам</h2>
+					<p>
+						Перетащите задачу или отчёт между списками либо нажмите стрелку.
+						Перед сохранением покажем результат переноса.
+					</p>
+				</div>
+				{purchases.length === 0 && (
+					<button
+						className={styles.packageReportButton}
+						type="button"
+						onClick={onAddPackage}
+					>
+						<FiPlus aria-hidden="true" />
+						Добавить пакет
+					</button>
+				)}
+			</div>
+			<label className={styles.taskSearch}>
+				<FiSearch aria-hidden="true" />
+				<input
+					type="search"
+					value={query}
+					onChange={(event) => setQuery(event.target.value)}
+					placeholder="Поиск по задачам и отчётам"
+					aria-label="Поиск по задачам и отчётам"
+				/>
+			</label>
+			{workspaceError && (
+				<div className={styles.workspaceError} role="alert">
+					<span>{workspaceError}</span>
+					{onRetryWorkspace && (
+						<button
+							className={styles.inlineAction}
+							type="button"
+							onClick={onRetryWorkspace}
+						>
+							Повторить загрузку списка
+						</button>
+					)}
+				</div>
+			)}
+			<div className={styles.transferColumns}>
+				{renderColumn("left")}
+				{renderColumn("right")}
+			</div>
 			<SupportHoursReportDrawer
-				report={selectedReport}
-				onClose={() => setSelectedReportId(null)}
+				report={
+					selectedReport?.projectId === projectId ? selectedReport.report : null
+				}
+				onClose={() => setSelectedReport(null)}
 				onCardClosed={onCardClosed}
 				onEdit={
 					onEditReport
 						? (reportId) => {
-								setSelectedReportId(null);
+								setSelectedReport(null);
 								onEditReport(reportId);
 							}
 						: undefined
 				}
 			/>
-		</div>
+			{draftDialog?.draft.projectId === projectId && (
+				<SupportTransferDialog
+					key={JSON.stringify(draftDialog.draft)}
+					draft={draftDialog.draft}
+					title={draftDialog.title}
+					onClose={() => setDraftDialog(null)}
+					onPreviewTransfer={onPreviewTransfer}
+					onTransfer={onTransfer}
+				/>
+			)}
+		</section>
 	);
 };

@@ -1,4 +1,11 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
 	ClientPackage,
@@ -10,6 +17,12 @@ import type {
 	SupportWorkspaceReport,
 } from "./supportWorkspace.api";
 import { buildSupportWorkspaceLists } from "./supportWorkspaceLists";
+import {
+	getTransferReports,
+	getTasksWithoutReports,
+	validateTransferHours,
+	type SupportTransferPreview,
+} from "./supportTransfer.model";
 import { SupportProjectDetails } from "./SupportProjectDetails";
 const { openTask } = vi.hoisted(() => ({ openTask: vi.fn() }));
 vi.mock("@/shared/hooks/useBitrixSlider", () => ({
@@ -29,6 +42,8 @@ const report = (
 	taskId,
 	taskTitle: taskId ? `Задача ${taskId}` : null,
 	responsibleName: "Анна Тестовая",
+	companyName: "Тестовый клиент",
+	activityTitle: "Разработка",
 	date: "2026-09-29",
 	hours,
 	title: `Отчёт ${id}`,
@@ -138,164 +153,411 @@ beforeEach(() => {
 	vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
 });
 
-describe("project worklists and automatic allocation", () => {
-	it("keeps excluded work distinct, counts only remaining unallocated hours and never treats package overflow as unallocated", () => {
-		const lists = buildSupportWorkspaceLists(workspace, "Техподдержка");
-		expect(lists.unallocated.map((item) => item.id)).toEqual(["2", "4", "6"]);
-		expect(lists.unallocated.reduce((sum, item) => sum + item.hours, 0)).toBe(
-			7,
-		);
-		expect(lists.unallocated.find((item) => item.id === "6")).toMatchObject({
+const preview: SupportTransferPreview = {
+	fingerprint: "workspace-revision-1",
+	movedHours: 3,
+	unallocatedHours: 2,
+	items: [{ reportId: "6", hours: 3 }],
+	packages: [
+		{
+			id: 1,
+			before: { purchasedHours: 10, consumedHours: 7, remainingHours: 3 },
+			after: { purchasedHours: 10, consumedHours: 10, remainingHours: 0 },
+		},
+	],
+};
+const left = () =>
+	within(screen.getByRole("region", { name: "Выбранный пакет" }));
+const right = () =>
+	within(screen.getByRole("region", { name: "Источник работ" }));
+
+describe("two-list allocation workspace", () => {
+	it("preserves metadata, fractional allocation slices and excluded reports without treating overflow as unallocated", () => {
+		const list = getTransferReports(workspace, "Техподдержка", null);
+		expect(list.map((item) => item.id)).toEqual(["2", "3", "4", "6"]);
+		expect(list.find((item) => item.id === "6")).toMatchObject({
 			hours: 3,
 			totalHours: 5,
-			hourScope: "unallocated",
 		});
-		expect(lists.excluded).toMatchObject([
-			{ id: "3", hours: 2, hourScope: "excluded" },
+		expect(list.find((item) => item.id === "3")).toMatchObject({
+			hourScope: "excluded",
+			companyName: "Тестовый клиент",
+			activityTitle: "Разработка",
+		});
+		expect(
+			getTransferReports(workspace, "Техподдержка", 2).map((item) => item.id),
+		).toEqual(["1", "5"]);
+		expect(getTasksWithoutReports(workspace).map((task) => task.id)).toEqual([
+			"500",
 		]);
-		expect(lists.tasks.map((task) => task.id)).toEqual(["500"]);
+		expect(
+			buildSupportWorkspaceLists(workspace, "Техподдержка").excluded[0],
+		).toMatchObject({
+			companyName: "Тестовый клиент",
+			activityTitle: "Разработка",
+		});
+		expect(
+			validateTransferHours(list, {
+				"2": "0",
+				"3": "0",
+				"4": "0",
+				"6": "1,25",
+			}),
+		).toEqual({ items: [{ reportId: "6", hours: 1.25 }], errors: {} });
+		expect(
+			validateTransferHours(list, {
+				"2": "NaN",
+				"3": "0",
+				"4": "0",
+				"6": "3.1",
+			}).errors,
+		).toHaveProperty("6");
 	});
-	it("shows selected-package slices, while unallocated and excluded tabs always cover the entire project", () => {
+	it("shows two lists with selected-package hours and all unallocated work including unchecked and empty tasks", () => {
 		render(<SupportProjectDetails {...props} selectedPurchaseId={1} />);
 		expect(
-			screen.getByRole("button", { name: "В пакетах 2 · 4 ч" }),
-		).toHaveAttribute("aria-pressed", "true");
+			screen.queryByRole("group", { name: "Списки проекта" }),
+		).not.toBeInTheDocument();
+		expect(left().getByText("4 ч")).toBeInTheDocument();
+		expect(right().getByText("Задача 300")).toBeInTheDocument();
+		expect(right().getByText("Задача 500")).toBeInTheDocument();
 		expect(
-			within(
-				screen.getByRole("button", { name: "Отчёты по задаче: Задача 100" }),
-			).getByText("2 ч"),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Без пакета 3 · 7 ч" }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Не учитываются 1 · 2 ч" }),
-		).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Без пакета 3 · 7 ч" }));
-		expect(
-			screen.getByText(
-				"Весь проект · выбор пакета не ограничивает этот список.",
-			),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Отчёты по задаче: Задача 200" }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", {
+			right().getByRole("button", {
 				name: "Посмотреть отчёт: Выполненная работа 4",
 			}),
 		).toBeInTheDocument();
 		expect(screen.queryByText("Задача не указана")).not.toBeInTheDocument();
+		fireEvent.click(
+			right().getByRole("button", { name: "Отчёты по задаче: Задача 300" }),
+		);
+		expect(right().getByText("Не учитывается в пакете")).toBeInTheDocument();
+	});
+	it("can use another package as source without duplicating the selected package in source options", () => {
+		render(<SupportProjectDetails {...props} selectedPurchaseId={1} />);
+		const source = right().getByRole("combobox", { name: "Источник работ" });
 		expect(
-			screen.queryByRole("button", { name: "Отчёты по задаче: Задача 400" }),
+			within(source).queryByRole("option", { name: /№1/ }),
 		).not.toBeInTheDocument();
-		fireEvent.click(
-			screen.getByRole("button", { name: "Добавить пакет часов" }),
-		);
-		expect(props.onAddPackage).toHaveBeenCalledOnce();
+		fireEvent.change(source, { target: { value: "2" } });
+		expect(right().getByText("Задача 400")).toBeInTheDocument();
+		expect(right().queryByText("Задача 500")).not.toBeInTheDocument();
+		expect(right().getByText("12 ч")).toBeInTheDocument();
 	});
-	it("labels unallocated and excluded report drawers correctly and edits through the existing report editor", () => {
-		render(<SupportProjectDetails {...props} />);
-		fireEvent.click(screen.getByRole("button", { name: /^Без пакета/ }));
-		fireEvent.click(
-			screen.getByRole("button", {
-				name: "Посмотреть отчёт: Выполненная работа 6",
-			}),
-		);
-		let drawer = within(screen.getByRole("dialog"));
-		expect(drawer.getByText("Часов без пакета")).toBeInTheDocument();
-		expect(drawer.getByText("3 ч")).toBeInTheDocument();
-		expect(drawer.getByText("Всего часов по отчёту")).toBeInTheDocument();
-		expect(drawer.getByText("5 ч")).toBeInTheDocument();
-		fireEvent.click(drawer.getByRole("button", { name: "Закрыть" }));
-		fireEvent.click(screen.getByRole("button", { name: /^Не учитываются/ }));
-		fireEvent.click(
-			screen.getByRole("button", { name: "Отчёты по задаче: Задача 300" }),
-		);
-		fireEvent.click(
-			screen.getByRole("button", {
-				name: "Посмотреть отчёт: Выполненная работа 3",
-			}),
-		);
-		drawer = within(screen.getByRole("dialog"));
-		expect(drawer.getByText("Не учитывается")).toBeInTheDocument();
-		expect(drawer.queryByText("Списано часов")).not.toBeInTheDocument();
-		expect(drawer.getByText(/Учёт в пакете выключен/)).toBeInTheDocument();
-		fireEvent.click(drawer.getByRole("button", { name: "Изменить отчёт" }));
-		expect(props.onEditReport).toHaveBeenCalledExactlyOnceWith("3");
-	});
-	it("lists only tasks without any reports and provides create/open actions without billing task hours", () => {
-		render(<SupportProjectDetails {...props} />);
-		fireEvent.click(
-			screen.getByRole("button", { name: "Задачи без отчётов 1" }),
-		);
-		expect(screen.getByText("Задача 500")).toBeInTheDocument();
-		for (const id of [100, 200, 300, 400])
-			expect(screen.queryByText(`Задача ${id}`)).not.toBeInTheDocument();
-		const row = screen.getByText("Задача 500").parentElement
-			?.parentElement as HTMLElement;
-		expect(within(row).queryByText(/\d+ ч/)).not.toBeInTheDocument();
-		fireEvent.click(
-			screen.getByRole("button", {
-				name: "Добавить отчёт по задаче: Задача 500",
-			}),
-		);
-		expect(props.onAddReport).toHaveBeenCalledExactlyOnceWith("500");
-		fireEvent.click(
-			screen.getByRole("button", { name: "Открыть задачу: Задача 500" }),
-		);
-		expect(openTask).toHaveBeenCalledExactlyOnceWith("500", 1072);
-	});
-	it("shows load errors and unknown counts instead of pretending missing reports do not exist", () => {
-		const view = render(
-			<SupportProjectDetails {...props} workspace={null} workspaceLoading />,
-		);
-		fireEvent.click(screen.getByRole("button", { name: "Без пакета —" }));
-		expect(screen.getByRole("status")).toHaveTextContent(
-			"Загружаем отчёты и задачи",
-		);
-		expect(
-			screen.queryByText("Нет отчётов, ожидающих распределения по пакетам."),
-		).not.toBeInTheDocument();
-		view.rerender(
+	it("previews a report move and requires explicit confirmation with the returned fingerprint", async () => {
+		const onPreviewTransfer = vi.fn().mockResolvedValue(preview);
+		const onTransfer = vi.fn().mockResolvedValue(undefined);
+		render(
 			<SupportProjectDetails
 				{...props}
-				workspaceLoading={false}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+				onTransfer={onTransfer}
+			/>,
+		);
+		fireEvent.click(
+			right().getByRole("button", {
+				name: "Перенести отчёт: Выполненная работа 6 в выбранный пакет",
+			}),
+		);
+		await waitFor(() => expect(onPreviewTransfer).toHaveBeenCalledOnce());
+		expect(onPreviewTransfer).toHaveBeenCalledWith({
+			projectId: 31,
+			fromPurchaseId: null,
+			toPurchaseId: 1,
+			items: [{ reportId: "6", hours: 3 }],
+		});
+		expect(onTransfer).not.toHaveBeenCalled();
+		const modal = within(screen.getByRole("dialog"));
+		expect(await modal.findByText("Останется без пакета")).toBeInTheDocument();
+		expect(modal.getByText("2 ч")).toBeInTheDocument();
+		fireEvent.click(modal.getByRole("button", { name: "Подтвердить перенос" }));
+		await waitFor(() =>
+			expect(onTransfer).toHaveBeenCalledExactlyOnceWith(
+				onPreviewTransfer.mock.calls[0][0],
+				"workspace-revision-1",
+			),
+		);
+		await waitFor(() =>
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+		);
+	});
+	it("moves task binding even for a task without reports and keeps it nonbillable", async () => {
+		const onPreviewTransfer = vi.fn().mockResolvedValue({
+			...preview,
+			movedHours: 0,
+			unallocatedHours: 0,
+			items: [],
+			packages: [],
+		});
+		render(
+			<SupportProjectDetails
+				{...props}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+			/>,
+		);
+		fireEvent.click(
+			right().getByRole("button", {
+				name: "Перенести задачу: Задача 500 в выбранный пакет",
+			}),
+		);
+		await waitFor(() =>
+			expect(onPreviewTransfer).toHaveBeenCalledWith({
+				projectId: 31,
+				fromPurchaseId: null,
+				toPurchaseId: 1,
+				items: [],
+				taskId: "500",
+			}),
+		);
+		expect(
+			await screen.findByText(/Задача будет привязана к пакету №1/),
+		).toBeInTheDocument();
+	});
+	it("keeps bound empty tasks in their package and moves all visible task report slices together", async () => {
+		const onPreviewTransfer = vi.fn().mockResolvedValue(preview);
+		const boundWorkspace = {
+			...workspace,
+			tasks: workspace.tasks.map((task) =>
+				task.id === "500" ? { ...task, purchaseId: 1 } : task,
+			),
+		};
+		render(
+			<SupportProjectDetails
+				{...props}
+				workspace={boundWorkspace}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+			/>,
+		);
+		expect(left().getByText("Задача 500")).toBeInTheDocument();
+		expect(right().queryByText("Задача 500")).not.toBeInTheDocument();
+		fireEvent.click(
+			left().getByRole("button", {
+				name: "Перенести задачу: Задача 100 в нераспределённое",
+			}),
+		);
+		await waitFor(() =>
+			expect(onPreviewTransfer).toHaveBeenCalledWith({
+				projectId: 31,
+				fromPurchaseId: 1,
+				toPurchaseId: null,
+				items: [{ reportId: "1", hours: 2 }],
+				taskId: "100",
+			}),
+		);
+	});
+	it("supports drag and drop with the same preview and ignores external drag data", async () => {
+		const onPreviewTransfer = vi.fn().mockResolvedValue(preview);
+		render(
+			<SupportProjectDetails
+				{...props}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+			/>,
+		);
+		const target = screen.getByRole("region", { name: "Выбранный пакет" });
+		fireEvent.drop(target, { dataTransfer: { getData: () => "external" } });
+		expect(onPreviewTransfer).not.toHaveBeenCalled();
+		const draggable = right().getByRole("button", {
+			name: "Посмотреть отчёт: Выполненная работа 4",
+		}).parentElement!;
+		const dataTransfer = {
+			setData: vi.fn(),
+			effectAllowed: "",
+			dropEffect: "",
+		};
+		fireEvent.dragStart(draggable, { dataTransfer });
+		fireEvent.dragOver(target, { dataTransfer });
+		fireEvent.drop(target, { dataTransfer });
+		await waitFor(() =>
+			expect(onPreviewTransfer).toHaveBeenCalledExactlyOnceWith({
+				projectId: 31,
+				fromPurchaseId: null,
+				toPurchaseId: 1,
+				items: [{ reportId: "4", hours: 1 }],
+			}),
+		);
+	});
+	it("keeps the failed transfer draft visible and blocks duplicate submit while pending", async () => {
+		let reject!: (reason: Error) => void;
+		const onTransfer = vi.fn(
+			() =>
+				new Promise<void>((_resolve, rejectPromise) => {
+					reject = rejectPromise;
+				}),
+		);
+		render(
+			<SupportProjectDetails
+				{...props}
+				selectedPurchaseId={1}
+				onPreviewTransfer={vi.fn().mockResolvedValue(preview)}
+				onTransfer={onTransfer}
+			/>,
+		);
+		fireEvent.click(
+			right().getByRole("button", {
+				name: "Перенести отчёт: Выполненная работа 4 в выбранный пакет",
+			}),
+		);
+		const button = await screen.findByRole("button", {
+			name: "Подтвердить перенос",
+		});
+		await waitFor(() => expect(button).toBeEnabled());
+		fireEvent.click(button);
+		fireEvent.click(button);
+		expect(onTransfer).toHaveBeenCalledOnce();
+		expect(screen.getByRole("button", { name: "Переносим…" })).toBeDisabled();
+		await act(async () =>
+			reject(new Error("Данные изменились. Проверьте перенос заново.")),
+		);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		expect(screen.getByRole("alert")).toHaveTextContent("Данные изменились");
+	});
+	it("shows API errors instead of empty work and prevents transfers until refreshed", () => {
+		render(
+			<SupportProjectDetails
+				{...props}
+				selectedPurchaseId={1}
 				workspaceError="Битрикс24 недоступен"
 			/>,
 		);
 		expect(screen.getByRole("alert")).toHaveTextContent("Битрикс24 недоступен");
 		expect(
-			screen.getByRole("button", { name: "Без пакета —" }),
+			right().getByText("Список временно недоступен."),
 		).toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", {
-				name: "Посмотреть отчёт: Выполненная работа 4",
-			}),
+			screen.queryByRole("button", { name: /Перенести отчёт/ }),
 		).not.toBeInTheDocument();
 		fireEvent.click(
 			screen.getByRole("button", { name: "Повторить загрузку списка" }),
 		);
 		expect(props.onRetryWorkspace).toHaveBeenCalledOnce();
 	});
-	it("shows a package balance table with explicit selection/edit and collapses it for a selected package", () => {
-		const view = render(<SupportProjectDetails {...props} />);
+	it("keeps package balances selectable and editable", () => {
+		render(<SupportProjectDetails {...props} />);
 		const table = within(screen.getByRole("table"));
-		const row = table
-			.getByRole("button", { name: "Выбрать пакет №2" })
-			.closest("tr") as HTMLElement;
-		expect(within(row).getByText("10 ч")).toBeInTheDocument();
-		expect(within(row).getByText("12 ч")).toBeInTheDocument();
-		expect(within(row).getByText("-2 ч")).toBeInTheDocument();
 		fireEvent.click(table.getByRole("button", { name: "Выбрать пакет №2" }));
 		expect(props.onSelectPackage).toHaveBeenCalledExactlyOnceWith(2);
 		fireEvent.click(table.getByRole("button", { name: "Изменить пакет №1" }));
 		expect(props.onEditPackage).toHaveBeenCalledExactlyOnceWith(purchases[0]);
-		view.rerender(<SupportProjectDetails {...props} selectedPurchaseId={2} />);
-		expect(screen.queryByRole("table")).not.toBeInTheDocument();
-		fireEvent.click(
-			screen.getByRole("button", { name: "← Все пакеты проекта" }),
+	});
+});
+
+describe("zero-hour reports remain visible without creating charge transfers", () => {
+	const zeroWorkspace = {
+		...workspace,
+		reports: [
+			...workspace.reports,
+			report("7", null, 0, true, []),
+			report("8", "500", 0, false, []),
+		],
+	};
+	it("shows standalone zero-hour reports in unallocated, opens them, and disables their move action and drag", async () => {
+		const onPreviewTransfer = vi.fn().mockResolvedValue(preview);
+		render(
+			<SupportProjectDetails
+				{...props}
+				workspace={zeroWorkspace}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+			/>,
 		);
-		expect(props.onSelectPackage).toHaveBeenLastCalledWith(null);
+		const open = right().getByRole("button", {
+			name: "Посмотреть отчёт: Выполненная работа 7",
+		});
+		expect(open.parentElement).toHaveAttribute("draggable", "false");
+		const move = right().getByRole("button", {
+			name: "Перенести отчёт: Выполненная работа 7 в выбранный пакет",
+		});
+		expect(move).toBeDisabled();
+		fireEvent.click(move);
+		const dataTransfer = {
+			setData: vi.fn(),
+			effectAllowed: "",
+			dropEffect: "",
+		};
+		fireEvent.dragStart(open.parentElement!, { dataTransfer });
+		fireEvent.drop(screen.getByRole("region", { name: "Выбранный пакет" }), {
+			dataTransfer,
+		});
+		expect(onPreviewTransfer).not.toHaveBeenCalled();
+		fireEvent.click(open);
+		expect(
+			within(screen.getByRole("dialog")).getByText("0 ч"),
+		).toBeInTheDocument();
+	});
+	it("keeps a task with only zero-hour reports visible and transfers its binding without zero-hour items", async () => {
+		const onPreviewTransfer = vi
+			.fn()
+			.mockResolvedValue({
+				...preview,
+				movedHours: 0,
+				unallocatedHours: 0,
+				items: [],
+				packages: [],
+			});
+		const view = render(
+			<SupportProjectDetails
+				{...props}
+				workspace={zeroWorkspace}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+			/>,
+		);
+		expect(right().getByText("Задача 500")).toBeInTheDocument();
+		fireEvent.click(
+			right().getByRole("button", { name: "Отчёты по задаче: Задача 500" }),
+		);
+		expect(
+			right().getByRole("button", {
+				name: "Посмотреть отчёт: Выполненная работа 8",
+			}),
+		).toBeInTheDocument();
+		fireEvent.click(
+			right().getByRole("button", {
+				name: "Перенести задачу: Задача 500 в выбранный пакет",
+			}),
+		);
+		await waitFor(() =>
+			expect(onPreviewTransfer).toHaveBeenCalledExactlyOnceWith({
+				projectId: 31,
+				fromPurchaseId: null,
+				toPurchaseId: 1,
+				items: [],
+				taskId: "500",
+			}),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+		const assigned = {
+			...zeroWorkspace,
+			tasks: zeroWorkspace.tasks.map((task) =>
+				task.id === "500" ? { ...task, purchaseId: 1 } : task,
+			),
+		};
+		view.rerender(
+			<SupportProjectDetails
+				{...props}
+				workspace={assigned}
+				selectedPurchaseId={1}
+				onPreviewTransfer={onPreviewTransfer}
+			/>,
+		);
+		expect(left().getByText("Задача 500")).toBeInTheDocument();
+		expect(right().queryByText("Задача 500")).not.toBeInTheDocument();
+		fireEvent.click(
+			left().getByRole("button", {
+				name: "Перенести задачу: Задача 500 в нераспределённое",
+			}),
+		);
+		await waitFor(() =>
+			expect(onPreviewTransfer).toHaveBeenLastCalledWith({
+				projectId: 31,
+				fromPurchaseId: 1,
+				toPurchaseId: null,
+				items: [],
+				taskId: "500",
+			}),
+		);
 	});
 });
