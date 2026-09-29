@@ -1,0 +1,49 @@
+name: Support recovery diagnostics
+
+on:
+  push:
+    branches: [fix/support-project-type-recovery]
+    paths: [.github/workflows/support-recovery-diagnostics.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: support-recovery-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install SSH client helper
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+      - name: Read application checkout and container state
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSHPASS: ${{ secrets.SERVER_PASSWORD }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVER_HOST" && test -n "$SERVER_USER" && test -n "$SSHPASS"
+          sshpass -e ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            -p "${SERVER_PORT:-22}" "$SERVER_USER@$SERVER_HOST" 'bash -s' <<'REMOTE'
+          set -eu
+          for app in work-tracker work-tracker-api; do
+            dir="/home/bitrix/devapps/$app"
+            printf '\nAPPLICATION %s\n' "$app"
+            if [ ! -d "$dir/.git" ]; then echo 'Expected checkout not present'; continue; fi
+            git -C "$dir" rev-parse --abbrev-ref HEAD
+            git -C "$dir" log -1 --format='%H %s'
+            echo 'Working tree status (filenames only):'
+            git -C "$dir" status --short
+            echo 'Change summary:'
+            git -C "$dir" diff --stat
+          done
+          echo 'Work Tracker container status:'
+          docker ps --format '{{.Names}} {{.Image}} {{.Status}}' | grep -Ei 'work.?tracker|production.backend|production-backend' || true
+          echo 'Backend health HTTP status:'
+          curl --max-time 15 -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3001/health || true
+          REMOTE
