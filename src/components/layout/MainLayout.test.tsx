@@ -184,7 +184,7 @@ describe("MainLayout", () => {
 			});
 		});
 
-		it("должен вызывать destroy при размонтировании", async () => {
+		it("не разрушает общий SDK frame при размонтировании layout", async () => {
 			vi.stubEnv("DEV", false);
 			mockEmbeddedWindow();
 
@@ -209,7 +209,7 @@ describe("MainLayout", () => {
 
 			view.unmount();
 
-			expect(mockB24Instance.destroy).toHaveBeenCalledTimes(1);
+			expect(mockB24Instance.destroy).not.toHaveBeenCalled();
 		});
 
 		it("должен выдать права руководителю отдела", async () => {

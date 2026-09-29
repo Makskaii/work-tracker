@@ -269,20 +269,14 @@
 .packageReportPanel { margin: 20px 0 24px; padding: 18px; background: #111516; border: 1px solid #293235; border-radius: 9px; }
 .reportPanelHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .reportPanelHeading h2 { margin: 0; font-size: 16px; color: #e0e6e7; }
-.reportPanelHeading p, .versionHistory > p { margin: 6px 0 0; color: #909c9f; font-size: 12px; line-height: 1.5; }
+.reportPanelHeading p { margin: 6px 0 0; color: #909c9f; font-size: 12px; line-height: 1.5; }
 .reportChecks, .checksSuccess { margin-top: 15px; padding: 13px; border: 1px solid #786534; border-radius: 7px; background: #211d13; color: #e4c583; font-size: 12px; }
 .reportChecks p { color: #c1b48c; line-height: 1.5; }
 .reportChecks ul { padding: 0; list-style: none; }
 .reportChecks li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid #393323; }
 .reportChecks li .inlineAction { flex-shrink: 0; }
 .checksSuccess { background: #14221b; border-color: #31533e; color: #7ecb97; }
-.versionHistory { margin-top: 16px; border-top: 1px solid #293235; padding-top: 13px; font-size: 12px; }
-.versionHistory summary { color: #bdc9cb; cursor: pointer; }
-.versionHistory summary span { color: #69d2e9; padding-left: 6px; }
-.versionRow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #263033; }
-.versionRow strong { color: #d1dcde; font-size: 12px; }
-.versionRow small { display: block; margin-top: 5px; color: #8f9b9f; }
-@media (max-width: 720px) { .reportChecks li { align-items: flex-start; flex-direction: column; gap: 2px; } .versionRow { flex-wrap: wrap; } .refreshBar { padding: 10px 14px; } }
+@media (max-width: 720px) { .reportChecks li { align-items: flex-start; flex-direction: column; gap: 2px; } .refreshBar { padding: 10px 14px; } }
 .deletePackageConfirmation > .impactPreview { display: grid; justify-content: stretch; width: 100%; gap: 10px; text-align: left; }
 .deletePackageConfirmation .impactPreview > strong { justify-self: start; }
 .deletePackageConfirmation .impactRow { display: grid; grid-template-columns: minmax(88px, 1fr) auto; align-items: baseline; gap: 18px; }

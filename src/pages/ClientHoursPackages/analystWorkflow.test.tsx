@@ -6,6 +6,7 @@ import {
 	waitFor,
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { $backendApi } from "@/shared/config/axios/axios.config";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { ClientHoursPackageModal } from "./ClientHoursPackageModal";
@@ -17,9 +18,6 @@ const api = vi.hoisted(() => ({
 	getSupportReportForEdit: vi.fn(),
 	prepareSupportReportFields: vi.fn(),
 	fetchPackageChecks: vi.fn(),
-	fetchSupportReportVersions: vi.fn(),
-	saveSupportReportVersion: vi.fn(),
-	downloadSupportReportVersion: vi.fn(),
 	downloadSupportPdf: vi.fn(),
 }));
 const { openTask, notify, fetchPdf } = vi.hoisted(() => ({
@@ -124,7 +122,6 @@ beforeEach(() => {
 		entityTypeId: 1060,
 		fields: { title: "Отчёт", parentId1072: 1002, ufCrm11_1775128299: 94 },
 	});
-	api.fetchSupportReportVersions.mockResolvedValue([]);
 	api.fetchPackageChecks.mockResolvedValue({
 		checkedAt: "2026-09-29T10:00:00Z",
 		blocking: false,
@@ -146,9 +143,9 @@ describe("package form safety and impact", () => {
 		const save = vi.fn();
 		render(
 			<ClientHoursPackageModal
+				projectId={31}
 				isOpen
 				mode="new-package"
-				projectId={31}
 				projects={[{ id: 31, title: "ТП" }]}
 				purchase={null}
 				onClose={vi.fn()}
@@ -167,9 +164,9 @@ describe("package form safety and impact", () => {
 		const save = vi.fn().mockReturnValue(saved.promise);
 		render(
 			<ClientHoursPackageModal
+				projectId={31}
 				isOpen
 				mode="new-package"
-				projectId={31}
 				projects={[{ id: 31, title: "ТП" }]}
 				purchase={null}
 				onClose={vi.fn()}
@@ -193,9 +190,9 @@ describe("package form safety and impact", () => {
 		const save = vi.fn().mockResolvedValue(undefined);
 		render(
 			<ClientHoursPackageModal
+				projectId={31}
 				isOpen
 				mode="edit"
-				projectId={31}
 				projects={[{ id: 31, title: "ТП" }]}
 				purchase={purchase}
 				onClose={vi.fn()}
@@ -232,9 +229,9 @@ describe("package form safety and impact", () => {
 		});
 		render(
 			<ClientHoursPackageModal
+				projectId={31}
 				isOpen
 				mode="edit"
-				projectId={31}
 				projects={[{ id: 31, title: "ТП" }]}
 				purchase={purchase}
 				onClose={vi.fn()}
@@ -262,9 +259,9 @@ describe("package form safety and impact", () => {
 		const remove = vi.fn().mockResolvedValue(undefined);
 		render(
 			<ClientHoursPackageModal
+				projectId={31}
 				isOpen
 				mode="edit"
-				projectId={31}
 				projects={[{ id: 31, title: "ТП" }]}
 				purchase={purchase}
 				onClose={vi.fn()}
@@ -444,7 +441,7 @@ describe("report creation and editing", () => {
 	});
 });
 
-describe("client PDF checks and immutable versions", () => {
+describe("current client PDF checks", () => {
 	it("shows a blocking project mismatch, lets the analyst open the source, and prevents exporting", async () => {
 		api.fetchPackageChecks.mockResolvedValue({
 			blocking: true,
@@ -458,14 +455,7 @@ describe("client PDF checks and immutable versions", () => {
 				},
 			],
 		});
-		render(
-			<SupportPackageReportPanel
-				projectId={31}
-				packageId={7}
-				historyPackageId={7}
-				hasPackages
-			/>,
-		);
+		render(<SupportPackageReportPanel packageId={7} hasPackages />);
 		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
 		expect(await screen.findByText("Нужно проверить: 1")).toBeInTheDocument();
 		expect(fetchPdf).not.toHaveBeenCalled();
@@ -489,14 +479,7 @@ describe("client PDF checks and immutable versions", () => {
 			],
 		});
 		fetchPdf.mockResolvedValue(new Blob(["pdf"]));
-		render(
-			<SupportPackageReportPanel
-				projectId={31}
-				packageId={7}
-				historyPackageId={7}
-				hasPackages
-			/>,
-		);
+		render(<SupportPackageReportPanel packageId={7} hasPackages />);
 		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
 		fireEvent.click(
 			await screen.findByRole("button", { name: "Скачать с этими данными" }),
@@ -504,105 +487,74 @@ describe("client PDF checks and immutable versions", () => {
 		await waitFor(() => expect(fetchPdf).toHaveBeenCalledWith(7));
 		expect(api.fetchPackageChecks).toHaveBeenCalledTimes(2);
 	});
-	it("ignores a late manual version refresh after switching project", async () => {
-		api.fetchSupportReportVersions.mockRejectedValueOnce(new Error("Offline"));
-		const view = render(
-			<SupportPackageReportPanel
-				projectId={31}
-				packageId={7}
-				historyPackageId={7}
-				hasPackages
-			/>,
-		);
-		fireEvent.click(screen.getByText(/Сохранённые версии/));
-		await screen.findByText(/Не удалось загрузить сохранённые версии/);
-		const late = deferred<unknown[]>();
-		api.fetchSupportReportVersions.mockReturnValueOnce(late.promise);
-		fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
-		api.fetchSupportReportVersions.mockResolvedValueOnce([
-			{
-				id: 22,
-				packageId: 8,
-				projectId: 32,
-				versionNumber: 1,
-				createdAt: "2026-09-29T10:00:00Z",
-				filename: "current.pdf",
-				spentHours: 1,
-				remainingHours: 9,
-			},
-		]);
-		view.rerender(
-			<SupportPackageReportPanel
-				projectId={32}
-				packageId={8}
-				historyPackageId={8}
-				hasPackages
-			/>,
-		);
-		await screen.findByText("Пакет №8 · Версия 1");
-		await act(async () =>
-			late.resolve([
-				{
-					id: 11,
-					packageId: 7,
-					projectId: 31,
-					versionNumber: 5,
-					createdAt: "2026-09-29T10:00:00Z",
-					filename: "old.pdf",
-					spentHours: 8,
-					remainingHours: 2,
-				},
-			]),
-		);
-		expect(screen.getByText("Пакет №8 · Версия 1")).toBeInTheDocument();
-		expect(screen.queryByText("Пакет №7 · Версия 5")).not.toBeInTheDocument();
+	it("does not load or save archives on mount, package changes or current PDF download", async () => {
+		const get = vi.spyOn($backendApi, "get");
+		const post = vi.spyOn($backendApi, "post");
+		try {
+			fetchPdf.mockResolvedValue(new Blob(["current PDF"]));
+			const view = render(
+				<SupportPackageReportPanel packageId={7} hasPackages />,
+			);
+			expect(
+				screen.queryByRole("button", { name: /Зафиксировать версию/ }),
+			).not.toBeInTheDocument();
+			expect(screen.queryByText(/Сохранённые версии/)).not.toBeInTheDocument();
+			view.rerender(
+				<SupportPackageReportPanel packageId={8} refreshKey={2} hasPackages />,
+			);
+			expect(get).not.toHaveBeenCalled();
+			expect(post).not.toHaveBeenCalled();
+			fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+			await waitFor(() =>
+				expect(api.downloadSupportPdf).toHaveBeenCalledWith(
+					expect.any(Blob),
+					"support-package-8.pdf",
+				),
+			);
+			expect(api.fetchPackageChecks).toHaveBeenCalledExactlyOnceWith(8);
+			expect(fetchPdf).toHaveBeenCalledExactlyOnceWith(8);
+			expect(get).not.toHaveBeenCalled();
+			expect(post).not.toHaveBeenCalled();
+		} finally {
+			get.mockRestore();
+			post.mockRestore();
+		}
 	});
-	it("reuses the same save request on uncertain failure and downloads an existing PDF by version ID", async () => {
-		const version = {
-			id: 11,
-			packageId: 7,
-			projectId: 31,
-			versionNumber: 1,
-			createdAt: "2026-09-29T10:00:00Z",
-			filename: "version-1.pdf",
-			spentHours: 26,
-			remainingHours: 4,
-		};
-		api.saveSupportReportVersion
-			.mockRejectedValueOnce(new Error("Timeout"))
-			.mockResolvedValueOnce(version);
-		const pdf = new Blob(["immutable pdf"]);
-		api.downloadSupportReportVersion.mockResolvedValue(pdf);
-		render(
-			<SupportPackageReportPanel
-				projectId={31}
-				packageId={7}
-				historyPackageId={7}
-				hasPackages
-			/>,
+	it("ignores a late check for the previous package", async () => {
+		const late = deferred<{
+			blocking: boolean;
+			issues: Array<{
+				code: string;
+				severity: string;
+				message: string;
+				entityTypeId: number;
+				itemId: number;
+			}>;
+		}>();
+		api.fetchPackageChecks.mockReturnValueOnce(late.promise);
+		const view = render(
+			<SupportPackageReportPanel packageId={7} hasPackages />,
 		);
-		fireEvent.click(
-			screen.getByRole("button", { name: "Зафиксировать версию" }),
+		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		view.rerender(<SupportPackageReportPanel packageId={8} hasPackages />);
+		await act(async () =>
+			late.resolve({
+				blocking: true,
+				issues: [
+					{
+						code: "old_project",
+						severity: "error",
+						message: "Ошибка старого пакета",
+						entityTypeId: 1060,
+						itemId: 1,
+					},
+				],
+			}),
 		);
-		await waitFor(() =>
-			expect(notify).toHaveBeenCalledWith(
-				expect.objectContaining({ type: "error" }),
-			),
-		);
-		api.fetchSupportReportVersions.mockResolvedValue([version]);
-		fireEvent.click(
-			screen.getByRole("button", { name: "Зафиксировать версию" }),
-		);
-		await screen.findByText("Пакет №7 · Версия 1");
-		expect(api.saveSupportReportVersion.mock.calls[0]).toEqual(
-			api.saveSupportReportVersion.mock.calls[1],
-		);
-		fireEvent.click(screen.getByText(/Сохранённые версии/));
-		fireEvent.click(screen.getByRole("button", { name: "Скачать PDF" }));
-		await waitFor(() =>
-			expect(api.downloadSupportPdf).toHaveBeenCalledWith(pdf, "version-1.pdf"),
-		);
-		expect(api.downloadSupportReportVersion).toHaveBeenCalledWith(11);
+		expect(screen.queryByText("Ошибка старого пакета")).not.toBeInTheDocument();
 		expect(fetchPdf).not.toHaveBeenCalled();
+		expect(
+			screen.getByRole("button", { name: "Отчёт по пакету" }),
+		).toBeEnabled();
 	});
 });

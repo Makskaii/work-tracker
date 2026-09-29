@@ -35,7 +35,8 @@ export const SupportReportModal = ({
 	onClose,
 	onSaved,
 }: Props) => {
-	const { b24 } = useB24();
+	const { b24, status: sdkStatus } = useB24();
+	const isStandalonePreview = sdkStatus === "standalone" || window.self === window.top;
 	const [values, setValues] = useState({
 		taskId: initialTaskId ?? "",
 		description: "",
@@ -203,10 +204,12 @@ export const SupportReportModal = ({
 					<p>{projectTitle}</p>
 				</header>
 				{!b24 && (
-					<p className={styles.formError} role="alert">
-						Для сохранения откройте Work Tracker внутри Битрикс24. Отчёт будет
-						создан от вашего имени.
-					</p>
+					<div className={styles.formError} role={sdkStatus === "loading" ? "status" : "alert"}>
+						{sdkStatus === "loading" ? "Подключаемся к вашей сессии Битрикс24…" : isStandalonePreview ?
+							"Для сохранения откройте Work Tracker внутри Битрикс24. Отчёт будет создан от вашего имени." :
+							"Не удалось подключиться к текущей сессии Битрикс24. Обновите приложение, чтобы повторить подключение с вашими правами."}
+						{!isStandalonePreview && sdkStatus !== "loading" && <button type="button" onClick={() => window.location.reload()}>Подключиться заново</button>}
+					</div>
 				)}
 				{loading ? (
 					<p role="status">Загружаем данные…</p>
