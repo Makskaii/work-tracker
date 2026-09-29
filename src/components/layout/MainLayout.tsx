@@ -1,6 +1,6 @@
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
 import { getDepartmentsHeads } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
@@ -36,8 +36,8 @@ const BitrixFrameUnavailable = () => (
 	<div
 		style={{
 			alignItems: "center",
-			background: "#f8fafc",
-			color: "#1f2937",
+			background: "#0d0f11",
+			color: "#e5e7eb",
 			display: "flex",
 			height: "100%",
 			justifyContent: "center",
@@ -48,24 +48,27 @@ const BitrixFrameUnavailable = () => (
 	>
 		<div style={{ maxWidth: 520 }}>
 			<h1 style={{ fontSize: 24, lineHeight: 1.25, margin: "0 0 12px" }}>
-				Приложение доступно только внутри Битрикс24
+				Не удалось подключиться к Битрикс24
 			</h1>
 			<p style={{ fontSize: 16, lineHeight: 1.5, margin: 0 }}>
-				Откройте его из вашего портала Битрикс24. Прямой переход по публичной
-				ссылке заблокирован.
+				Не удалось получить сессию приложения. Обновите приложение, чтобы
+				повторить подключение с вашими правами.
 			</p>
+			<button type="button" onClick={() => window.location.reload()} style={{ marginTop: 16 }}>
+				Подключиться заново
+			</button>
 		</div>
 	</div>
 );
 
 export const MainLayout = () => {
-	const b24Ref = useRef<B24Frame | null>(null);
 	const [b24, setB24] = useState<B24Frame | null>(null);
 	const [frameStatus, setFrameStatus] = useState<BitrixFrameStatus>("loading");
 	const navigate = useNavigate();
 
 	useEffect(() => {
 		let isMounted = true;
+		let initializedFrame: B24Frame | null = null;
 
 		const getCurrentUserDepartmentInfo = async (
 			frame: B24Frame,
@@ -97,7 +100,9 @@ export const MainLayout = () => {
 					return;
 				}
 
-				if (devMode) {
+				// A development build embedded in the portal still needs the real
+				// signed-in user's SDK session. Only standalone previews bypass it.
+				if (devMode && window.self === window.top) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
 						subject: "post",
@@ -121,8 +126,8 @@ export const MainLayout = () => {
 
 				try {
 					frame = await initializeB24Frame();
-				} catch (error) {
-					$logger.error("Failed to initialize Bitrix24 frame", { error });
+				} catch {
+					$logger.error("Failed to initialize Bitrix24 frame");
 
 					if (isMounted) {
 						ability.update([]);
@@ -134,18 +139,19 @@ export const MainLayout = () => {
 				}
 
 				if (!isMounted) {
-					frame.destroy();
 					return;
 				}
 
-				b24Ref.current = frame;
+				initializedFrame = frame;
+				// User/department lookups determine UI roles, not SDK readiness.
+				// A failed lookup must not discard the initialized portal session.
+				setB24(frame);
 
 				const data = new Set((await getDepartmentsHeads()).filter(Boolean));
 
 				const currUser = await getCurrentUserDepartmentInfo(frame);
 
 				if (!isMounted) {
-					frame.destroy();
 					return;
 				}
 
@@ -198,12 +204,12 @@ export const MainLayout = () => {
 						navigate(redirectTo, { replace: true });
 					}
 				}
-			} catch (error) {
-				$logger.error("Some problems", { error });
+			} catch {
+				$logger.error("Failed to load Bitrix24 user permissions");
 
 				if (isMounted) {
 					ability.update([]);
-					setFrameStatus("ready");
+					setFrameStatus(initializedFrame ? "ready" : "unavailable");
 				}
 			}
 		};
@@ -212,8 +218,9 @@ export const MainLayout = () => {
 
 		return () => {
 			isMounted = false;
-			b24Ref.current?.destroy();
-			b24Ref.current = null;
+			// initializeB24Frame owns a document-wide singleton. Destroying it
+			// here breaks later mounts and StrictMode: the loader returns the
+			// same frame with its message subscription already removed.
 		};
 	}, [navigate]);
 
@@ -226,7 +233,7 @@ export const MainLayout = () => {
 	}
 
 	return (
-		<B24Context.Provider value={{ b24 }}>
+		<B24Context.Provider value={{ b24, status: b24 ? "ready" : "standalone" }}>
 			<div
 				style={{
 					display: "flex",

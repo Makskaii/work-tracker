@@ -1,164 +1,75 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { FiDownload, FiExternalLink, FiSave } from "react-icons/fi";
+import { useEffect, useRef, useState } from "react";
+import { FiDownload, FiExternalLink } from "react-icons/fi";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import { fetchSupportHoursPackageReport } from "./clientHoursPackages.api";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import {
 	downloadSupportPdf,
-	downloadSupportReportVersion,
 	fetchPackageChecks,
-	fetchSupportReportVersions,
 	type PackageChecks,
-	saveSupportReportVersion,
-	type SupportReportVersion,
 	supportErrorMessage,
 } from "./supportAnalyst.api";
 
 type Props = {
-	projectId: number;
 	packageId: number | null;
-	historyPackageId: number | null;
 	hasPackages: boolean;
 	refreshKey?: number;
 	onCardClosed?: () => Promise<void>;
 };
 export const SupportPackageReportPanel = ({
-	projectId,
 	packageId,
-	historyPackageId,
 	hasPackages,
 	refreshKey,
 	onCardClosed,
 }: Props) => {
 	const { openTask } = useBitrixSlider();
-	const [versions, setVersions] = useState<SupportReportVersion[]>([]);
-	const [versionError, setVersionError] = useState("");
-	const [versionsLoading, setVersionsLoading] = useState(false);
 	const [checks, setChecks] = useState<PackageChecks | null>(null);
-	const [pending, setPending] = useState<"download" | "save" | number | null>(
-		null,
-	);
+	const [pending, setPending] = useState(false);
 	const pendingRef = useRef(false);
-	const [confirmation, setConfirmation] = useState<"download" | "save" | null>(
-		null,
-	);
-	const requestIds = useRef(new Map<number, string>());
+	const [confirmation, setConfirmation] = useState(false);
 	const generationRef = useRef(0);
-	const versionRequestRef = useRef(0);
-	const loadVersions = useCallback(
-		async (signal?: AbortSignal) => {
-			const generation = generationRef.current;
-			const request = ++versionRequestRef.current;
-			const current = () =>
-				!signal?.aborted &&
-				generation === generationRef.current &&
-				request === versionRequestRef.current;
-			setVersionsLoading(true);
-			try {
-				const data = await fetchSupportReportVersions(
-					projectId,
-					historyPackageId ?? undefined,
-					signal,
-				);
-				if (current()) {
-					setVersions(data);
-					setVersionError("");
-				}
-			} catch {
-				if (current())
-					setVersionError("Не удалось загрузить сохранённые версии.");
-			} finally {
-				if (current()) setVersionsLoading(false);
-			}
-		},
-		[projectId, historyPackageId],
-	);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refreshing source data invalidates checks and reloads saved versions.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: changing the package or refreshing its data invalidates previous checks.
 	useEffect(() => {
-		const controller = new AbortController();
 		generationRef.current += 1;
 		setChecks(null);
-		setConfirmation(null);
-		setVersions([]);
-		void loadVersions(controller.signal);
+		setConfirmation(false);
 		return () => {
-			controller.abort();
 			generationRef.current += 1;
 		};
-	}, [loadVersions, refreshKey, packageId]);
-	const action = async (kind: "download" | "save", confirmed = false) => {
+	}, [refreshKey, packageId]);
+	const downloadReport = async (confirmed = false) => {
 		if (!packageId || pendingRef.current) return;
 		pendingRef.current = true;
-		setPending(kind);
+		setPending(true);
 		const generation = generationRef.current;
 		try {
 			const checked = await fetchPackageChecks(packageId);
 			if (generation !== generationRef.current) return;
 			setChecks(checked);
 			if (checked.blocking || (checked.issues.length > 0 && !confirmed)) {
-				setConfirmation(kind);
+				setConfirmation(true);
 				return;
 			}
-			setConfirmation(null);
-			if (kind === "download")
-				downloadSupportPdf(
-					await fetchSupportHoursPackageReport(packageId),
-					`support-package-${packageId}.pdf`,
-				);
-			else {
-				const storageKey = `support-hours:pending-version:${projectId}:${packageId}`;
-				let requestId =
-					requestIds.current.get(packageId) ??
-					window.sessionStorage.getItem(storageKey);
-				if (!requestId) requestId = crypto.randomUUID();
-				requestIds.current.set(packageId, requestId);
-				window.sessionStorage.setItem(storageKey, requestId);
-				const version = await saveSupportReportVersion(packageId, requestId);
-				requestIds.current.delete(packageId);
-				window.sessionStorage.removeItem(storageKey);
-				if (generation === generationRef.current) {
-					await loadVersions();
-					notify({
-						message: `Версия №${version.versionNumber} сохранена. Её PDF больше не изменится.`,
-						type: "success",
-					});
-				}
-			}
+			setConfirmation(false);
+			downloadSupportPdf(
+				await fetchSupportHoursPackageReport(packageId),
+				`support-package-${packageId}.pdf`,
+			);
 		} catch (cause) {
 			notify({
 				message: supportErrorMessage(
 					cause,
-					kind === "save"
-						? "Не удалось подтвердить сохранение версии. Повторная попытка проверит то же сохранение без создания дубля."
-						: "Не удалось сформировать отчёт по пакету. Повторите попытку.",
+					"Не удалось сформировать отчёт по пакету. Повторите попытку.",
 				),
 				type: "error",
 			});
 		} finally {
 			pendingRef.current = false;
-			setPending(null);
+			setPending(false);
 		}
 	};
-	const downloadVersion = async (version: SupportReportVersion) => {
-		if (pendingRef.current) return;
-		pendingRef.current = true;
-		setPending(version.id);
-		try {
-			downloadSupportPdf(
-				await downloadSupportReportVersion(version.id),
-				version.filename,
-			);
-		} catch {
-			notify({
-				message: "Не удалось скачать сохранённую версию.",
-				type: "error",
-			});
-		} finally {
-			pendingRef.current = false;
-			setPending(null);
-		}
-	};
+
 	return (
 		<section
 			className={styles.packageReportPanel}
@@ -179,21 +90,12 @@ export const SupportPackageReportPanel = ({
 					<button
 						className={styles.packageReportButton}
 						type="button"
-						disabled={!packageId || pending !== null}
-						aria-busy={pending === "download"}
-						onClick={() => void action("download")}
+						disabled={!packageId || pending}
+						aria-busy={pending}
+						onClick={() => void downloadReport()}
 					>
 						<FiDownload aria-hidden="true" />
-						{pending === "download" ? "Готовим отчёт…" : "Отчёт по пакету"}
-					</button>
-					<button
-						className={styles.packageReportButton}
-						type="button"
-						disabled={!packageId || pending !== null}
-						onClick={() => void action("save")}
-					>
-						<FiSave aria-hidden="true" />
-						{pending === "save" ? "Сохраняем версию…" : "Зафиксировать версию"}
+						{pending ? "Готовим отчёт…" : "Отчёт по пакету"}
 					</button>
 				</div>
 			</div>
@@ -225,7 +127,7 @@ export const SupportPackageReportPanel = ({
 											onClick={async () => {
 												await openTask(issue.itemId, issue.entityTypeId);
 												setChecks(null);
-												setConfirmation(null);
+												setConfirmation(false);
 												await onCardClosed?.();
 											}}
 										>
@@ -241,66 +143,14 @@ export const SupportPackageReportPanel = ({
 						<button
 							className={styles.packageReportButton}
 							type="button"
-							disabled={pending !== null}
-							onClick={() => void action(confirmation, true)}
+							disabled={pending}
+							onClick={() => void downloadReport(true)}
 						>
-							{confirmation === "save"
-								? "Сохранить версию с этими данными"
-								: "Скачать с этими данными"}
+							Скачать с этими данными
 						</button>
 					)}
 				</div>
 			)}
-			<details className={styles.versionHistory}>
-				<summary>
-					Сохранённые версии <span>{versions.length}</span>
-				</summary>
-				<p>
-					Сохранённый PDF не меняется при последующих правках. Новую редакцию
-					фиксируйте отдельной версией. Даты ниже видны только сотрудникам.
-				</p>
-				{versionsLoading && <p>Загружаем версии…</p>}
-				{versionError && (
-					<p role="alert">
-						{versionError}{" "}
-						<button
-							className={styles.inlineAction}
-							type="button"
-							onClick={() => void loadVersions()}
-						>
-							Повторить
-						</button>
-					</p>
-				)}
-				{!versionsLoading && !versionError && !versions.length && (
-					<p>Сохранённых версий пока нет.</p>
-				)}
-				{versions.map((version) => (
-					<div className={styles.versionRow} key={version.id}>
-						<div>
-							<strong>
-								Пакет №{version.packageId} · Версия {version.versionNumber}
-							</strong>
-							<small>
-								{new Date(version.createdAt).toLocaleString("ru-RU", {
-									timeZone: "Europe/Moscow",
-								})}{" "}
-								· Списано {version.spentHours} ч · Остаток{" "}
-								{version.remainingHours} ч
-							</small>
-						</div>
-						<button
-							type="button"
-							className={styles.inlineAction}
-							disabled={pending !== null}
-							onClick={() => void downloadVersion(version)}
-						>
-							<FiDownload aria-hidden="true" />
-							{pending === version.id ? "Скачиваем…" : "Скачать PDF"}
-						</button>
-					</div>
-				))}
-			</details>
 		</section>
 	);
 };

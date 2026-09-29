@@ -277,9 +277,7 @@ export const SupportProjectDetails = ({
 			)}
 
 			<SupportPackageReportPanel
-				projectId={project.id}
 				packageId={reportPurchase?.id ?? null}
-				historyPackageId={effectivePurchaseId}
 				hasPackages={purchases.length > 0}
 				refreshKey={refreshKey}
 				onCardClosed={onCardClosed}
