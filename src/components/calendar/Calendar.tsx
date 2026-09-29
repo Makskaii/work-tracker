@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <s> */
 
 import dayjs from "dayjs";
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	Endpoints,
 	EntityTypeIds,
@@ -18,24 +18,9 @@ import {
 	selectFields,
 	TaskCodes,
 } from "./constants/const";
+import { getWeekRange } from "./helpers/calendarPeriod";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
-
-type WeekRange = {
-	startOfTheWeek: string;
-	endOfTheWeek: string;
-};
-
-const getWeekRange = (date = dayjs()): WeekRange => {
-	const day = date.day();
-	const diffToMonday = day === 0 ? 6 : day - 1;
-	const start = date.startOf("day").subtract(diffToMonday, "day");
-
-	return {
-		startOfTheWeek: start.format("YYYY-MM-DD"),
-		endOfTheWeek: start.add(6, "day").endOf("day").format("YYYY-MM-DD"),
-	};
-};
 
 const getReportRelationId = (
 	newValue: string | number | null | undefined,
@@ -84,11 +69,7 @@ export const Calendar = ({
 	setGroupByActivity,
 	selectedMonth,
 	selectedYear,
-	handleMonthChange,
-	handleYearChange,
-	handlePrevMonth,
-	handleNextMonth,
-	handleToday,
+	selectedDate,
 	onLoadingChange,
 	onPeriodReportsChange,
 }: {
@@ -99,16 +80,15 @@ export const Calendar = ({
 	setGroupByActivity: (value: GroupedReportFields[]) => void;
 	selectedMonth: number;
 	selectedYear: number;
-	handleMonthChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-	handleYearChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-	handlePrevMonth: () => void;
-	handleNextMonth: () => void;
-	handleToday: () => void;
+	selectedDate: string;
 	onLoadingChange?: (value: boolean) => void;
 	onPeriodReportsChange?: (reports: GroupedReportFields[]) => void;
 }) => {
 	const [reports, setReports] = useState<GroupedReportFields[]>([]);
-	const [weekRange, setWeekRange] = useState<WeekRange>(() => getWeekRange());
+	const weekRange = useMemo(
+		() => getWeekRange(dayjs(selectedDate)),
+		[selectedDate],
+	);
 	const scopeUserId = userIds?.length ? "" : userId;
 	const scopeFilter = useMemo(() => {
 		// Keep the full period roster available while displaying one employee.
@@ -282,13 +262,7 @@ export const Calendar = ({
 			{view === "month" ? (
 				<CalendarMonth
 					getCurrentMonthName={getCurrentMonthName}
-					handleMonthChange={handleMonthChange}
-					handleYearChange={handleYearChange}
-					handlePrevMonth={handlePrevMonth}
-					handleNextMonth={handleNextMonth}
-					handleToday={handleToday}
 					monthDays={monthDays}
-					selectedMonth={selectedMonth}
 					selectedYear={selectedYear}
 					isLoading={loading}
 					selectedUserId={userId}
@@ -297,7 +271,7 @@ export const Calendar = ({
 				<WeekCalendar
 					userId={userId}
 					userIds={userIds}
-					onWeekRangeChange={setWeekRange}
+					selectedDate={selectedDate}
 				/>
 			)}
 		</>

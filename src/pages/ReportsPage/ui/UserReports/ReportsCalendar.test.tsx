@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -133,7 +139,7 @@ describe("calendar employee visibility", () => {
 			await screen.findByRole("button", { name: /Уволенный с отчётом/ }),
 		);
 		await waitFor(() => expect(setUser).toHaveBeenLastCalledWith("2"));
-		fireEvent.click(screen.getByRole("button", { name: "›" }));
+		fireEvent.click(screen.getByRole("button", { name: "Следующий месяц" }));
 		await waitFor(() =>
 			expect(
 				screen.queryByRole("button", { name: /Уволенный с отчётом/ }),
@@ -143,9 +149,62 @@ describe("calendar employee visibility", () => {
 		expect(
 			screen.getByRole("button", { name: /Действующий без отчётов/ }),
 		).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "‹" }));
+		fireEvent.click(screen.getByRole("button", { name: "Предыдущий месяц" }));
 		expect(
 			await screen.findByRole("button", { name: /Уволенный с отчётом/ }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("shared calendar period controls", () => {
+	it("keeps one toolbar and navigates weeks even with the calendar hidden", async () => {
+		mount();
+		await screen.findByRole("button", { name: /Уволенный с отчётом/ });
+		const toolbar = within(screen.getByRole("banner"));
+		expect(
+			toolbar.getByRole("button", { name: "Сегодня" }),
+		).toBeInTheDocument();
+		fireEvent.click(toolbar.getByRole("button", { name: "Неделя" }));
+		await waitFor(() =>
+			expect(toolbar.getByRole("button", { name: "Неделя" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+		expect(screen.getAllByRole("button", { name: "Неделя" })).toHaveLength(1);
+		expect(screen.getAllByRole("button", { name: "Сегодня" })).toHaveLength(1);
+		fireEvent.change(toolbar.getByRole("combobox", { name: "Год периода" }), {
+			target: { value: "2026" },
+		});
+		fireEvent.change(toolbar.getByRole("combobox", { name: "Месяц периода" }), {
+			target: { value: "0" },
+		});
+		fireEvent.click(toolbar.getByRole("button", { name: "5–11 янв." }));
+		const expectReportStart = async (date: Date) =>
+			waitFor(() => {
+				const calls = get.mock.calls.filter(
+					([, options]) =>
+						options.params.entityTypeId === EntityTypeIds.reports,
+				);
+				expect(calls.at(-1)?.[1]).toHaveProperty(
+					"params.filter.>=begindate",
+					date.toISOString(),
+				);
+			});
+		await expectReportStart(new Date(2026, 0, 5));
+		fireEvent.click(toolbar.getByRole("button", { name: "Скрыть календарь" }));
+		fireEvent.click(toolbar.getByRole("button", { name: "Следующая неделя" }));
+		await expectReportStart(new Date(2026, 0, 12));
+		expect(toolbar.getByRole("button", { name: "12–18 янв." })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+		fireEvent.click(toolbar.getByRole("button", { name: "Сегодня" }));
+		expect(
+			toolbar.getByRole("combobox", { name: "Месяц периода" }),
+		).toHaveValue(String(today.getMonth()));
+		expect(toolbar.getByRole("combobox", { name: "Год периода" })).toHaveValue(
+			String(today.getFullYear()),
+		);
 	});
 });

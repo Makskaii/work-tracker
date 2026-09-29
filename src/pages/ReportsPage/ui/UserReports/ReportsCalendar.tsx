@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Modal } from "../../../../components/modal";
@@ -36,6 +37,9 @@ const ReportsCalendar = () => {
 	const [selectedUserId, setSelectedUserId] = useState("");
 	const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 	const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+	const [selectedDate, setSelectedDate] = useState(() =>
+		dayjs().format("YYYY-MM-DD"),
+	);
 	const [groupedByActivity, setGroupByActivity] = useState<
 		GroupedReportFields[]
 	>([]);
@@ -82,40 +86,37 @@ const ReportsCalendar = () => {
 		});
 	};
 
+	const selectPeriod = (date: dayjs.Dayjs) => {
+		setSelectedDate(date.format("YYYY-MM-DD"));
+		setSelectedMonth(date.month());
+		setSelectedYear(date.year());
+	};
 	const handleMonthChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		setSelectedMonth(Number(event.target.value));
+		selectPeriod(
+			dayjs(selectedDate)
+				.startOf("month")
+				.year(selectedYear)
+				.month(Number(event.target.value)),
+		);
 	};
-
 	const handleYearChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		setSelectedYear(Number(event.target.value));
+		selectPeriod(
+			dayjs(selectedDate)
+				.startOf("month")
+				.month(selectedMonth)
+				.year(Number(event.target.value)),
+		);
 	};
-
-	const handlePrevMonth = () => {
-		if (selectedMonth === 0) {
-			setSelectedMonth(11);
-			setSelectedYear((year) => year - 1);
-			return;
+	const changePeriod = (direction: number) => {
+		if (view === "week") {
+			selectPeriod(dayjs(selectedDate).add(direction * 7, "day"));
+		} else {
+			selectPeriod(
+				dayjs(new Date(selectedYear, selectedMonth, 1)).add(direction, "month"),
+			);
 		}
-
-		setSelectedMonth((month) => month - 1);
 	};
-
-	const handleNextMonth = () => {
-		if (selectedMonth === 11) {
-			setSelectedMonth(0);
-			setSelectedYear((year) => year + 1);
-			return;
-		}
-
-		setSelectedMonth((month) => month + 1);
-	};
-
-	const handleToday = () => {
-		const today = new Date();
-
-		setSelectedMonth(today.getMonth());
-		setSelectedYear(today.getFullYear());
-	};
+	const handleToday = () => selectPeriod(dayjs());
 
 	const reportProjects = useMemo(
 		() => groupReportsByProject(groupedByActivity, context.projects),
@@ -229,6 +230,7 @@ const ReportsCalendar = () => {
 							<button
 								type="button"
 								className={view === "month" ? cls.activeTab : ""}
+								aria-pressed={view === "month"}
 								onClick={() => {
 									setView("month");
 								}}
@@ -238,6 +240,7 @@ const ReportsCalendar = () => {
 							<button
 								type="button"
 								className={view === "week" ? cls.activeTab : ""}
+								aria-pressed={view === "week"}
 								onClick={() => {
 									setView("week");
 								}}
@@ -245,18 +248,18 @@ const ReportsCalendar = () => {
 								Неделя
 							</button>
 						</div>
-						{!isCalendarVisible && (
-							<PeriodControls
-								selectedMonth={selectedMonth}
-								selectedYear={selectedYear}
-								showToday={isCalendarVisible}
-								onMonthChange={handleMonthChange}
-								onYearChange={handleYearChange}
-								onPrevMonth={handlePrevMonth}
-								onNextMonth={handleNextMonth}
-								onToday={handleToday}
-							/>
-						)}
+						<PeriodControls
+							selectedMonth={selectedMonth}
+							selectedYear={selectedYear}
+							selectedDate={selectedDate}
+							view={view}
+							onWeekChange={setSelectedDate}
+							onMonthChange={handleMonthChange}
+							onYearChange={handleYearChange}
+							onPrevPeriod={() => changePeriod(-1)}
+							onNextPeriod={() => changePeriod(1)}
+							onToday={handleToday}
+						/>
 					</div>
 				</header>
 
@@ -293,11 +296,7 @@ const ReportsCalendar = () => {
 								setGroupByActivity={setGroupByActivity}
 								selectedMonth={selectedMonth}
 								selectedYear={selectedYear}
-								handleMonthChange={handleMonthChange}
-								handleYearChange={handleYearChange}
-								handlePrevMonth={handlePrevMonth}
-								handleNextMonth={handleNextMonth}
-								handleToday={handleToday}
+								selectedDate={selectedDate}
 								onLoadingChange={setIsReportDataLoading}
 								onPeriodReportsChange={setPeriodReports}
 							/>
@@ -313,11 +312,7 @@ const ReportsCalendar = () => {
 							setGroupByActivity={setGroupByActivity}
 							selectedMonth={selectedMonth}
 							selectedYear={selectedYear}
-							handleMonthChange={handleMonthChange}
-							handleYearChange={handleYearChange}
-							handlePrevMonth={handlePrevMonth}
-							handleNextMonth={handleNextMonth}
-							handleToday={handleToday}
+							selectedDate={selectedDate}
 							onLoadingChange={setIsReportDataLoading}
 							onPeriodReportsChange={setPeriodReports}
 						/>

@@ -22,7 +22,7 @@ import {
 import { Modal } from "../modal";
 import { ReportRowActions } from "../Table/universalTable/RowActionBtns";
 import cls from "./Calendar.module.scss";
-import { months, ProjectCodes, years } from "./constants/const";
+import { ProjectCodes } from "./constants/const";
 import {
 	CALENDAR_DAY_STATE_TITLES,
 	getCalendarDayState,
@@ -161,26 +161,14 @@ export const headers: Header<GroupedReportFields>[] = [
 
 const CalendarMonth = ({
 	monthDays,
-	handlePrevMonth,
-	selectedMonth,
-	handleMonthChange,
 	selectedYear,
-	handleYearChange,
-	handleNextMonth,
 	getCurrentMonthName,
-	handleToday,
 	isLoading,
 	selectedUserId,
 }: {
 	monthDays: MonthDays[];
-	handlePrevMonth: () => void;
-	selectedMonth: number;
 	selectedYear: number;
-	handleMonthChange: (e: any) => void;
-	handleYearChange: (e: any) => void;
-	handleNextMonth: () => void;
 	getCurrentMonthName: () => string;
-	handleToday: () => void;
 	isLoading?: boolean;
 	selectedUserId?: string;
 }) => {
@@ -259,47 +247,6 @@ const CalendarMonth = ({
 
 	return (
 		<div className={cls.calendar}>
-			<div className={cls["calendar-controls"]}>
-				<button onClick={handlePrevMonth} className={cls["nav-button"]}>
-					‹
-				</button>
-
-				<div className={cls["month-year-selector"]}>
-					<select
-						name="month"
-						value={selectedMonth}
-						onChange={handleMonthChange}
-						className={cls["month-select"]}
-					>
-						{months.map((month, index) => (
-							<option key={month} value={index}>
-								{month}
-							</option>
-						))}
-					</select>
-
-					<select
-						value={selectedYear}
-						onChange={handleYearChange}
-						className={cls["year-select"]}
-					>
-						{years.map((year) => (
-							<option key={year} value={year}>
-								{year}
-							</option>
-						))}
-					</select>
-				</div>
-
-				<button onClick={handleNextMonth} className={cls["nav-button"]}>
-					›
-				</button>
-
-				<button onClick={handleToday} className={cls["today-button"]}>
-					Сегодня
-				</button>
-			</div>
-
 			<h2 className={cls["calendar-title"]}>
 				{getCurrentMonthName()} {selectedYear}
 			</h2>

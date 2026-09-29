@@ -1,4 +1,4 @@
-import dayjs, { type Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { parseTimeSpent } from "@/pages/ReportsPage/ui/UserReports/model/utils";
@@ -9,11 +9,12 @@ import { useLoadAllData } from "@/shared/hooks/useLoadAllTasks";
 import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportsContext } from "@/shared/types/types";
 import { Modal } from "../modal";
-import { months, ReportCodes, ReportStageIds } from "./constants/const";
+import { ReportCodes, ReportStageIds } from "./constants/const";
 import {
 	CALENDAR_DAY_STATE_TITLES,
 	getCalendarDayState,
 } from "./helpers/calendarDayState";
+import { formatWeekTitle, getWeekRange } from "./helpers/calendarPeriod";
 import { buildWeekCalendarFromReports } from "./helpers/generateWeek";
 import {
 	getInternalProjectIds,
@@ -25,56 +26,6 @@ import {
 } from "./helpers/reportCategory";
 import type { ReportProps } from "./types/types";
 import cls from "./WeekCalendar.module.scss";
-
-type WeekRange = {
-	startOfTheWeek: string;
-	endOfTheWeek: string;
-};
-
-const getWeekRange = (date: Dayjs): WeekRange => {
-	const day = date.day();
-	const diffToMonday = day === 0 ? 6 : day - 1;
-	const start = date.startOf("day").subtract(diffToMonday, "day");
-
-	return {
-		startOfTheWeek: start.format("YYYY-MM-DD"),
-		endOfTheWeek: start.add(6, "day").endOf("day").format("YYYY-MM-DD"),
-	};
-};
-
-const getMonthWeekRanges = (date: Dayjs) => {
-	const monthStart = date.startOf("month");
-	const firstMonday =
-		monthStart.day() === 1
-			? monthStart
-			: monthStart.add(
-					monthStart.day() === 0 ? 1 : 8 - monthStart.day(),
-					"day",
-				);
-	const ranges: WeekRange[] = [];
-	let current = firstMonday;
-
-	while (current.month() === monthStart.month()) {
-		ranges.push(getWeekRange(current));
-		current = current.add(7, "day");
-	}
-
-	return ranges;
-};
-
-const formatWeekChip = (range: WeekRange) => {
-	const start = dayjs(range.startOfTheWeek);
-	const end = dayjs(range.endOfTheWeek);
-
-	return `${start.format("D")}–${end.format("D")} ${months[end.month()].toLowerCase()}`;
-};
-
-const formatWeekTitle = (range: WeekRange) => {
-	const start = dayjs(range.startOfTheWeek);
-	const end = dayjs(range.endOfTheWeek);
-
-	return `${start.format("D")}–${end.format("D")} ${months[end.month()]} ${end.year()}`;
-};
 
 const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
 
@@ -107,17 +58,16 @@ const mapReportToGroupedFields = (
 const WeekCalendar = ({
 	userId,
 	userIds,
-	onWeekRangeChange,
+	selectedDate,
 }: {
 	userId?: string;
 	userIds?: string[];
-	onWeekRangeChange?: (range: WeekRange) => void;
+	selectedDate: string;
 }) => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReports, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const [activeDayTitle, setActiveDayTitle] = useState("");
 	const [activeCategory, setActiveCategory] = useState<ReportCategory>();
-	const [selectedDay, setSelectedDay] = useState(() => dayjs());
 	const { activities, users, projects, clientsList } =
 		useOutletContext<ReportsContext>();
 	const { openTask } = useBitrixSlider();
@@ -126,17 +76,16 @@ const WeekCalendar = ({
 		[projects, clientsList],
 	);
 
-	const selectedRange = useMemo(() => getWeekRange(selectedDay), [selectedDay]);
+	const selectedRange = useMemo(
+		() => getWeekRange(dayjs(selectedDate)),
+		[selectedDate],
+	);
 	const selectedFilterRange = useMemo(
 		() => ({
 			start: dayjs(selectedRange.startOfTheWeek).startOf("day").toISOString(),
 			end: dayjs(selectedRange.endOfTheWeek).endOf("day").toISOString(),
 		}),
 		[selectedRange],
-	);
-	const monthWeekRanges = useMemo(
-		() => getMonthWeekRanges(selectedDay),
-		[selectedDay],
 	);
 	const scopeFilter = useMemo(() => {
 		if (userId) {
@@ -185,7 +134,6 @@ const WeekCalendar = ({
 	});
 
 	useEffect(() => {
-		onWeekRangeChange?.(selectedRange);
 		setFilters({
 			params: {
 				entityTypeId: EntityTypeIds.reports,
@@ -216,13 +164,7 @@ const WeekCalendar = ({
 				},
 			},
 		});
-	}, [
-		onWeekRangeChange,
-		scopeFilter,
-		selectedFilterRange,
-		selectedRange,
-		setFilters,
-	]);
+	}, [scopeFilter, selectedFilterRange, setFilters]);
 
 	const weekCalendar = useMemo(() => {
 		return buildWeekCalendarFromReports(
@@ -234,57 +176,6 @@ const WeekCalendar = ({
 
 	return (
 		<div className={cls.container}>
-			<div className={cls.toolbar}>
-				<div className={cls.weekTools}>
-					<div className={cls.viewTabs}>
-						<span>Месяц</span>
-						<strong>Неделя</strong>
-					</div>
-					<div className={cls.weekChips}>
-						<span>Неделя:</span>
-						{monthWeekRanges.map((range) => {
-							const isActive =
-								range.startOfTheWeek === selectedRange.startOfTheWeek;
-
-							return (
-								<button
-									type="button"
-									key={range.startOfTheWeek}
-									className={isActive ? cls.weekChipActive : ""}
-									onClick={() => setSelectedDay(dayjs(range.startOfTheWeek))}
-								>
-									{formatWeekChip(range)}
-								</button>
-							);
-						})}
-					</div>
-				</div>
-
-				<div className={cls.periodControls}>
-					<button
-						type="button"
-						className={cls.iconButton}
-						onClick={() => setSelectedDay((prev) => prev.subtract(7, "day"))}
-					>
-						‹
-					</button>
-					<button
-						type="button"
-						className={cls.iconButton}
-						onClick={() => setSelectedDay((prev) => prev.add(7, "day"))}
-					>
-						›
-					</button>
-					<button
-						type="button"
-						className={cls.todayButton}
-						onClick={() => setSelectedDay(dayjs())}
-					>
-						Сегодня
-					</button>
-				</div>
-			</div>
-
 			<h2 className={cls.weekTitle}>{formatWeekTitle(selectedRange)}</h2>
 
 			<div className={cls.categoryLegend} aria-label="Категории отчётов">

@@ -75,75 +75,6 @@
 }
 
 
-.calendar-controls {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    margin-bottom: 16px;
-    gap: 8px;
-    min-width: 0;
-    flex-wrap: wrap;
-}
-
-.month-year-selector {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
-.month-select,
-.year-select {
-    padding: 8px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    background: var(--color-surface-soft);
-    color: var(--color-text);
-    font-size: 14px;
-    cursor: pointer;
-
-    &:hover,
-    &:focus {
-        border-color: var(--color-accent);
-        outline: none;
-    }
-
-    option {
-        background: var(--color-surface-soft);
-        color: var(--color-text);
-    }
-}
-
-.nav-button {
-    background: var(--color-accent);
-    color: #06111c;
-    border: 1px solid var(--color-accent);
-    min-width: 46px;
-    min-height: 42px;
-    padding: 8px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background 0.3s;
-
-    &:hover {
-        background: var(--color-accent-blue);
-    }
-}
-
-.today-button {
-    background: var(--color-surface-soft);
-    color: var(--color-accent-blue);
-    border: 1px solid var(--color-border-active);
-    padding: 8px 16px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.3s;
-
-    &:hover {
-        background: var(--color-surface-hover);
-    }
-}
-
 .calendar-title {
     text-align: center;
     color: var(--color-text);
@@ -585,25 +516,6 @@
 
 // Адаптивность
 @media (max-width: 768px) {
-    .calendar-controls {
-        flex-direction: column;
-    }
-
-    .month-year-selector {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .month-select,
-    .year-select {
-        width: 100%;
-    }
-
-    .nav-button,
-    .today-button {
-        width: 100%;
-    }
-
     .calendar-day {
         min-height: 96px;
         padding: 5px;
