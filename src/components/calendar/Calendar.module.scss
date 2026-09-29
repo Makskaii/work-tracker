@@ -181,19 +181,19 @@
 .calendar-day {
     box-sizing: border-box;
     min-width: 0;
-    border: 1px solid color-mix(in srgb, var(--day-color) 55%, transparent);
+    border: 1px solid color-mix(in srgb, var(--day-color) 58%, transparent);
     border-radius: 12px;
     padding: 12px 10px;
     min-height: 108px;
-    background: var(--day-surface);
+    background: linear-gradient(135deg, var(--day-surface), var(--color-surface-soft));
     display: flex;
     flex-direction: column;
     position: relative;
     transition: filter 0.18s ease, transform 0.18s ease;
 
     &[data-state="reported"] {
-        --day-color: #72b7ff;
-        --day-surface: rgba(114, 183, 255, 0.14);
+        --day-color: var(--color-accent-blue);
+        --day-surface: rgba(130, 227, 250, 0.16);
     }
 
     &[data-state="absence"] {
@@ -208,8 +208,8 @@
     }
 
     &[data-state="missing"] {
-        --day-color: #ef7d86;
-        --day-surface: rgba(239, 125, 134, 0.13);
+        --day-color: var(--color-danger);
+        --day-surface: rgba(229, 93, 102, 0.16);
     }
 
     &[data-weekend="true"] {
