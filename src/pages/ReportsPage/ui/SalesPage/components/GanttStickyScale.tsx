@@ -4,7 +4,7 @@ import styles from "./ProjectPlanning.module.scss";
 import ganttStyles from "../SalesProfitabilityReport.module.scss";
 
 type Box = { top: number; bottom: number; left: number; right: number; width: number; height: number };
-export type StickyScaleLayout = { top: number; left: number; width: number; height: number; datesLeft: number; datesWidth: number; labelLeft: number; labelWidth: number; clippedTop: number };
+export type StickyScaleLayout = { top: number; left: number; width: number; height: number; datesLeft: number; datesWidth: number; labelLeft: number; labelWidth: number; clippedTop: number; clippedBottom: number };
 export function measureStickyScale(board: Box, viewport: Box, scale: Box, clip: { top: number; bottom: number; left: number; right: number }, labelWidth: number): StickyScaleLayout | null {
   const left = Math.max(viewport.left, clip.left);
   const right = Math.min(viewport.right, clip.right);
@@ -15,6 +15,7 @@ export function measureStickyScale(board: Box, viewport: Box, scale: Box, clip: 
     datesLeft: scale.left - left, datesWidth: scale.width,
     labelLeft: viewport.left - left, labelWidth,
     clippedTop: Math.max(0, clip.top - top),
+    clippedBottom: Math.max(0, top + scale.height - clip.bottom),
   };
 }
 
@@ -65,6 +66,12 @@ export function GanttStickyScale({ boardRef, viewportRef, scaleRef, enabled, lab
     const schedule = () => { if (frame === null && !disposed) frame = requestAnimationFrame(update); };
     const observer = new ResizeObserver(schedule);
     observer.observe(board); observer.observe(viewport); observer.observe(scale);
+    // A surrounding scroll area can resize without changing the Gantt itself.
+    // Its visible bounds still determine where the fixed copy may be painted.
+    for (let parent = viewport.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+      const css = getComputedStyle(parent);
+      if (/auto|scroll|hidden|clip/.test(`${css.overflowX} ${css.overflowY}`)) observer.observe(parent);
+    }
     window.addEventListener("scroll", schedule, true);
     window.addEventListener("resize", schedule);
     window.visualViewport?.addEventListener("resize", schedule);
@@ -80,7 +87,7 @@ export function GanttStickyScale({ boardRef, viewportRef, scaleRef, enabled, lab
   }, [boardRef, viewportRef, scaleRef, enabled, labelWidth, children]);
   if (!layout || !enabled) return null;
   return createPortal(<div className={styles.stickyOverlay} aria-hidden="true" data-testid="gantt-sticky-scale"
-    style={{ top: layout.top, left: layout.left, width: layout.width, height: layout.height, clipPath: `inset(${layout.clippedTop}px 0 0 0)` }}>
+    style={{ top: layout.top, left: layout.left, width: layout.width, height: layout.height, clipPath: `inset(${layout.clippedTop}px 0 ${layout.clippedBottom}px 0)` }}>
     <div className={`${ganttStyles.ganttScale} ${styles.stickyDates}`} data-testid="gantt-sticky-dates"
       style={{ position: "absolute", left: layout.datesLeft, width: layout.datesWidth, height: layout.height }}>{children}</div>
     <div className={styles.stickyLabel} style={{ left: layout.labelLeft, width: layout.labelWidth }}>Этапы проекта</div>

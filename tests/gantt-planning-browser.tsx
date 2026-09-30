@@ -1,7 +1,10 @@
+import "../src/index.css";
+import { installPlanningFixture } from "./gantt-planning-fixture";
 import { createRoot } from "react-dom/client";
 import { ProjectPlanningWorkspace } from "../src/pages/ReportsPage/ui/SalesPage/components/ProjectPlanningWorkspace";
 import type { ReportProject } from "../src/pages/ReportsPage/ui/SalesPage/model/types";
 const project = { id: 31, title: "Browser fixture", projectType: "waterfall", projectAmount: 10000 } as ReportProject;
+if (new URLSearchParams(window.location.search).has("mock")) installPlanningFixture();
 const nested = new URLSearchParams(window.location.search).has("nested");
 const root = document.getElementById("root");
 if (!root) throw new Error("Fixture root missing");

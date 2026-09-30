@@ -115,6 +115,51 @@ describe("Gantt planning workspace", () => {
     expect(document.querySelector('[data-planning-stage-id="2"]')).toBeNull();
     expect(overall()).toHaveAttribute("aria-valuenow", "25");
   });
+  it("preserves an unclassified parent when only its estimate changes", async () => {
+    stages[1].stageType = null;
+    render(<ProjectPlanningWorkspace project={project} />);
+    await waitFor(() => expect(overall()).toHaveAttribute("aria-valuenow", "25"));
+    fireEvent.click(row(1).getByRole("button", { name: "..." }));
+    fireEvent.click(row(1).getByRole("button", { name: "Редактировать" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Тип этапа")).toHaveValue("");
+    fireEvent.change(dialog.getByLabelText("Плановый объём, ч"), { target: { value: "100" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(overall()).toHaveAttribute("aria-valuenow", "20"));
+    expect(stages.find((item) => item.id === 1)?.stageType).toBeNull();
+    expect(api.updateProjectGanttEvent).not.toHaveBeenCalled();
+  });
+  it("opens the parent when selecting a categorized substage from the summary", async () => {
+    stages[1].stageType = null;
+    stages[1].plannedHours = null;
+    stages[2].stageType = "tz_writing";
+    render(<ProjectPlanningWorkspace project={project} />);
+    await waitFor(() => expect(overall()).toHaveAttribute("aria-valuenow", "25"));
+    expect(screen.getByRole("progressbar", { name: "Готовность: ТЗ" })).toHaveAttribute("aria-valuenow", "100");
+    fireEvent.click(row(1).getByTitle("Свернуть этапы"));
+    expect(document.querySelector('[data-planning-stage-id="2"]')).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Настройка CRM" }));
+    await waitFor(() => expect(document.querySelector('[data-planning-stage-id="2"]')).toBeInTheDocument());
+  });
+  it("keeps existing one-time events unchanged when saving an unclassified substage", async () => {
+    stages[2].stageType = null;
+    events[0].eventKind = "one_time";
+    events[0].planEndDate = null;
+    render(<ProjectPlanningWorkspace project={project} />);
+    await waitFor(() => expect(overall()).toHaveAttribute("aria-valuenow", "25"));
+    fireEvent.click(row(2).getByRole("button", { name: "..." }));
+    fireEvent.click(row(2).getByRole("button", { name: "Редактировать" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Тип этапа")).toHaveValue("");
+    expect(dialog.queryByLabelText("Плановая дата завершения")).not.toBeInTheDocument();
+    fireEvent.change(dialog.getByLabelText("Плановый объём, ч"), { target: { value: "25" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(api.updateProjectGanttStage).toHaveBeenCalledWith(2, {
+      title: "Настройка CRM", plannedHours: 25, groupStatus: "completed",
+    }));
+    expect(api.updateProjectGanttEvent).not.toHaveBeenCalled();
+    expect(stages.find((item) => item.id === 2)?.stageType).toBeNull();
+  });
   it("shows an unavailable summary rather than zero when the source fails", async () => {
     api.fetchProjectGanttStages.mockRejectedValue(new Error("Unavailable"));
     render(<ProjectPlanningWorkspace project={project} />);

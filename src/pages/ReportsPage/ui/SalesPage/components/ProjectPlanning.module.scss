@@ -7,12 +7,22 @@
 .stageLinks span, .stageLinks small, .sourceNote { color: var(--color-text-secondary, #98a3a9); font-size: 12px; line-height: 1.5; }
 .warning { color: #e4b76e !important; font-size: 12px; line-height: 1.5; }
 .sourceNote { margin-top: 16px; }
-.stageRow > div:first-of-type { flex-wrap: wrap; row-gap: 7px; }
+.stageContent { display: grid; gap: 6px; width: 100%; min-width: 0; flex: 0 0 auto; }
+.paymentContent { display: flex; align-items: center; gap: 8px; }
+.stageRow .stageHeader { grid-template-columns: 18px minmax(0, 1fr) 20px; gap: 6px; align-items: start; }
+.stageHeader > strong { grid-column: 2; grid-row: 1; }
+.stageHeader > button, .stageHeader > span { grid-column: 1; grid-row: 1; }
+.stageHeader > .stageStatus { grid-column: 2; grid-row: 2; justify-content: flex-start; min-width: 0; }
+.stageHeader > .stageActions { grid-column: 3; grid-row: 1; }
+.stageRow .rowMeta { margin-top: 0; padding-left: 24px; }
+.stageRow .rowMeta strong { font-size: 11px; font-weight: 600; line-height: 1.4; }
+.stageRow .rowMeta small { margin-top: 0; font-size: 10px; line-height: 1.4; }
 .rowMeta { display: grid; gap: 3px; font-size: 11px; line-height: 1.35; color: var(--color-text-secondary, #98a3a9); margin-top: 7px; padding-right: 6px; }
 .rowMeta strong { color: var(--color-text, #e2e6e8); font-weight: 500; }
 .rowMeta small { font-size: 10px; line-height: 1.35; }
 .selected { box-shadow: inset 3px 0 0 var(--color-primary, #58d2eb); }
 .stickyOverlay { position: fixed; z-index: 35; overflow: hidden; pointer-events: none; background: var(--color-background, #111416); border-bottom: 1px solid var(--color-border, #293136); box-shadow: 0 5px 12px rgb(0 0 0 / 18%); }
 .stickyLabel { position: absolute; z-index: 2; display: flex; align-items: center; padding: 0 12px; box-sizing: border-box; top: 0; bottom: 0; color: var(--color-text-secondary, #98a3a9); background: var(--color-background, #111416); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
-.stickyDates { position: absolute; top: 0; bottom: 0; background: var(--color-background, #111416); }
+.stickyOverlay .stickyDates { position: absolute; top: 0; bottom: 0; z-index: 1; min-width: 0; background: var(--color-background, #111416); }
+.stickyDates > div, .stickyDates > div > div { min-width: 0; }
 .planningFieldHint { color: var(--color-text-secondary, #98a3a9); font-size: 12px; line-height: 1.4; }

@@ -59,7 +59,7 @@ export function getGanttStagePlanning(stage: ProjectGanttStage, stages: ProjectG
   const completedChildHours = completedChildren.reduce((sum, item) => sum + (cents(item.plannedHours) ?? 0), 0);
   const credit = complete ? (budget ?? 0) : Math.min(budget ?? 0, completedChildHours);
   return {
-    stage, category: stageCategory(parent ?? stage), plannedHours: hours(budget),
+    stage, category: stageCategory(parent && (parent.stageType !== null || cents(parent.plannedHours) !== null) ? parent : stage), plannedHours: hours(budget),
     completedHours: credit / 100,
     progress: complete ? 100 : budget && budget > 0 ? credit / budget * 100 : 0,
     derivedFromChildren: ownHours === null && estimatedChildren.length > 0,
@@ -101,9 +101,23 @@ export function buildGanttPlanning(stages: ProjectGanttStage[]) {
     const parent = stage.parentStageId === null ? undefined : groups.get(stage.parentStageId);
     return !parent || parent.projectId !== stage.projectId;
   }).map((stage) => getGanttStagePlanning(stage, unique));
+  // Legacy grouping containers have no category or own budget. Keep their
+  // children's categories instead of moving the entire project into Other.
+  const categoryRoots = roots.flatMap((root) => {
+    if (!root.stage.isGroup || root.stage.stageType !== null || cents(root.stage.plannedHours) !== null || !root.childCount) {
+      return [root];
+    }
+    return unique.filter((stage) => stage.parentStageId === root.stage.id && stage.projectId === root.stage.projectId)
+      .map((stage) => {
+        const child = getGanttStagePlanning(stage, unique);
+        return root.stage.groupStatus === "completed"
+          ? { ...child, completedHours: child.plannedHours ?? 0, progress: 100 }
+          : child;
+      });
+  });
   return {
     overall: total(roots),
-    categories: GANTT_CATEGORY_ORDER.map((category) => ({ category, ...total(roots.filter((item) => item.category === category)) })),
+    categories: GANTT_CATEGORY_ORDER.map((category) => ({ category, ...total(categoryRoots.filter((item) => item.category === category)) })),
   };
 }
 
