@@ -143,12 +143,20 @@ describe("support project type recovery", () => {
 		await waitFor(() => expect(screen.getByTestId("recovery-workspace")).toHaveTextContent("2"));
 	});
 
-	it("does not report successful loading when global report reconciliation fails", async () => {
+	it("retains the loaded project but does not report a successful global reconciliation when it fails", async () => {
 		api.syncSupportHoursReports.mockRejectedValue(new Error("Bitrix unavailable"));
 		render(<ClientHoursPackagesPage />);
-		expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось обновить отчёты");
-		expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
-		expect(api.fetchSupportHoursPackages).not.toHaveBeenCalled();
+		expect(await screen.findByRole("alert")).toHaveTextContent("Сверка не завершена. Показаны данные последней успешной загрузки.");
+		expect(screen.getByRole("navigation", { name: "Recovery projects" })).toBeVisible();
+		expect(screen.getByTestId("recovery-selection")).toHaveTextContent("1");
+		expect(screen.getByTestId("recovery-workspace")).toHaveTextContent("1");
+		expect(screen.queryByText(/Последняя сверка:/)).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Обновить данные" })).toBeEnabled();
+		expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(1);
+		expect(notify).toHaveBeenCalledExactlyOnceWith({
+			message: "Не удалось сверить отчёты с Битрикс24. Остатки часов не обновлены.",
+			type: "error",
+		});
 	});
 
 	it("accepts a returning support project without creating or deleting packages", async () => {

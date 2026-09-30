@@ -243,6 +243,93 @@ describe("two-list allocation workspace", () => {
 		expect(right().queryByText("Задача 500")).not.toBeInTheDocument();
 		expect(right().getByText("12 ч")).toBeInTheDocument();
 	});
+	it("keeps both scrolled lists, expanded tasks, search, source selection and report drawer mounted during background refresh", () => {
+		const view = render(
+			<SupportProjectDetails {...props} selectedPurchaseId={1} />,
+		);
+		const source = right().getByRole("combobox", { name: "Источник работ" });
+		fireEvent.change(source, { target: { value: "2" } });
+		fireEvent.change(screen.getByRole("searchbox"), {
+			target: { value: "Задача" },
+		});
+		const leftTask = left().getByRole("button", {
+			name: "Отчёты по задаче: Задача 100",
+		});
+		const rightTask = right().getByRole("button", {
+			name: "Отчёты по задаче: Задача 400",
+		});
+		fireEvent.click(leftTask);
+		fireEvent.click(rightTask);
+		const leftList = leftTask.parentElement!.parentElement!.parentElement!;
+		const rightList = rightTask.parentElement!.parentElement!.parentElement!;
+		leftList.scrollTop = 120;
+		rightList.scrollTop = 240;
+		const openReport = right().getByRole("button", {
+			name: "Посмотреть отчёт: Выполненная работа 5",
+		});
+		fireEvent.click(openReport);
+		const dialog = screen.getByRole("dialog");
+
+		view.rerender(
+			<SupportProjectDetails
+				{...props}
+				selectedPurchaseId={1}
+				workspaceLoading
+			/>,
+		);
+		expect(leftTask).toBeInTheDocument();
+		expect(rightTask).toBeInTheDocument();
+		expect(openReport).toBeInTheDocument();
+		expect(leftTask).toHaveAttribute("aria-expanded", "true");
+		expect(rightTask).toHaveAttribute("aria-expanded", "true");
+		expect(leftList.scrollTop).toBe(120);
+		expect(rightList.scrollTop).toBe(240);
+		expect(source).toHaveValue("2");
+		expect(screen.getByRole("searchbox")).toHaveValue("Задача");
+		expect(screen.getByRole("dialog")).toBe(dialog);
+		expect(left().getByRole("status")).toHaveTextContent("Обновляем данные…");
+		expect(
+			screen.queryByText("Загружаем работы проекта…"),
+		).not.toBeInTheDocument();
+		for (const button of screen.getAllByRole("button", {
+			name: /Перенести (задачу|отчёт):/,
+		}))
+			expect(button).toBeDisabled();
+		expect(openReport.parentElement).toHaveAttribute("draggable", "false");
+
+		view.rerender(
+			<SupportProjectDetails
+				{...props}
+				selectedPurchaseId={1}
+				workspace={{
+					...workspace,
+					tasks: workspace.tasks.map((task) =>
+						task.id === "400"
+							? { ...task, title: "Задача 400 обновлена" }
+							: task,
+					),
+				}}
+			/>,
+		);
+		expect(
+			right().getByRole("button", {
+				name: "Отчёты по задаче: Задача 400 обновлена",
+			}),
+		).toBe(rightTask);
+		expect(leftTask).toBeInTheDocument();
+		expect(openReport).toBeInTheDocument();
+		expect(leftList.scrollTop).toBe(120);
+		expect(rightList.scrollTop).toBe(240);
+		expect(rightTask).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("dialog")).toBe(dialog);
+		expect(source).toHaveValue("2");
+		expect(screen.getByRole("searchbox")).toHaveValue("Задача");
+		expect(
+			right().getByRole("button", {
+				name: "Перенести отчёт: Выполненная работа 5 в выбранный пакет",
+			}),
+		).toBeEnabled();
+	});
 	it("previews a report move and requires explicit confirmation with the returned fingerprint", async () => {
 		const onPreviewTransfer = vi.fn().mockResolvedValue(preview);
 		const onTransfer = vi.fn().mockResolvedValue(undefined);
@@ -414,8 +501,18 @@ describe("two-list allocation workspace", () => {
 		expect(screen.getByRole("dialog")).toBeInTheDocument();
 		expect(screen.getByRole("alert")).toHaveTextContent("Данные изменились");
 	});
-	it("shows API errors instead of empty work and prevents transfers until refreshed", () => {
-		render(
+	it("keeps the last workspace readable after a refresh error and prevents transfers until refreshed", () => {
+		const view = render(
+			<SupportProjectDetails {...props} selectedPurchaseId={1} />,
+		);
+		const task = right().getByRole("button", {
+			name: "Отчёты по задаче: Задача 300",
+		});
+		fireEvent.click(task);
+		const report = right().getByRole("button", {
+			name: "Посмотреть отчёт: Выполненная работа 3",
+		});
+		view.rerender(
 			<SupportProjectDetails
 				{...props}
 				selectedPurchaseId={1}
@@ -423,16 +520,56 @@ describe("two-list allocation workspace", () => {
 			/>,
 		);
 		expect(screen.getByRole("alert")).toHaveTextContent("Битрикс24 недоступен");
+		expect(screen.getByRole("alert")).toHaveTextContent(
+			"Показаны последние загруженные данные",
+		);
+		expect(task).toBeInTheDocument();
+		expect(report).toBeInTheDocument();
+		expect(task).toHaveAttribute("aria-expanded", "true");
+		expect(
+			screen.queryByText("Список временно недоступен."),
+		).not.toBeInTheDocument();
+		for (const button of screen.getAllByRole("button", {
+			name: /Перенести (задачу|отчёт):/,
+		}))
+			expect(button).toBeDisabled();
+		fireEvent.click(report);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Повторить загрузку списка" }),
+		);
+		expect(props.onRetryWorkspace).toHaveBeenCalledOnce();
+	});
+	it("shows initial loading and errors without displaying a workspace from another project", () => {
+		const view = render(
+			<SupportProjectDetails
+				{...props}
+				workspace={{ ...workspace, projectId: 32 }}
+				workspaceLoading
+			/>,
+		);
+		expect(left().getByRole("status")).toHaveTextContent(
+			"Загружаем работы проекта…",
+		);
+		expect(right().getByRole("status")).toHaveTextContent(
+			"Загружаем работы проекта…",
+		);
+		expect(
+			screen.queryByRole("button", { name: /Отчёты по задаче:/ }),
+		).not.toBeInTheDocument();
+		view.rerender(
+			<SupportProjectDetails
+				{...props}
+				workspace={null}
+				workspaceError="Битрикс24 недоступен"
+			/>,
+		);
 		expect(
 			right().getByText("Список временно недоступен."),
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole("button", { name: /Перенести отчёт/ }),
 		).not.toBeInTheDocument();
-		fireEvent.click(
-			screen.getByRole("button", { name: "Повторить загрузку списка" }),
-		);
-		expect(props.onRetryWorkspace).toHaveBeenCalledOnce();
 	});
 	it("keeps package balances selectable and editable", () => {
 		render(<SupportProjectDetails {...props} />);
@@ -488,15 +625,13 @@ describe("zero-hour reports remain visible without creating charge transfers", (
 		).toBeInTheDocument();
 	});
 	it("keeps a task with only zero-hour reports visible and transfers its binding without zero-hour items", async () => {
-		const onPreviewTransfer = vi
-			.fn()
-			.mockResolvedValue({
-				...preview,
-				movedHours: 0,
-				unallocatedHours: 0,
-				items: [],
-				packages: [],
-			});
+		const onPreviewTransfer = vi.fn().mockResolvedValue({
+			...preview,
+			movedHours: 0,
+			unallocatedHours: 0,
+			items: [],
+			packages: [],
+		});
 		const view = render(
 			<SupportProjectDetails
 				{...props}

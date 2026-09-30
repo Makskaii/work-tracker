@@ -147,9 +147,11 @@ export const MainLayout = () => {
 				// A failed lookup must not discard the initialized portal session.
 				setB24(frame);
 
-				const data = new Set((await getDepartmentsHeads()).filter(Boolean));
-
-				const currUser = await getCurrentUserDepartmentInfo(frame);
+				const [departmentHeads, currUser] = await Promise.all([
+					getDepartmentsHeads(),
+					getCurrentUserDepartmentInfo(frame),
+				]);
+				const data = new Set(departmentHeads.filter(Boolean));
 
 				if (!isMounted) {
 					return;

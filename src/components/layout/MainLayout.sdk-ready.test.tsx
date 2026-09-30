@@ -66,6 +66,36 @@ describe("Bitrix SDK readiness and ownership", () => {
 		expect(mocks.navigate).not.toHaveBeenCalled();
 	});
 
+	it.each(["departments", "user"])("starts role lookups together after SDK readiness and waits for both (%s resolves first)", async (first) => {
+		let resolveFrame!: (value: B24Frame) => void;
+		let resolveDepartments!: (value: string[]) => void;
+		let resolveUser!: (value: { getData: () => { result: { ID: string; UF_DEPARTMENT: number[] } } }) => void;
+		mocks.initialize.mockReturnValue(new Promise<B24Frame>((resolve) => { resolveFrame = resolve; }));
+		mocks.departments.mockReturnValue(new Promise<string[]>((resolve) => { resolveDepartments = resolve; }));
+		mocks.call.mockReturnValue(new Promise((resolve) => { resolveUser = resolve; }));
+		await renderLayout();
+		expect(mocks.departments).not.toHaveBeenCalled();
+		expect(mocks.call).not.toHaveBeenCalled();
+
+		await act(async () => resolveFrame(frame()));
+		expect(mocks.departments).toHaveBeenCalledTimes(1);
+		expect(mocks.call).toHaveBeenCalledExactlyOnceWith({ method: "user.current" });
+		expect(mocks.ability).not.toHaveBeenCalled();
+		const finishDepartments = () => resolveDepartments(["30"]);
+		const finishUser = () => resolveUser({ getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [] } }) });
+		await act(async () => (first === "departments" ? finishDepartments() : finishUser()));
+		expect(screen.getByText("Инициализация")).toBeVisible();
+		expect(mocks.ability).not.toHaveBeenCalled();
+
+		await act(async () => (first === "departments" ? finishUser() : finishDepartments()));
+		expect(await screen.findByTestId("sdk-status")).toHaveTextContent("connected:ready");
+		expect(mocks.ability).toHaveBeenLastCalledWith([
+			{ action: "read", subject: "post" },
+			{ action: "create-client", subject: "client" },
+		]);
+		expect(mocks.navigate).not.toHaveBeenCalled();
+	});
+
 	it("keeps SDK readiness independent of failed department metadata", async () => {
 		mocks.initialize.mockResolvedValue(frame());
 		mocks.departments.mockRejectedValueOnce(new Error("department service unavailable"));

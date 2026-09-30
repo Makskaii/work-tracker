@@ -415,8 +415,10 @@ export const SupportProjectWorklists = ({
 		const isLeft = side === "left";
 		const reports = isLeft ? leftReports : rightReports;
 		const packageId = isLeft ? selectedPurchaseId : sourcePurchaseId;
+		// Keep the current snapshot mounted during refresh so scroll and expanded
+		// rows survive. Transfers still require fresh data through isFresh.
 		const canDisplay =
-			isFresh ||
+			!!currentWorkspace ||
 			(isLeft && !currentWorkspace && !workspaceLoading && !workspaceError);
 		return (
 			<section
@@ -471,8 +473,14 @@ export const SupportProjectWorklists = ({
 						</select>
 					</label>
 					{canDisplay && (
-						<div className={styles.transferColumnCount}>
-							{reports.length} отчётов · <b>{hours(reportSum(reports))}</b>
+						<div className={styles.transferColumnCount} role="status">
+							{workspaceLoading ? (
+								"Обновляем данные…"
+							) : (
+								<>
+									{reports.length} отчётов · <b>{hours(reportSum(reports))}</b>
+								</>
+							)}
 						</div>
 					)}
 				</header>
@@ -545,7 +553,11 @@ export const SupportProjectWorklists = ({
 			</label>
 			{workspaceError && (
 				<div className={styles.workspaceError} role="alert">
-					<span>{workspaceError}</span>
+					<span>
+						{workspaceError}
+						{currentWorkspace &&
+							" Показаны последние загруженные данные. Переносы будут доступны после обновления."}
+					</span>
 					{onRetryWorkspace && (
 						<button
 							className={styles.inlineAction}
