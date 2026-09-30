@@ -117,6 +117,45 @@ describe("MainLayout", () => {
 	});
 
 	describe("production mode", () => {
+		it.each([false, true])(
+			"restores Valeria's reports and client accounts inside Bitrix (DEV=%s)",
+			async (devMode) => {
+				vi.stubEnv("DEV", devMode);
+				mockEmbeddedWindow();
+				mockGetDepartmentsHeads.mockResolvedValue(["1", "3", "6", "11"]);
+				mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+				mockCallMake.mockResolvedValue({
+					getData: () => ({ result: { ID: "89", UF_DEPARTMENT: [26] } }),
+				});
+
+				await renderComponent();
+
+				await waitFor(() => {
+					expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+						{ action: "read", subject: "post" },
+						{ action: "create-client", subject: "client" },
+					]);
+				});
+				expect(mockCallMake).toHaveBeenCalledWith({ method: "user.current" });
+				expect(mockNavigate).not.toHaveBeenCalled();
+			},
+		);
+
+		it("does not extend Valeria's individual access to the whole department", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockGetDepartmentsHeads.mockResolvedValue(["1", "3", "6", "11"]);
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "90", UF_DEPARTMENT: [26] } }),
+			});
+
+			await renderComponent();
+
+			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([]));
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
+
 		it("не инициализирует Bitrix24 при прямом открытии приложения", async () => {
 			vi.stubEnv("DEV", false);
 			const consoleError = vi
