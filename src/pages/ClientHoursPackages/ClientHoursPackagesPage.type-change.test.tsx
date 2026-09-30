@@ -162,10 +162,16 @@ describe("support project type transitions", () => {
   it("ignores a late workspace response from a project removed during refresh", async () => {
     let resolveOld!: (value: ReturnType<typeof workspaceFor>) => void;
     const old = new Promise<ReturnType<typeof workspaceFor>>((resolve) => { resolveOld = resolve; });
-    window.sessionStorage.removeItem(key);
-    window.history.replaceState({ [key]: 999 }, "");
-    api.fetchSupportProjectWorkspace.mockImplementation((id: number) => id === 1 ? old : Promise.resolve(workspaceFor(id)));
+    window.sessionStorage.setItem(key, "2");
+    window.history.replaceState({ [key]: 2 }, "");
     render(<ClientHoursPackagesPage />);
+    await waitFor(() => expect(screen.getByTestId("workspace-project")).toHaveTextContent("2"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Обновить данные" })).toBeEnabled());
+
+    // Start a later project selection while the initial reconciliation is complete.
+    // Its response must not restore a project removed by a subsequent refresh.
+    api.fetchSupportProjectWorkspace.mockImplementation((id: number) => id === 1 ? old : Promise.resolve(workspaceFor(id)));
+    fireEvent.click(screen.getByRole("button", { name: "Первый ТП" }));
     await waitFor(() => expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledWith(1, expect.any(AbortSignal)));
     api.fetchSupportProjects.mockResolvedValue([project2]);
     await refresh();

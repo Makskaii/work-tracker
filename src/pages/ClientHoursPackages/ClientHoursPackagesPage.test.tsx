@@ -181,77 +181,53 @@ beforeEach(() => {
 });
 
 describe("support hours reconciliation on page load", () => {
-	it("loads balances only after project and report reconciliation both finish", async () => {
+	it("shows the selected project's reconciled workspace before the global sync finishes", async () => {
 		const projectSync = deferred<void>();
 		const reportSync = deferred<void>();
+		const selectedWorkspace = deferred<Awaited<ReturnType<typeof api.fetchSupportProjectWorkspace>>>();
 		api.syncSupportProjects.mockReturnValueOnce(projectSync.promise);
 		api.syncSupportHoursReports.mockReturnValueOnce(reportSync.promise);
+		const freshWorkspace = await api.fetchSupportProjectWorkspace();
+		api.fetchSupportProjectWorkspace.mockClear().mockReturnValueOnce(selectedWorkspace.promise);
 		render(<ClientHoursPackagesPage />);
 		expect(screen.getByRole("status")).toHaveTextContent("Сверяем отчёты");
-		expect(api.syncSupportProjects).toHaveBeenCalledTimes(1);
 		expect(api.syncSupportHoursReports).not.toHaveBeenCalled();
-		expect(api.fetchSupportHoursPackages).not.toHaveBeenCalled();
-		expect(screen.queryByTestId("support-details")).not.toBeInTheDocument();
-
 		await act(async () => projectSync.resolve());
-		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(1);
-		expect(api.fetchSupportHoursPackages).not.toHaveBeenCalled();
-		expect(api.fetchSupportProjects).not.toHaveBeenCalled();
-		expect(
-			screen.queryByRole("navigation", { name: "Проекты" }),
-		).not.toBeInTheDocument();
-
+		expect(await screen.findByRole("navigation", { name: "Проекты" })).toBeVisible();
+		expect(api.syncSupportHoursReports).not.toHaveBeenCalled();
+		await act(async () => selectedWorkspace.resolve(freshWorkspace));
+		await waitFor(() => expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(1));
+		const details = screen.getByTestId("support-details");
+		expect(details).toHaveTextContent("Проект 1, отчётов 0");
+		expect(details).toHaveTextContent("Остаток: 65.5 ч");
+		expect(screen.getByText("Сверяем данные с Битрикс24…")).toBeVisible();
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 		await act(async () => reportSync.resolve());
-		await waitFor(() =>
-			expect(screen.getByTestId("support-details")).toHaveTextContent(
-				"Остаток: 65.5 ч",
-			),
-		);
-		expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(1);
-		expect(api.fetchSupportProjects).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(screen.getByRole("button", { name: "Обновить данные" })).toBeEnabled());
+		expect(screen.getByTestId("support-details")).toBe(details);
 		const signal = api.syncSupportProjects.mock.calls[0][0];
 		expect(signal).toBeInstanceOf(AbortSignal);
 		expect(api.syncSupportHoursReports).toHaveBeenCalledWith(signal);
 		expect(api.fetchSupportHoursPackages).toHaveBeenCalledWith(signal);
-		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 
-	it("shows a retry instead of old balances when reconciliation fails, then loads fresh data", async () => {
-		api.syncSupportHoursReports.mockRejectedValueOnce(
-			new Error("Bitrix unavailable"),
-		);
-		api.fetchSupportHoursPackages.mockResolvedValueOnce([
-			{ ...packages[0], remainingHours: -14.5 },
-		]);
+	it("keeps the verified project visible if the later global sync fails and retries in place", async () => {
+		api.syncSupportHoursReports.mockRejectedValueOnce(new Error("Bitrix unavailable"));
 		render(<ClientHoursPackagesPage />);
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"Не удалось обновить отчёты",
-		);
-		expect(screen.queryByTestId("support-details")).not.toBeInTheDocument();
-		expect(screen.queryByText(/-14.5/)).not.toBeInTheDocument();
-		expect(api.fetchSupportHoursPackages).not.toHaveBeenCalled();
-		expect(notify).toHaveBeenCalledWith(
-			expect.objectContaining({ type: "error" }),
-		);
-
-		// A successful reconciliation provides a fresh server snapshot on retry.
-		api.fetchSupportHoursPackages.mockReset().mockResolvedValue(packages);
+		expect(await screen.findByRole("alert")).toHaveTextContent("Сверка не завершена");
+		const details = screen.getByTestId("support-details");
+		expect(details).toHaveTextContent("Остаток: 65.5 ч");
+		expect(screen.queryByText(/Последняя сверка:/)).not.toBeInTheDocument();
+		expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: "error" }));
 		const retriedSync = deferred<void>();
 		api.syncSupportHoursReports.mockReturnValueOnce(retriedSync.promise);
-		fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку" }));
-		await waitFor(() =>
-			expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2),
-		);
-		expect(screen.getByRole("status")).toHaveTextContent("Сверяем отчёты");
-		expect(screen.queryByTestId("support-details")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Обновить данные" }));
+		await waitFor(() => expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2));
+		expect(screen.getByTestId("support-details")).toBe(details);
 		await act(async () => retriedSync.resolve());
-		await waitFor(() =>
-			expect(screen.getByTestId("support-details")).toHaveTextContent(
-				"Остаток: 65.5 ч",
-			),
-		);
+		await waitFor(() => expect(screen.getByRole("button", { name: "Обновить данные" })).toBeEnabled());
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-		expect(api.syncSupportProjects).toHaveBeenCalledTimes(2);
+		expect(screen.getByText(/Последняя сверка:/)).toBeVisible();
 	});
 
 	it("aborts an abandoned load and ignores its late result after a new page opens", async () => {
@@ -307,7 +283,7 @@ it("runs a new reconciliation after a report save even if an earlier focus refre
 	await waitFor(() =>
 		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(3),
 	);
-	expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(3);
+	expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(4);
 });
 
 it("reloads the previous project when returning before the next project's workspace finishes", async () => {
@@ -497,10 +473,46 @@ const readyPage = async () => {
 	await waitFor(() =>
 		expect(screen.getByTestId("workspace-state")).toHaveTextContent("Проект 1"),
 	);
+	await waitFor(() => expect(screen.getByRole("button", { name: "Обновить данные" })).toBeEnabled());
 	return transferContext.callbacks!;
 };
 
 describe("authenticated package transfers on the page", () => {
+	it("does not refresh on window focus while the analyst works with the list", async () => {
+		await readyPage();
+		const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 120_000);
+		try {
+			fireEvent.focus(window);
+			fireEvent.focus(window);
+			fireEvent.scroll(screen.getByTestId("support-details"));
+			await act(async () => undefined);
+			expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(1);
+		} finally { now.mockRestore(); }
+	});
+
+	it("refreshes on returning to the tab, throttling recent and duplicate visibility events", async () => {
+		await readyPage();
+		const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+		const now = vi.spyOn(Date, "now");
+		try {
+			fireEvent(document, new Event("visibilitychange"));
+			expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(1);
+			now.mockReturnValue(Date.now() + 120_000);
+			visibility.mockReturnValue("hidden");
+			fireEvent(document, new Event("visibilitychange"));
+			expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(1);
+			const refresh = deferred<void>();
+			api.syncSupportHoursReports.mockReturnValueOnce(refresh.promise);
+			visibility.mockReturnValue("visible");
+			fireEvent(document, new Event("visibilitychange"));
+			await waitFor(() => expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2));
+			fireEvent(document, new Event("visibilitychange"));
+			expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2);
+			expect(screen.getByTestId("support-details")).toBeVisible();
+			await act(async () => refresh.resolve());
+		} finally { now.mockRestore(); visibility.mockRestore(); }
+	});
+
 	it("refreshes an expiring Bitrix session and sends the OAuth token only in headers for preview", async () => {
 		const callbacks = await readyPage();
 		transferContext.getAuthData.mockReturnValue({
@@ -611,7 +623,7 @@ describe("authenticated package transfers on the page", () => {
 			).not.toBeInTheDocument(),
 		);
 		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(2);
-		expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledTimes(2);
+		expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledTimes(3);
 	});
 	it("starts a fresh reconciliation after a successful move even if an older refresh is running", async () => {
 		const callbacks = await readyPage();
@@ -630,7 +642,7 @@ describe("authenticated package transfers on the page", () => {
 		await act(async () => olderRefresh.resolve());
 		await act(async () => transfer);
 		expect(api.syncSupportHoursReports).toHaveBeenCalledTimes(3);
-		expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(3);
-		expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledTimes(3);
+		expect(api.fetchSupportHoursPackages).toHaveBeenCalledTimes(4);
+		expect(api.fetchSupportProjectWorkspace).toHaveBeenCalledTimes(4);
 	});
 });

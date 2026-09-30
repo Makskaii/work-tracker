@@ -32,6 +32,7 @@ import { fetchSupportProjectWorkspace, type SupportProjectWorkspace } from "./su
 
 const selectedProjectStorageKey = "support-hours:selected-project-id";
 const selectedProjectHistoryStateKey = "support-hours:selected-project-id";
+const backgroundRefreshIntervalMs = 60_000;
 let rememberedProjectId: number | null = null;
 
 const getProjectId = (value: unknown) => {
@@ -195,9 +196,13 @@ export const ClientHoursPackagesPage = () => {
 		setPackages(nextPackages);
 		packagesRef.current = nextPackages;
 		setProjects(supportProjects);
+		const currentProjectId = selectedProjectIdRef.current;
+		const projectId = supportProjects.some((project) => project.id === currentProjectId)
+			? currentProjectId
+			: supportProjects[0]?.id ?? null;
+		if (projectId !== currentProjectId) rememberProject(projectId);
 		// The catalogue and reconciled balances are usable even if one workspace fails.
 		setLoadState("ready");
-		const projectId = selectedProjectIdRef.current;
 		if (projectId != null && supportProjects.some((project) => project.id === projectId)) {
 			// A snapshot started before the reconciliation can miss a just-saved report.
 			await workspacePromiseRef.current?.promise.catch(() => undefined);
@@ -210,14 +215,17 @@ export const ClientHoursPackagesPage = () => {
 				if (!isInactiveSupportProjectError(cause)) throw cause;
 			}
 		}
-	}, [loadWorkspace]);
+	}, [loadWorkspace, rememberProject]);
 
 	const reconcile = useCallback(
-		(signal?: AbortSignal) => {
+		(signal?: AbortSignal, loadSelectedProjectFirst = false) => {
 			if (refreshPromiseRef.current) return refreshPromiseRef.current;
 			setIsRefreshing(true);
 			setRefreshError(false);
 			const promise = syncSupportProjects(signal)
+				// Reconcile the selected project's complete history before starting
+				// the global sync, which shares the server's mutation queue.
+				.then(() => loadSelectedProjectFirst ? loadData(signal) : undefined)
 				.then(() => syncSupportHoursReports(signal))
 				.then(() => loadData(signal))
 				.then(() => {
@@ -297,7 +305,7 @@ export const ClientHoursPackagesPage = () => {
 	useEffect(() => {
 		mountedRef.current = true;
 		const controller = new AbortController();
-		void reconcile(controller.signal).catch(() => undefined);
+		void reconcile(controller.signal, true).catch(() => undefined);
 		return () => {
 			mountedRef.current = false;
 			controller.abort();
@@ -313,15 +321,13 @@ export const ClientHoursPackagesPage = () => {
         transferBusy ||
         pendingTransfer ||
 				!lastRefreshed ||
-				Date.now() - lastRefreshed.getTime() < 1500
+				Date.now() - lastRefreshed.getTime() < backgroundRefreshIntervalMs
 			)
 				return;
 			void reconcile().catch(() => undefined);
 		};
-		window.addEventListener("focus", refresh);
 		document.addEventListener("visibilitychange", refresh);
 		return () => {
-			window.removeEventListener("focus", refresh);
 			document.removeEventListener("visibilitychange", refresh);
 		};
 	}, [reconcile, modalMode, reportEditor, lastRefreshed, transferBusy, pendingTransfer]);
@@ -336,6 +342,7 @@ export const ClientHoursPackagesPage = () => {
 
 	useEffect(() => {
 		if (loadState !== "ready" || workspaceSnapshotRef.current?.projectId === selectedProjectId) return;
+		if (workspacePromiseRef.current?.projectId === selectedProjectId && !workspacePromiseRef.current.signal?.aborted) return;
 		if (selectedProjectId != null && !projects.some((project) => project.id === selectedProjectId)) return;
 		setProjectWorkspace(null);
 		workspaceSnapshotRef.current = null;
