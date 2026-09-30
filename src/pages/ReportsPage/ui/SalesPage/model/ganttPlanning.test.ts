@@ -55,6 +55,35 @@ describe("manual Gantt planning", () => {
     expect(getGanttStagePlanning(values[1], values).category).toBe("development");
     expect(buildGanttPlanning(values).categories.find((value) => value.category === "tz")?.plannedHours).toBeNull();
   });
+  it("keeps categories of stages inside an unclassified legacy group", () => {
+    const values = [stage(1, { isGroup: true, stageType: null }),
+      stage(2, { parentStageId: 1, stageType: "tz_writing", plannedHours: 20, groupStatus: "completed" }),
+      stage(3, { parentStageId: 1, stageType: "development", plannedHours: 60 })];
+    const result = buildGanttPlanning(values);
+    expect(result.overall).toMatchObject({ plannedHours: 80, completedHours: 20, progress: 25 });
+    expect(result.categories.find((value) => value.category === "tz")).toMatchObject({ plannedHours: 20, completedHours: 20, progress: 100 });
+    expect(result.categories.find((value) => value.category === "development")).toMatchObject({ plannedHours: 60, completedHours: 0, progress: 0 });
+    expect(result.categories.find((value) => value.category === "other")?.roots).toEqual([]);
+    expect(getGanttStagePlanning(values[1], values).category).toBe("tz");
+  });
+  it("applies manual completion of an unclassified parent consistently to category totals", () => {
+    const values = [stage(1, { isGroup: true, stageType: null, groupStatus: "completed" }),
+      stage(2, { parentStageId: 1, stageType: "tz_writing", plannedHours: 20 }),
+      stage(3, { parentStageId: 1, stageType: "development", plannedHours: 60 })];
+    const result = buildGanttPlanning(values);
+    expect(result.overall.completedHours).toBe(80);
+    expect(result.categories.reduce((sum, value) => sum + value.completedHours, 0)).toBe(80);
+    expect(values[1].groupStatus).toBe("not_started");
+  });
+  it("does not invent a category split for an unclassified parent's explicit budget", () => {
+    const values = [stage(1, { isGroup: true, stageType: null, plannedHours: 100 }),
+      stage(2, { parentStageId: 1, stageType: "tz_writing", plannedHours: 20, groupStatus: "completed" }),
+      stage(3, { parentStageId: 1, stageType: "development", plannedHours: 60 })];
+    const result = buildGanttPlanning(values);
+    expect(result.overall).toMatchObject({ plannedHours: 100, completedHours: 20, progress: 20 });
+    expect(result.categories.find((value) => value.category === "other")).toMatchObject({ plannedHours: 100, completedHours: 20 });
+    expect(result.categories.find((value) => value.category === "tz")?.plannedHours).toBeNull();
+  });
   it("handles multiple stages in one category with hour weights, not mean percentages", () => {
     const summary = buildGanttPlanning([stage(1, { plannedHours: 10, groupStatus: "completed" }), stage(2, { plannedHours: 90 })]);
     expect(summary.overall.progress).toBe(10);

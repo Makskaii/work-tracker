@@ -1,8 +1,7 @@
 import { $backendApi } from "@/shared/config/axios/axios.config";
+import { type GanttEventResponse, type GanttStageResponse, normalizeGanttEvent, normalizeGanttStage } from "./projectGanttResponses";
 import type {
-	ProjectGanttEvent,
 	ProjectGanttEventPayload,
-	ProjectGanttStage,
 	ProjectGanttStagePayload,
 } from "./types";
 
@@ -10,36 +9,36 @@ export const fetchProjectGanttStages = async (
 	projectId: string,
 	signal?: AbortSignal,
 ) => {
-	const response = await $backendApi.get<ProjectGanttStage[]>(
+	const response = await $backendApi.get<GanttStageResponse[]>(
 		`project-reports/projects/${projectId}/gantt/stages`,
 		{ signal },
 	);
 
-	return response.data;
+	return response.data.map(normalizeGanttStage);
 };
 
 export const createProjectGanttStage = async (
 	projectId: string,
 	payload: ProjectGanttStagePayload,
 ) => {
-	const response = await $backendApi.post<ProjectGanttStage>(
+	const response = await $backendApi.post<GanttStageResponse>(
 		`project-reports/projects/${projectId}/gantt/stages`,
 		payload,
 	);
 
-	return response.data;
+	return normalizeGanttStage(response.data);
 };
 
 export const updateProjectGanttStage = async (
 	stageId: number,
 	payload: Partial<ProjectGanttStagePayload>,
 ) => {
-	const response = await $backendApi.patch<ProjectGanttStage>(
+	const response = await $backendApi.patch<GanttStageResponse>(
 		`project-reports/gantt/stages/${stageId}`,
 		payload,
 	);
 
-	return response.data;
+	return normalizeGanttStage(response.data);
 };
 
 export const deleteProjectGanttStage = (stageId: number) =>
@@ -50,48 +49,48 @@ export const moveProjectGanttStageParent = async (
 	parentStageId: number,
 	beforeStageId: number | null,
 ) => {
-	const response = await $backendApi.patch<ProjectGanttStage[]>(
+	const response = await $backendApi.patch<GanttStageResponse[]>(
 		`project-reports/gantt/stages/${stageId}/parent`,
 		{ beforeStageId, parentStageId },
 	);
 
-	return response.data;
+	return response.data.map(normalizeGanttStage);
 };
 
 export const fetchProjectGanttEvents = async (
 	projectId: string,
 	signal?: AbortSignal,
 ) => {
-	const response = await $backendApi.get<ProjectGanttEvent[]>(
+	const response = await $backendApi.get<GanttEventResponse[]>(
 		`project-reports/projects/${projectId}/gantt/events`,
 		{ signal },
 	);
 
-	return response.data;
+	return response.data.map(normalizeGanttEvent);
 };
 
 export const createProjectGanttEvent = async (
 	projectId: string,
 	payload: ProjectGanttEventPayload,
 ) => {
-	const response = await $backendApi.post<ProjectGanttEvent>(
+	const response = await $backendApi.post<GanttEventResponse>(
 		`project-reports/projects/${projectId}/gantt/events`,
 		payload,
 	);
 
-	return response.data;
+	return normalizeGanttEvent(response.data);
 };
 
 export const updateProjectGanttEvent = async (
 	eventId: number,
 	payload: Partial<ProjectGanttEventPayload>,
 ) => {
-	const response = await $backendApi.patch<ProjectGanttEvent>(
+	const response = await $backendApi.patch<GanttEventResponse>(
 		`project-reports/gantt/events/${eventId}`,
 		payload,
 	);
 
-	return response.data;
+	return normalizeGanttEvent(response.data);
 };
 
 export const deleteProjectGanttEvent = (eventId: number) =>
