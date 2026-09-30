@@ -2266,6 +2266,7 @@
 }
 
 .autonomousGanttTrack {
+	box-sizing: border-box;
 	position: relative;
 	display: block;
 	min-width: 720px;
