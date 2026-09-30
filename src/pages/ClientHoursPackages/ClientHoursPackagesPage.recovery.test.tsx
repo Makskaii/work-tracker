@@ -119,10 +119,14 @@ describe("support project type recovery", () => {
 		await waitFor(() => expect(screen.getByTestId("recovery-workspace")).toHaveTextContent("1"));
 		api.fetchSupportProjects.mockResolvedValue([]);
 		await refresh();
-		await waitFor(() => expect(screen.getByTestId("recovery-selection")).toHaveTextContent("none"));
-		expect(screen.getByTestId("recovery-workspace")).toHaveTextContent("none");
-		expect(window.sessionStorage.getItem(storageKey)).toBeNull();
-		expect(window.history.state[storageKey]).toBeNull();
+		// The catalogue removes the project before the selection effect clears
+		// its workspace and remembered ID. Await the complete recovered state.
+		await waitFor(() => {
+			expect(screen.getByTestId("recovery-selection")).toHaveTextContent("none");
+			expect(screen.getByTestId("recovery-workspace")).toHaveTextContent("none");
+			expect(window.sessionStorage.getItem(storageKey)).toBeNull();
+			expect(window.history.state[storageKey]).toBeNull();
+		});
 		expect(api.deleteSupportHoursPackage).not.toHaveBeenCalled();
 	});
 

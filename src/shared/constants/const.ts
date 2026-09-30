@@ -9,6 +9,9 @@ export const enum DEPARTMENT_IDS {
 	ANALYTICS = 25,
 }
 
+// Individual report access, in addition to department heads.
+export const REPORT_ACCESS_USER_IDS: ReadonlySet<number> = new Set([16, 89]);
+
 export const Endpoints = {
 	tasks: "tasks.task.list",
 	groups: "sonet_group.get",

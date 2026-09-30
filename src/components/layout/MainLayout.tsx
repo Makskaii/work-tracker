@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
 import { getDepartmentsHeads } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
-import { DEPARTMENT_IDS } from "@/shared/constants/const";
+import { DEPARTMENT_IDS, REPORT_ACCESS_USER_IDS } from "@/shared/constants/const";
 import { type CurrentUserDepartmentInfo } from "@/shared/hooks/useCurrentBitrixUser";
 import { ability } from "../../shared/config/ability/casl";
 import { Spinner } from "../spinner/Spinner";
@@ -156,8 +156,9 @@ export const MainLayout = () => {
 				}
 
 				if (
-					(currUser?.userId && data.has(String(currUser.userId))) ||
-					currUser?.userId === 16
+					currUser?.userId &&
+					(data.has(String(currUser.userId)) ||
+						REPORT_ACCESS_USER_IDS.has(currUser.userId))
 				) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
