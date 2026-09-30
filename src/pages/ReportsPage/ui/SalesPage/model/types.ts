@@ -131,6 +131,7 @@ export type ProjectGanttGroupStatus =
 	| "completed";
 
 export type ProjectGanttStage = {
+	plannedHours?: number | null;
 	id: number;
 	projectId: string;
 	title: string;
@@ -149,6 +150,7 @@ export type ProjectGanttStage = {
 };
 
 export type ProjectGanttStagePayload = {
+	plannedHours?: number | null;
 	title?: string;
 	code?: string;
 	stageType?: ProjectGanttStageType | null;
