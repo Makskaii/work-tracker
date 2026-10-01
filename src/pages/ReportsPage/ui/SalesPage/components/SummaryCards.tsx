@@ -1,11 +1,12 @@
 import { formatHours, formatMoney } from "../model/profitabilityUtils";
 import {
-	projectStatusOptions,
 	type ProjectSummaryFormState,
+	projectStatusOptions,
 } from "../model/reportProjectForm";
 import type {
 	FinancialProjectSummary,
 	ReportProjectStatus,
+	ReportProjectType,
 } from "../model/types";
 import styles from "../SalesProfitabilityReport.module.scss";
 
@@ -14,6 +15,8 @@ type SummaryCardsProps = {
 	onEditProject: () => void;
 	projectTitle: string;
 	projectStatus: ReportProjectStatus | null | undefined;
+	projectType: ReportProjectType;
+	areAutomaticHoursUnavailable?: boolean;
 	summary: FinancialProjectSummary;
 };
 
@@ -45,6 +48,8 @@ export const SummaryCards = ({
 	onEditProject,
 	projectTitle,
 	projectStatus,
+	projectType,
+	areAutomaticHoursUnavailable = false,
 	summary,
 }: SummaryCardsProps) => {
 	const normalizedProjectStatus = projectStatus ?? "not_started";
@@ -55,55 +60,61 @@ export const SummaryCards = ({
 
 	return (
 		<div className={styles.dealSummary}>
-		<button
-			type="button"
-			className={styles.dealSummaryEditButton}
-			onClick={onEditProject}
-		>
-			Изменить проект
-		</button>
-		<div className={styles.dealSummaryMain}>
-			<span className={styles.dealSummaryEyebrow}>
-				Финансовый вотерфол проект
-			</span>
-			<h3>{projectTitle}</h3>
-		</div>
-		<div className={styles.dealSummarySide}>
-			<div className={styles.dealSummaryStats}>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Статус:</span>
-					<strong
-						className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectStatus} ${getProjectStatusClassName(normalizedProjectStatus)}`}
-					>
-						{projectStatusLabel}
-					</strong>
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Сумма проекта:</span>
-					<strong
-						className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectAmount}`}
-					>
-						{formatMoney(summary.revenue)}
-					</strong>
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Куплено:</span>
-					<strong
-						className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
-					>
-						{formatHours(summary.purchasedHours)}
-					</strong>
-				</div>
-				<div className={styles.dealSummaryStat}>
-					<span className={styles.dealSummaryLabel}>Дата завершения:</span>
-					<strong
-						className={`${styles.dealSummaryValue} ${styles.dealSummaryCompletionDate}`}
-					>
-						{formatSummaryDate(form.summaryPlanCompletionDate)}
-					</strong>
+			<button
+				type="button"
+				className={styles.dealSummaryEditButton}
+				onClick={onEditProject}
+			>
+				Изменить проект
+			</button>
+			<div className={styles.dealSummaryMain}>
+				<span className={styles.dealSummaryEyebrow}>
+					{projectType === "waterfall"
+						? "Финансовый вотерфол проект"
+						: projectType === "support"
+							? "Проект техподдержки"
+							: "Проект"}
+				</span>
+				<h3>{projectTitle}</h3>
+			</div>
+			<div className={styles.dealSummarySide}>
+				<div className={styles.dealSummaryStats}>
+					<div className={styles.dealSummaryStat}>
+						<span className={styles.dealSummaryLabel}>Статус:</span>
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectStatus} ${getProjectStatusClassName(normalizedProjectStatus)}`}
+						>
+							{projectStatusLabel}
+						</strong>
+					</div>
+					<div className={styles.dealSummaryStat}>
+						<span className={styles.dealSummaryLabel}>Сумма проекта:</span>
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryProjectAmount}`}
+						>
+							{formatMoney(summary.revenue)}
+						</strong>
+					</div>
+					<div className={styles.dealSummaryStat}>
+						<span className={styles.dealSummaryLabel}>Куплено:</span>
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
+						>
+							{areAutomaticHoursUnavailable
+								? "—"
+								: formatHours(summary.purchasedHours)}
+						</strong>
+					</div>
+					<div className={styles.dealSummaryStat}>
+						<span className={styles.dealSummaryLabel}>Дата завершения:</span>
+						<strong
+							className={`${styles.dealSummaryValue} ${styles.dealSummaryCompletionDate}`}
+						>
+							{formatSummaryDate(form.summaryPlanCompletionDate)}
+						</strong>
+					</div>
 				</div>
 			</div>
-		</div>
 		</div>
 	);
 };

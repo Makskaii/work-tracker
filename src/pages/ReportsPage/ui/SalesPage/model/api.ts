@@ -15,6 +15,8 @@ import type {
 } from "./types";
 
 type CrmItemListResponse<T> = {
+	error?: string;
+	error_description?: string;
 	result?: {
 		items?: T[];
 	};
@@ -62,9 +64,24 @@ export const fetchAllCrmItems = async <T,>({
 			},
 		);
 
-		items.push(...(response.data.result?.items ?? []));
+		const pageItems = response.data.result?.items;
+
+		if (response.data.error || !Array.isArray(pageItems)) {
+			throw new Error(
+				response.data.error_description ||
+					response.data.error ||
+					"Не удалось получить данные из Битрикс24",
+			);
+		}
+
+		items.push(...pageItems);
 
 		next = response.data.next ?? null;
+
+		if (next !== null && (!Number.isFinite(next) || next <= start)) {
+			throw new Error("Битрикс24 вернул некорректную страницу данных");
+		}
+
 		start = next ?? start + limit;
 	}
 

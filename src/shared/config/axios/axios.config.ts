@@ -121,10 +121,34 @@ $api.interceptors.request.use((config) => {
 	config.adapter = ((requestConfig) => {
 		const request = defaultApiAdapter(requestConfig)
 			.then((response) => {
-				bitrixResponseCache.set(cacheKey, {
-					expiresAt: Date.now() + BITRIX_CACHE_TTL_MS,
-					response,
-				});
+				// Bitrix may return an API error with HTTP 200. A retry must reach CRM.
+				const data: unknown = response.data;
+				const validResult =
+					data !== null &&
+					typeof data === "object" &&
+					"result" in data &&
+					!("error" in data && data.error);
+				const validItems =
+					requestConfig.url !== "crm.item.list" ||
+					(validResult &&
+						typeof data.result === "object" &&
+						data.result !== null &&
+						"items" in data.result &&
+						Array.isArray(data.result.items));
+				const validCursor =
+					requestConfig.url !== "crm.item.list" ||
+					(validResult &&
+						(!("next" in data) ||
+							data.next === null ||
+							(typeof data.next === "number" &&
+								Number.isFinite(data.next) &&
+								data.next > Number(requestConfig.params?.start ?? 0))));
+				if (validResult && validItems && validCursor) {
+					bitrixResponseCache.set(cacheKey, {
+						expiresAt: Date.now() + BITRIX_CACHE_TTL_MS,
+						response,
+					});
+				}
 
 				return response;
 			})
@@ -155,7 +179,10 @@ $backendApi.interceptors.request.use((config) => {
 $backendApi.interceptors.response.use(
 	(response) => response,
 	(error) => {
-		if (error.response?.status === 401 && !error.config?.headers?.["X-Bitrix-Token"]) {
+		if (
+			error.response?.status === 401 &&
+			!error.config?.headers?.["X-Bitrix-Token"]
+		) {
 			authStorage.clear();
 
 			if (window.location.pathname !== "/client-profile") {
