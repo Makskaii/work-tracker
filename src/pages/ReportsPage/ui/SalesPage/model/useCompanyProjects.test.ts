@@ -35,6 +35,35 @@ const page = (items: unknown[], next: number | null = null) => ({
 beforeEach(() => vi.resetAllMocks());
 
 describe("selected Bitrix project reports", () => {
+	it("loads task/report metrics when the retired CRM payment smart process does not exist", async () => {
+		const tasks = [{ id: "1", [TaskCodes.estimateTime]: "8" }];
+		const reports = [{ id: "101", [ReportCodes.timeSpent]: "6.5" }];
+		crm.get.mockImplementation((_url, { params }) => {
+			if (params.entityTypeId === EntityTypeIds.projectPayments) {
+				return Promise.reject({
+					response: {
+						status: 400,
+						data: {
+							error: "NOT_FOUND",
+							error_description: "Смарт-процесс не найден",
+						},
+					},
+				});
+			}
+			return Promise.resolve(
+				page(params.entityTypeId === EntityTypeIds.tasks ? tasks : reports),
+			);
+		});
+
+		const result = await fetchProfitabilityProjectDetails(project);
+		expect(result.tasks).toEqual(tasks);
+		expect(result.reports).toEqual(reports);
+		expect(getProjectAutomaticHours([result]).developmentFactHours).toBe(6.5);
+		expect(
+			crm.get.mock.calls.map(([, config]) => config.params.entityTypeId).sort(),
+		).toEqual([EntityTypeIds.reports, EntityTypeIds.tasks]);
+	});
+
 	it("keeps correctly linked tasks and reports with missing or stale company values", async () => {
 		const tasks = [
 			{
