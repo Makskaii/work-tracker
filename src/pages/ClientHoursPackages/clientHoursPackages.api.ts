@@ -180,10 +180,18 @@ export const syncSupportHoursReports = (signal?: AbortSignal) =>
 		{ signal, timeout: 120_000 },
 	);
 
-export const fetchSupportHoursPackageReport = async (packageId: number) => {
+export type SupportPackageReportPeriod = {
+	dateFrom: string;
+	dateTo: string;
+};
+
+export const fetchSupportHoursPackageReport = async (
+	packageId: number,
+	period?: SupportPackageReportPeriod,
+) => {
 	const response = await $backendApi.post<Blob>(
 		`support-hours-packages/${packageId}/report`,
-		{},
+		period ?? {},
 		{
 			responseType: "blob",
 			headers: { Accept: "application/pdf" },

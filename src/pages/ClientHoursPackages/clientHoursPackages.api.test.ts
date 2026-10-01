@@ -24,6 +24,21 @@ describe("support package PDF endpoint", () => {
 			},
 		);
 	});
+	it("sends the selected date range while keeping the PDF blob contract", async () => {
+		const pdf = new Blob(["%PDF-1.4 period"], { type: "application/pdf" });
+		const period = { dateFrom: "2026-09-01", dateTo: "2026-09-30" };
+		post.mockResolvedValue({ data: pdf });
+		expect(await fetchSupportHoursPackageReport(42, period)).toBe(pdf);
+		expect(post).toHaveBeenCalledExactlyOnceWith(
+			"support-hours-packages/42/report",
+			period,
+			{
+				responseType: "blob",
+				headers: { Accept: "application/pdf" },
+				timeout: 120_000,
+			},
+		);
+	});
 	it("propagates a server failure so the UI can show an error", async () => {
 		const error = new Error("Unable to generate PDF");
 		post.mockRejectedValue(error);
