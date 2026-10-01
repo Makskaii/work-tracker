@@ -8,7 +8,7 @@ import {
 import type { ReportProps } from "@/components/calendar/types/types";
 import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
-import { fetchAllCrmItems, fetchProjectPaymentsByProjectIds } from "./api";
+import { fetchAllCrmItems } from "./api";
 import { PROJECT_SELECT_FIELDS, REPORT_SELECT_FIELDS } from "./constants";
 import type { ProfitabilityProject } from "./types";
 
@@ -60,13 +60,11 @@ export const fetchProfitabilityProjectDetails = async (
 			signal,
 		});
 
-	const [tasks, reports, payments] = await Promise.all([
+	// The current payment list/Gantt loads payments from Work Tracker's API.
+	// The retired CRM payment type is not part of task/report metrics.
+	const [tasks, reports] = await Promise.all([
 		fetchProjectTasks(),
 		fetchProjectReports(),
-		fetchProjectPaymentsByProjectIds({
-			projectIds: [projectId],
-			signal,
-		}),
 	]);
 
 	return {
@@ -74,7 +72,6 @@ export const fetchProfitabilityProjectDetails = async (
 		projectId,
 		tasks,
 		reports,
-		payments,
 	};
 };
 
@@ -121,12 +118,10 @@ export const useCompanyProjects = () => {
 						})
 					: [];
 				const companyTitleEntries: Array<[string, string]> = companies
-					.map(
-						(company): [string, string] => [
-							String(company.id ?? "").trim(),
-							String(company.title ?? "").trim(),
-						],
-					)
+					.map((company): [string, string] => [
+						String(company.id ?? "").trim(),
+						String(company.title ?? "").trim(),
+					])
 					.filter(([id, title]) => id && title);
 				const companyTitleById = new Map(companyTitleEntries);
 

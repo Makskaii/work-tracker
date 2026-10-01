@@ -41,6 +41,18 @@ const bitrixResponseCache = new Map<
 const bitrixInflightRequests = new Map<string, Promise<AxiosResponse>>();
 const defaultApiAdapter = axios.getAdapter(axios.defaults.adapter);
 
+const getBitrixResponseBody = (data: unknown): unknown => {
+	if (typeof data !== "string") {
+		return data;
+	}
+
+	try {
+		return JSON.parse(data);
+	} catch {
+		return null;
+	}
+};
+
 const normalizeCacheValue = (value: unknown): unknown => {
 	if (Array.isArray(value)) {
 		return value.map(normalizeCacheValue);
@@ -122,7 +134,9 @@ $api.interceptors.request.use((config) => {
 		const request = defaultApiAdapter(requestConfig)
 			.then((response) => {
 				// Bitrix may return an API error with HTTP 200. A retry must reach CRM.
-				const data: unknown = response.data;
+				// Adapters return raw JSON before Axios applies transformResponse.
+				// Inspect a parsed copy while leaving the response for Axios to transform.
+				const data = getBitrixResponseBody(response.data);
 				const validResult =
 					data !== null &&
 					typeof data === "object" &&

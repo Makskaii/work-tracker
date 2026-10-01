@@ -17,6 +17,7 @@ const response = (data: unknown) => ({
 	headers: {},
 	config: {} as InternalAxiosRequestConfig,
 });
+const rawResponse = (data: unknown) => response(JSON.stringify(data));
 beforeEach(() => {
 	vi.resetModules();
 	transport.mockReset();
@@ -26,6 +27,20 @@ afterEach(() => {
 });
 
 describe("Bitrix read cache", () => {
+	it("caches raw JSON returned by the browser adapter and preserves Axios response parsing", async () => {
+		const { $api } = await import("./axios.config");
+		transport.mockResolvedValue(
+			rawResponse({ result: { items: [{ id: 65 }] } }),
+		);
+		const params = { entityTypeId: 1060, filter: { project: 77 } };
+
+		const initial = await $api.get("crm.item.list", { params });
+		const cached = await $api.get("crm.item.list", { params });
+
+		expect(initial.data.result.items).toEqual([{ id: 65 }]);
+		expect(cached.data).toEqual(initial.data);
+		expect(transport).toHaveBeenCalledTimes(1);
+	});
 	it("retries an HTTP 200 CRM error and then caches the successful response", async () => {
 		const { $api } = await import("./axios.config");
 		transport
@@ -61,6 +76,37 @@ describe("Bitrix read cache", () => {
 		await $api.get("crm.item.list", { params: { start: 0 } });
 		const retry = await $api.get("crm.item.list", { params: { start: 0 } });
 		expect(retry.data.result.items).toEqual([{ id: 2 }]);
+		expect(transport).toHaveBeenCalledTimes(2);
+	});
+	it.each([
+		{ error: "QUERY_LIMIT_EXCEEDED" },
+		{ result: {} },
+		{ result: { items: [{ id: 1 }] }, next: 0 },
+		{ result: { items: [{ id: 1 }] }, next: "50" },
+	])("does not cache invalid raw JSON responses: %j", async (invalidBody) => {
+		const { $api } = await import("./axios.config");
+		transport
+			.mockResolvedValueOnce(rawResponse(invalidBody))
+			.mockResolvedValueOnce(rawResponse({ result: { items: [{ id: 2 }] } }));
+
+		await $api.get("crm.item.list", { params: { start: 0 } });
+		const retry = await $api.get("crm.item.list", { params: { start: 0 } });
+		const cached = await $api.get("crm.item.list", { params: { start: 0 } });
+
+		expect(retry.data.result.items).toEqual([{ id: 2 }]);
+		expect(cached.data).toEqual(retry.data);
+		expect(transport).toHaveBeenCalledTimes(2);
+	});
+	it("retries invalid JSON rather than retaining it in the cache", async () => {
+		const { $api } = await import("./axios.config");
+		transport
+			.mockResolvedValueOnce(response("{ invalid JSON"))
+			.mockResolvedValueOnce(rawResponse({ result: { items: [] } }));
+
+		await $api.get("crm.item.list");
+		const retry = await $api.get("crm.item.list");
+
+		expect(retry.data.result.items).toEqual([]);
 		expect(transport).toHaveBeenCalledTimes(2);
 	});
 });
