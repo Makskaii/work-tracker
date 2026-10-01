@@ -29,6 +29,7 @@ import {
 	fetchProjectGanttEvents,
 	fetchProjectGanttStages,
 } from "./model/projectGantt.api";
+import { getProjectAutomaticHours } from "./model/projectHours";
 import {
 	createAutonomousProjectPayment,
 	deleteAutonomousProjectPayment,
@@ -57,13 +58,12 @@ import {
 	getReportProjectForm,
 	getReportProjectPayload,
 	numberOrNull,
-	projectStatusOptions,
 	type ProjectSummaryFormState,
+	projectStatusOptions,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
-import { getProjectAutomaticHours } from "./model/projectHours";
 import type {
 	AutonomousProjectPayment,
 	CreateProjectReportEntryPayload,
@@ -101,7 +101,9 @@ const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
 	{ id: "projectReports", title: "Отчёты по проекту" },
 ];
 
-const getReportProjectStatusClassName = (status: ReportProjectStatus | null | undefined) => {
+const getReportProjectStatusClassName = (
+	status: ReportProjectStatus | null | undefined,
+) => {
 	switch (status) {
 		case "in_progress":
 			return styles.ganttGroupStatusInProgress;
@@ -114,9 +116,12 @@ const getReportProjectStatusClassName = (status: ReportProjectStatus | null | un
 	}
 };
 
-const getReportProjectStatusLabel = (status: ReportProjectStatus | null | undefined) =>
-	projectStatusOptions.find((option) => option.value === (status ?? "not_started"))
-		?.label ?? "Не начат";
+const getReportProjectStatusLabel = (
+	status: ReportProjectStatus | null | undefined,
+) =>
+	projectStatusOptions.find(
+		(option) => option.value === (status ?? "not_started"),
+	)?.label ?? "Не начат";
 
 const REPORT_PROJECT_STATUS_ORDER: Record<ReportProjectStatus, number> = {
 	in_progress: 0,
@@ -369,6 +374,10 @@ const getPaymentsScopeProjects = (
 	scope: PaymentsScope,
 	selectedProject: ReportProject | null,
 ) => {
+	if (scope === "all") {
+		return projects;
+	}
+
 	if (!selectedProject) {
 		return [];
 	}
@@ -511,18 +520,23 @@ export const SalesProfitabilityReport = ({
 	);
 	const [isBitrixProjectDetailsLoading, setIsBitrixProjectDetailsLoading] =
 		useState(false);
+	const [bitrixProjectDetailsError, setBitrixProjectDetailsError] = useState<
+		string | null
+	>(null);
+	const [bitrixProjectDetailsRetryKey, setBitrixProjectDetailsRetryKey] =
+		useState(0);
 	const { openTask } = useBitrixSlider();
 	const {
 		companyTitleById,
 		projects: bitrixProjects,
 		isLoadingDetails: isBitrixProjectsLoading,
+		error: bitrixProjectsError,
+		reloadProjects: reloadBitrixProjects,
 	} = useCompanyProjects();
 	const selectedReportProject =
 		reportProjects.find(
 			(project) => getDbProjectId(project) === selectedProjectId,
-		) ??
-		reportProjects[0] ??
-		null;
+		) ?? null;
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
 	const paymentsScopeProjects = useMemo(
 		() =>
@@ -612,7 +626,10 @@ export const SalesProfitabilityReport = ({
 	useEffect(() => {
 		void paymentsRefreshKey;
 
-		if (activeTab !== "marginality" || !selectedReportProjectId) {
+		if (
+			activeTab !== "marginality" ||
+			(!selectedReportProjectId && paymentsScope !== "all")
+		) {
 			setAutonomousPayments([]);
 			setAutonomousPaymentStages([]);
 			setAutonomousPaymentEvents([]);
@@ -696,28 +713,15 @@ export const SalesProfitabilityReport = ({
 		return () => controller.abort();
 	}, [
 		activeTab,
+		paymentsScope,
 		paymentsRefreshKey,
 		paymentsScopeProjects,
 		selectedReportProjectId,
 	]);
 
-	const effectiveSelectedProjectId = useMemo(() => {
-		if (selectedReportProject) {
-			return getDbProjectId(selectedReportProject);
-		}
-
-		const projectIds = reportProjects.map(getDbProjectId);
-
-		if (!projectIds.length) {
-			return null;
-		}
-
-		if (selectedProjectId && projectIds.includes(selectedProjectId)) {
-			return selectedProjectId;
-		}
-
-		return projectIds[0];
-	}, [reportProjects, selectedReportProject, selectedProjectId]);
+	const effectiveSelectedProjectId = selectedReportProject
+		? getDbProjectId(selectedReportProject)
+		: null;
 
 	const summary = getReportProjectSummary(selectedReportProject);
 	const isBusy =
@@ -755,6 +759,26 @@ export const SalesProfitabilityReport = ({
 				.filter(Boolean),
 		[selectedBitrixProjects],
 	);
+	const isBitrixProjectLinkMissing = Boolean(
+		selectedReportProject && !selectedBitrixProjects.length,
+	);
+	const projectMetricsError =
+		bitrixProjectDetailsError ??
+		(isBitrixProjectLinkMissing
+			? selectedReportProject?.bitrixProjectId
+				? "Связанный проект Битрикс24 не найден. Проверьте привязку в деталях проекта."
+				: "Выберите связанный проект Битрикс24 в деталях проекта, чтобы загрузить задачи и ежедневные отчёты."
+			: null);
+	const projectMetricsActionLabel = isBitrixProjectLinkMissing
+		? "Открыть детали проекта"
+		: "Повторить загрузку";
+	const handleProjectMetricsRetry = () => {
+		if (isBitrixProjectLinkMissing) {
+			setActiveTab("projectDetails");
+		} else {
+			setBitrixProjectDetailsRetryKey((key) => key + 1);
+		}
+	};
 	const shouldLoadBitrixProjectDetails =
 		activeTab === "projects" ||
 		activeTab === "tasks" ||
@@ -894,8 +918,8 @@ export const SalesProfitabilityReport = ({
 		JSON.stringify(detailsProjectForm) !==
 		JSON.stringify(initialDetailsProjectForm);
 
-	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some(
-		(value) => Array.isArray(value) ? value.length > 0 : Boolean(value),
+	const hasDetailsFileDrafts = Object.values(detailsFileDrafts).some((value) =>
+		Array.isArray(value) ? value.length > 0 : Boolean(value),
 	);
 
 	const shouldShowDetailsSave =
@@ -906,6 +930,8 @@ export const SalesProfitabilityReport = ({
 	};
 
 	useEffect(() => {
+		void bitrixProjectDetailsRetryKey;
+		setBitrixProjectDetailsError(null);
 		if (!shouldLoadBitrixProjectDetails || !selectedBitrixProjectIds.length) {
 			setIsBitrixProjectDetailsLoading(false);
 			return;
@@ -954,6 +980,9 @@ export const SalesProfitabilityReport = ({
 			})
 			.catch((error) => {
 				if (!controller.signal.aborted) {
+					setBitrixProjectDetailsError(
+						"Не удалось загрузить задачи и ежедневные отчёты из Битрикс24. Показатели недоступны.",
+					);
 					console.error(
 						"Failed to fetch selected Bitrix project details",
 						error,
@@ -968,6 +997,7 @@ export const SalesProfitabilityReport = ({
 
 		return () => controller.abort();
 	}, [
+		bitrixProjectDetailsRetryKey,
 		bitrixProjectDetailsById,
 		selectedBitrixProjectIds,
 		selectedBitrixProjects,
@@ -1200,6 +1230,13 @@ export const SalesProfitabilityReport = ({
 	};
 
 	const openPaymentEditModal = (payment: AutonomousProjectPayment) => {
+		const paymentProject = reportProjects.find(
+			(project) => String(project.id) === String(payment.projectId),
+		);
+		if (!paymentProject) {
+			return;
+		}
+		setSelectedProjectId(getDbProjectId(paymentProject));
 		setPaymentForm({
 			amount: payment.amount === null ? "" : String(payment.amount),
 			id: payment.id,
@@ -1389,6 +1426,9 @@ export const SalesProfitabilityReport = ({
 				return [...prev, savedProject];
 			});
 			setEditingReportProject(savedProject);
+			if (!editingReportProject) {
+				setSelectedProjectId(getDbProjectId(savedProject));
+			}
 			setProjectFileDrafts({});
 			setIsReportProjectModalOpen(false);
 		} catch {
@@ -1504,9 +1544,7 @@ export const SalesProfitabilityReport = ({
 				<div
 					className={`${styles.layout} ${
 						isStructureCollapsed ? styles.layoutCollapsed : ""
-					} ${
-						isStructureTransitioning ? styles.layoutTransitioning : ""
-					}`}
+					} ${isStructureTransitioning ? styles.layoutTransitioning : ""}`}
 					onTransitionEnd={(event) => {
 						if (
 							event.target === event.currentTarget &&
@@ -1592,7 +1630,9 @@ export const SalesProfitabilityReport = ({
 								) : null}
 							</div>
 							<div className={styles.projectsPlanSection}>
-								<span className={styles.projectsPlanSectionTitle}>Общий план</span>
+								<span className={styles.projectsPlanSectionTitle}>
+									Общий план
+								</span>
 								<button
 									type="button"
 									className={styles.projectsPlanButton}
@@ -1605,8 +1645,13 @@ export const SalesProfitabilityReport = ({
 										<strong>Все проекты</strong>
 										<span>Проекты, команда и сводные окна</span>
 									</span>
-									<b className={styles.projectsPlanCount}>{reportProjects.length}</b>
-									<FaEllipsisH aria-hidden="true" className={styles.projectsPlanMore} />
+									<b className={styles.projectsPlanCount}>
+										{reportProjects.length}
+									</b>
+									<FaEllipsisH
+										aria-hidden="true"
+										className={styles.projectsPlanMore}
+									/>
 								</button>
 								<div className={styles.projectStatusFilters}>
 									{REPORT_PROJECT_STATUS_FILTERS.map((filter) => (
@@ -1618,8 +1663,12 @@ export const SalesProfitabilityReport = ({
 													? styles.projectStatusFilterButtonActive
 													: styles.projectStatusFilterButton
 											}
-											aria-pressed={filter.value === selectedProjectStatusFilter}
-											onClick={() => setSelectedProjectStatusFilter(filter.value)}
+											aria-pressed={
+												filter.value === selectedProjectStatusFilter
+											}
+											onClick={() =>
+												setSelectedProjectStatusFilter(filter.value)
+											}
 										>
 											<span>{filter.label}</span>
 											<b>{reportProjectStatusCounts[filter.value]}</b>
@@ -1661,29 +1710,31 @@ export const SalesProfitabilityReport = ({
 													</span>
 													<span className={styles.reportProjectText}>
 														<strong className={styles.reportProjectTitle}>
-											{project.title}
-										</strong>
-										<small className={styles.reportProjectMeta}>
-											<span
-												className={`${styles.reportProjectNextReportDate} ${
+															{project.title}
+														</strong>
+														<small className={styles.reportProjectMeta}>
+															<span
+																className={`${styles.reportProjectNextReportDate} ${
 																	isProjectReportDateOverdue(
 																		project.nextProjectReportDate,
 																	)
 																		? styles.reportProjectNextReportDateOverdue
 																		: ""
-										}`}
-									>
-											{formatProjectReportDate(
-												project.nextProjectReportDate,
-											)}
-										</span>
-										<span
-											className={`${styles.ganttGroupStatus} ${styles.reportProjectStatus} ${getReportProjectStatusClassName(project.projectStatus)}`}
-										>
-											{getReportProjectStatusLabel(project.projectStatus)}
-										</span>
-									</small>
-								</span>
+																}`}
+															>
+																{formatProjectReportDate(
+																	project.nextProjectReportDate,
+																)}
+															</span>
+															<span
+																className={`${styles.ganttGroupStatus} ${styles.reportProjectStatus} ${getReportProjectStatusClassName(project.projectStatus)}`}
+															>
+																{getReportProjectStatusLabel(
+																	project.projectStatus,
+																)}
+															</span>
+														</small>
+													</span>
 													<span
 														className={styles.reportProjectMenuButton}
 														onClick={(event) => {
@@ -1738,6 +1789,31 @@ export const SalesProfitabilityReport = ({
 
 						{isBusy ? (
 							<ProfitabilitySkeleton />
+						) : bitrixProjectsError && shouldLoadBitrixProjectDetails ? (
+							<div role="alert" className={styles.emptyState}>
+								<p>{bitrixProjectsError}</p>
+								<button
+									type="button"
+									className={styles.filterButton}
+									onClick={reloadBitrixProjects}
+								>
+									Повторить загрузку
+								</button>
+							</div>
+						) : !selectedReportProject && activeTab !== "marginality" ? (
+							<div className={styles.projectReportEmptyState}>
+								<p>
+									Выберите проект в списке слева, чтобы посмотреть его план,
+									задачи и отчёты.
+								</p>
+								<button
+									type="button"
+									className={styles.filterButton}
+									onClick={() => navigate("/reports/projects-plan")}
+								>
+									Открыть общий план проектов
+								</button>
+							</div>
 						) : (
 							<>
 								{activeTab === "projects" && (
@@ -1752,6 +1828,8 @@ export const SalesProfitabilityReport = ({
 											selectedReportProject?.title ?? "Проект не выбран"
 										}
 										projectStatus={selectedReportProject?.projectStatus}
+										projectType={selectedReportProject?.projectType ?? "none"}
+										areAutomaticHoursUnavailable={Boolean(projectMetricsError)}
 										summary={displayedSummary}
 									/>
 								)}
@@ -1779,6 +1857,9 @@ export const SalesProfitabilityReport = ({
 										onPaymentsChanged={refreshAutonomousPayments}
 										projects={reportProjects}
 										selectedProjectId={effectiveSelectedProjectId}
+										reportsError={projectMetricsError}
+										onRetryReports={handleProjectMetricsRetry}
+										retryReportsLabel={projectMetricsActionLabel}
 										users={users}
 									/>
 								)}
@@ -1801,28 +1882,52 @@ export const SalesProfitabilityReport = ({
 										}
 										onFormChange={setDetailsProjectForm}
 										onSave={handleDetailsProjectSave}
-								project={selectedReportProject}
+										project={selectedReportProject}
 										shouldShowSave={shouldShowDetailsSave}
 										users={users}
 									/>
 								)}
 
-								{activeTab === "tasks" && (
-									<TasksTab
-										items={allTasks}
-										users={users}
-										openTask={(id) => openTask(id, EntityTypeIds.tasks)}
-									/>
-								)}
+								{activeTab === "tasks" &&
+									(projectMetricsError ? (
+										<div role="alert" className={styles.emptyState}>
+											<p>{projectMetricsError}</p>
+											<button
+												type="button"
+												className={styles.filterButton}
+												onClick={handleProjectMetricsRetry}
+											>
+												{projectMetricsActionLabel}
+											</button>
+										</div>
+									) : (
+										<TasksTab
+											items={allTasks}
+											users={users}
+											openTask={(id) => openTask(id, EntityTypeIds.tasks)}
+										/>
+									))}
 
-								{activeTab === "reports" && (
-									<ReportsTab
-										activities={activities}
-										items={allReports}
-										users={users}
-										openReport={(id) => openTask(id, EntityTypeIds.reports)}
-									/>
-								)}
+								{activeTab === "reports" &&
+									(projectMetricsError ? (
+										<div role="alert" className={styles.emptyState}>
+											<p>{projectMetricsError}</p>
+											<button
+												type="button"
+												className={styles.filterButton}
+												onClick={handleProjectMetricsRetry}
+											>
+												{projectMetricsActionLabel}
+											</button>
+										</div>
+									) : (
+										<ReportsTab
+											activities={activities}
+											items={allReports}
+											users={users}
+											openReport={(id) => openTask(id, EntityTypeIds.reports)}
+										/>
+									))}
 
 								{activeTab === "projectReports" && (
 									<ProjectReportsTab
@@ -2114,16 +2219,8 @@ const AutonomousPaymentsTab = ({
 		? formatPaymentMonthLabel(chartMonthDate)
 		: "";
 
-	if (!project) {
-		return (
-			<div className={styles.projectReportEmptyState}>
-				Выберите проект, чтобы посмотреть и добавить платежи.
-			</div>
-		);
-	}
-
-	return (
-		<section className={styles.projectReportsPanel}>
+	const header = (
+		<>
 			<div className={styles.projectReportsHeader}>
 				<div>
 					<h3>Список оплат</h3>
@@ -2142,7 +2239,24 @@ const AutonomousPaymentsTab = ({
 					</button>
 				))}
 			</div>
+		</>
+	);
 
+	if (!project && scope !== "all") {
+		return (
+			<section className={styles.projectReportsPanel}>
+				{header}
+				<div className={styles.projectReportEmptyState}>
+					Выберите проект в списке слева или переключитесь на «Все проекты»,
+					чтобы посмотреть платежи.
+				</div>
+			</section>
+		);
+	}
+
+	return (
+		<section className={styles.projectReportsPanel}>
+			{header}
 			<div className={styles.marginalityMetrics}>
 				<div>
 					<span>Проектов</span>
@@ -2299,7 +2413,7 @@ const AutonomousPaymentsTab = ({
 						</div>
 					) : (
 						<div className={styles.paymentChartEmpty}>
-							Платежи по выбранному проекту не найдены
+							Платежи в выбранном списке не найдены
 						</div>
 					)}
 				</div>
@@ -2308,13 +2422,15 @@ const AutonomousPaymentsTab = ({
 			<div className={styles.marginalityCard}>
 				<div className={styles.paymentListHeader}>
 					<h4>Платежи</h4>
-					<button
-						type="button"
-						className={styles.paymentCreateButton}
-						onClick={onCreate}
-					>
-						Создать платёж
-					</button>
+					{project && (
+						<button
+							type="button"
+							className={styles.paymentCreateButton}
+							onClick={onCreate}
+						>
+							Создать платёж
+						</button>
+					)}
 				</div>
 				{error ? <div className={styles.emptyState}>{error}</div> : null}
 				{isLoading ? (

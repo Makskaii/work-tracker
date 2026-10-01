@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	ProjectCodes,
 	ReportCodes,
@@ -16,6 +16,7 @@ type ProjectsState = {
 	companyTitleById: Map<string, string>;
 	isLoading: boolean;
 	projects: ProfitabilityProject[];
+	error: string | null;
 };
 
 type CompanyFromCrm = {
@@ -32,63 +33,32 @@ export const fetchProfitabilityProjectDetails = async (
 	project: ProfitabilityProject,
 	signal?: AbortSignal,
 ): Promise<ProfitabilityProject> => {
-	const projectId = String(project.projectId ?? project.id);
-	const companyId = String(project[ProjectCodes.company] ?? "").trim();
-	const tasksProjectFilter = {
-		[TaskCodes.parentproject]: projectId,
-	};
-	const tasksStrictFilter = {
-		...tasksProjectFilter,
-		...(companyId ? { [TaskCodes.company]: companyId } : {}),
-	};
-	const reportsProjectFilter = {
-		[ReportCodes.parentproject]: projectId,
-		stageId: ReportStageIds.confirmed,
-	};
-	const reportsStrictFilter = {
-		...reportsProjectFilter,
-		...(companyId ? { [ReportCodes.company]: companyId } : {}),
-	};
+	const projectId = String(project.projectId ?? project.id).trim();
 
-	const fetchProjectTasks = async () => {
-		const tasks = await fetchAllCrmItems<TaskProps>({
+	if (!/^\d+$/.test(projectId) || Number(projectId) <= 0) {
+		throw new Error("Не указана связь с проектом Битрикс24");
+	}
+
+	// The project relation is authoritative. Company can be missing or stale on
+	// an otherwise correctly linked task/report, so it must not narrow this query.
+	const fetchProjectTasks = () =>
+		fetchAllCrmItems<TaskProps>({
 			entityTypeId: EntityTypeIds.tasks,
 			select: TASK_SELECT_FIELDS,
-			filter: tasksStrictFilter,
+			filter: { [TaskCodes.parentproject]: projectId },
 			signal,
 		});
 
-		if (tasks.length || !companyId) {
-			return tasks;
-		}
-
-		return fetchAllCrmItems<TaskProps>({
-			entityTypeId: EntityTypeIds.tasks,
-			select: TASK_SELECT_FIELDS,
-			filter: tasksProjectFilter,
-			signal,
-		});
-	};
-
-	const fetchProjectReports = async () => {
-		const reports = await fetchAllCrmItems<ReportProps>({
+	const fetchProjectReports = () =>
+		fetchAllCrmItems<ReportProps>({
 			entityTypeId: EntityTypeIds.reports,
 			select: REPORT_SELECT_FIELDS,
-			filter: reportsStrictFilter,
+			filter: {
+				[ReportCodes.parentproject]: projectId,
+				stageId: ReportStageIds.confirmed,
+			},
 			signal,
 		});
-
-		if (reports.length || !companyId) {
-			return reports;
-		}
-
-		return fetchAllCrmItems<ReportProps>({
-			entityTypeId: EntityTypeIds.reports,
-			select: REPORT_SELECT_FIELDS,
-			filter: reportsProjectFilter,
-			signal,
-		});
-	};
 
 	const [tasks, reports, payments] = await Promise.all([
 		fetchProjectTasks(),
@@ -111,11 +81,17 @@ export const fetchProfitabilityProjectDetails = async (
 export const useCompanyProjects = () => {
 	const [projectsState, setProjectsState] = useState<ProjectsState>({
 		companyTitleById: new Map(),
-		isLoading: false,
+		isLoading: true,
 		projects: [],
+		error: null,
 	});
+	const [requestRevision, setRequestRevision] = useState(0);
+	const reloadProjects = useCallback(() => {
+		setRequestRevision((value) => value + 1);
+	}, []);
 
 	useEffect(() => {
+		void requestRevision;
 		const controller = new AbortController();
 
 		const fetchProjects = async () => {
@@ -123,6 +99,7 @@ export const useCompanyProjects = () => {
 				companyTitleById: new Map(),
 				isLoading: true,
 				projects: [],
+				error: null,
 			});
 
 			try {
@@ -166,6 +143,7 @@ export const useCompanyProjects = () => {
 						companyTitleById,
 						isLoading: false,
 						projects: preparedProjects,
+						error: null,
 					});
 				}
 			} catch (error) {
@@ -175,6 +153,10 @@ export const useCompanyProjects = () => {
 						companyTitleById: new Map(),
 						isLoading: false,
 						projects: [],
+						error:
+							error instanceof Error
+								? error.message
+								: "Не удалось загрузить проекты из Битрикс24",
 					});
 				}
 			}
@@ -185,11 +167,13 @@ export const useCompanyProjects = () => {
 		return () => {
 			controller.abort();
 		};
-	}, []);
+	}, [requestRevision]);
 
 	return {
 		companyTitleById: projectsState.companyTitleById,
 		projects: projectsState.projects,
 		isLoadingDetails: projectsState.isLoading,
+		error: projectsState.error,
+		reloadProjects,
 	};
 };

@@ -1,24 +1,16 @@
-import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
-import type { ReportProps } from "@/components/calendar/types/types";
-import type { TaskProps, User } from "@/shared/types/types";
-import { toNumber } from "../model/profitabilityUtils";
-import { getProjectTeamRole, type ProjectTeamRole } from "../model/projectTeam";
+import type { User } from "@/shared/types/types";
+import type { ProjectTeamRole } from "../model/projectTeam";
+import {
+	buildTaskMap,
+	buildTeamMembers,
+	getTasksPlanHours,
+	getUniqueTasksPlanHours,
+	type ProjectTeamMember as TeamMember,
+} from "../model/projectTeamMetrics";
 import type { ProfitabilityProject } from "../model/types";
 import styles from "./DealProjectTeamCostTable.module.scss";
 
 type TeamRole = ProjectTeamRole;
-
-type TeamMember = {
-	userId: string;
-	name: string;
-	position: string;
-	role: TeamRole;
-	totalHours: number;
-	soldHours: number;
-	planHours: number;
-	factHours: number;
-	taskIds: Set<string>;
-};
 
 type TeamGroup = {
 	role: TeamRole;
@@ -37,7 +29,6 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 };
 
 const FIXED_ROLE_ORDER: TeamRole[] = ["pm", "analytics", "development", "qa"];
-const ROLE_SORT_ORDER: TeamRole[] = [...FIXED_ROLE_ORDER, "unknown"];
 
 const formatHours = (value: number) => `${Number(value.toFixed(1))} ч`;
 
@@ -47,119 +38,6 @@ const formatMoney = (value: number) =>
 		currency: "RUB",
 		maximumFractionDigits: 0,
 	}).format(value);
-
-const getUserRole = getProjectTeamRole;
-
-const getReportTaskId = (report: ReportProps) =>
-	String(report[ReportCodes.parentId] ?? report[ReportCodes.taskId] ?? "").trim();
-
-const buildTaskMap = (projects: ProfitabilityProject[]) => {
-	const tasks = projects.flatMap((project) => project.tasks);
-
-	return new Map(tasks.map((task) => [String(task.id), task]));
-};
-
-const getTasksPlanHours = (
-	taskIds: Set<string>,
-	tasksById: Map<string, TaskProps>,
-) =>
-	Array.from(taskIds).reduce((acc, taskId) => {
-		const task = tasksById.get(taskId);
-
-		return acc + toNumber(task?.[TaskCodes.estimateTime]);
-	}, 0);
-
-const getUniqueTasksPlanHours = (projects: ProfitabilityProject[]) => {
-	const tasksById = buildTaskMap(projects);
-
-	return getTasksPlanHours(new Set(tasksById.keys()), tasksById);
-};
-
-const buildTeamMembers = (
-	projects: ProfitabilityProject[],
-	users: User[],
-): TeamMember[] => {
-	const members = new Map<string, TeamMember>();
-	const tasksById = buildTaskMap(projects);
-
-	projects
-		.flatMap((project) => project.reports)
-		.forEach((report) => {
-			const userId = String(report.assignedById ?? "");
-
-			if (!userId) {
-				return;
-			}
-
-			const user = users.find((item) => String(item.id) === userId);
-			const current = members.get(userId);
-			const taskId = getReportTaskId(report);
-			const taskIds = current?.taskIds ?? new Set<string>();
-			const hours = toNumber(report[ReportCodes.timeSpent]);
-
-			if (taskId && tasksById.has(taskId)) {
-				taskIds.add(taskId);
-			}
-
-			members.set(userId, {
-				userId,
-				name: user?.title ?? `Сотрудник #${userId}`,
-				position: user?.position ?? "Не указана",
-				role: current?.role ?? getUserRole(user),
-				totalHours: (current?.totalHours ?? 0) + hours,
-				soldHours: current?.soldHours ?? 0,
-				planHours: 0,
-				factHours: (current?.factHours ?? 0) + hours,
-				taskIds,
-			});
-		});
-
-	const responsibleUserIds = new Set<string>();
-
-	projects.forEach((project) => {
-		const userId = String(project.assignedById ?? "");
-
-		if (userId) {
-			responsibleUserIds.add(userId);
-		}
-	});
-
-	responsibleUserIds.forEach((userId) => {
-		if (members.has(userId)) {
-			return;
-		}
-
-		const user = users.find((item) => String(item.id) === userId);
-
-		members.set(userId, {
-			userId,
-			name: user?.title ?? `Сотрудник #${userId}`,
-			position: user?.position ?? "Не указана",
-			role: "pm",
-			totalHours: 0,
-			soldHours: 0,
-			planHours: 0,
-			factHours: 0,
-			taskIds: new Set<string>(),
-		});
-	});
-
-	return Array.from(members.values())
-		.map((member) => ({
-			...member,
-			planHours: getTasksPlanHours(member.taskIds, tasksById),
-		}))
-		.sort((a, b) => {
-			const roleDiff =
-				ROLE_SORT_ORDER.indexOf(a.role) - ROLE_SORT_ORDER.indexOf(b.role);
-
-			if (roleDiff !== 0) {
-				return roleDiff;
-			}
-
-			return a.name.localeCompare(b.name, "ru");
-		});
-};
 
 const getGroups = (members: TeamMember[]): TeamGroup[] => {
 	const unknownMembers = members.filter((member) => member.role === "unknown");
@@ -223,7 +101,9 @@ export const DealProjectTeamCostTable = ({
 	return (
 		<section className={styles.teamCard}>
 			<div className={styles.teamHeader}>
-				<div className={styles.teamTitle}>Проектная команда и себестоимость</div>
+				<div className={styles.teamTitle}>
+					Проектная команда и себестоимость
+				</div>
 				<div className={styles.teamSubtitle}>
 					Продано клиенту / Внутренний план / Факт по отчетам
 				</div>
@@ -249,7 +129,9 @@ export const DealProjectTeamCostTable = ({
 						if (!group.members.length) {
 							return (
 								<div key={group.role} className={styles.teamRow}>
-									<span className={styles.roleCell}>{ROLE_LABELS[group.role]}</span>
+									<span className={styles.roleCell}>
+										{ROLE_LABELS[group.role]}
+									</span>
 									<div className={styles.employeeCell}>
 										<strong>—</strong>
 									</div>
@@ -331,7 +213,12 @@ export const DealProjectTeamCostTable = ({
 						<span>{formatHours(totals.totalHours)}</span>
 						<span>{formatHours(totals.soldHours)}</span>
 						<span>{formatHours(totals.planHours)}</span>
-						<span className={getFactBadgeClassName(totals.factHours, totals.planHours)}>
+						<span
+							className={getFactBadgeClassName(
+								totals.factHours,
+								totals.planHours,
+							)}
+						>
 							{formatHours(totals.factHours)}
 						</span>
 						<span>—</span>
