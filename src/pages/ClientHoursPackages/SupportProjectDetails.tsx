@@ -13,12 +13,12 @@ import type {
 	PackagePurchase,
 	SupportProjectOption,
 } from "./clientHoursPackages.types";
-import { SupportPackageReportPanel } from "./SupportPackageReportPanel";
-import { collectSupportReports } from "./supportReportEntries";
-import type { SupportProjectWorkspace } from "./supportWorkspace.api";
-import { SupportProjectWorklists } from "./SupportProjectWorklists";
 import { SupportPackageBalances } from "./SupportPackageBalances";
+import { SupportPackageReportPanel } from "./SupportPackageReportPanel";
+import { SupportProjectWorklists } from "./SupportProjectWorklists";
+import { collectSupportReports } from "./supportReportEntries";
 import type { SupportTransferCallbacks } from "./supportTransfer.model";
+import type { SupportProjectWorkspace } from "./supportWorkspace.api";
 
 type SupportProjectDetailsProps = SupportTransferCallbacks & {
 	project: SupportProjectOption | null;
@@ -237,6 +237,7 @@ export const SupportProjectDetails = ({
 			)}
 			<SupportPackageReportPanel
 				packageId={reportPurchase?.id ?? null}
+				purchaseDate={reportPurchase?.date}
 				hasPackages={purchases.length > 0}
 				refreshKey={refreshKey}
 				onCardClosed={onCardClosed}

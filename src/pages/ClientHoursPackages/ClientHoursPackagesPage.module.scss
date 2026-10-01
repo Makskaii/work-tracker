@@ -270,6 +270,16 @@
 .reportPanelHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .reportPanelHeading h2 { margin: 0; font-size: 16px; color: #e0e6e7; }
 .reportPanelHeading p { margin: 6px 0 0; color: #909c9f; font-size: 12px; line-height: 1.5; }
+.reportPeriodForm { display: grid; grid-template-columns: repeat(2, minmax(130px, 180px)) auto; align-items: end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #293235; }
+.reportPeriodForm label { display: grid; gap: 6px; color: #b6c0c4; font-size: 12px; }
+.reportPeriodForm input { width: 100%; box-sizing: border-box; min-height: 38px; padding: 8px 10px; border: 1px solid #30383b; border-radius: 7px; outline: 0; background: #111516; color: #eaf0f2; color-scheme: dark; font: inherit; }
+.reportPeriodForm input:focus { border-color: #60cfe6; }
+.reportPeriodForm input[aria-invalid="true"] { border-color: #d76a75; }
+.reportPeriodForm > button { justify-self: start; min-height: 38px; }
+.reportPeriodHint, .reportPeriodError { grid-column: 1 / -1; margin: 0; font-size: 12px; line-height: 1.5; }
+.reportPeriodHint { color: #909c9f; }
+.reportPeriodError { color: #ee9ba5; }
+@media (max-width: 720px) { .reportPeriodForm { grid-template-columns: repeat(2, minmax(0, 1fr)); } .reportPeriodForm > button { grid-column: 1 / -1; } }
 .reportChecks, .checksSuccess { margin-top: 15px; padding: 13px; border: 1px solid #786534; border-radius: 7px; background: #211d13; color: #e4c583; font-size: 12px; }
 .reportChecks p { color: #c1b48c; line-height: 1.5; }
 .reportChecks ul { padding: 0; list-style: none; }
