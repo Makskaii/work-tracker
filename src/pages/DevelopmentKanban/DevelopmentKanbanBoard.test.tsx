@@ -186,6 +186,42 @@ describe("Development kanban board", () => {
 		expect(card.getByText(/просрочен/)).toHaveTextContent("30.09");
 		expect(card.getByText("Оценка")).toBeInTheDocument();
 		expect(card.getByText("8 ч")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Открыть задачу: Задача 11" }),
+		).toHaveAccessibleDescription(/АО МРК.*Приор.*Оценка.*Дедлайн.*Редлайн/);
+	});
+
+	it("jumps to a stage and moves keyboard focus without resetting employee scroll positions", () => {
+		render(
+			<DevelopmentKanbanBoard
+				stages={stages}
+				lanes={[lane([task("11"), task("12", { stageId: "work" })])]}
+				onOpenTask={vi.fn()}
+				now={now}
+			/>,
+		);
+		const viewport = screen.getByRole("region", {
+			name: "Канбан задач разработки по стадиям",
+		});
+		const target = screen.getByRole("region", { name: "Стадия: В работе" });
+		const employeeList = screen.getByRole("region", {
+			name: "Задачи сотрудника: Валерия Дмитриева · В работе",
+		});
+		employeeList.scrollTop = 120;
+		const scrollTo = vi.fn();
+		Object.defineProperty(viewport, "scrollTo", {
+			value: scrollTo,
+			configurable: true,
+		});
+		vi.spyOn(target, "getBoundingClientRect").mockReturnValue({
+			left: 1000,
+		} as DOMRect);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Перейти к стадии: В работе" }),
+		);
+		expect(target).toHaveFocus();
+		expect(scrollTo).toHaveBeenCalledWith({ left: 1000, behavior: "auto" });
+		expect(employeeList.scrollTop).toBe(120);
 	});
 
 	it("does not flag terminal-stage dates as overdue", () => {

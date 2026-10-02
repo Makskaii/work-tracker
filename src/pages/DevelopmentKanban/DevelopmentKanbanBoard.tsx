@@ -1,4 +1,4 @@
-import { type CSSProperties, useMemo, useState } from "react";
+import { type CSSProperties, useId, useMemo, useRef, useState } from "react";
 import styles from "./DevelopmentKanbanBoard.module.scss";
 import {
 	formatKanbanDate,
@@ -94,14 +94,16 @@ const TaskCard = ({
 	terminal: boolean;
 	onOpenTask: (id: string) => void;
 }) => {
+	const descriptionId = useId();
 	return (
 		<button
 			type="button"
 			className={styles.taskCard}
 			onClick={() => onOpenTask(task.id)}
 			aria-label={`Открыть задачу: ${task.title}`}
+			aria-describedby={`${descriptionId}-priority ${descriptionId}-hours ${descriptionId}-dates`}
 		>
-			<span className={styles.taskTopLine}>
+			<span className={styles.taskTopLine} id={`${descriptionId}-priority`}>
 				<span className={styles.projectTag} title={task.projectTitle}>
 					{task.projectTitle || "Без проекта"}
 				</span>
@@ -117,7 +119,7 @@ const TaskCard = ({
 				</span>
 			</span>
 			<strong className={styles.taskTitle}>{task.title}</strong>
-			<span className={styles.taskHours}>
+			<span className={styles.taskHours} id={`${descriptionId}-hours`}>
 				<span>Оценка</span>
 				<strong>
 					{task.estimateHours === null
@@ -125,7 +127,7 @@ const TaskCard = ({
 						: `${formatHours(task.estimateHours)} ч`}
 				</strong>
 			</span>
-			<span className={styles.taskDates}>
+			<span className={styles.taskDates} id={`${descriptionId}-dates`}>
 				<TaskDate
 					label="Дедлайн"
 					date={task.deadline}
@@ -187,6 +189,8 @@ export const DevelopmentKanbanBoard = ({
 	const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
 		() => new Set(),
 	);
+	const viewportRef = useRef<HTMLDivElement>(null);
+	const stageRefs = useRef(new Map<string, HTMLElement>());
 	const groupsByStage = useMemo(() => {
 		const result = new Map<string, EmployeeGroup[]>();
 		for (const lane of lanes) {
@@ -228,6 +232,17 @@ export const DevelopmentKanbanBoard = ({
 			return next;
 		});
 	};
+	const jumpToStage = (stageId: string) => {
+		const viewport = viewportRef.current;
+		const panel = stageRefs.current.get(stageId);
+		if (!viewport || !panel) return;
+		panel.focus({ preventScroll: true });
+		const left =
+			panel.getBoundingClientRect().left -
+			viewport.getBoundingClientRect().left +
+			viewport.scrollLeft;
+		viewport.scrollTo({ left: Math.max(0, left), behavior: "auto" });
+	};
 
 	if (!stages.length) {
 		return (
@@ -238,121 +253,150 @@ export const DevelopmentKanbanBoard = ({
 	}
 
 	return (
-		<div
-			className={styles.viewport}
-			role="region"
-			aria-label="Канбан задач разработки по стадиям"
-			tabIndex={0}
-		>
-			<div
-				className={styles.board}
-				style={{ "--stage-count": stages.length } as CSSProperties}
+		<>
+			<nav
+				className={styles.stageNavigation}
+				aria-label="Быстрый переход к стадии"
 			>
-				{stages.map((stage) => {
-					const groups = groupsByStage.get(stage.id) ?? [];
-					const taskCount = groups.reduce(
-						(sum, group) => sum + group.tasks.length,
-						0,
-					);
-					const colorStyle = {
-						"--stage-color": stage.color || "#69d7ef",
-					} as CSSProperties;
-					return (
-						<section
-							key={stage.id}
-							className={styles.column}
-							style={colorStyle}
-							aria-label={`Стадия: ${stage.name}`}
-						>
-							<div className={styles.stageHeading}>
-								<h2>{stage.name}</h2>
-								<span
-									className={styles.stageCount}
-									aria-label={`${stage.name}: ${taskCountLabel(taskCount)}`}
-								>
-									{taskCount}
-								</span>
-							</div>
-							<div
-								className={styles.columnBody}
-								role="region"
-								aria-label={`Задачи стадии: ${stage.name}`}
-								tabIndex={0}
+				{stages.map((stage) => (
+					<button
+						key={stage.id}
+						type="button"
+						className={styles.stageJump}
+						aria-label={`Перейти к стадии: ${stage.name}`}
+						onClick={() => jumpToStage(stage.id)}
+					>
+						<span
+							className={styles.stageJumpDot}
+							style={{ backgroundColor: stage.color || "#69d7ef" }}
+							aria-hidden="true"
+						/>
+						{stage.name}
+					</button>
+				))}
+			</nav>
+			<div
+				ref={viewportRef}
+				className={styles.viewport}
+				role="region"
+				aria-label="Канбан задач разработки по стадиям"
+				tabIndex={0}
+			>
+				<div className={styles.board}>
+					{stages.map((stage) => {
+						const groups = groupsByStage.get(stage.id) ?? [];
+						const taskCount = groups.reduce(
+							(sum, group) => sum + group.tasks.length,
+							0,
+						);
+						const colorStyle = {
+							"--stage-color": stage.color || "#69d7ef",
+							"--employee-count": Math.max(groups.length, 1),
+						} as CSSProperties;
+						return (
+							<section
+								ref={(node) => {
+									if (node) stageRefs.current.set(stage.id, node);
+									else stageRefs.current.delete(stage.id);
+								}}
+								key={stage.id}
+								className={styles.column}
+								style={colorStyle}
+								aria-label={`Стадия: ${stage.name}`}
+								tabIndex={-1}
 							>
-								{groups.length ? (
-									groups.map((group) => {
-										const { lane, tasks, projects, hours, missingEstimates } =
-											group;
-										const groupKey = JSON.stringify([stage.id, lane.id]);
-										const collapsed = collapsedGroups.has(groupKey);
-										const groupContentId = `development-kanban-group-${encodeURIComponent(groupKey)}`;
-										return (
-											<section
-												key={lane.id}
-												className={styles.employeeGroup}
-												aria-label={`${lane.name} · ${stage.name}`}
-											>
-												<button
-													type="button"
-													className={styles.employeeHeading}
-													onClick={() => toggleGroup(groupKey)}
-													aria-expanded={!collapsed}
-													aria-controls={groupContentId}
-													aria-label={`${collapsed ? "Развернуть" : "Свернуть"} задачи: ${lane.name} · ${stage.name}`}
+								<div className={styles.stageHeading}>
+									<h2>{stage.name}</h2>
+									<span
+										className={styles.stageCount}
+										aria-label={`${stage.name}: ${taskCountLabel(taskCount)}`}
+									>
+										{taskCount}
+									</span>
+								</div>
+								<div
+									className={styles.columnBody}
+									role="region"
+									aria-label={`Задачи стадии: ${stage.name}`}
+								>
+									{groups.length ? (
+										groups.map((group) => {
+											const { lane, tasks, projects, hours, missingEstimates } =
+												group;
+											const groupKey = JSON.stringify([stage.id, lane.id]);
+											const collapsed = collapsedGroups.has(groupKey);
+											const groupContentId = `development-kanban-group-${encodeURIComponent(groupKey)}`;
+											return (
+												<section
+													key={lane.id}
+													className={styles.employeeGroup}
+													aria-label={`${lane.name} · ${stage.name}`}
 												>
-													<span className={styles.employeeIdentity}>
-														<EmployeeAvatar lane={lane} />
-														<strong className={styles.employeeName}>
-															{lane.name}
-														</strong>
-														<span
-															className={`${styles.collapseChevron} ${collapsed ? styles.collapseChevronClosed : ""}`}
-															aria-hidden="true"
-														>
-															⌄
+													<button
+														type="button"
+														className={styles.employeeHeading}
+														onClick={() => toggleGroup(groupKey)}
+														aria-expanded={!collapsed}
+														aria-controls={groupContentId}
+														aria-label={`${collapsed ? "Развернуть" : "Свернуть"} задачи: ${lane.name} · ${stage.name}`}
+													>
+														<span className={styles.employeeIdentity}>
+															<EmployeeAvatar lane={lane} />
+															<strong className={styles.employeeName}>
+																{lane.name}
+															</strong>
+															<span
+																className={`${styles.collapseChevron} ${collapsed ? styles.collapseChevronClosed : ""}`}
+																aria-hidden="true"
+															>
+																⌄
+															</span>
 														</span>
-													</span>
-													<span className={styles.groupSummary}>
-														<span>{taskCountLabel(tasks.length)}</span>
-														<span>{projectCountLabel(projects)}</span>
-														<strong>
-															{hours === null
-																? "Оценки не заданы"
-																: `${formatHours(hours)} ч`}
-														</strong>
-													</span>
-													{missingEstimates > 0 && (
-														<span className={styles.missingEstimates}>
-															Без оценки: {missingEstimates}
+														<span className={styles.groupSummary}>
+															<span>{taskCountLabel(tasks.length)}</span>
+															<span>{projectCountLabel(projects)}</span>
+															<strong>
+																{hours === null
+																	? "Оценки не заданы"
+																	: `${formatHours(hours)} ч`}
+															</strong>
 														</span>
-													)}
-												</button>
-												<div
-													id={groupContentId}
-													className={styles.taskList}
-													hidden={collapsed}
-												>
-													{tasks.map((task) => (
-														<TaskCard
-															key={task.id}
-															task={task}
-															now={now}
-															terminal={Boolean(stage.terminal)}
-															onOpenTask={onOpenTask}
-														/>
-													))}
-												</div>
-											</section>
-										);
-									})
-								) : (
-									<div className={styles.emptyColumn}>Нет задач</div>
-								)}
-							</div>
-						</section>
-					);
-				})}
+														{missingEstimates > 0 && (
+															<span className={styles.missingEstimates}>
+																Без оценки: {missingEstimates}
+															</span>
+														)}
+													</button>
+													<div
+														id={groupContentId}
+														className={styles.taskList}
+														role="region"
+														aria-label={`Задачи сотрудника: ${lane.name} · ${stage.name}`}
+														tabIndex={0}
+														hidden={collapsed}
+													>
+														{tasks.map((task) => (
+															<TaskCard
+																key={task.id}
+																task={task}
+																now={now}
+																terminal={Boolean(stage.terminal)}
+																onOpenTask={onOpenTask}
+															/>
+														))}
+													</div>
+												</section>
+											);
+										})
+									) : (
+										<div className={styles.emptyColumn}>Нет задач</div>
+									)}
+								</div>
+							</section>
+						);
+					})}
+				</div>
 			</div>
-		</div>
+		</>
 	);
 };
