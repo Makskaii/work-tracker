@@ -234,6 +234,12 @@ const WeekCalendar = ({
 						reports: groupedReports,
 						users: scopeUsers,
 					});
+					const summaryDeficits = getDayHourDeficits({
+						date: day.date,
+						reports: groupedReports,
+						users: scopeUsers,
+						includeToday: true,
+					});
 					const confirmedReports = groupedReports.filter(
 						(report) => report.stageId === ReportStageIds.confirmed,
 					);
@@ -254,7 +260,7 @@ const WeekCalendar = ({
 						internalProjectIds,
 					);
 					const openDayReports = (category?: ReportCategory) => {
-						setActiveDeficits(deficits);
+						setActiveDeficits(summaryDeficits);
 						setActiveReports(
 							category
 								? groupedReports.filter(
@@ -295,7 +301,7 @@ const WeekCalendar = ({
 							<button
 								type="button"
 								className={cls.dayTopline}
-								disabled={!reports.length && !deficits.length}
+								disabled={!reports.length && !summaryDeficits.length}
 								onClick={() => openDayReports()}
 								aria-label={`Все отчёты за ${day.dayNumber}: ${reports.length}`}
 							>

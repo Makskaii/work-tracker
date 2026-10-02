@@ -180,6 +180,68 @@ describe.each<View>(["month", "week"])("%s calendar hour warnings", (view) => {
 		).not.toBeInTheDocument();
 	});
 
+	it("opens today's summary without reports while leaving the calendar card unmarked", async () => {
+		mountCalendar(view);
+		const card = await screen.findByLabelText(/29 сентября:/);
+		const trigger =
+			view === "month"
+				? card
+				: within(card).getByRole("button", { name: "Все отчёты за 29: 0" });
+		expect(trigger).not.toBeDisabled();
+		fireEvent.click(trigger);
+		const summary = await screen.findByRole("region", {
+			name: "Недостающие часы",
+		});
+		expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
+		expect(summary).toHaveTextContent("Анна0 ч из 8 ч −8 ч");
+		expect(summary).toHaveTextContent("Михаил0 ч из 8 ч −8 ч");
+		expect(summary).not.toHaveTextContent("Бывший сотрудник");
+		expect(card).toHaveAttribute("data-deficit", "false");
+	});
+
+	it("lists today's deficit in the summary and counts absence hours toward the norm", async () => {
+		const reports = [
+			makeReport("10", "1", "2"),
+			makeReport("11", "2", "6"),
+			makeReport("12", "2", "2", ActivityType.notAtWork),
+		].map((report) => ({ ...report, day: "2026-09-29T12:00:00" }));
+		mountCalendar(view, reports);
+		const card = await screen.findByLabelText(/29 сентября:/);
+		expect(card).toHaveAttribute("data-deficit", "false");
+		expect(within(card).queryByText(/Меньше 8 ч:/)).not.toBeInTheDocument();
+		fireEvent.click(
+			view === "month"
+				? card
+				: within(card).getByRole("button", { name: "Все отчёты за 29: 3" }),
+		);
+		const summary = await screen.findByRole("region", {
+			name: "Недостающие часы",
+		});
+		expect(within(summary).getAllByRole("listitem")).toHaveLength(1);
+		expect(summary).toHaveTextContent("Анна2 ч из 8 ч −6 ч");
+		expect(summary).not.toHaveTextContent("Михаил");
+	});
+
+	it("does not show today's deficit summary once the selected employee reaches eight hours", async () => {
+		mountCalendar(
+			view,
+			[
+				{ ...makeReport("10", "1", "8"), day: "2026-09-29T12:00:00" },
+			],
+			"1",
+		);
+		const card = await screen.findByLabelText(/29 сентября:/);
+		fireEvent.click(
+			view === "month"
+				? card
+				: within(card).getByRole("button", { name: "Все отчёты за 29: 1" }),
+		);
+		expect(await screen.findByRole("dialog")).toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: "Недостающие часы" }),
+		).not.toBeInTheDocument();
+	});
+
 	it("does not require reports on an inactive employee's empty day", async () => {
 		mountCalendar(view, [], "3");
 		const card = await screen.findByLabelText(/28 сентября:/);

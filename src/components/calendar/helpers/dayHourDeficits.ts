@@ -21,6 +21,7 @@ export const getDayHourDeficits = ({
 	users,
 	now = new Date(),
 	isPadding = false,
+	includeToday = false,
 }: {
 	date: Date | null;
 	reports: readonly Pick<
@@ -30,11 +31,14 @@ export const getDayHourDeficits = ({
 	users: readonly Pick<User, "id" | "title" | "isActive">[];
 	now?: Date;
 	isPadding?: boolean;
+	includeToday?: boolean;
 }): DayHourDeficit[] => {
 	if (
 		isPadding ||
 		!date ||
-		!(startOfLocalDay(date) < startOfLocalDay(now)) ||
+		!(includeToday
+			? startOfLocalDay(date) <= startOfLocalDay(now)
+			: startOfLocalDay(date) < startOfLocalDay(now)) ||
 		date.getDay() === 0 ||
 		date.getDay() === 6
 	) {
