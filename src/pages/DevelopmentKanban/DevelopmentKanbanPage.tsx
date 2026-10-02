@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
@@ -23,13 +23,46 @@ const formatHours = (hours: number) =>
 const KanbanWorkspace = () => {
 	const { data, loading, isRefreshing, error, updatedAt, refresh } =
 		useKanbanData();
-	const { openTask } = useBitrixSlider();
+	const { b24, openTask } = useBitrixSlider();
+	const mountedRef = useRef(false);
+	const externalCardRef = useRef<{ leftApp: boolean } | null>(null);
 	const [query, setQuery] = useState("");
 	const [employeeId, setEmployeeId] = useState("");
 	const [projectId, setProjectId] = useState("");
 	const [showBacklog, setShowBacklog] = useState(false);
 	const [onlyOverdue, setOnlyOverdue] = useState(false);
 	const [openingError, setOpeningError] = useState<string | null>(null);
+	useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+			externalCardRef.current = null;
+		};
+	}, []);
+	useEffect(() => {
+		if (b24) return;
+		const markAway = () => {
+			if (externalCardRef.current) externalCardRef.current.leftApp = true;
+		};
+		const refreshOnReturn = () => {
+			if (document.hidden || !externalCardRef.current?.leftApp) return;
+			externalCardRef.current = null;
+			refresh();
+		};
+		const onVisibilityChange = () => {
+			if (document.hidden) markAway();
+			else refreshOnReturn();
+		};
+		window.addEventListener("blur", markAway);
+		window.addEventListener("focus", refreshOnReturn);
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		return () => {
+			window.removeEventListener("blur", markAway);
+			window.removeEventListener("focus", refreshOnReturn);
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+			externalCardRef.current = null;
+		};
+	}, [b24, refresh]);
 	const now = new Date();
 	const peopleOptions = useMemo(
 		() =>
@@ -84,10 +117,22 @@ const KanbanWorkspace = () => {
 	).length;
 	const openCard = async (id: string) => {
 		setOpeningError(null);
+		if (!b24) externalCardRef.current = { leftApp: false };
 		try {
-			await openTask(id, EntityTypeIds.tasks);
+			const result = await openTask(id, EntityTypeIds.tasks);
+			if (
+				mountedRef.current &&
+				result &&
+				"isClose" in result &&
+				result.isClose
+			) {
+				refresh();
+			}
 		} catch {
-			setOpeningError("Не удалось открыть задачу. Повторите попытку.");
+			externalCardRef.current = null;
+			if (mountedRef.current) {
+				setOpeningError("Не удалось открыть задачу. Повторите попытку.");
+			}
 		}
 	};
 	const reload = () => {

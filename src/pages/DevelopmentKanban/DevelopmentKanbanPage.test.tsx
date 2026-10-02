@@ -1,4 +1,5 @@
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -21,6 +22,7 @@ const source = vi.hoisted(() => ({
 	updatedAt: new Date("2026-10-02T07:00:00Z"),
 	refresh: vi.fn(),
 	openTask: vi.fn(),
+	b24: {} as object | null,
 }));
 
 vi.mock("@/components/protectedRoute/CheckPermission", () => ({
@@ -28,7 +30,7 @@ vi.mock("@/components/protectedRoute/CheckPermission", () => ({
 }));
 vi.mock("./useKanbanData", () => ({ useKanbanData: () => source }));
 vi.mock("@/shared/hooks/useBitrixSlider", () => ({
-	useBitrixSlider: () => ({ openTask: source.openTask }),
+	useBitrixSlider: () => ({ b24: source.b24, openTask: source.openTask }),
 }));
 
 const UNFORMED = "DT1072_18:UC_A9IWFS";
@@ -84,9 +86,16 @@ beforeEach(() => {
 	source.loading = false;
 	source.isRefreshing = false;
 	source.error = null;
-	source.openTask.mockResolvedValue(undefined);
+	source.b24 = {};
+	source.openTask.mockResolvedValue({
+		isClose: true,
+		isOpenAtNewWindow: false,
+	});
 });
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+});
 
 describe("development kanban workspace", () => {
 	it("shows new active native stages by default and adds only backlog and unformed work when toggled", () => {
@@ -149,12 +158,207 @@ describe("development kanban workspace", () => {
 				"Не удалось открыть задачу. Повторите попытку.",
 			);
 		});
+		expect(source.refresh).not.toHaveBeenCalled();
 		fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
 		expect(source.refresh).toHaveBeenCalledTimes(1);
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "Открыть задачу: Работа спринта" }),
 		).toBeInTheDocument();
+	});
+
+	it("refreshes after the task slider closes and keeps the board usable with its filters, groups and scroll positions", async () => {
+		let closeSlider:
+			| ((value: { isClose: boolean; isOpenAtNewWindow: boolean }) => void)
+			| undefined;
+		source.openTask.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					closeSlider = resolve;
+				}),
+		);
+		const { rerender } = render(<DevelopmentKanbanPage />);
+		fireEvent.change(screen.getByRole("combobox", { name: "Сотрудник" }), {
+			target: { value: "13" },
+		});
+		fireEvent.change(screen.getByRole("combobox", { name: "Проект" }), {
+			target: { value: "77" },
+		});
+		fireEvent.change(screen.getByRole("searchbox", { name: "Поиск" }), {
+			target: { value: "Работа" },
+		});
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Свернуть задачи: Дарья Смирнова · Согласование релиза",
+			}),
+		);
+		const viewport = board();
+		const employeeList = screen.getByRole("region", {
+			name: "Задачи сотрудника: Дарья Смирнова · Спринт",
+		});
+		viewport.scrollLeft = 420;
+		employeeList.scrollTop = 155;
+		const card = screen.getByRole("button", {
+			name: "Открыть задачу: Работа спринта",
+		});
+		fireEvent.click(card);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		expect(source.openTask).toHaveBeenCalledWith("103", EntityTypeIds.tasks);
+		expect(source.refresh).not.toHaveBeenCalled();
+		await act(async () => {
+			closeSlider?.({ isClose: true, isOpenAtNewWindow: false });
+		});
+		expect(source.refresh).toHaveBeenCalledTimes(1);
+
+		source.isRefreshing = true;
+		rerender(<DevelopmentKanbanPage />);
+		expect(board()).toBe(viewport);
+		expect(
+			screen.getByRole("region", {
+				name: "Задачи сотрудника: Дарья Смирнова · Спринт",
+			}),
+		).toBe(employeeList);
+		expect(
+			screen.getByRole("button", {
+				name: "Открыть задачу: Работа спринта",
+			}),
+		).toBe(card);
+		expect(card).toBeEnabled();
+		expect(viewport.scrollLeft).toBe(420);
+		expect(employeeList.scrollTop).toBe(155);
+		expect(screen.getByRole("combobox", { name: "Сотрудник" })).toHaveValue(
+			"13",
+		);
+		expect(screen.getByRole("combobox", { name: "Проект" })).toHaveValue("77");
+		expect(screen.getByRole("searchbox", { name: "Поиск" })).toHaveValue(
+			"Работа",
+		);
+		expect(
+			screen.getByRole("button", {
+				name: "Развернуть задачи: Дарья Смирнова · Согласование релиза",
+			}),
+		).toHaveAttribute("aria-expanded", "false");
+		expect(screen.getByRole("button", { name: "Обновляется…" })).toBeDisabled();
+		expect(screen.queryByText(/Загружаем задачи/)).not.toBeInTheDocument();
+		source.openTask.mockImplementationOnce(
+			() =>
+				new Promise(() => {
+					// The second task card remains open while the board is refreshing.
+				}),
+		);
+		fireEvent.click(card);
+		expect(source.openTask).toHaveBeenCalledTimes(2);
+		expect(source.refresh).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([
+		undefined,
+		{ isClose: false, isOpenAtNewWindow: false },
+	])("does not refresh if opening the task does not confirm slider closure: %j", async (result) => {
+		source.openTask.mockResolvedValueOnce(result);
+		render(<DevelopmentKanbanPage />);
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Открыть задачу: Работа спринта",
+			}),
+		);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		expect(source.openTask).toHaveBeenCalledTimes(1);
+		expect(source.refresh).not.toHaveBeenCalled();
+	});
+
+	it("ignores a slider closing after leaving the kanban", async () => {
+		let closeSlider:
+			| ((value: { isClose: boolean; isOpenAtNewWindow: boolean }) => void)
+			| undefined;
+		source.openTask.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					closeSlider = resolve;
+				}),
+		);
+		const { unmount } = render(<DevelopmentKanbanPage />);
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Открыть задачу: Работа спринта",
+			}),
+		);
+		unmount();
+		await act(async () => {
+			closeSlider?.({ isClose: true, isOpenAtNewWindow: false });
+		});
+		expect(source.refresh).not.toHaveBeenCalled();
+	});
+
+	it("refreshes once when returning from an external task window and ignores unrelated focus changes", async () => {
+		source.b24 = null;
+		source.openTask.mockResolvedValue(null);
+		vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+		const { unmount } = render(<DevelopmentKanbanPage />);
+		fireEvent.blur(window);
+		fireEvent.focus(window);
+		expect(source.refresh).not.toHaveBeenCalled();
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Открыть задачу: Работа спринта",
+			}),
+		);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		fireEvent.focus(window);
+		expect(source.refresh).not.toHaveBeenCalled();
+		fireEvent.blur(window);
+		fireEvent.focus(window);
+		expect(source.refresh).toHaveBeenCalledTimes(1);
+		fireEvent.focus(window);
+		fireEvent(document, new Event("visibilitychange"));
+		fireEvent.blur(window);
+		fireEvent.focus(window);
+		expect(source.refresh).toHaveBeenCalledTimes(1);
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Открыть задачу: Работа спринта",
+			}),
+		);
+		fireEvent.blur(window);
+		unmount();
+		fireEvent.focus(window);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		expect(source.refresh).toHaveBeenCalledTimes(1);
+	});
+
+	it("refreshes once when an external task tab returns to visibility, including when no window handle is available", async () => {
+		source.b24 = null;
+		source.openTask.mockResolvedValue(null);
+		let hidden = false;
+		vi.spyOn(document, "hidden", "get").mockImplementation(() => hidden);
+		render(<DevelopmentKanbanPage />);
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Открыть задачу: Работа спринта",
+			}),
+		);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		expect(source.refresh).not.toHaveBeenCalled();
+		hidden = true;
+		fireEvent(document, new Event("visibilitychange"));
+		fireEvent.focus(window);
+		expect(source.refresh).not.toHaveBeenCalled();
+		hidden = false;
+		fireEvent(document, new Event("visibilitychange"));
+		expect(source.refresh).toHaveBeenCalledTimes(1);
+		fireEvent.focus(window);
+		fireEvent(document, new Event("visibilitychange"));
+		expect(source.refresh).toHaveBeenCalledTimes(1);
 	});
 
 	it("keeps employee, project and search filters while refreshing and applies them to the updated tasks", () => {
