@@ -307,6 +307,13 @@ const CalendarMonth = ({
 							users: scopeUsers,
 							isPadding: !day.isCurrentMonth,
 						});
+						const summaryDeficits = getDayHourDeficits({
+							date: day.date,
+							reports,
+							users: scopeUsers,
+							isPadding: !day.isCurrentMonth,
+							includeToday: true,
+						});
 						const dayState = getCalendarDayState({
 							date: day.date,
 							reports,
@@ -315,7 +322,7 @@ const CalendarMonth = ({
 							hasHourDeficit: deficits.length > 0,
 						});
 						const hasReports = dayState !== "blank" && reports.length > 0;
-						const canOpenDay = hasReports || deficits.length > 0;
+						const canOpenDay = hasReports || summaryDeficits.length > 0;
 						const dayTitle =
 							dayState === "blank"
 								? undefined
@@ -342,7 +349,7 @@ const CalendarMonth = ({
 								aria-label={dayTitle}
 								onClick={() => {
 									if (!canOpenDay) return;
-									setActiveDeficits(deficits);
+									setActiveDeficits(summaryDeficits);
 
 									resetModalFilters();
 									setActiveReports(day.reports ?? []);

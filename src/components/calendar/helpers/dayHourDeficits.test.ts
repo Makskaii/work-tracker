@@ -92,6 +92,51 @@ describe("daily reporting deficits", () => {
 		]);
 	});
 
+	it("optionally includes today's local date but still excludes future, weekends and padding", () => {
+		for (const date of [
+			new Date(2026, 8, 29, 0, 0),
+			new Date(2026, 8, 29, 23, 59),
+		]) {
+			expect(
+				getDayHourDeficits({
+					date,
+					reports: [report("1", "2")],
+					users: [user("1")],
+					now,
+					includeToday: true,
+				}),
+			).toEqual([
+				{ userId: "1", title: "Employee 1", hours: 2, missingHours: 6 },
+			]);
+		}
+		for (const date of [
+			null,
+			new Date(2026, 8, 30),
+			new Date(2026, 8, 26),
+			new Date(2026, 8, 27),
+		]) {
+			expect(
+				getDayHourDeficits({
+					date,
+					reports: [],
+					users: [user("1")],
+					now,
+					includeToday: true,
+				}),
+			).toEqual([]);
+		}
+		expect(
+			getDayHourDeficits({
+				date: now,
+				reports: [],
+				users: [user("1")],
+				now,
+				includeToday: true,
+				isPadding: true,
+			}),
+		).toEqual([]);
+	});
+
 	it("includes former employees only on days with a report, even if unconfirmed", () => {
 		expect(
 			deficits(
