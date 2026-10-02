@@ -11,6 +11,7 @@ const mockInitializeB24Frame = vi.fn();
 const mockAbilityUpdate = vi.fn();
 const mockCallMake = vi.fn();
 const mockGetDepartmentsHeads = vi.fn();
+const mockReportDepartmentIds = vi.fn();
 const originalTopDescriptor = Object.getOwnPropertyDescriptor(window, "top");
 
 vi.mock("@bitrix24/b24jssdk", () => ({
@@ -30,7 +31,10 @@ vi.mock("../../shared/config/ability/casl", () => ({
 }));
 
 vi.mock("@/shared/api/getDepartments", () => ({
-	getDepartmentsHeads: mockGetDepartmentsHeads,
+	getWorkTrackerDepartmentAccess: async () => ({
+		heads: await mockGetDepartmentsHeads(),
+		reportDepartmentIds: mockReportDepartmentIds(),
+	}),
 }));
 
 vi.mock("react-router", async () => {
@@ -62,6 +66,7 @@ describe("MainLayout", () => {
 		vi.clearAllMocks();
 		vi.resetModules();
 		mockGetDepartmentsHeads.mockResolvedValue([]);
+		mockReportDepartmentIds.mockReturnValue([23, 25]);
 	});
 
 	afterEach(() => {
@@ -79,11 +84,11 @@ describe("MainLayout", () => {
 		});
 	};
 
-	const renderComponent = async () => {
+	const renderComponent = async (pathname = "/") => {
 		const { MainLayout } = await import("./MainLayout");
 
 		return render(
-			<MemoryRouter>
+			<MemoryRouter initialEntries={[pathname]}>
 				<MainLayout />
 			</MemoryRouter>,
 		);
@@ -117,29 +122,173 @@ describe("MainLayout", () => {
 	});
 
 	describe("production mode", () => {
-		it.each([false, true])(
-			"restores Valeria's reports and client accounts inside Bitrix (DEV=%s)",
-			async (devMode) => {
-				vi.stubEnv("DEV", devMode);
-				mockEmbeddedWindow();
-				mockGetDepartmentsHeads.mockResolvedValue(["1", "3", "6", "11"]);
-				mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
-				mockCallMake.mockResolvedValue({
-					getData: () => ({ result: { ID: "89", UF_DEPARTMENT: [26] } }),
-				});
+		it.each([
+			false,
+			true,
+		])("allows ordinary developers inside Bitrix (DEV=%s)", async (devMode) => {
+			vi.stubEnv("DEV", devMode);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [23] } }),
+			});
+			await renderComponent();
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+				]),
+			);
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
 
-				await renderComponent();
+		it.each([
+			{ departments: [7, "23"] },
+			{ departments: [7, "25"] },
+			{ departments: "23" },
+		])("recognizes eligible departments across every membership and scalar API values: %s", async ({
+			departments,
+		}) => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "30", UF_DEPARTMENT: departments } }),
+			});
+			await renderComponent("/development-kanban");
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith(
+					expect.arrayContaining([{ action: "read", subject: "post" }]),
+				),
+			);
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
 
-				await waitFor(() => {
-					expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
-						{ action: "read", subject: "post" },
-						{ action: "create-client", subject: "client" },
-					]);
-				});
-				expect(mockCallMake).toHaveBeenCalledWith({ method: "user.current" });
-				expect(mockNavigate).not.toHaveBeenCalled();
-			},
-		);
+		it("allows employees in a nested development department", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockReportDepartmentIds.mockReturnValue([23, 25, 29, 30]);
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [30] } }),
+			});
+			await renderComponent();
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+				]),
+			);
+		});
+
+		it("keeps development access when department metadata fails", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockGetDepartmentsHeads.mockRejectedValue(
+				new Error("metadata unavailable"),
+			);
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [23] } }),
+			});
+			await renderComponent();
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+				]),
+			);
+		});
+
+		it("does not grant department access when the current user cannot be identified", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockRejectedValue(new Error("user lookup failed"));
+			await renderComponent();
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([]),
+			);
+		});
+
+		it("allows a Bitrix administrator without department membership", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			const frame = createMockB24Instance();
+			frame.auth.isAdmin = true;
+			mockInitializeB24Frame.mockResolvedValue(frame);
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [] } }),
+			});
+			await renderComponent();
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+					{ action: "create-client", subject: "client" },
+				]),
+			);
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
+
+		it("keeps verified administrator access when both role lookups fail", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			const frame = createMockB24Instance();
+			frame.auth.isAdmin = true;
+			mockInitializeB24Frame.mockResolvedValue(frame);
+			mockGetDepartmentsHeads.mockRejectedValue(
+				new Error("metadata unavailable"),
+			);
+			mockCallMake.mockRejectedValue(new Error("user lookup failed"));
+			await renderComponent();
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+					{ action: "create-client", subject: "client" },
+				]),
+			);
+		});
+
+		it.each([
+			"/reports/calendar",
+			"/development-kanban",
+		])("keeps an analyst's requested page %s instead of redirecting to the client form", async (pathname) => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [25] } }),
+			});
+			await renderComponent(pathname);
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+					{ action: "create-client", subject: "client" },
+				]),
+			);
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
+
+		it.each([
+			false,
+			true,
+		])("restores Valeria's reports and client accounts inside Bitrix (DEV=%s)", async (devMode) => {
+			vi.stubEnv("DEV", devMode);
+			mockEmbeddedWindow();
+			mockGetDepartmentsHeads.mockResolvedValue(["1", "3", "6", "11"]);
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({
+				getData: () => ({ result: { ID: "89", UF_DEPARTMENT: [26] } }),
+			});
+
+			await renderComponent();
+
+			await waitFor(() => {
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+					{ action: "read", subject: "post" },
+					{ action: "create-client", subject: "client" },
+				]);
+			});
+			expect(mockCallMake).toHaveBeenCalledWith({ method: "user.current" });
+			expect(mockNavigate).not.toHaveBeenCalled();
+		});
 
 		it("does not extend Valeria's individual access to the whole department", async () => {
 			vi.stubEnv("DEV", false);
@@ -152,7 +301,9 @@ describe("MainLayout", () => {
 
 			await renderComponent();
 
-			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([]));
+			await waitFor(() =>
+				expect(mockAbilityUpdate).toHaveBeenLastCalledWith([]),
+			);
 			expect(mockNavigate).not.toHaveBeenCalled();
 		});
 
@@ -311,6 +462,7 @@ describe("MainLayout", () => {
 
 			await waitFor(() => {
 				expect(mockAbilityUpdate).toHaveBeenCalledWith([
+					{ action: "read", subject: "post" },
 					{
 						action: "create-client",
 						subject: "client",

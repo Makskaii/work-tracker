@@ -1,10 +1,13 @@
 import type { B24Frame } from "@bitrix24/b24jssdk";
 import { initializeB24Frame, LoggerFactory } from "@bitrix24/b24jssdk";
-import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router";
-import { getDepartmentsHeads } from "@/shared/api/getDepartments";
+import { useEffect, useRef, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router";
+import { getWorkTrackerDepartmentAccess } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
-import { DEPARTMENT_IDS, REPORT_ACCESS_USER_IDS } from "@/shared/constants/const";
+import {
+	DEPARTMENT_IDS,
+	REPORT_ACCESS_USER_IDS,
+} from "@/shared/constants/const";
 import { type CurrentUserDepartmentInfo } from "@/shared/hooks/useCurrentBitrixUser";
 import { ability } from "../../shared/config/ability/casl";
 import { Spinner } from "../spinner/Spinner";
@@ -54,7 +57,11 @@ const BitrixFrameUnavailable = () => (
 				Не удалось получить сессию приложения. Обновите приложение, чтобы
 				повторить подключение с вашими правами.
 			</p>
-			<button type="button" onClick={() => window.location.reload()} style={{ marginTop: 16 }}>
+			<button
+				type="button"
+				onClick={() => window.location.reload()}
+				style={{ marginTop: 16 }}
+			>
 				Подключиться заново
 			</button>
 		</div>
@@ -65,6 +72,8 @@ export const MainLayout = () => {
 	const [b24, setB24] = useState<B24Frame | null>(null);
 	const [frameStatus, setFrameStatus] = useState<BitrixFrameStatus>("loading");
 	const navigate = useNavigate();
+	const location = useLocation();
+	const initialPathname = useRef(location.pathname).current;
 
 	useEffect(() => {
 		let isMounted = true;
@@ -82,11 +91,14 @@ export const MainLayout = () => {
 
 			if (!user) return null;
 
+			const departments = Array.isArray(user.UF_DEPARTMENT)
+				? user.UF_DEPARTMENT
+				: [user.UF_DEPARTMENT];
 			return {
 				userId: Number(user.ID) || null,
-				departmentIds: Array.isArray(user.UF_DEPARTMENT)
-					? user.UF_DEPARTMENT.map((id: string | number) => Number(id))
-					: [],
+				departmentIds: departments
+					.map((id: string | number) => Number(id))
+					.filter((id: number) => Number.isFinite(id) && id > 0),
 			};
 		};
 
@@ -147,20 +159,33 @@ export const MainLayout = () => {
 				// A failed lookup must not discard the initialized portal session.
 				setB24(frame);
 
-				const [departmentHeads, currUser] = await Promise.all([
-					getDepartmentsHeads(),
+				const [headsResult, userResult] = await Promise.allSettled([
+					getWorkTrackerDepartmentAccess(),
 					getCurrentUserDepartmentInfo(frame),
 				]);
-				const data = new Set(departmentHeads.filter(Boolean));
+				const departmentHeads =
+					headsResult.status === "fulfilled" ? headsResult.value.heads : [];
+				const reportDepartmentIds = new Set([
+					DEPARTMENT_IDS.DEV,
+					DEPARTMENT_IDS.ANALYTICS,
+					...(headsResult.status === "fulfilled"
+						? headsResult.value.reportDepartmentIds
+						: []),
+				]);
+				const currUser =
+					userResult.status === "fulfilled" ? userResult.value : null;
+				const data = new Set(departmentHeads.filter(Boolean).map(String));
+				const isAdmin = frame.auth?.isAdmin === true;
 
 				if (!isMounted) {
 					return;
 				}
 
 				if (
-					currUser?.userId &&
-					(data.has(String(currUser.userId)) ||
-						REPORT_ACCESS_USER_IDS.has(currUser.userId))
+					isAdmin ||
+					(currUser?.userId &&
+						(data.has(String(currUser.userId)) ||
+							REPORT_ACCESS_USER_IDS.has(currUser.userId)))
 				) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
@@ -170,6 +195,13 @@ export const MainLayout = () => {
 						action: "create-client",
 						subject: "client",
 					});
+				}
+
+				if (
+					currUser?.userId &&
+					currUser.departmentIds.some((id) => reportDepartmentIds.has(id))
+				) {
+					addRuleIfMissing(nextRules, { action: "read", subject: "post" });
 				}
 
 				if (currUser?.userId === 10 || currUser?.userId === 16) {
@@ -203,7 +235,10 @@ export const MainLayout = () => {
 					setB24(frame);
 					setFrameStatus("ready");
 
-					if (redirectTo) {
+					if (
+						redirectTo &&
+						(initialPathname === "/" || initialPathname === "/reports")
+					) {
 						navigate(redirectTo, { replace: true });
 					}
 				}
@@ -225,7 +260,7 @@ export const MainLayout = () => {
 			// here breaks later mounts and StrictMode: the loader returns the
 			// same frame with its message subscription already removed.
 		};
-	}, [navigate]);
+	}, [navigate, initialPathname]);
 
 	if (frameStatus === "loading") {
 		return <Spinner />;
@@ -257,8 +292,7 @@ export const MainLayout = () => {
 						minWidth: 0,
 						overflow: "auto",
 						width: "100%",
-						padding:
-							"0 0 0 var(--app-sidebar-width, 72px)",
+						padding: "0 0 0 var(--app-sidebar-width, 72px)",
 						background: "#0d0f11",
 						transition: "padding-left 0.2s ease",
 					}}

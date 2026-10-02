@@ -12,7 +12,12 @@ vi.mock("@bitrix24/b24jssdk", () => ({
 	initializeB24Frame: mocks.initialize,
 	LoggerFactory: { createForBrowser: () => ({ error: vi.fn() }) },
 }));
-vi.mock("@/shared/api/getDepartments", () => ({ getDepartmentsHeads: mocks.departments }));
+vi.mock("@/shared/api/getDepartments", () => ({
+	getWorkTrackerDepartmentAccess: async () => ({
+		heads: await mocks.departments(),
+		reportDepartmentIds: [23, 25],
+	}),
+}));
 vi.mock("@/shared/config/ability/casl", () => ({ ability: { update: mocks.ability } }));
 vi.mock("./AppHeader", () => ({ AppHeader: () => null }));
 vi.mock("../spinner/Spinner", () => ({ Spinner: () => <p>Инициализация</p> }));
