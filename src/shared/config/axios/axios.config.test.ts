@@ -27,6 +27,21 @@ afterEach(() => {
 });
 
 describe("Bitrix read cache", () => {
+	it("fetches current data after an explicit refresh instead of returning a five-minute-old board", async () => {
+		const { $api, clearBitrixReadCache } = await import("./axios.config");
+		transport.mockImplementation(async (config) => ({
+			...rawResponse({
+				result: { items: [{ id: transport.mock.calls.length }] },
+			}),
+			config,
+		}));
+		const initial = await $api.get("crm.item.list");
+		expect((await $api.get("crm.item.list")).data).toEqual(initial.data);
+		clearBitrixReadCache(["crm.item.list"]);
+		const refreshed = await $api.get("crm.item.list");
+		expect(refreshed.data.result.items).toEqual([{ id: 2 }]);
+		expect(transport).toHaveBeenCalledTimes(2);
+	});
 	it("caches raw JSON returned by the browser adapter and preserves Axios response parsing", async () => {
 		const { $api } = await import("./axios.config");
 		transport.mockResolvedValue(

@@ -116,6 +116,13 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
 				icon: "PM",
 			},
 			{
+				key: "development-kanban",
+				label: "Канбан разработки",
+				to: "/development-kanban",
+				type: "link",
+				icon: "▦",
+			},
+			{
 				key: "workload",
 				label: "Загрузки по сотрудникам",
 				to: "/reports/workload",

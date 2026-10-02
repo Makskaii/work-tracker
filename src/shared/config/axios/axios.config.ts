@@ -41,6 +41,14 @@ const bitrixResponseCache = new Map<
 const bitrixInflightRequests = new Map<string, Promise<AxiosResponse>>();
 const defaultApiAdapter = axios.getAdapter(axios.defaults.adapter);
 
+export const clearBitrixReadCache = (endpoints?: readonly string[]) => {
+	for (const [key, entry] of bitrixResponseCache) {
+		if (!endpoints || endpoints.includes(String(entry.response.config.url))) {
+			bitrixResponseCache.delete(key);
+		}
+	}
+};
+
 const getBitrixResponseBody = (data: unknown): unknown => {
 	if (typeof data !== "string") {
 		return data;
