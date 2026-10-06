@@ -2,6 +2,7 @@
 import { FaCalendarAlt, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router";
 import { EntityTypeIds } from "@/shared/constants/const";
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
 import type { Deal } from "../../types/deals.types";
@@ -17,6 +18,7 @@ import { ProjectReportsTab } from "./components/ProjectReportsTab";
 import { ProjectsTab } from "./components/ProjectsTab";
 import { ReportProjectDetailsTab } from "./components/ReportProjectDetailsTab";
 import { ReportProjectModal } from "./components/ReportProjectModal";
+import type { ProjectCreationMode } from "./components/ReportProjectLinkFields";
 import { ReportsTab } from "./components/ReportsTab";
 import { SummaryCards } from "./components/SummaryCards";
 import { TasksTab } from "./components/TasksTab";
@@ -57,6 +59,8 @@ import {
 	getProjectSummaryForm,
 	getReportProjectForm,
 	getReportProjectPayload,
+	getReportProjectSaveError,
+	validateReportProjectLink,
 	numberOrNull,
 	type ProjectSummaryFormState,
 	projectStatusOptions,
@@ -440,6 +444,8 @@ export const SalesProfitabilityReport = ({
 	const [projectForm, setProjectForm] = useState<ReportProjectFormState>(
 		DEFAULT_REPORT_PROJECT_FORM,
 	);
+	const [projectCreationMode, setProjectCreationMode] = useState<ProjectCreationMode>("new");
+	const creationRequestIdRef = useRef<string | undefined>(undefined);
 	const [projectFileDrafts, setProjectFileDrafts] =
 		useState<ReportProjectFileDrafts>({});
 
@@ -899,14 +905,19 @@ export const SalesProfitabilityReport = ({
 			bitrixProjects.map((project) => {
 				const id = normalizeProjectId(project.projectId ?? project.id);
 				const title = String(project.title ?? `Проект #${id}`).trim();
+				const companyId = String(project[ProjectCodes.company] ?? "").trim();
+				const companyTitle = companyTitleById.get(companyId) ?? "";
 
 				return {
 					id,
-					title: `${title} · #${id}`,
-					value: id,
+					title: `${title}${companyTitle ? ` · ${companyTitle}` : ""} · #${id}`,
+					value: title,
+					companyId,
+					companyTitle,
+					projectGoal: String(project[ProjectCodes.goal] ?? "").trim(),
 				};
 			}),
-		[bitrixProjects],
+		[bitrixProjects, companyTitleById],
 	);
 
 	const initialDetailsProjectForm = useMemo(
@@ -1027,6 +1038,8 @@ export const SalesProfitabilityReport = ({
 	const openReportProjectCreateModal = () => {
 		setIsReportProjectDrawer(false);
 		setEditingReportProject(null);
+		setProjectCreationMode("new");
+		creationRequestIdRef.current = crypto.randomUUID();
 		setProjectForm(DEFAULT_REPORT_PROJECT_FORM);
 		setProjectFileDrafts({});
 		setProjectFormError(null);
@@ -1115,20 +1128,6 @@ export const SalesProfitabilityReport = ({
 					}
 				: prev,
 		);
-	};
-
-	const hasExistingBitrixProject = (bitrixProjectId: string) => {
-		const normalizedBitrixProjectId = normalizeProjectId(bitrixProjectId);
-
-		if (!normalizedBitrixProjectId) {
-			return true;
-		}
-
-		return bitrixProjects.some((project) => {
-			const projectId = normalizeProjectId(project.projectId ?? project.id);
-
-			return projectId === normalizedBitrixProjectId;
-		});
 	};
 
 	const handleProjectReportCreate = async () => {
@@ -1378,16 +1377,28 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
-		const projectFormBitrixWarning = !hasExistingBitrixProject(
-			projectForm.bitrixProjectId,
-		)
-			? "Проект с таким ID не найден в Битрикс"
-			: null;
+		const linkError = validateReportProjectLink(projectForm, {
+			isCreating: !editingReportProject,
+			creationMode: projectCreationMode,
+			previouslyLinked: Boolean(editingReportProject?.bitrixProjectId),
+		});
+		if (linkError) {
+			setProjectFormError(linkError);
+			return;
+		}
 
 		const payload = getReportProjectPayload(projectForm);
 
 		setIsReportProjectSaving(true);
-		setProjectFormError(projectFormBitrixWarning);
+		setProjectFormError(null);
+		let projectSaved = false;
+		const rememberSavedProject = (project: ReportProject) => {
+			setReportProjects((prev) => prev.some((item) => item.id === project.id)
+				? prev.map((item) => item.id === project.id ? project : item)
+				: [...prev, project]);
+			setEditingReportProject(project);
+			setProjectForm(getReportProjectForm(project));
+		};
 
 		try {
 			let savedProject: ReportProject;
@@ -1398,7 +1409,16 @@ export const SalesProfitabilityReport = ({
 					payload,
 				);
 			} else {
-				savedProject = await createReportProject(payload);
+				savedProject = await createReportProject(payload, creationRequestIdRef.current);
+			}
+
+			// Project creation has already committed. A later attachment failure
+			// must retry this project via PATCH, rather than repeat its POST.
+			rememberSavedProject(savedProject);
+			projectSaved = true;
+			if (!editingReportProject) {
+				setSelectedProjectId(getDbProjectId(savedProject));
+				reloadBitrixProjects();
 			}
 
 			const uploadedFiles = await uploadSelectedReportProjectFiles(
@@ -1412,27 +1432,13 @@ export const SalesProfitabilityReport = ({
 				};
 			}
 
-			setReportProjects((prev) => {
-				const existingProject = prev.some(
-					(project) => project.id === savedProject.id,
-				);
-
-				if (existingProject) {
-					return prev.map((project) =>
-						project.id === savedProject.id ? savedProject : project,
-					);
-				}
-
-				return [...prev, savedProject];
-			});
-			setEditingReportProject(savedProject);
-			if (!editingReportProject) {
-				setSelectedProjectId(getDbProjectId(savedProject));
-			}
+			rememberSavedProject(savedProject);
 			setProjectFileDrafts({});
 			setIsReportProjectModalOpen(false);
-		} catch {
-			setProjectFormError("Не удалось сохранить проект");
+		} catch (error) {
+			setProjectFormError(projectSaved
+				? `Проект сохранён. ${getReportProjectSaveError(error, "Не удалось загрузить файлы. Повторите сохранение.")}`
+				: getReportProjectSaveError(error));
 		} finally {
 			setIsReportProjectSaving(false);
 		}
@@ -1448,14 +1454,17 @@ export const SalesProfitabilityReport = ({
 			return;
 		}
 
-		const detailsProjectBitrixWarning = !hasExistingBitrixProject(
-			detailsProjectForm.bitrixProjectId,
-		)
-			? "Проект с таким ID не найден в Битрикс"
-			: null;
+		const linkError = validateReportProjectLink(detailsProjectForm, {
+			isCreating: false,
+			previouslyLinked: Boolean(selectedReportProject.bitrixProjectId),
+		});
+		if (linkError) {
+			setDetailsProjectError(linkError);
+			return;
+		}
 
 		setIsDetailsProjectSaving(true);
-		setDetailsProjectError(detailsProjectBitrixWarning);
+		setDetailsProjectError(null);
 
 		try {
 			let savedProject = await updateReportProject(
@@ -1504,8 +1513,8 @@ export const SalesProfitabilityReport = ({
 			);
 			setDetailsProjectForm(getReportProjectForm(savedProject));
 			setDetailsFileDrafts({});
-		} catch {
-			setDetailsProjectError("Не удалось сохранить проект");
+		} catch (error) {
+			setDetailsProjectError(getReportProjectSaveError(error));
 		} finally {
 			setIsDetailsProjectSaving(false);
 		}
@@ -1868,6 +1877,9 @@ export const SalesProfitabilityReport = ({
 									<ReportProjectDetailsTab
 										bitrixProjectOptions={bitrixProjectOptions}
 										companyOptions={companyOptions}
+										bitrixProjectsLoading={isBitrixProjectsLoading}
+										bitrixProjectsError={bitrixProjectsError}
+										onRetryBitrixProjects={reloadBitrixProjects}
 										detailsFileDrafts={detailsFileDrafts}
 										detailsProjectError={detailsProjectError}
 										form={detailsProjectForm}
@@ -1971,6 +1983,11 @@ export const SalesProfitabilityReport = ({
 			<ReportProjectModal
 				bitrixProjectOptions={bitrixProjectOptions}
 				companyOptions={companyOptions}
+				creationMode={projectCreationMode}
+				onCreationModeChange={setProjectCreationMode}
+				bitrixProjectsLoading={isBitrixProjectsLoading}
+				bitrixProjectsError={bitrixProjectsError}
+				onRetryBitrixProjects={reloadBitrixProjects}
 				deletingReportProjectId={deletingReportProjectId}
 				fileDrafts={projectFileDrafts}
 				form={projectForm}

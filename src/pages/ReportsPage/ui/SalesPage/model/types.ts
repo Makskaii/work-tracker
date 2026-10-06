@@ -299,6 +299,7 @@ export type ReportProject = {
 	projectStartDate: string | null;
 	contractEndDate: string | null;
 	clientCompany: string | null;
+	clientCompanyId?: string | null;
 	deal: string | null;
 	nextReportDate: string | null;
 	nextProjectReportDate: string | null;
@@ -360,6 +361,7 @@ export type ReportProjectPayload = {
 	projectStartDate?: string | null;
 	contractEndDate?: string | null;
 	clientCompany?: string | null;
+	clientCompanyId?: string | null;
 	deal?: string | null;
 	nextReportDate?: string | null;
 	reportInfo?: string | null;

@@ -13,6 +13,7 @@ import type {
 const normalizeReportProject = (project: ReportProject): ReportProject => ({
 	...project,
 	analystId: project.analystId ?? null,
+	clientCompanyId: project.clientCompanyId ?? null,
 	developmentTeamIds: project.developmentTeamIds ?? null,
 	files: project.files ?? [],
 	nextProjectReportDate: project.nextProjectReportDate ?? null,
@@ -40,10 +41,11 @@ export const fetchReportProjects = async (signal?: AbortSignal) => {
 
 export const createReportProject = async (
 	payload: ReportProjectPayload,
+	creationRequestId?: string,
 ) => {
 	const response = await $backendApi.post<ReportProject>(
 		"project-reports/projects",
-		payload,
+		creationRequestId ? { ...payload, creationRequestId } : payload,
 	);
 
 	return normalizeReportProject(response.data);

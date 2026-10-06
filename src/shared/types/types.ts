@@ -39,6 +39,7 @@ export interface ClientProjectProps {
 	lastActivityTime: string;
 	[ClientsCodes.title]: string;
 	[ProjectCodes.company]?: string | number | null;
+	[ProjectCodes.goal]?: string | null;
 	projectId: string;
 }
 

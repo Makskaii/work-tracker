@@ -14,9 +14,9 @@ import {
 	useCompanyProjects,
 } from "./useCompanyProjects";
 
-const crm = vi.hoisted(() => ({ get: vi.fn() }));
+const crm = vi.hoisted(() => ({ get: vi.fn(), clearCache: vi.fn() }));
 vi.mock("@/shared/config", () => ({ $api: crm }));
-vi.mock("@/shared/config/axios/axios.config", () => ({ $backendApi: {} }));
+vi.mock("@/shared/config/axios/axios.config", () => ({ $backendApi: {}, clearBitrixReadCache: crm.clearCache }));
 
 const project = {
 	id: 77,
@@ -199,6 +199,32 @@ describe("selected Bitrix project reports", () => {
 });
 
 describe("Bitrix project catalogue", () => {
+	it("invalidates cached CRM list reads before reloading a newly created project", async () => {
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(params.entityTypeId === EntityTypeIds.projects ? [project] : [])));
+		const { result } = renderHook(useCompanyProjects);
+		await waitFor(() => expect(result.current.projects).toHaveLength(1));
+		const initialReadCount = crm.get.mock.calls.length;
+		const addedProject = { ...project, id: 88, projectId: "88", title: "Новый проект" };
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(params.entityTypeId === EntityTypeIds.projects ? [project, addedProject] : [])));
+		act(() => result.current.reloadProjects());
+		await waitFor(() => expect(result.current.projects).toHaveLength(2));
+		expect(crm.clearCache).toHaveBeenCalledWith(["crm.item.list"]);
+		expect(crm.clearCache.mock.invocationCallOrder[0]).toBeLessThan(crm.get.mock.invocationCallOrder[initialReadCount]);
+		expect(result.current.projects[1].projectId).toBe("88");
+	});
+	it("includes companies with no existing projects and loads all company pages", async () => {
+		crm.get.mockImplementation((_url, { params }) => {
+			if (params.entityTypeId === EntityTypeIds.projects) return Promise.resolve(page([]));
+			expect(params.filter).toEqual({});
+			return Promise.resolve(params.start === 0
+				? page([{ id: 11, title: "Компания с проектом" }], 50)
+				: page([{ id: 22, title: "Компания без проектов" }]));
+		});
+		const { result } = renderHook(useCompanyProjects);
+		await waitFor(() => expect(result.current.isLoadingDetails).toBe(false));
+		expect(result.current.companyTitleById.get("22")).toBe("Компания без проектов");
+		expect(result.current.projects).toEqual([]);
+	});
 	it("exposes loading and errors, then retries without presenting failed requests as an empty catalogue", async () => {
 		const logger = vi
 			.spyOn(console, "error")
