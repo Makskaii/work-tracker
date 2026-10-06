@@ -12,6 +12,7 @@ const mockAbilityUpdate = vi.fn();
 const mockCallMake = vi.fn();
 const mockGetDepartmentsHeads = vi.fn();
 const mockReportDepartmentIds = vi.fn();
+const mockSalesDepartmentIds = vi.fn();
 const originalTopDescriptor = Object.getOwnPropertyDescriptor(window, "top");
 
 vi.mock("@bitrix24/b24jssdk", () => ({
@@ -35,6 +36,7 @@ vi.mock("@/shared/api/getDepartments", () => ({
 	getWorkTrackerDepartmentAccess: async () => ({
 		heads: await mockGetDepartmentsHeads(),
 		reportDepartmentIds: mockReportDepartmentIds(),
+		salesDepartmentIds: mockSalesDepartmentIds(),
 	}),
 }));
 
@@ -69,6 +71,7 @@ describe("MainLayout", () => {
 		vi.resetModules();
 		mockGetDepartmentsHeads.mockResolvedValue([]);
 		mockReportDepartmentIds.mockReturnValue([23, 25]);
+		mockSalesDepartmentIds.mockReturnValue([19]);
 	});
 
 	afterEach(() => {
@@ -124,6 +127,63 @@ describe("MainLayout", () => {
 	});
 
 	describe("production mode", () => {
+		it.each([{ departments: [19] }, { departments: [7, "19"] }, { departments: "19" }])("grants sales-specific access for membership %j without granting all reports", async ({ departments }) => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({ getData: () => ({ result: { ID: "30", UF_DEPARTMENT: departments } }) });
+			await renderComponent();
+			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+				{ action: "read", subject: "sales-report" },
+				{ action: "create-client", subject: "client" },
+			]));
+			expect(mockNavigate).toHaveBeenCalledWith("/reports/sales", { replace: true });
+		});
+
+		it("grants the same limited report access to a sales subdepartment", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockSalesDepartmentIds.mockReturnValue([19, 61, 62]);
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({ getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [62] } }) });
+			await renderComponent();
+			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+				{ action: "read", subject: "sales-report" },
+				{ action: "create-client", subject: "client" },
+			]));
+		});
+
+		it("preserves root sales access when department metadata fails", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockGetDepartmentsHeads.mockRejectedValue(new Error("metadata unavailable"));
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({ getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [19] } }) });
+			await renderComponent();
+			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([
+				{ action: "read", subject: "sales-report" },
+				{ action: "create-client", subject: "client" },
+			]));
+		});
+
+		it("does not grant sales access to the parent commercial department or siblings", async () => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({ getData: () => ({ result: { ID: "30", UF_DEPARTMENT: [16, 20, 21] } }) });
+			await renderComponent();
+			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([]));
+		});
+
+		it.each([undefined, 0, -1, 1.5, true, "1e1", "0x10", "invalid", "9007199254740992"])("does not grant sales access with invalid current user ID %j", async (ID) => {
+			vi.stubEnv("DEV", false);
+			mockEmbeddedWindow();
+			mockInitializeB24Frame.mockResolvedValue(createMockB24Instance());
+			mockCallMake.mockResolvedValue({ getData: () => ({ result: { ID, UF_DEPARTMENT: [19] } }) });
+			await renderComponent();
+			await waitFor(() => expect(mockAbilityUpdate).toHaveBeenLastCalledWith([]));
+		});
+
 		it.each([
 			false,
 			true,

@@ -7,6 +7,7 @@ import { DEPARTMENT_IDS, Endpoints } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import { usePeriodBorders } from "@/shared/hooks/usePeriodBorders";
 import type { User } from "@/shared/types/types";
+import { SegmentedControl } from "@/shared/ui/SegmentedControl/SegmentedControl";
 import { getDeals } from "../../api/getDeals";
 import type { Deal } from "../../types/deals.types";
 import { SalesCodes } from "../../types/types";
@@ -54,55 +55,13 @@ const getAnalyticsUsers = async (): Promise<
 	}
 };
 
-type Period = "week" | "month" | "quarter" | "year";
-
 type MetricCardProps = {
 	title: string;
 	value?: string | number | undefined;
 	onClick?: () => void;
 };
 
-type SegmentedControlProps = {
-	value: Period;
-	onChange: (value: Period) => void;
-	loading?: boolean;
-	variant?: "dark" | "light";
-};
-
-const periodLabels: Record<Period, string> = {
-	week: "Неделя",
-	month: "Месяц",
-	quarter: "Квартал",
-	year: "Год",
-};
-
-export function SegmentedControl({
-	value,
-	onChange,
-	loading,
-	variant = "dark",
-}: SegmentedControlProps) {
-	const options: Period[] = ["week", "month", "quarter", "year"];
-	const isLight = variant === "light";
-
-	return (
-		<div className={`${styles.segmented} ${isLight ? styles.segmentedLight : ""}`}>
-			{options.map((option) => (
-				<button
-					disabled={loading}
-					key={option}
-					type="button"
-					className={`${styles.segmentedItem} ${isLight ? styles.segmentedItemLight : ""} ${
-						value === option ? styles.segmentedItemActive : ""
-					}`}
-					onClick={() => onChange(option)}
-				>
-					{periodLabels[option]}
-				</button>
-			))}
-		</div>
-	);
-}
+export { SegmentedControl };
 
 function DateRangeButton({ value }: { value: string }) {
 	return (

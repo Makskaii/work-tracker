@@ -26,6 +26,7 @@ const positiveId = (value: unknown): number | null => {
 export const getWorkTrackerDepartmentAccess = async (): Promise<{
 	heads: string[];
 	reportDepartmentIds: number[];
+	salesDepartmentIds: number[];
 }> => {
 	const departments: Department[] = [];
 	const heads = new Set<string>();
@@ -69,10 +70,6 @@ export const getWorkTrackerDepartmentAccess = async (): Promise<{
 		start = next;
 	}
 
-	const reportDepartmentIds = new Set<number>([
-		DEPARTMENT_IDS.DEV,
-		DEPARTMENT_IDS.ANALYTICS,
-	]);
 	const children = new Map<number, number[]>();
 	for (const { id, parentId } of departments) {
 		if (parentId === null) continue;
@@ -80,16 +77,24 @@ export const getWorkTrackerDepartmentAccess = async (): Promise<{
 		siblings.push(id);
 		children.set(parentId, siblings);
 	}
-	const queue = [...reportDepartmentIds];
-	for (let index = 0; index < queue.length; index += 1) {
-		for (const childId of children.get(queue[index]) ?? []) {
-			if (reportDepartmentIds.has(childId)) continue;
-			reportDepartmentIds.add(childId);
-			queue.push(childId);
+	const descendants = (roots: number[]) => {
+		const departmentIds = new Set(roots);
+		const queue = [...departmentIds];
+		for (let index = 0; index < queue.length; index += 1) {
+			for (const childId of children.get(queue[index]) ?? []) {
+				if (departmentIds.has(childId)) continue;
+				departmentIds.add(childId);
+				queue.push(childId);
+			}
 		}
-	}
+		return [...departmentIds];
+	};
 
-	return { heads: [...heads], reportDepartmentIds: [...reportDepartmentIds] };
+	return {
+		heads: [...heads],
+		reportDepartmentIds: descendants([DEPARTMENT_IDS.DEV, DEPARTMENT_IDS.ANALYTICS]),
+		salesDepartmentIds: descendants([DEPARTMENT_IDS.SALES]),
+	};
 };
 
 export const getDepartmentsHeads = async (): Promise<string[]> =>

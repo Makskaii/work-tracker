@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { getWorkTrackerDepartmentAccess } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
+import { canAccessWorkTrackerPath } from "@/shared/config/ability/routeAccess";
+import { WorkTrackerRouteGuard } from "../protectedRoute/WorkTrackerRouteGuard";
 import {
 	DEPARTMENT_IDS,
 	REPORT_ACCESS_USER_IDS,
@@ -27,12 +29,7 @@ type AbilityRule = {
 
 type BitrixFrameStatus = "loading" | "ready" | "unavailable";
 
-const canRestorePath = (pathname: string) => {
-	if (pathname === "/create-client-form") return ability.can("create-client", "client");
-	const employee = pathname.match(/^\/employee\/([1-9]\d*)\/stats$/);
-	if (employee) return ability.can("read", `employee-${employee[1]}`);
-	return ability.can("read", "post");
-};
+const canRestorePath = (pathname: string) => canAccessWorkTrackerPath(ability, pathname);
 
 const addRuleIfMissing = (rules: AbilityRule[], rule: AbilityRule) => {
 	const exists = rules.some(
@@ -119,8 +116,12 @@ export const MainLayout = () => {
 			const departments = Array.isArray(user.UF_DEPARTMENT)
 				? user.UF_DEPARTMENT
 				: [user.UF_DEPARTMENT];
+			const rawUserId: unknown = user.ID;
+			const userId = typeof rawUserId === "number" ||
+				(typeof rawUserId === "string" && /^\d+$/.test(rawUserId.trim()))
+				? Number(rawUserId) : Number.NaN;
 			return {
-				userId: Number(user.ID) || null,
+				userId: Number.isSafeInteger(userId) && userId > 0 ? userId : null,
 				departmentIds: departments
 					.map((id: string | number) => Number(id))
 					.filter((id: number) => Number.isFinite(id) && id > 0),
@@ -199,6 +200,10 @@ export const MainLayout = () => {
 				]);
 				const currUser =
 					userResult.status === "fulfilled" ? userResult.value : null;
+				const salesDepartmentIds = new Set([
+					DEPARTMENT_IDS.SALES,
+					...(headsResult.status === "fulfilled" ? headsResult.value.salesDepartmentIds ?? [] : []),
+				]);
 				const data = new Set(departmentHeads.filter(Boolean).map(String));
 				const isAdmin = frame.auth?.isAdmin === true;
 
@@ -246,7 +251,11 @@ export const MainLayout = () => {
 					redirectTo = "/create-client-form";
 				}
 
-				if (currUser?.departmentIds.includes(DEPARTMENT_IDS.SALES)) {
+				if (currUser?.userId && currUser.departmentIds.some((id) => salesDepartmentIds.has(id))) {
+					addRuleIfMissing(nextRules, {
+						action: "read",
+						subject: "sales-report",
+					});
 					addRuleIfMissing(nextRules, {
 						action: "create-client",
 						subject: "client",
@@ -335,7 +344,9 @@ export const MainLayout = () => {
 							width: "100%",
 						}}
 					>
-						<Outlet />
+							<WorkTrackerRouteGuard pathname={location.pathname}>
+								<Outlet />
+							</WorkTrackerRouteGuard>
 					</div>
 				</main>
 			</div>

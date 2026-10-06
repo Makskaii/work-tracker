@@ -871,7 +871,7 @@ export const SalesProfitabilityReport = ({
 	const displayedSummary = useMemo(
 		() => ({
 			...summary,
-			purchasedHours: automaticProjectHours.developmentPurchasedHours,
+			purchasedHours: summary.purchasedHours,
 			factHours:
 				(numberOrNull(summaryForm.summaryFactHours) ?? 0) +
 				automaticProjectHours.developmentFactHours,

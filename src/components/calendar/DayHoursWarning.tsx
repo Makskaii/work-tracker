@@ -1,8 +1,10 @@
 import type { DayHourDeficit } from "./helpers/dayHourDeficits";
 import cls from "./DayHoursWarning.module.scss";
 
-const formatHours = (hours: number) =>
-	`${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(hours)} ч`;
+const hourFormatter = new Intl.NumberFormat("ru-RU", {
+	maximumFractionDigits: 2,
+});
+const formatHours = (hours: number) => `${hourFormatter.format(hours)} ч`;
 
 export const describeDayHourDeficits = (deficits: readonly DayHourDeficit[]) =>
 	deficits

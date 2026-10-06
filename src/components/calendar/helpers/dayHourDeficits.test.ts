@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { GroupedReportFields } from "@/shared/types/table";
 import type { User } from "@/shared/types/types";
 import { ActivityType, ReportStageIds } from "../constants/const";
-import { getDayHourDeficits } from "./dayHourDeficits";
+import {
+	getCalendarDayHourDeficits,
+	getDayHourDeficits,
+} from "./dayHourDeficits";
 
 const now = new Date(2026, 8, 29, 9, 30);
 const pastWeekday = new Date(2026, 8, 28, 23, 59);
@@ -29,6 +32,36 @@ const deficits = (
 ) => getDayHourDeficits({ date: pastWeekday, reports, users, now });
 
 describe("daily reporting deficits", () => {
+	it("calculates card and summary deficits in one pass while keeping today's card unmarked", () => {
+		let stageReads = 0;
+		const countedReport = {
+			...report("1", "2"),
+			get stageId() {
+				stageReads += 1;
+				return ReportStageIds.confirmed;
+			},
+		};
+		const options = {
+			reports: [countedReport],
+			users: [user("1")],
+			now,
+		};
+		const past = getCalendarDayHourDeficits({ ...options, date: pastWeekday });
+		expect(stageReads).toBe(1);
+		expect(past.deficits).toBe(past.summaryDeficits);
+		expect(past.deficits).toEqual([
+			{ userId: "1", title: "Employee 1", hours: 2, missingHours: 6 },
+		]);
+		const today = getCalendarDayHourDeficits({ ...options, date: now });
+		expect(today.deficits).toEqual([]);
+		expect(today.summaryDeficits).toEqual(past.summaryDeficits);
+		for (const date of [null, new Date(2026, 8, 30), new Date(2026, 8, 27)]) {
+			expect(getCalendarDayHourDeficits({ ...options, date })).toEqual({
+				deficits: [],
+				summaryDeficits: [],
+			});
+		}
+	});
 	it("shows the missing hours below eight and no warning at or above eight", () => {
 		for (const hours of [0, 7.5, 8, 9]) {
 			expect(deficits([report("1", String(hours))])).toEqual(

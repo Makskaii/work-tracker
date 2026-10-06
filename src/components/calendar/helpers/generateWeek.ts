@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
+import type { GroupedReportFields } from "@/shared/types/table";
 import type { ReportProps } from "../types/types";
+import { formatLongWeekday, formatShortWeekday } from "./calendarDateFormat";
 
 type Borders = {
 	startOfTheWeek: string;
@@ -20,14 +22,11 @@ type CalendarDay<TReport> = {
 	reports: TReport[] | null;
 };
 
-const getDayName = (date: Date) => {
-	return date.toLocaleDateString("ru-RU", { weekday: "short" });
-};
-
-export const buildWeekCalendarFromReports = <TReport extends ReportProps>(
+const buildWeekCalendar = <TReport,>(
 	reports: TReport[],
 	borders: Borders,
-	timeSpentField: keyof ReportProps,
+	getReportDate: (report: TReport) => string,
+	getReportHours: (report: TReport) => number,
 ): CalendarDay<TReport>[] => {
 	const start = dayjs(borders.startOfTheWeek);
 	const end = dayjs(borders.endOfTheWeek);
@@ -35,8 +34,8 @@ export const buildWeekCalendarFromReports = <TReport extends ReportProps>(
 	const groupedReports = reports.reduce<
 		Record<string, { total: number; reports: TReport[] }>
 	>((acc, report) => {
-		const dateKey = dayjs(report.begindate).format("YYYY-MM-DD");
-		const hours = Number(report[timeSpentField] ?? 0);
+		const dateKey = dayjs(getReportDate(report)).format("YYYY-MM-DD");
+		const hours = getReportHours(report);
 
 		if (!acc[dateKey]) {
 			acc[dateKey] = {
@@ -52,6 +51,7 @@ export const buildWeekCalendarFromReports = <TReport extends ReportProps>(
 	}, {});
 
 	const days: CalendarDay<TReport>[] = [];
+	const today = dayjs();
 	let current = start;
 
 	while (current.isBefore(end) || current.isSame(end, "day")) {
@@ -62,9 +62,9 @@ export const buildWeekCalendarFromReports = <TReport extends ReportProps>(
 			id: dateKey,
 			date,
 			dayNumber: current.date(),
-			dayName: getDayName(date),
-			fullDayName: date.toLocaleDateString("ru-RU", { weekday: "long" }),
-			isToday: current.isSame(dayjs(), "day"),
+			dayName: formatShortWeekday(date),
+			fullDayName: formatLongWeekday(date),
+			isToday: current.isSame(today, "day"),
 			isWeekend: [0, 6].includes(current.day()),
 			isCurrentMonth: current.month() === start.month(),
 			isEmpty: !groupedReports[dateKey],
@@ -77,3 +77,26 @@ export const buildWeekCalendarFromReports = <TReport extends ReportProps>(
 
 	return days;
 };
+
+export const buildWeekCalendarFromReports = <TReport extends ReportProps>(
+	reports: TReport[],
+	borders: Borders,
+	timeSpentField: keyof ReportProps,
+): CalendarDay<TReport>[] =>
+	buildWeekCalendar(
+		reports,
+		borders,
+		(report) => report.begindate,
+		(report) => Number(report[timeSpentField] ?? 0),
+	);
+
+export const buildWeekCalendarFromGroupedReports = (
+	reports: GroupedReportFields[],
+	borders: Borders,
+): CalendarDay<GroupedReportFields>[] =>
+	buildWeekCalendar(
+		reports,
+		borders,
+		(report) => report.day,
+		(report) => Number(report.timeSpent ?? 0),
+	);

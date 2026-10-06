@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import type { ReportsContext, User } from "@/shared/types/types";
-import { getProfitabilityDeals } from "../../api/getCrmDeals";
 import { getUsers } from "../../api/getUsers";
-import type { Deal } from "../../types/deals.types";
 import { SalesProfitabilityReport } from "./SalesProfitabilityReport";
 
 export const SalesProfitabilityPage = () => {
 	const { activities } = useOutletContext<ReportsContext>();
-	const [deals, setDeals] = useState<Deal[]>([]);
 	const [users, setUsers] = useState<User[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -19,16 +16,12 @@ export const SalesProfitabilityPage = () => {
 			setLoading(true);
 
 			try {
-				const [crmDeals, bitrixUsers] = await Promise.all([
-					getProfitabilityDeals(controller.signal),
-					getUsers(controller.signal),
-				]);
+				const bitrixUsers = await getUsers(controller.signal);
 
 				if (controller.signal.aborted) {
 					return;
 				}
 
-				setDeals(crmDeals);
 				setUsers(
 					bitrixUsers
 						.map((user) => ({
@@ -62,7 +55,7 @@ export const SalesProfitabilityPage = () => {
 	return (
 		<SalesProfitabilityReport
 			activities={activities}
-			deals={deals}
+			deals={[]}
 			users={users}
 			loading={loading}
 		/>

@@ -1,12 +1,13 @@
 import type { GroupedReportFields } from "@/shared/types/table";
 import { ReportStageIds } from "../constants/const";
+import {
+	formatLongWeekday,
+	formatShortWeekday,
+	getLocalCalendarDateKey,
+} from "./calendarDateFormat";
 
 const getDaysInMonth = (year: number, month: number) => {
 	return new Date(year, month + 1, 0).getDate();
-};
-
-const getDayName = (date: Date) => {
-	return date.toLocaleDateString("ru-RU", { weekday: "short" });
 };
 
 export const groupReportsByDate = (
@@ -67,13 +68,16 @@ export const generateMonthDays = ({
 	selectedYear,
 	selectedMonth,
 	reports,
+	todayKey = getLocalCalendarDateKey(new Date()),
 }: {
 	selectedYear: number;
 	selectedMonth: number;
 	reports: GroupedReportFields[];
+	todayKey?: string;
 }) => {
 	const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
 	const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+	const groupedReports = groupReportsByDate(reports);
 
 	let firstDayWeekday = firstDayOfMonth.getDay();
 
@@ -99,18 +103,15 @@ export const generateMonthDays = ({
 		const dayOfWeek = date.getDay();
 
 		const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-		const isToday = date.toDateString() === new Date().toDateString();
-
-		const groupedReports = groupReportsByDate(reports);
-
-		const dateKey = date.toLocaleDateString("en-CA");
+		const dateKey = getLocalCalendarDateKey(date);
+		const isToday = dateKey === todayKey;
 
 		daysArray.push({
 			id: `${selectedYear}-${selectedMonth}-${day}`,
 			date: date,
 			dayNumber: day,
-			dayName: getDayName(date),
-			fullDayName: date.toLocaleDateString("ru-RU", { weekday: "long" }),
+			dayName: formatShortWeekday(date),
+			fullDayName: formatLongWeekday(date),
 			isToday: isToday,
 			isWeekend: isWeekend,
 			isCurrentMonth: true,

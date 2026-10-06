@@ -49,7 +49,6 @@ export const SummaryCards = ({
 	projectTitle,
 	projectStatus,
 	projectType,
-	areAutomaticHoursUnavailable = false,
 	summary,
 }: SummaryCardsProps) => {
 	const normalizedProjectStatus = projectStatus ?? "not_started";
@@ -100,17 +99,15 @@ export const SummaryCards = ({
 						<strong
 							className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
 						>
-							{areAutomaticHoursUnavailable
-								? "—"
-								: formatHours(summary.purchasedHours)}
+							{formatHours(summary.purchasedHours)}
 						</strong>
 					</div>
 					<div className={styles.dealSummaryStat}>
-						<span className={styles.dealSummaryLabel}>Дата завершения:</span>
+						<span className={styles.dealSummaryLabel}>Дата окончания по договору:</span>
 						<strong
 							className={`${styles.dealSummaryValue} ${styles.dealSummaryCompletionDate}`}
 						>
-							{formatSummaryDate(form.summaryPlanCompletionDate)}
+							{formatSummaryDate(form.contractEndDate)}
 						</strong>
 					</div>
 				</div>

@@ -19,6 +19,7 @@ import {
 	TaskCodes,
 } from "./constants/const";
 import { getWeekRange } from "./helpers/calendarPeriod";
+import { getLocalCalendarDateKey } from "./helpers/calendarDateFormat";
 import { generateMonthDays } from "./helpers/generateMonthDays";
 import type { ReportProps } from "./types/types";
 
@@ -239,11 +240,19 @@ export const Calendar = ({
 		);
 	}, [visibleReports, setGroupByActivity]);
 
-	const monthDays = generateMonthDays({
-		selectedYear,
-		selectedMonth,
-		reports: visibleReports,
-	});
+	const todayKey = getLocalCalendarDateKey(new Date());
+	const monthDays = useMemo(
+		() =>
+			view === "month"
+				? generateMonthDays({
+						selectedYear,
+						selectedMonth,
+						reports: visibleReports,
+						todayKey,
+					})
+				: [],
+		[selectedYear, selectedMonth, visibleReports, view, todayKey],
+	);
 
 	const getCurrentMonthName = () => {
 		return months[selectedMonth];
@@ -280,6 +289,8 @@ export const Calendar = ({
 					userId={userId}
 					userIds={userIds}
 					selectedDate={selectedDate}
+					reports={visibleReports}
+					isLoading={loading}
 				/>
 			)}
 		</>

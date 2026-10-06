@@ -15,6 +15,7 @@ export type CompanyCreationMode = "existing" | "new";
 
 export type ProjectSummaryFormState = Pick<
 	ReportProjectFormState,
+	| "contractEndDate"
 	| "projectAmount"
 	| "summaryFactCompletionDate"
 	| "summaryFactHours"
@@ -136,6 +137,17 @@ export const numberOrNull = (value: string) => {
 
 const dateOrNull = (value: string) => value || null;
 
+export const getProjectPlannedEndDate = (
+	project?: Pick<ReportProject, "contractEndDate" | "summaryPlanCompletionDate"> | null,
+) => project?.contractEndDate || project?.summaryPlanCompletionDate || "";
+
+const getLegacyEndDateClear = (
+	form: Pick<ReportProjectFormState, "contractEndDate" | "summaryPlanCompletionDate">,
+): Partial<ReportProjectPayload> =>
+	!form.contractEndDate && form.summaryPlanCompletionDate
+		? { summaryPlanCompletionDate: null }
+		: {};
+
 export const validateReportProjectLink = (
 	form: ReportProjectFormState,
 	{ isCreating, creationMode = "new", companyCreationMode = "existing", newCompanyTitle = "", previouslyLinked = false }: {
@@ -187,7 +199,7 @@ export const getReportProjectForm = (
 		bitrixProjectId: project.bitrixProjectId ?? "",
 		clientCompany: project.clientCompany ?? "",
 		clientCompanyId: project.clientCompanyId ?? "",
-		contractEndDate: project.contractEndDate ?? "",
+		contractEndDate: getProjectPlannedEndDate(project),
 		closeDate: project.closeDate ?? "",
 		deadline: project.deadline ?? "",
 		deal: project.deal ?? "",
@@ -313,7 +325,7 @@ export const getReportProjectPayload = (
 	summaryFactHours: numberOrNull(form.summaryFactHours),
 	summaryLossHours: numberOrNull(form.summaryLossHours),
 	summaryMarginPercent: numberOrNull(form.summaryMarginPercent),
-	summaryPlanCompletionDate: dateOrNull(form.summaryPlanCompletionDate),
+	...getLegacyEndDateClear(form),
 	summaryPlanHours: numberOrNull(form.summaryPlanHours),
 	summaryPurchasedHours: numberOrNull(form.summaryPurchasedHours),
 	title: form.title.trim(),
@@ -354,6 +366,7 @@ export const getReportProjectCreatePayload = (
 export const getProjectSummaryForm = (
 	project?: ReportProject | null,
 ): ProjectSummaryFormState => ({
+	contractEndDate: getProjectPlannedEndDate(project),
 	projectAmount:
 		project?.projectAmount === null || project?.projectAmount === undefined
 			? ""
@@ -417,12 +430,13 @@ export const getProjectSummaryForm = (
 export const getProjectSummaryPayload = (
 	form: ProjectSummaryFormState,
 ): Partial<ReportProjectPayload> => ({
+	contractEndDate: dateOrNull(form.contractEndDate),
 	projectAmount: numberOrNull(form.projectAmount),
 	summaryFactCompletionDate: dateOrNull(form.summaryFactCompletionDate),
 	summaryFactHours: numberOrNull(form.summaryFactHours),
 	summaryLossHours: numberOrNull(form.summaryLossHours),
 	summaryMarginPercent: numberOrNull(form.summaryMarginPercent),
-	summaryPlanCompletionDate: dateOrNull(form.summaryPlanCompletionDate),
+	...getLegacyEndDateClear(form),
 	summaryPlanHours: numberOrNull(form.summaryPlanHours),
 	summaryPurchasedHours: numberOrNull(form.summaryPurchasedHours),
 	tzPurchasedHours: numberOrNull(form.tzPurchasedHours),

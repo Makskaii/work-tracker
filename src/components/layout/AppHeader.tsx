@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaThumbtack } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router";
+import { ability } from "@/shared/config/ability/casl";
+import { canAccessWorkTrackerPath } from "@/shared/config/ability/routeAccess";
 import {
 	APP_TITLE,
 	NAVIGATION_GROUPS,
@@ -39,9 +41,17 @@ export const AppHeader = () => {
 	const location = useLocation();
 	const isSidebarExpanded = isSidebarOpen || isSidebarHovered;
 	const isSidebarHoverExpanded = !isSidebarOpen && isSidebarHovered;
+	const navigationGroups = useMemo(() => NAVIGATION_GROUPS.map((group) => ({
+		...group,
+		items: group.items.flatMap((item): NavItem[] => {
+			if (item.type === "link") return canAccessWorkTrackerPath(ability, item.to) ? [item] : [];
+			const items = item.items.filter((child) => canAccessWorkTrackerPath(ability, child.to));
+			return items.length ? [{ ...item, items }] : [];
+		}),
+	})).filter((group) => group.items.length > 0), [ability.rules]);
 	const navItems = useMemo(
-		() => NAVIGATION_GROUPS.flatMap((group) => group.items),
-		[],
+		() => navigationGroups.flatMap((group) => group.items),
+		[navigationGroups],
 	);
 
 	const activeTopKey = useMemo(() => {
@@ -58,11 +68,11 @@ export const AppHeader = () => {
 
 	const activeSectionTitle = useMemo(() => {
 		return (
-			NAVIGATION_GROUPS.find((group) =>
+			navigationGroups.find((group) =>
 				group.items.some((item) => item.key === activeTopKey),
 			)?.title ?? null
 		);
-	}, [activeTopKey]);
+	}, [activeTopKey, navigationGroups]);
 
 	useEffect(() => {
 		const activeDropdown = navItems.find(
@@ -140,7 +150,7 @@ export const AppHeader = () => {
 			</div>
 
 			<nav className={styles.nav}>
-				{NAVIGATION_GROUPS.map((group) => (
+				{navigationGroups.map((group) => (
 					<div key={group.title} className={styles.reportsSection}>
 					<button
 						type="button"

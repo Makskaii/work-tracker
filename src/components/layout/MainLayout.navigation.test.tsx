@@ -7,17 +7,18 @@ import { MainLayout } from "./MainLayout";
 
 const mocks = vi.hoisted(() => ({
 	userId: 30,
+	departmentIds: [23] as number[],
 	rules: [] as Array<{ action: string; subject: string }>,
 }));
 vi.mock("@bitrix24/b24jssdk", () => ({
 	initializeB24Frame: async () => ({
 		auth: { isAdmin: false },
-		actions: { v2: { call: { make: async () => ({ getData: () => ({ result: { ID: String(mocks.userId), UF_DEPARTMENT: [23] } }) }) } } },
+		actions: { v2: { call: { make: async () => ({ getData: () => ({ result: { ID: String(mocks.userId), UF_DEPARTMENT: mocks.departmentIds } }) }) } } },
 	}),
 	LoggerFactory: { createForBrowser: () => ({ error: vi.fn() }) },
 }));
 vi.mock("@/shared/api/getDepartments", () => ({
-	getWorkTrackerDepartmentAccess: async () => ({ heads: [], reportDepartmentIds: [23] }),
+	getWorkTrackerDepartmentAccess: async () => ({ heads: [], reportDepartmentIds: [23], salesDepartmentIds: [19] }),
 }));
 vi.mock("@/shared/config/ability/casl", () => ({
 	ability: {
@@ -42,7 +43,7 @@ const open = (path: string) => render(
 
 describe("Bitrix frame navigation after reopening", () => {
 	beforeEach(() => {
-		sessionStorage.clear(); mocks.userId = 30; mocks.rules = [];
+		sessionStorage.clear(); mocks.userId = 30; mocks.departmentIds = [23]; mocks.rules = [];
 		Object.defineProperty(window, "top", { configurable: true, value: {} });
 	});
 	afterEach(() => {
@@ -82,5 +83,21 @@ describe("Bitrix frame navigation after reopening", () => {
 		open("/reports/profitability");
 		expect(await screen.findByTestId("screen")).toHaveTextContent("30:/reports/profitability");
 		expect(mocks.rules).toContainEqual({ action: "read", subject: "post" });
+	});
+
+	it("restores the sales report using its narrow permission and keeps current frame authentication", async () => {
+		mocks.departmentIds = [19];
+		sessionStorage.setItem(getAppNavigationKey(30), JSON.stringify({ pathname: "/reports/sales" }));
+		open("/?AUTH_ID=current-session#frame");
+		await waitFor(() => expect(screen.getByTestId("screen")).toHaveTextContent("30:/reports/sales?AUTH_ID=current-session#frame"));
+		expect(mocks.rules).toContainEqual({ action: "read", subject: "sales-report" });
+		expect(mocks.rules).not.toContainEqual({ action: "read", subject: "post" });
+	});
+
+	it("ignores a saved profitability section for sales-only users and opens their sales report", async () => {
+		mocks.departmentIds = [19];
+		sessionStorage.setItem(getAppNavigationKey(30), JSON.stringify({ pathname: "/reports/profitability" }));
+		open("/reports");
+		await waitFor(() => expect(screen.getByTestId("screen")).toHaveTextContent("30:/reports/sales"));
 	});
 });

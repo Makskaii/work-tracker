@@ -7,7 +7,7 @@ import {
 	waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ReportCodes } from "@/components/calendar/constants/const";
+import { ReportCodes, TaskCodes } from "@/components/calendar/constants/const";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import type { ProfitabilityProject, ReportProject } from "./model/types";
 import type { CompanyCreationMode, ReportProjectFormState } from "./model/reportProjectForm";
@@ -194,6 +194,15 @@ afterEach(() => {
 });
 
 describe("Project report selection", () => {
+	it.each([0, 40])("keeps the saved purchased-hour budget %s when Bitrix tasks have a different value", async (hours) => {
+		state.fetchProjects.mockResolvedValue([{ ...waterfall, summaryPurchasedHours: hours }]);
+		state.fetchDetails.mockImplementation(async (project: ProfitabilityProject) => ({ ...project, tasks: [{ id: "9", [TaskCodes.hours]: 1234 }], reports: [] }));
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		await waitFor(() => expect(state.fetchDetails).toHaveBeenCalled());
+		await waitFor(() => expect(screen.getByText("Куплено:").parentElement).toHaveTextContent(String(hours)));
+		expect(screen.getByText("Куплено:").parentElement).not.toHaveTextContent("1234");
+	});
 	it("keeps initial project and tab actions unavailable until saved navigation restoration commits", async () => {
 		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
 		writeReportNavigation(storageKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-2", activeTab: "projectDetails" });

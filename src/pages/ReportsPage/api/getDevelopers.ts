@@ -16,13 +16,14 @@ type UserListResponse = {
 	next?: number | null;
 };
 
-export const getDevelopers = async (): Promise<DeveloperUser[]> => {
+export const getDevelopers = async (signal?: AbortSignal): Promise<DeveloperUser[]> => {
 	try {
 		const users: DeveloperUser[] = [];
 		let start = 0;
 
 		while (true) {
 			const response = await $api.get<UserListResponse>(Endpoints.users, {
+				signal,
 				params: {
 					start,
 					filter: {
@@ -54,6 +55,7 @@ export const getDevelopers = async (): Promise<DeveloperUser[]> => {
 
 		return users;
 	} catch (error) {
+		if (signal) throw error;
 		console.error("Failed to fetch developers", error);
 		return [];
 	}

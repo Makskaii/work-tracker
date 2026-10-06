@@ -543,8 +543,6 @@
 	display: block;
 	border-radius: 999px;
 	background: linear-gradient(90deg, rgba(38, 58, 85, 0.84), rgba(57, 214, 238, 0.18), rgba(38, 58, 85, 0.84));
-	background-size: 220% 100%;
-	animation: skeletonShimmer 1.2s ease-in-out infinite;
 }
 
 .dealProjectSkeletonIcon {
@@ -5331,8 +5329,6 @@ input[type="date"].dealSummaryDateInput {
 	display: block;
 	border-radius: 14px;
 	background: linear-gradient(90deg, rgba(38, 58, 85, 0.84), rgba(57, 214, 238, 0.18), rgba(38, 58, 85, 0.84));
-	background-size: 220% 100%;
-	animation: skeletonShimmer 1.2s ease-in-out infinite;
 }
 
 .skeletonCards span {
@@ -5346,16 +5342,6 @@ input[type="date"].dealSummaryDateInput {
 
 	span {
 		height: 54px;
-	}
-}
-
-@keyframes skeletonShimmer {
-	0% {
-		background-position: 120% 0;
-	}
-
-	100% {
-		background-position: -120% 0;
 	}
 }
 
