@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectReportEntry, ReportProject } from "../model/types";
 import { ProjectReportsTab } from "./ProjectReportsTab";
@@ -57,7 +57,10 @@ beforeEach(() => {
 });
 
 const openEntry = async () => {
-	fireEvent.click(screen.getByText("Автор отчёта"));
+	// Selecting an entry awaits the report refresh before initializing its draft.
+	await act(async () => {
+		fireEvent.click(screen.getByText("Автор отчёта"));
+	});
 	await screen.findByRole("button", { name: "Редактировать" });
 };
 

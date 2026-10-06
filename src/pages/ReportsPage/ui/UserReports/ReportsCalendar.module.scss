@@ -468,8 +468,6 @@
     display: inline-block;
     border-radius: 999px;
     background: linear-gradient(90deg, #25282b, #373c40, #25282b);
-    background-size: 220% 100%;
-    animation: skeletonShimmer 1.2s ease-in-out infinite;
 }
 
 .hoursSkeleton {
@@ -748,8 +746,6 @@
     display: block;
     border-radius: 999px;
     background: linear-gradient(90deg, #25282b, #373c40, #25282b);
-    background-size: 220% 100%;
-    animation: skeletonShimmer 1.2s ease-in-out infinite;
 }
 
 .skeletonAvatar {
@@ -788,16 +784,6 @@
     span {
         width: 70px;
         height: 20px;
-    }
-}
-
-@keyframes skeletonShimmer {
-    0% {
-        background-position: 120% 0;
-    }
-
-    100% {
-        background-position: -120% 0;
     }
 }
 

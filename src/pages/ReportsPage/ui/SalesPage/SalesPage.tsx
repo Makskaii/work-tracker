@@ -15,7 +15,7 @@ import {
 	type SalesFields,
 	type SalesTableFields,
 } from "../../types/types";
-import { SegmentedControl } from "../AnalyticsReports/AnalyticsReports";
+import { SegmentedControl } from "@/shared/ui/SegmentedControl/SegmentedControl";
 import { periodLabelMap } from "./model/periodLabelMap";
 import cls from "./SalesPage.module.scss";
 import { SalesCard } from "./ui/SalesCard/SalesCard";

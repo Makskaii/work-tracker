@@ -3,29 +3,28 @@ import { createBrowserRouter, Navigate } from "react-router";
 import ErrorElement from "@/components/errorElement/ErrorElement";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Spinner } from "@/components/spinner/Spinner";
-import {
-	DevelopmentReportFallback,
-	Progress,
-	ProjectsReports,
-	ReportsCalendar,
-	ReportsPage,
-} from "@/pages";
-import { ClientHoursPackagesPage } from "@/pages/ClientHoursPackages/ClientHoursPackagesPage";
-import { ClientLoginPage } from "@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage";
-import ClientProfile from "@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile";
-import { ClientForm } from "@/pages/CreateClientForm/ui/CreateClientForm";
-import { MigratePage } from "@/pages/MigratePage";
-import AnalyticsCommertialReportPage from "@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports";
-import { ProjectPlanPage } from "@/pages/ReportsPage/ui/ProjectPlan/ProjectPlanPage";
-import ClientList from "@/pages/ReportsPage/ui/ProjectReports/ClientsPage";
-import { ProjectStatuses } from "@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage";
-import { SalesPage } from "@/pages/ReportsPage/ui/SalesPage/SalesPage";
-import { SalesProfitabilityPage } from "@/pages/ReportsPage/ui/SalesPage/SalesProfitabilityPage";
-import { PieceStatsEmployeeHrs } from "@/pages/ReportsPage/ui/UserReports/EmployeePieceStatsHrs";
-import { NewUserReports } from "@/pages/ReportsPage/ui/UserReports/UserNewReports";
-import { WorkLoad } from "@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad";
 import { ProtectedRoute, PublicOnlyRoute } from "../auth/AuthGuard";
 import { ClientAuthLayout } from "../auth/ClientAuthLayout";
+
+const ReportsPage = lazy(() => import("@/pages/ReportsPage/ReportsPage"));
+const Progress = lazy(() => import("@/pages/ReportsPage/ui/ProgressReports/Progress"));
+const ProjectsReports = lazy(() => import("@/pages/ReportsPage/ui/ProjectReports/ProjectsReports"));
+const ReportsCalendar = lazy(() => import("@/pages/ReportsPage/ui/UserReports/ReportsCalendar"));
+const DevelopmentReportFallback = lazy(() => import("@/pages/ReportsPage/ui/UserReports/DevelopmentReportFallback"));
+const AnalyticsCommertialReportPage = lazy(() => import("@/pages/ReportsPage/ui/AnalyticsReports/AnalyticsReports"));
+const ClientList = lazy(() => import("@/pages/ReportsPage/ui/ProjectReports/ClientsPage"));
+const ClientProfile = lazy(() => import("@/pages/ClientProfilePage/ui/ProfilePage/ClientProfile"));
+const ClientHoursPackagesPage = lazy(() => import("@/pages/ClientHoursPackages/ClientHoursPackagesPage").then((module) => ({ default: module.ClientHoursPackagesPage })));
+const ClientLoginPage = lazy(() => import("@/pages/ClientProfilePage/ui/LoginPage/ClientLoginPage").then((module) => ({ default: module.ClientLoginPage })));
+const ClientForm = lazy(() => import("@/pages/CreateClientForm/ui/CreateClientForm").then((module) => ({ default: module.ClientForm })));
+const MigratePage = lazy(() => import("@/pages/MigratePage").then((module) => ({ default: module.MigratePage })));
+const ProjectPlanPage = lazy(() => import("@/pages/ReportsPage/ui/ProjectPlan/ProjectPlanPage").then((module) => ({ default: module.ProjectPlanPage })));
+const ProjectStatuses = lazy(() => import("@/pages/ReportsPage/ui/ProjectReports/ProjectsStatusPage/StatusPage").then((module) => ({ default: module.ProjectStatuses })));
+const SalesPage = lazy(() => import("@/pages/ReportsPage/ui/SalesPage/SalesPage").then((module) => ({ default: module.SalesPage })));
+const SalesProfitabilityPage = lazy(() => import("@/pages/ReportsPage/ui/SalesPage/SalesProfitabilityPage").then((module) => ({ default: module.SalesProfitabilityPage })));
+const PieceStatsEmployeeHrs = lazy(() => import("@/pages/ReportsPage/ui/UserReports/EmployeePieceStatsHrs").then((module) => ({ default: module.PieceStatsEmployeeHrs })));
+const NewUserReports = lazy(() => import("@/pages/ReportsPage/ui/UserReports/UserNewReports").then((module) => ({ default: module.NewUserReports })));
+const WorkLoad = lazy(() => import("@/pages/ReportsPage/ui/UserReports/WorkLoadPage/WorkLoad").then((module) => ({ default: module.WorkLoad })));
 
 const DevelopmentKanbanPage = lazy(() =>
 	import("@/pages/DevelopmentKanban/DevelopmentKanbanPage").then((module) => ({
@@ -44,6 +43,14 @@ export const router = createBrowserRouter(
 				{
 					index: true,
 					element: <Navigate to="/reports/calendar" replace />,
+				},
+				{
+					path: "/reports/sales",
+					element: (
+						<Suspense fallback={<Spinner />}>
+							<SalesPage />
+						</Suspense>
+					),
 				},
 				{
 					path: "/reports",
@@ -98,14 +105,6 @@ export const router = createBrowserRouter(
 							),
 						},
 						{
-							path: "sales",
-							element: (
-								<Suspense fallback={<Spinner />}>
-									<SalesPage />
-								</Suspense>
-							),
-						},
-						{
 							path: "profitability",
 							element: (
 								<Suspense fallback={<Spinner />}>
@@ -115,7 +114,7 @@ export const router = createBrowserRouter(
 						},
 						{
 							path: "projects-plan",
-							element: <ProjectPlanPage />,
+							element: <Suspense fallback={<Spinner />}><ProjectPlanPage /></Suspense>,
 						},
 						{
 							path: "clients",
@@ -177,7 +176,7 @@ export const router = createBrowserRouter(
 				},
 				{
 					path: "/client-hours-packages",
-					element: <ClientHoursPackagesPage />,
+					element: <Suspense fallback={<Spinner />}><ClientHoursPackagesPage /></Suspense>,
 				},
 				{
 					path: "/employee/:id/stats",

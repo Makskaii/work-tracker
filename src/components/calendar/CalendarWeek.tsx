@@ -15,16 +15,21 @@ import {
 	describeDayHourDeficits,
 } from "./DayHoursWarning";
 import {
-	getDayHourDeficits,
+	getCalendarDayHourDeficits,
 	type DayHourDeficit,
 } from "./helpers/dayHourDeficits";
-import { ReportCodes, ReportStageIds } from "./constants/const";
+import { ReportCodes, ReportStageIds, selectFields } from "./constants/const";
 import {
 	CALENDAR_DAY_STATE_TITLES,
 	getCalendarDayState,
 } from "./helpers/calendarDayState";
 import { formatWeekTitle, getWeekRange } from "./helpers/calendarPeriod";
-import { buildWeekCalendarFromReports } from "./helpers/generateWeek";
+import {
+	formatCalendarDayTitle,
+	formatCalendarFullDate,
+	getLocalCalendarDateKey,
+} from "./helpers/calendarDateFormat";
+import { buildWeekCalendarFromGroupedReports } from "./helpers/generateWeek";
 import {
 	getInternalProjectIds,
 	getReportCategory,
@@ -64,15 +69,26 @@ const mapReportToGroupedFields = (
 	taskType: report[ReportCodes.taskType] ?? null,
 });
 
-const WeekCalendar = ({
-	userId,
-	userIds,
-	selectedDate,
-}: {
+type WeekCalendarProps = {
 	userId?: string;
 	userIds?: string[];
 	selectedDate: string;
-}) => {
+};
+
+type LoadedWeekCalendarProps = WeekCalendarProps & {
+	reports: GroupedReportFields[];
+	isLoading?: boolean;
+	error?: string | null;
+};
+
+const WeekCalendarView = ({
+	userId,
+	userIds,
+	selectedDate,
+	reports,
+	isLoading,
+	error,
+}: LoadedWeekCalendarProps) => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [activeReports, setActiveReports] = useState<GroupedReportFields[]>([]);
 	const [activeDayTitle, setActiveDayTitle] = useState("");
@@ -97,101 +113,55 @@ const WeekCalendar = ({
 		() => getWeekRange(dayjs(selectedDate)),
 		[selectedDate],
 	);
-	const selectedFilterRange = useMemo(
-		() => ({
-			start: dayjs(selectedRange.startOfTheWeek).startOf("day").toISOString(),
-			end: dayjs(selectedRange.endOfTheWeek).endOf("day").toISOString(),
-		}),
-		[selectedRange],
-	);
-	const scopeFilter = useMemo(() => {
-		if (userId) {
-			return { assignedById: userId };
-		}
-
-		if (userIds?.length) {
-			return { "@assignedById": userIds };
-		}
-
-		return { assignedById: "__empty__" };
-	}, [userId, userIds]);
-
-	const { data, loading, error, setFilters } = useLoadAllData<ReportProps>({
-		initialEndpoint: Endpoints.crmItems,
-		initialFilters: {
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.client,
-					ReportCodes.company,
-					ReportCodes.parentproject,
-					ReportCodes.taskId,
-					ReportCodes.taskType,
-					ReportCodes.activityType,
-					"assignedById",
-					"stageId",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-				filter: {
-					...scopeFilter,
-					">=begindate": selectedFilterRange.start,
-					"<=begindate": selectedFilterRange.end,
-					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
-				},
-			},
-		},
-	});
-
-	useEffect(() => {
-		setFilters({
-			params: {
-				entityTypeId: EntityTypeIds.reports,
-				select: [
-					"id",
-					"title",
-					"begindate",
-					ReportCodes.title,
-					ReportCodes.timeSpent,
-					ReportCodes.project,
-					ReportCodes.client,
-					ReportCodes.company,
-					ReportCodes.parentproject,
-					ReportCodes.taskId,
-					ReportCodes.taskType,
-					ReportCodes.activityType,
-					"assignedById",
-					"stageId",
-					"createdTime",
-					"lastActivityTime",
-					`parentId${EntityTypeIds.tasks}`,
-				],
-				filter: {
-					...scopeFilter,
-					">=begindate": selectedFilterRange.start,
-					"<=begindate": selectedFilterRange.end,
-					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
-				},
-			},
-		});
-	}, [scopeFilter, selectedFilterRange, setFilters]);
-
+	const todayKey = getLocalCalendarDateKey(new Date());
 	const weekCalendar = useMemo(() => {
-		return buildWeekCalendarFromReports(
-			data,
-			selectedRange,
-			ReportCodes.timeSpent,
+		const now = new Date(`${todayKey}T00:00:00`);
+		return buildWeekCalendarFromGroupedReports(reports, selectedRange).map(
+			(day) => {
+				const groupedReports = day.reports ?? [];
+				const { deficits, summaryDeficits } = getCalendarDayHourDeficits({
+					date: day.date,
+					reports: groupedReports,
+					users: scopeUsers,
+					now,
+				});
+				const confirmedReports = groupedReports.filter(
+					(report) => report.stageId === ReportStageIds.confirmed,
+				);
+				const totalHours = confirmedReports.reduce(
+					(total, report) => total + parseTimeSpent(report.timeSpent),
+					0,
+				);
+				const dayState = getCalendarDayState({
+					date: day.date,
+					reports: groupedReports,
+					activities,
+					now,
+					hasHourDeficit: deficits.length > 0,
+				});
+				return {
+					...day,
+					reports: groupedReports,
+					deficits,
+					summaryDeficits,
+					confirmedReports,
+					totalHours,
+					dayState,
+					dayTitle: `${formatCalendarDayTitle(day.date)}: ${CALENDAR_DAY_STATE_TITLES[dayState]}${deficits.length ? `. Сотрудников с недобором: ${deficits.length}` : ""}`,
+					categorySummary: getReportCategorySummary(
+						confirmedReports,
+						activities,
+						internalProjectIds,
+					),
+					unconfirmedCount: groupedReports.filter(
+						(report) => report.stageId === ReportStageIds.unconfirmed,
+					).length,
+				};
+			},
 		);
-	}, [data, selectedRange]);
+	}, [reports, selectedRange, scopeUsers, activities, internalProjectIds, todayKey]);
 
-	if (loading)
+	if (isLoading)
 		return (
 			<div className={cls.container} role="status">
 				Загружаем отчёты…
@@ -227,38 +197,17 @@ const WeekCalendar = ({
 
 			<div className={cls.weekGrid}>
 				{weekCalendar.map((day) => {
-					const reports = day.reports ?? [];
-					const groupedReports = reports.map(mapReportToGroupedFields);
-					const deficits = getDayHourDeficits({
-						date: day.date,
+					const {
 						reports: groupedReports,
-						users: scopeUsers,
-					});
-					const summaryDeficits = getDayHourDeficits({
-						date: day.date,
-						reports: groupedReports,
-						users: scopeUsers,
-						includeToday: true,
-					});
-					const confirmedReports = groupedReports.filter(
-						(report) => report.stageId === ReportStageIds.confirmed,
-					);
-					const totalHours = confirmedReports.reduce(
-						(total, report) => total + parseTimeSpent(report.timeSpent),
-						0,
-					);
-					const dayState = getCalendarDayState({
-						date: day.date,
-						reports: groupedReports,
-						activities,
-						hasHourDeficit: deficits.length > 0,
-					});
-					const dayTitle = `${day.date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}${deficits.length ? `. Сотрудников с недобором: ${deficits.length}` : ""}`;
-					const categorySummary = getReportCategorySummary(
+						deficits,
+						summaryDeficits,
 						confirmedReports,
-						activities,
-						internalProjectIds,
-					);
+						totalHours,
+						dayState,
+						dayTitle,
+						categorySummary,
+						unconfirmedCount,
+					} = day;
 					const openDayReports = (category?: ReportCategory) => {
 						setActiveDeficits(summaryDeficits);
 						setActiveReports(
@@ -274,19 +223,9 @@ const WeekCalendar = ({
 								: groupedReports,
 						);
 						setActiveCategory(category);
-						setActiveDayTitle(
-							day.date.toLocaleDateString("ru-RU", {
-								day: "numeric",
-								month: "long",
-								year: "numeric",
-							}),
-						);
+						setActiveDayTitle(formatCalendarFullDate(day.date));
 						setIsModalOpen(true);
 					};
-					const unconfirmedCount = reports.filter(
-						(report) => report.stageId === ReportStageIds.unconfirmed,
-					).length;
-
 					return (
 						<section
 							key={day.id}
@@ -301,9 +240,9 @@ const WeekCalendar = ({
 							<button
 								type="button"
 								className={cls.dayTopline}
-								disabled={!reports.length && !summaryDeficits.length}
+								disabled={!groupedReports.length && !summaryDeficits.length}
 								onClick={() => openDayReports()}
-								aria-label={`Все отчёты за ${day.dayNumber}: ${reports.length}`}
+								aria-label={`Все отчёты за ${day.dayNumber}: ${groupedReports.length}`}
 							>
 								<span className={cls.dayNumber}>{day.dayNumber}</span>
 								{!!totalHours && (
@@ -389,5 +328,56 @@ const WeekCalendar = ({
 		</div>
 	);
 };
+
+const StandaloneWeekCalendar = (props: WeekCalendarProps) => {
+	const { selectedDate, userId, userIds } = props;
+	const selectedRange = useMemo(
+		() => getWeekRange(dayjs(selectedDate)),
+		[selectedDate],
+	);
+	const filters = useMemo(
+		() => ({
+			params: {
+				entityTypeId: EntityTypeIds.reports,
+				select: selectFields,
+				filter: {
+					...(userId
+						? { assignedById: userId }
+						: userIds?.length
+							? { "@assignedById": userIds }
+							: { assignedById: "__empty__" }),
+					">=begindate": dayjs(selectedRange.startOfTheWeek)
+						.startOf("day")
+						.toISOString(),
+					"<=begindate": dayjs(selectedRange.endOfTheWeek)
+						.endOf("day")
+						.toISOString(),
+					"@stageId": [ReportStageIds.unconfirmed, ReportStageIds.confirmed],
+				},
+			},
+		}),
+		[selectedRange, userId, userIds],
+	);
+	const { data, loading, error, setFilters } = useLoadAllData<ReportProps>({
+		initialEndpoint: Endpoints.crmItems,
+		initialFilters: filters,
+	});
+	useEffect(() => {
+		setFilters(filters);
+	}, [filters, setFilters]);
+	const reports = useMemo(() => data.map(mapReportToGroupedFields), [data]);
+	return (
+		<WeekCalendarView {...props} reports={reports} isLoading={loading} error={error} />
+	);
+};
+
+const WeekCalendar = (
+	props: WeekCalendarProps & Partial<Pick<LoadedWeekCalendarProps, "reports" | "isLoading" | "error">>,
+) =>
+	props.reports !== undefined ? (
+		<WeekCalendarView {...props} reports={props.reports} />
+	) : (
+		<StandaloneWeekCalendar {...props} />
+	);
 
 export default WeekCalendar;

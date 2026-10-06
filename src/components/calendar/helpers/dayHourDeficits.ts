@@ -75,3 +75,23 @@ export const getDayHourDeficits = ({
 	}
 	return deficits;
 };
+
+// The card excludes today, while the opened summary includes it. Past days
+// share the same calculation so each day's reports are scanned only once.
+export const getCalendarDayHourDeficits = (
+	options: Omit<Parameters<typeof getDayHourDeficits>[0], "includeToday">,
+) => {
+	const now = options.now ?? new Date();
+	const summaryDeficits = getDayHourDeficits({
+		...options,
+		now,
+		includeToday: true,
+	});
+	return {
+		summaryDeficits,
+		deficits:
+			options.date && startOfLocalDay(options.date) < startOfLocalDay(now)
+				? summaryDeficits
+				: [],
+	};
+};

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
 	DEFAULT_REPORT_PROJECT_FORM,
 	getReportProjectForm,
+	getProjectPlannedEndDate,
+	getProjectSummaryForm,
+	getProjectSummaryPayload,
 	getReportProjectCreatePayload,
 	getReportProjectPayload,
 	getReportProjectSaveError,
@@ -10,6 +13,45 @@ import {
 import type { ReportProject } from "./types";
 
 describe("project link form", () => {
+	it("round-trips the local project dates and zero purchased hours without substituting actual or legacy dates", () => {
+		const form = { ...DEFAULT_REPORT_PROJECT_FORM, title: "Проект", projectStartDate: "2026-10-01", contractEndDate: "2026-12-31", summaryFactCompletionDate: "2027-01-05", summaryPlanCompletionDate: "2026-12-01", summaryPurchasedHours: "0" };
+		const payload = getReportProjectPayload(form);
+		expect(payload).toMatchObject({ projectStartDate: "2026-10-01", contractEndDate: "2026-12-31", summaryFactCompletionDate: "2027-01-05", summaryPurchasedHours: 0 });
+		expect(payload).not.toHaveProperty("summaryPlanCompletionDate");
+		const project = { ...payload, summaryPlanCompletionDate: form.summaryPlanCompletionDate, id: 1 } as ReportProject;
+		expect(getReportProjectForm(project)).toMatchObject({ projectStartDate: "2026-10-01", contractEndDate: "2026-12-31", summaryPurchasedHours: "0" });
+		expect(getProjectSummaryForm(project).contractEndDate).toBe("2026-12-31");
+	});
+
+	it("uses only a legitimate saved planned end as fallback when the canonical date is missing", () => {
+		const project = { id: 1, title: "Старый проект", contractEndDate: null, summaryPlanCompletionDate: "2026-12-01", summaryFactCompletionDate: "2027-01-05" } as ReportProject;
+		expect(getProjectPlannedEndDate(project)).toBe("2026-12-01");
+		expect(getReportProjectForm(project).contractEndDate).toBe("2026-12-01");
+		expect(getProjectSummaryForm(project).contractEndDate).toBe("2026-12-01");
+		expect(getProjectPlannedEndDate({ contractEndDate: null, summaryPlanCompletionDate: null })).toBe("");
+		expect(getReportProjectForm({ ...project, summaryPlanCompletionDate: null }).contractEndDate).toBe("");
+	});
+
+	it("writes an edited planned date to the canonical field without mirroring the legacy column", () => {
+		const project = { id: 1, title: "Старый проект", contractEndDate: null, summaryPlanCompletionDate: "2026-12-01", summaryFactCompletionDate: "2027-01-05" } as ReportProject;
+		const form = { ...getReportProjectForm(project), contractEndDate: "2026-12-31" };
+		const payload = getReportProjectPayload(form);
+		expect(payload.contractEndDate).toBe("2026-12-31");
+		expect(payload).not.toHaveProperty("summaryPlanCompletionDate");
+		expect(payload.summaryFactCompletionDate).toBe("2027-01-05");
+		const summaryPayload = getProjectSummaryPayload({ ...getProjectSummaryForm(project), contractEndDate: "2026-12-31" });
+		expect(summaryPayload.contractEndDate).toBe("2026-12-31");
+		expect(summaryPayload).not.toHaveProperty("summaryPlanCompletionDate");
+	});
+
+	it("clears an explicitly removed end date and its legacy fallback without clearing actual completion", () => {
+		const project = { id: 1, title: "Старый проект", contractEndDate: "2026-12-31", summaryPlanCompletionDate: "2026-12-01", summaryFactCompletionDate: "2027-01-05" } as ReportProject;
+		const payload = getReportProjectPayload({ ...getReportProjectForm(project), contractEndDate: "" });
+		expect(payload).toMatchObject({ contractEndDate: null, summaryPlanCompletionDate: null, summaryFactCompletionDate: "2027-01-05" });
+		expect(getReportProjectForm({ ...project, ...payload }).contractEndDate).toBe("");
+		expect(getProjectSummaryPayload({ ...getProjectSummaryForm(project), contractEndDate: "" })).toMatchObject({ contractEndDate: null, summaryPlanCompletionDate: null });
+	});
+
 	it("requires a nonblank company name in company creation mode without demanding an existing company ID", () => {
 		const form = { ...DEFAULT_REPORT_PROJECT_FORM, projectGoal: "Запустить CRM" };
 		expect(validateReportProjectLink(form, { isCreating: true, companyCreationMode: "new", newCompanyTitle: "  " })).toContain("название новой компании");

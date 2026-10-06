@@ -53,19 +53,7 @@
 
 .skeleton {
   background: linear-gradient(90deg, #111315 25%, #1b1e21 50%, #111315 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
   height: 3rem;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
 }
 
 table {

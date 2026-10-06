@@ -28,7 +28,7 @@ import {
 	describeDayHourDeficits,
 } from "./DayHoursWarning";
 import {
-	getDayHourDeficits,
+	getCalendarDayHourDeficits,
 	type DayHourDeficit,
 } from "./helpers/dayHourDeficits";
 import { ProjectCodes } from "./constants/const";
@@ -36,6 +36,11 @@ import {
 	CALENDAR_DAY_STATE_TITLES,
 	getCalendarDayState,
 } from "./helpers/calendarDayState";
+import {
+	formatCalendarDayTitle,
+	formatCalendarFullDate,
+	getLocalCalendarDateKey,
+} from "./helpers/calendarDateFormat";
 import {
 	getInternalProjectIds,
 	getReportCategorySummary,
@@ -205,6 +210,49 @@ const CalendarMonth = ({
 		() => getInternalProjectIds(projects, clientsList),
 		[projects, clientsList],
 	);
+	const todayKey = getLocalCalendarDateKey(new Date());
+	const calendarDays = useMemo(() => {
+		const now = new Date(`${todayKey}T00:00:00`);
+		return monthDays.map((day) => {
+			const confirmedReports = day.confirmedReports ?? [];
+			const reports = day.reports ?? [];
+			const { deficits, summaryDeficits } = getCalendarDayHourDeficits({
+				date: day.date,
+				reports,
+				users: scopeUsers,
+				isPadding: !day.isCurrentMonth,
+				now,
+			});
+			const dayState = getCalendarDayState({
+				date: day.date,
+				reports,
+				activities,
+				isPadding: !day.isCurrentMonth,
+				hasHourDeficit: deficits.length > 0,
+				now,
+			});
+			return {
+				...day,
+				reports,
+				confirmedReports,
+				deficits,
+				summaryDeficits,
+				dayState,
+				canOpenDay:
+					(dayState !== "blank" && reports.length > 0) ||
+					summaryDeficits.length > 0,
+				categorySummary: getReportCategorySummary(
+					confirmedReports,
+					activities,
+					internalProjectIds,
+				),
+				dayTitle:
+					dayState === "blank" || !day.date
+						? undefined
+						: `${formatCalendarDayTitle(day.date)}: ${CALENDAR_DAY_STATE_TITLES[dayState]}${deficits.length ? `. Сотрудников с недобором: ${deficits.length}` : ""}`,
+			};
+		});
+	}, [monthDays, activities, internalProjectIds, scopeUsers, todayKey]);
 
 	const projectFilterOptions = useMemo(() => {
 		const projectIds = Array.from(
@@ -293,40 +341,16 @@ const CalendarMonth = ({
 				<CalendarMonthSkeleton />
 			) : (
 				<div className={cls["calendar-grid"]}>
-					{monthDays.map((day) => {
-						const confirmedReports = day.confirmedReports ?? [];
-						const categorySummary = getReportCategorySummary(
+					{calendarDays.map((day) => {
+						const {
 							confirmedReports,
-							activities,
-							internalProjectIds,
-						);
-						const reports = day.reports ?? [];
-						const deficits = getDayHourDeficits({
-							date: day.date,
-							reports,
-							users: scopeUsers,
-							isPadding: !day.isCurrentMonth,
-						});
-						const summaryDeficits = getDayHourDeficits({
-							date: day.date,
-							reports,
-							users: scopeUsers,
-							isPadding: !day.isCurrentMonth,
-							includeToday: true,
-						});
-						const dayState = getCalendarDayState({
-							date: day.date,
-							reports,
-							activities,
-							isPadding: !day.isCurrentMonth,
-							hasHourDeficit: deficits.length > 0,
-						});
-						const hasReports = dayState !== "blank" && reports.length > 0;
-						const canOpenDay = hasReports || summaryDeficits.length > 0;
-						const dayTitle =
-							dayState === "blank"
-								? undefined
-								: `${day.date?.toLocaleDateString("ru-RU", { day: "numeric", month: "long", weekday: "long" })}: ${CALENDAR_DAY_STATE_TITLES[dayState]}${deficits.length ? `. Сотрудников с недобором: ${deficits.length}` : ""}`;
+							categorySummary,
+							deficits,
+							summaryDeficits,
+							dayState,
+							canOpenDay,
+							dayTitle,
+						} = day;
 
 						return (
 							<div
@@ -355,11 +379,7 @@ const CalendarMonth = ({
 									setActiveReports(day.reports ?? []);
 									setActiveDayTitle(
 										day.date
-											? day.date.toLocaleDateString("ru-RU", {
-													day: "numeric",
-													month: "long",
-													year: "numeric",
-												})
+											? formatCalendarFullDate(day.date)
 											: "",
 									);
 									setOpen(true);

@@ -10,6 +10,7 @@ import { getMonthTicks, getSegmentStyle, getWeekTicks, parseGanttDate } from "..
 import type { GanttTimeline } from "../SalesPage/model/ganttTypes";
 import type { ProjectGanttEvent, ProjectGanttStage, ReportProject } from "../SalesPage/model/types";
 import { getProjectMemberIds } from "../SalesPage/model/projectTeam";
+import { getProjectPlannedEndDate } from "../SalesPage/model/reportProjectForm";
 import { ProjectPlanTeamView } from "./ProjectPlanTeamView";
 import styles from "./ProjectPlanPage.module.scss";
 
@@ -54,7 +55,7 @@ const buildProjectPlanItem = (
 	]);
 	const planEnd = getDateMax([
 		...projectEvents.map((event) => parseGanttDate(event.planEndDate)),
-		parseGanttDate(project.summaryPlanCompletionDate),
+		parseGanttDate(getProjectPlannedEndDate(project)),
 		parseGanttDate(project.deadline),
 	]);
 	const factStart = getDateMin(

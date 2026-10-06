@@ -19,6 +19,7 @@ import {
 } from "./ReportProjectFileInput";
 import styles from "../SalesProfitabilityReport.module.scss";
 import { ReportProjectLinkFields, type BitrixProjectOption } from "./ReportProjectLinkFields";
+import { ReportProjectPlanningFields } from "./ReportProjectPlanningFields";
 
 export const ReportProjectDetailsTab = ({
 	bitrixProjectOptions,
@@ -153,22 +154,7 @@ export const ReportProjectDetailsTab = ({
 					onFileChange={onFileDraftChange}
 					variant="details"
 				/>
-				<ReportProjectInput
-					form={form}
-					label="Дата начала проекта"
-					name="projectStartDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Дата окончания проекта по договору"
-					name="contractEndDate"
-					onFormChange={onFormChange}
-					type="date"
-					variant="details"
-				/>
+				<ReportProjectPlanningFields form={form} onFormChange={onFormChange} variant="details" />
 			</ReportProjectSection>
 
 			<ReportProjectSection title="Проектная команда" variant="details">

@@ -25,12 +25,12 @@ export const getClientsFromList = async (): Promise<ClientListItems[]> => {
 	}
 };
 
-export const getActivitiesList = async (): Promise<ActivityListItem[]> => {
+export const getActivitiesList = async (signal?: AbortSignal): Promise<ActivityListItem[]> => {
 	try {
 		const response = await $api.post(Endpoints.lists, {
 			IBLOCK_TYPE_ID: "lists",
 			IBLOCK_ID: "25",
-		});
+		}, { signal });
 
 		const items = response.data.result;
 
@@ -41,6 +41,7 @@ export const getActivitiesList = async (): Promise<ActivityListItem[]> => {
 
 		return items;
 	} catch (error) {
+		if (signal) throw error;
 		console.error(`Failed to fetch fields`, error);
 		return [];
 	}

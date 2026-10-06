@@ -1,10 +1,7 @@
 import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
-import { Outlet } from "react-router";
-import {
-	ProjectCodes,
-	TaskCodes as UserCodes,
-} from "@/components/calendar/constants/const";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Outlet, useLocation } from "react-router";
+import { ProjectCodes } from "@/components/calendar/constants/const";
 import { normalizeUserActive } from "@/components/calendar/helpers/formatUserFilds";
 import { CheckPermission } from "@/components/protectedRoute/CheckPermission";
 import { $api } from "@/shared/config";
@@ -13,7 +10,6 @@ import {
 	DEPARTMENT_IDS,
 	Endpoints,
 	EntityTypeIds,
-	TASK_SELECT_FIELDS,
 } from "@/shared/constants/const";
 import type {
 	AnyObject,
@@ -21,17 +17,11 @@ import type {
 	ClientProjectProps,
 	ReportsContext,
 	Status,
-	TaskProps,
 	User,
 } from "@/shared/types/types";
-import {
-	getActivities,
-	getActivitiesList,
-} from "../../shared/api/getCrmFields";
-import { getSrartEndMonthDate } from "../../shared/utils/utils";
+import { getActivitiesList } from "../../shared/api/getCrmFields";
 import { getDevelopers } from "./api/getDevelopers";
 import { getStatuses } from "./api/getStatusFields";
-import { getItems } from "./api/getTasks";
 import type { ActivityListItem } from "./types/types";
 
 const currentMonth = dayjs().month() + 1;
@@ -66,10 +56,12 @@ const fetchAllCrmItems = async <T extends AnyObject>({
 	entityTypeId,
 	select,
 	filter = {},
+	signal,
 }: {
 	entityTypeId: number;
 	select: readonly string[];
 	filter?: AnyObject;
+	signal?: AbortSignal;
 }) => {
 	const limit = 50;
 	let start = 0;
@@ -80,6 +72,7 @@ const fetchAllCrmItems = async <T extends AnyObject>({
 		const response = await $api.get<CrmItemListResponse<T>>(
 			Endpoints.crmItems,
 			{
+				signal,
 				params: {
 					entityTypeId,
 					select,
@@ -93,6 +86,9 @@ const fetchAllCrmItems = async <T extends AnyObject>({
 		items.push(...pageItems);
 
 		next = response.data.next ?? null;
+		if (next !== null && next <= start) {
+			throw new Error("CRM pagination did not advance");
+		}
 		start = next ?? start + limit;
 	}
 
@@ -133,7 +129,9 @@ export const mapProjectsFromSmartProcess = (
 };
 
 const ReportsPage = () => {
-	const [tasks, setTasks] = useState<TaskProps[]>([]);
+	const { pathname } = useLocation();
+	const needs = getReportDataNeeds(pathname);
+	const loaded = useRef({ users: false, statuses: false, activities: false, catalog: false });
 	const [clientsList, setClietnsList] = useState<
 		(ClientListItems & { projects: ClientProjectProps[] })[]
 	>([]);
@@ -157,8 +155,11 @@ const ReportsPage = () => {
 	}, [users]);
 
 	useEffect(() => {
+		if (!needs.users || loaded.current.users) return;
+		const controller = new AbortController();
 		const getUsers = async () => {
-			const response = await getDevelopers();
+			const response = await getDevelopers(controller.signal);
+			if (controller.signal.aborted) return;
 
 			setUsers(
 				response
@@ -180,65 +181,51 @@ const ReportsPage = () => {
 					}))
 					.toSorted((a, b) => a.department - b.department),
 			);
+			loaded.current.users = true;
 		};
 
-		getUsers();
-	}, []);
+		void getUsers().catch((error) => { if (!controller.signal.aborted) console.error("Failed to load report users", error); });
+		return () => controller.abort();
+	}, [needs.users]);
 
 	useEffect(() => {
-		const fetchTasks = async () => {
-			const response = await getItems<TaskProps>({
-				typeId: EntityTypeIds.tasks,
-				filters: {
-					[UserCodes.company]: currProject === "" ? null : currProject,
-
-					">=createdTime": getSrartEndMonthDate("start", month, year),
-					"<=createdTime": getSrartEndMonthDate("end", month, year),
-				},
-				select: TASK_SELECT_FIELDS,
-			});
-
-			setTasks(response);
-		};
-
-		fetchTasks();
-	}, [currProject, month, year]);
-
-	useEffect(() => {
+		if (!needs.statuses || loaded.current.statuses) return;
+		const controller = new AbortController();
 		const fetchStatuses = async () => {
-			const response = await getStatuses();
+			const response = await getStatuses(controller.signal);
+			if (controller.signal.aborted) return;
 
 			setStatuses(response);
+			loaded.current.statuses = true;
 		};
 
-		fetchStatuses();
-	}, []);
+		void fetchStatuses().catch((error) => { if (!controller.signal.aborted) console.error("Failed to load report statuses", error); });
+		return () => controller.abort();
+	}, [needs.statuses]);
 
 	useEffect(() => {
+		if (!needs.activities || loaded.current.activities) return;
+		const controller = new AbortController();
 		const fetchActivities = async () => {
-			const fields = await getActivitiesList();
+			const fields = await getActivitiesList(controller.signal);
+			if (controller.signal.aborted) return;
 
 			setActivities(fields);
+			loaded.current.activities = true;
 		};
 
-		fetchActivities();
-	}, []);
+		void fetchActivities().catch((error) => { if (!controller.signal.aborted) console.error("Failed to load report activities", error); });
+		return () => controller.abort();
+	}, [needs.activities]);
 
 	useEffect(() => {
-		const fetchActivities = async () => {
-			const fields = await getActivities();
-
-			console.log({ fields });
-		};
-
-		fetchActivities();
-	}, []);
-
-	useEffect(() => {
+		if (!needs.catalog || loaded.current.catalog) return;
+		const controller = new AbortController();
 		const fetchClients = async () => {
 			try {
 				const projectsResponse = await fetchAllCrmItems<ClientProjectProps>({
 					entityTypeId: EntityTypeIds.projects,
+					signal: controller.signal,
 					select: [
 						"id",
 						"title",
@@ -257,12 +244,14 @@ const ReportsPage = () => {
 				const companiesResponse = projectCompanyIds.length
 					? await fetchAllCrmItems<CompanyFromCrm>({
 							entityTypeId: EntityTypeIds.companies,
+							signal: controller.signal,
 							select: ["id", "title"],
 							filter: {
 								"@id": projectCompanyIds,
 							},
 						})
 					: [];
+				if (controller.signal.aborted) return;
 
 				const companies = companiesResponse.map(mapCompanyFromCrm);
 				const normalizedProjects =
@@ -270,27 +259,28 @@ const ReportsPage = () => {
 
 				setProjects(normalizedProjects);
 
+				const projectsByCompany = new Map<string, ClientProjectProps[]>();
+				for (const project of projectsResponse) {
+					const companyId = String(project[ProjectCodes.company] ?? "");
+					const companyProjects = projectsByCompany.get(companyId) ?? [];
+					companyProjects.push({ ...project, projectId: String(project.id) });
+					projectsByCompany.set(companyId, companyProjects);
+				}
 				const data = companies.map((company) => ({
 					...company,
-					projects: projectsResponse
-						.filter(
-							(project) =>
-								String(project[ProjectCodes.company] ?? "") === company.ID,
-						)
-						.map((project) => ({
-							...project,
-							projectId: String(project.id),
-						})),
+					projects: projectsByCompany.get(company.ID) ?? [],
 				}));
 
 				setClietnsList(data);
+				loaded.current.catalog = true;
 			} catch (error) {
-				console.log(error);
+				if (!controller.signal.aborted) console.error("Failed to load report catalog", error);
 			}
 		};
 
-		fetchClients();
-	}, []);
+		void fetchClients();
+		return () => controller.abort();
+	}, [needs.catalog]);
 
 	return (
 		<CheckPermission permission="read" subject="post">
@@ -306,7 +296,7 @@ const ReportsPage = () => {
 					context={
 						{
 							projects,
-							tasks,
+							tasks: [],
 							clientsList,
 							setCurrProject,
 							setTitle,
@@ -328,6 +318,16 @@ const ReportsPage = () => {
 			</div>
 		</CheckPermission>
 	);
+};
+
+export const getReportDataNeeds = (pathname: string) => {
+	const section = pathname.split("/").filter(Boolean)[1] ?? "calendar";
+	return {
+		users: ["calendar", "projects", "clients", "developers", "development", "workload"].includes(section),
+		statuses: ["projects", "clients", "developers", "progress"].includes(section),
+		activities: ["calendar", "projects", "clients", "developers", "development", "workload", "profitability"].includes(section),
+		catalog: ["calendar", "projects", "clients", "developers", "development", "progress", "project-statuses"].includes(section),
+	};
 };
 
 export default ReportsPage;

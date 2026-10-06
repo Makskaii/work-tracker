@@ -30,11 +30,14 @@ describe("getWorkTrackerDepartmentAccess", () => {
 			},
 		});
 
-		const { reportDepartmentIds } = await getWorkTrackerDepartmentAccess();
+		const { reportDepartmentIds, salesDepartmentIds } = await getWorkTrackerDepartmentAccess();
 		expect(reportDepartmentIds).toEqual([...roots, 40, 50, 45]);
 		expect(reportDepartmentIds).not.toContain(1);
 		expect(reportDepartmentIds).not.toContain(19);
 		expect(reportDepartmentIds).not.toContain(60);
+		expect(salesDepartmentIds).toEqual([DEPARTMENT_IDS.SALES, 60]);
+		expect(salesDepartmentIds).not.toContain(16);
+		expect(salesDepartmentIds).not.toContain(DEPARTMENT_IDS.DEV);
 	});
 
 	it("retains root access with an empty hierarchy", async () => {
@@ -42,6 +45,7 @@ describe("getWorkTrackerDepartmentAccess", () => {
 		expect(await getWorkTrackerDepartmentAccess()).toEqual({
 			heads: [],
 			reportDepartmentIds: roots,
+			salesDepartmentIds: [DEPARTMENT_IDS.SALES],
 		});
 	});
 
@@ -95,11 +99,22 @@ describe("getWorkTrackerDepartmentAccess", () => {
 		expect(await getWorkTrackerDepartmentAccess()).toEqual({
 			heads: ["16", "89"],
 			reportDepartmentIds: [...roots, 40, 45],
+			salesDepartmentIds: [DEPARTMENT_IDS.SALES],
 		});
 		expect(mockedGet.mock.calls).toEqual([
 			[Endpoints.department, { params: { start: 0 } }],
 			[Endpoints.department, { params: { start: 50 } }],
 		]);
+	});
+
+	it("includes nested sales membership without extending broad report access or commercial siblings", async () => {
+		mockedGet.mockResolvedValue({ data: { result: [
+			{ ID: 62, PARENT: 61 }, { ID: 61, PARENT: 19 },
+			{ ID: 19, PARENT: 16 }, { ID: 20, PARENT: 16 }, { ID: 16, PARENT: 1 },
+		] } });
+		const access = await getWorkTrackerDepartmentAccess();
+		expect(access.salesDepartmentIds).toEqual([19, 61, 62]);
+		expect(access.reportDepartmentIds).toEqual(roots);
 	});
 
 	it("rejects API failures so the caller can preserve root access", async () => {
