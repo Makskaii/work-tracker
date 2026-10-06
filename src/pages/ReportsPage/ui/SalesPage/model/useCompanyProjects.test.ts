@@ -199,6 +199,84 @@ describe("selected Bitrix project reports", () => {
 });
 
 describe("Bitrix project catalogue", () => {
+	it("starts project and company reads together instead of waiting for the project catalogue", async () => {
+		let finishProjects: ((value: ReturnType<typeof page>) => void) | undefined;
+		let finishCompanies: ((value: ReturnType<typeof page>) => void) | undefined;
+		crm.get.mockImplementation((_url, { params }) => new Promise<ReturnType<typeof page>>((resolve) => {
+			if (params.entityTypeId === EntityTypeIds.projects) finishProjects = resolve;
+			else finishCompanies = resolve;
+		}));
+		const { result } = renderHook(useCompanyProjects);
+		expect(crm.get.mock.calls.map(([, config]) => config.params.entityTypeId)).toEqual([
+			EntityTypeIds.projects,
+			EntityTypeIds.companies,
+		]);
+		await act(async () => { finishProjects?.(page([project])); });
+		expect(result.current.isLoadingDetails).toBe(true);
+		await act(async () => { finishCompanies?.(page([{ id: 4877, title: "Компания" }])); });
+		expect(result.current.isLoadingDetails).toBe(false);
+		expect(result.current.companyTitleById.get("4877")).toBe("Компания");
+	});
+
+	it("keeps loaded projects and companies visible during a refresh and adds the newly created company", async () => {
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(
+			params.entityTypeId === EntityTypeIds.projects ? [project] : [{ id: 4877, title: "Компания" }],
+		)));
+		const { result } = renderHook(useCompanyProjects);
+		await waitFor(() => expect(result.current.isLoadingDetails).toBe(false));
+		const previousProjects = result.current.projects;
+		const previousCompanies = result.current.companyTitleById;
+		let finishProjects: ((value: ReturnType<typeof page>) => void) | undefined;
+		let finishCompanies: ((value: ReturnType<typeof page>) => void) | undefined;
+		crm.get.mockImplementation((_url, { params }) => new Promise<ReturnType<typeof page>>((resolve) => {
+			if (params.entityTypeId === EntityTypeIds.projects) finishProjects = resolve;
+			else finishCompanies = resolve;
+		}));
+		act(() => result.current.reloadProjects());
+		expect(result.current.isRefreshing).toBe(true);
+		expect(result.current.isLoadingDetails).toBe(false);
+		expect(result.current.projects).toBe(previousProjects);
+		expect(result.current.companyTitleById).toBe(previousCompanies);
+		const addedProject = { ...project, id: 88, projectId: "88", [ProjectCodes.company]: 22 };
+		await act(async () => { finishProjects?.(page([project, addedProject])); });
+		expect(result.current.projects).toBe(previousProjects);
+		await act(async () => { finishCompanies?.(page([{ id: 4877, title: "Компания" }, { id: 22, title: "Новая компания" }])); });
+		expect(result.current.isRefreshing).toBe(false);
+		expect(result.current.projects).toHaveLength(2);
+		expect(result.current.companyTitleById.get("22")).toBe("Новая компания");
+		expect(crm.get.mock.calls.map(([, config]) => config.params.entityTypeId)).toEqual([
+			EntityTypeIds.projects, EntityTypeIds.companies, EntityTypeIds.projects, EntityTypeIds.companies,
+		]);
+	});
+
+	it("retains the last successful catalogue after a failed background refresh and can retry", async () => {
+		const logger = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(
+			params.entityTypeId === EntityTypeIds.projects ? [project] : [{ id: 4877, title: "Компания" }],
+		)));
+		const { result } = renderHook(useCompanyProjects);
+		await waitFor(() => expect(result.current.isLoadingDetails).toBe(false));
+		const previousProjects = result.current.projects;
+		const previousCompanies = result.current.companyTitleById;
+		crm.get.mockImplementation((_url, { params }) => params.entityTypeId === EntityTypeIds.companies
+			? Promise.reject(new Error("Не удалось обновить компании"))
+			: Promise.resolve(page([project, { ...project, id: 88, projectId: "88" }])));
+		act(() => result.current.reloadProjects());
+		await waitFor(() => expect(result.current.error).toBe("Не удалось обновить компании"));
+		expect(result.current.projects).toBe(previousProjects);
+		expect(result.current.companyTitleById).toBe(previousCompanies);
+		expect(result.current.isLoadingDetails).toBe(false);
+		expect(result.current.isRefreshing).toBe(false);
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(
+			params.entityTypeId === EntityTypeIds.projects ? [project] : [{ id: 4877, title: "Компания" }],
+		)));
+		act(() => result.current.reloadProjects());
+		await waitFor(() => expect(result.current.isRefreshing).toBe(false));
+		expect(result.current.error).toBeNull();
+		expect(result.current.projects).toHaveLength(1);
+		logger.mockRestore();
+	});
+
 	it("invalidates cached CRM list reads before reloading a newly created project", async () => {
 		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(params.entityTypeId === EntityTypeIds.projects ? [project] : [])));
 		const { result } = renderHook(useCompanyProjects);

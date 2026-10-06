@@ -15,6 +15,8 @@ import type { ProfitabilityProject } from "./types";
 type ProjectsState = {
 	companyTitleById: Map<string, string>;
 	isLoading: boolean;
+	isRefreshing: boolean;
+	hasLoaded: boolean;
 	projects: ProfitabilityProject[];
 	error: string | null;
 };
@@ -74,6 +76,8 @@ export const useCompanyProjects = () => {
 	const [projectsState, setProjectsState] = useState<ProjectsState>({
 		companyTitleById: new Map(),
 		isLoading: true,
+		isRefreshing: false,
+		hasLoaded: false,
 		projects: [],
 		error: null,
 	});
@@ -88,27 +92,29 @@ export const useCompanyProjects = () => {
 		const controller = new AbortController();
 
 		const fetchProjects = async () => {
-			setProjectsState({
-				companyTitleById: new Map(),
-				isLoading: true,
-				projects: [],
+			setProjectsState((previous) => ({
+				...previous,
+				isLoading: !previous.hasLoaded,
+				isRefreshing: previous.hasLoaded,
 				error: null,
-			});
+			}));
 
 			try {
-				const projects = await fetchAllCrmItems<ClientProjectProps>({
-					entityTypeId: EntityTypeIds.projects,
-					select: PROJECT_SELECT_FIELDS,
-					filter: {},
-					signal: controller.signal,
-				});
 				// New projects may belong to a company with no existing project yet.
-				const companies = await fetchAllCrmItems<CompanyFromCrm>({
-					entityTypeId: EntityTypeIds.companies,
-					select: ["id", "title"],
-					filter: {},
-					signal: controller.signal,
-				});
+				const [projects, companies] = await Promise.all([
+					fetchAllCrmItems<ClientProjectProps>({
+						entityTypeId: EntityTypeIds.projects,
+						select: PROJECT_SELECT_FIELDS,
+						filter: {},
+						signal: controller.signal,
+					}),
+					fetchAllCrmItems<CompanyFromCrm>({
+						entityTypeId: EntityTypeIds.companies,
+						select: ["id", "title"],
+						filter: {},
+						signal: controller.signal,
+					}),
+				]);
 				const companyTitleEntries: Array<[string, string]> = companies
 					.map((company): [string, string] => [
 						String(company.id ?? "").trim(),
@@ -129,22 +135,25 @@ export const useCompanyProjects = () => {
 					setProjectsState({
 						companyTitleById,
 						isLoading: false,
+						isRefreshing: false,
+						hasLoaded: true,
 						projects: preparedProjects,
 						error: null,
 					});
 				}
 			} catch (error) {
 				if (!controller.signal.aborted) {
+					controller.abort();
 					console.error("Failed to fetch company profitability data", error);
-					setProjectsState({
-						companyTitleById: new Map(),
+					setProjectsState((previous) => ({
+						...previous,
 						isLoading: false,
-						projects: [],
+						isRefreshing: false,
 						error:
 							error instanceof Error
 								? error.message
 								: "Не удалось загрузить проекты из Битрикс24",
-					});
+					}));
 				}
 			}
 		};
@@ -160,6 +169,7 @@ export const useCompanyProjects = () => {
 		companyTitleById: projectsState.companyTitleById,
 		projects: projectsState.projects,
 		isLoadingDetails: projectsState.isLoading,
+		isRefreshing: projectsState.isRefreshing,
 		error: projectsState.error,
 		reloadProjects,
 	};
