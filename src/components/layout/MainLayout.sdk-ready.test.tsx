@@ -18,7 +18,7 @@ vi.mock("@/shared/api/getDepartments", () => ({
 		reportDepartmentIds: [23, 25],
 	}),
 }));
-vi.mock("@/shared/config/ability/casl", () => ({ ability: { update: mocks.ability } }));
+vi.mock("@/shared/config/ability/casl", () => ({ ability: { update: mocks.ability, can: () => true } }));
 vi.mock("./AppHeader", () => ({ AppHeader: () => null }));
 vi.mock("../spinner/Spinner", () => ({ Spinner: () => <p>Инициализация</p> }));
 vi.mock("react-router", async (importOriginal) => ({
@@ -50,6 +50,7 @@ async function renderLayout(strict = false) {
 
 describe("Bitrix SDK readiness and ownership", () => {
 	beforeEach(() => {
+		sessionStorage.clear();
 		vi.resetModules(); vi.clearAllMocks(); vi.stubEnv("DEV", false);
 		embedded();
 		mocks.departments.mockResolvedValue([]);

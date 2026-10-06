@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/modal/Modal";
 import { useB24 } from "@/shared/config/bitrixProvider/bitrixContext";
+import { acquireAppUpdateBlocker } from "@/shared/lib/appUpdates";
 import type { SupportProjectTask } from "./clientHoursPackages.api";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import {
@@ -132,6 +133,7 @@ export const SupportReportModal = ({
 		if (!values.reportTypeId || !reportTypes.some((item) => item.id === Number(values.reportTypeId))) errors.reportTypeId = "Выберите тип активности";
 		setFieldErrors(errors);
 		if (Object.keys(errors).length) return;
+		const releaseUpdateBlocker = acquireAppUpdateBlocker();
 		pendingRef.current = true;
 		setPending(true);
 		setError("");
@@ -187,6 +189,7 @@ export const SupportReportModal = ({
 		} finally {
 			pendingRef.current = false;
 			setPending(false);
+			releaseUpdateBlocker();
 		}
 	};
 	return (
