@@ -60,6 +60,7 @@ import {
 	DEFAULT_REPORT_PROJECT_FORM,
 	getProjectSummaryForm,
 	getReportProjectForm,
+	getReportProjectCreatePayload,
 	getReportProjectPayload,
 	getReportProjectSaveError,
 	validateReportProjectLink,
@@ -68,6 +69,7 @@ import {
 	projectStatusOptions,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
+	type CompanyCreationMode,
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
 import {
@@ -469,6 +471,8 @@ export const SalesProfitabilityReport = ({
 		DEFAULT_REPORT_PROJECT_FORM,
 	);
 	const [projectCreationMode, setProjectCreationMode] = useState<ProjectCreationMode>("new");
+	const [companyCreationMode, setCompanyCreationMode] = useState<CompanyCreationMode>("existing");
+	const [newCompanyTitle, setNewCompanyTitle] = useState("");
 	const creationRequestIdRef = useRef<string | undefined>(undefined);
 	const [projectFileDrafts, setProjectFileDrafts] =
 		useState<ReportProjectFileDrafts>({});
@@ -1111,6 +1115,8 @@ export const SalesProfitabilityReport = ({
 		setIsReportProjectDrawer(false);
 		setEditingReportProject(null);
 		setProjectCreationMode("new");
+		setCompanyCreationMode("existing");
+		setNewCompanyTitle("");
 		creationRequestIdRef.current = crypto.randomUUID();
 		setProjectForm(DEFAULT_REPORT_PROJECT_FORM);
 		setProjectFileDrafts({});
@@ -1125,6 +1131,8 @@ export const SalesProfitabilityReport = ({
 	) => {
 		setIsReportProjectDrawer(asDrawer);
 		setEditingReportProject(project);
+		setCompanyCreationMode("existing");
+		setNewCompanyTitle("");
 		setProjectForm(getReportProjectForm(project));
 		setProjectFileDrafts({});
 		setProjectFormError(null);
@@ -1452,6 +1460,8 @@ export const SalesProfitabilityReport = ({
 		const linkError = validateReportProjectLink(projectForm, {
 			isCreating: !editingReportProject,
 			creationMode: projectCreationMode,
+			companyCreationMode,
+			newCompanyTitle,
 			previouslyLinked: Boolean(editingReportProject?.bitrixProjectId),
 		});
 		if (linkError) {
@@ -1469,6 +1479,8 @@ export const SalesProfitabilityReport = ({
 				? prev.map((item) => item.id === project.id ? project : item)
 				: [...prev, project]);
 			setEditingReportProject(project);
+			setCompanyCreationMode("existing");
+			setNewCompanyTitle("");
 			setProjectForm(getReportProjectForm(project));
 		};
 
@@ -1481,7 +1493,14 @@ export const SalesProfitabilityReport = ({
 					payload,
 				);
 			} else {
-				savedProject = await createReportProject(payload, creationRequestIdRef.current);
+				savedProject = await createReportProject(
+					getReportProjectCreatePayload(projectForm, {
+						creationMode: projectCreationMode,
+						companyCreationMode,
+						newCompanyTitle,
+					}),
+					creationRequestIdRef.current,
+				);
 			}
 
 			// Project creation has already committed. A later attachment failure
@@ -2060,6 +2079,10 @@ export const SalesProfitabilityReport = ({
 				companyOptions={companyOptions}
 				creationMode={projectCreationMode}
 				onCreationModeChange={setProjectCreationMode}
+				companyCreationMode={companyCreationMode}
+				onCompanyCreationModeChange={setCompanyCreationMode}
+				newCompanyTitle={newCompanyTitle}
+				onNewCompanyTitleChange={setNewCompanyTitle}
 				bitrixProjectsLoading={isBitrixProjectsLoading}
 				bitrixProjectsError={bitrixProjectsError}
 				onRetryBitrixProjects={reloadBitrixProjects}

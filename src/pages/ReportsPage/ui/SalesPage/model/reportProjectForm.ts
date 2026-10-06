@@ -1,5 +1,6 @@
 import type {
 	ReportProject,
+	ReportProjectCreatePayload,
 	ReportProjectFileKind,
 	ReportProjectPayload,
 	ReportProjectStatus,
@@ -9,6 +10,8 @@ import type {
 export type ReportProjectFormState = {
 	[K in keyof ReportProjectPayload]-?: string;
 };
+
+export type CompanyCreationMode = "existing" | "new";
 
 export type ProjectSummaryFormState = Pick<
 	ReportProjectFormState,
@@ -135,9 +138,11 @@ const dateOrNull = (value: string) => value || null;
 
 export const validateReportProjectLink = (
 	form: ReportProjectFormState,
-	{ isCreating, creationMode = "new", previouslyLinked = false }: {
+	{ isCreating, creationMode = "new", companyCreationMode = "existing", newCompanyTitle = "", previouslyLinked = false }: {
 		isCreating: boolean;
 		creationMode?: "new" | "existing";
+		companyCreationMode?: CompanyCreationMode;
+		newCompanyTitle?: string;
 		previouslyLinked?: boolean;
 	},
 ): string | null => {
@@ -147,7 +152,13 @@ export const validateReportProjectLink = (
 	if ((isCreating && creationMode === "existing" || previouslyLinked) && !form.bitrixProjectId) {
 		return "Выберите проект из списка Битрикс24";
 	}
-	if (isCreating && creationMode === "new" && !/^[1-9]\d*$/.test(form.clientCompanyId)) {
+	if (isCreating && creationMode === "new" && companyCreationMode === "new" && !newCompanyTitle.trim()) {
+		return "Заполните название новой компании";
+	}
+	if (isCreating && creationMode === "new" && companyCreationMode === "new" && newCompanyTitle.trim().length > 255) {
+		return "Название компании должно содержать не более 255 символов";
+	}
+	if (isCreating && creationMode === "new" && companyCreationMode === "existing" && !/^[1-9]\d*$/.test(form.clientCompanyId)) {
 		return "Выберите компанию из списка для создания проекта в Битрикс24";
 	}
 	if (isCreating && creationMode === "new" && !form.projectGoal.trim()) {
@@ -315,6 +326,30 @@ export const getReportProjectPayload = (
 	tzStartDate: dateOrNull(form.tzStartDate),
 	tzWeeks: numberOrNull(form.tzWeeks),
 });
+
+export const getReportProjectCreatePayload = (
+	form: ReportProjectFormState,
+	{
+		creationMode,
+		companyCreationMode,
+		newCompanyTitle,
+	}: {
+		creationMode: "new" | "existing";
+		companyCreationMode: CompanyCreationMode;
+		newCompanyTitle: string;
+	},
+): ReportProjectCreatePayload => {
+	const payload = getReportProjectPayload(form);
+	if (creationMode === "new" && companyCreationMode === "new") {
+		return {
+			...payload,
+			clientCompany: null,
+			clientCompanyId: null,
+			newCompanyTitle: newCompanyTitle.trim(),
+		};
+	}
+	return payload;
+};
 
 export const getProjectSummaryForm = (
 	project?: ReportProject | null,

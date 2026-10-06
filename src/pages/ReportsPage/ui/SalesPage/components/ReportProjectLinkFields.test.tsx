@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_REPORT_PROJECT_FORM } from "../model/reportProjectForm";
+import { DEFAULT_REPORT_PROJECT_FORM, type CompanyCreationMode } from "../model/reportProjectForm";
 import {
 	ReportProjectLinkFields,
 	type ProjectCreationMode,
@@ -22,6 +22,8 @@ const Harness = ({ isCreating = true, linked = false }: { isCreating?: boolean; 
 		...(linked ? { bitrixProjectId: "77", clientCompanyId: "999", clientCompany: "Ошибочная компания" } : {}),
 	});
 	const [mode, setMode] = useState<ProjectCreationMode>("new");
+	const [companyMode, setCompanyMode] = useState<CompanyCreationMode>("existing");
+	const [newCompanyTitle, setNewCompanyTitle] = useState("");
 	return <>
 		<ReportProjectLinkFields
 			bitrixProjectOptions={projects}
@@ -31,14 +33,60 @@ const Harness = ({ isCreating = true, linked = false }: { isCreating?: boolean; 
 			isCreating={isCreating}
 			creationMode={mode}
 			onCreationModeChange={setMode}
+			companyCreationMode={companyMode}
+			onCompanyCreationModeChange={setCompanyMode}
+			newCompanyTitle={newCompanyTitle}
+			onNewCompanyTitleChange={setNewCompanyTitle}
 		/>
 		<output data-testid="payload">{JSON.stringify(form)}</output>
+		<output data-testid="company-draft">{JSON.stringify({ companyMode, newCompanyTitle })}</output>
 	</>;
 };
 const payload = () => JSON.parse(screen.getByTestId("payload").textContent ?? "{}");
 beforeEach(() => vi.clearAllMocks());
 
 describe("project and company links", () => {
+	it("lets a new project create a named company and clears the previously selected company", () => {
+		render(<Harness />);
+		fireEvent.focus(screen.getByRole("combobox", { name: "Компания клиента" }));
+		fireEvent.click(screen.getByRole("option", { name: "Компания Альфа" }));
+		fireEvent.change(screen.getByRole("combobox", { name: "Компания в Битрикс24" }), { target: { value: "new" } });
+		const title = screen.getByRole("textbox", { name: "Название новой компании" });
+		expect(title).toBeRequired();
+		fireEvent.change(title, { target: { value: "Новая компания" } });
+		expect(screen.queryByRole("combobox", { name: "Компания клиента" })).not.toBeInTheDocument();
+		expect(payload()).toMatchObject({ clientCompanyId: "", clientCompany: "" });
+		expect(screen.getByTestId("company-draft")).toHaveTextContent('"newCompanyTitle":"Новая компания"');
+	});
+
+	it("clears a new company draft when returning to existing company selection", () => {
+		render(<Harness />);
+		const companyMode = screen.getByRole("combobox", { name: "Компания в Битрикс24" });
+		fireEvent.change(companyMode, { target: { value: "new" } });
+		fireEvent.change(screen.getByRole("textbox", { name: "Название новой компании" }), { target: { value: "Черновик" } });
+		fireEvent.change(companyMode, { target: { value: "existing" } });
+		expect(screen.queryByRole("textbox", { name: "Название новой компании" })).not.toBeInTheDocument();
+		expect(screen.getByTestId("company-draft")).toHaveTextContent('"newCompanyTitle":""');
+		const company = screen.getByRole("combobox", { name: "Компания клиента" });
+		fireEvent.focus(company);
+		fireEvent.click(screen.getByRole("option", { name: "Компания Бета без проектов" }));
+		expect(payload()).toMatchObject({ clientCompanyId: "22", clientCompany: "Компания Бета без проектов" });
+	});
+
+	it("discards the company creation draft when linking an existing Bitrix project", () => {
+		render(<Harness />);
+		fireEvent.change(screen.getByRole("combobox", { name: "Компания в Битрикс24" }), { target: { value: "new" } });
+		fireEvent.change(screen.getByRole("textbox", { name: "Название новой компании" }), { target: { value: "Черновик" } });
+		fireEvent.change(screen.getByRole("combobox", { name: "Проект в Битрикс24" }), { target: { value: "existing" } });
+		expect(screen.queryByRole("combobox", { name: "Компания в Битрикс24" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("textbox", { name: "Название новой компании" })).not.toBeInTheDocument();
+		expect(screen.getByTestId("company-draft")).toHaveTextContent('"companyMode":"existing","newCompanyTitle":""');
+		const projectSearch = screen.getByRole("combobox", { name: "Проект в Битрикс24", expanded: false });
+		fireEvent.focus(projectSearch);
+		fireEvent.click(screen.getByRole("option", { name: projects[0].title }));
+		expect(screen.getByRole("combobox", { name: "Компания клиента" })).toHaveValue("Компания Альфа");
+		expect(screen.getByRole("combobox", { name: "Компания клиента" })).toBeDisabled();
+	});
 	it("defaults to automatic card creation and selects a company by name while storing its ID", () => {
 		render(<Harness />);
 		expect(screen.getByRole("combobox", { name: "Проект в Битрикс24" })).toHaveValue("new");
@@ -87,11 +135,13 @@ describe("project and company links", () => {
 		render(<Harness isCreating={false} linked />);
 		expect(screen.getByRole("combobox", { name: "Компания клиента" })).toHaveValue("Компания Альфа");
 		expect(screen.queryByText("Создать автоматически")).not.toBeInTheDocument();
+		expect(screen.queryByRole("combobox", { name: "Компания в Битрикс24" })).not.toBeInTheDocument();
 	});
 
 	it("does not offer automatic creation during ordinary editing of an unlinked legacy project", () => {
 		render(<Harness isCreating={false} />);
 		expect(screen.getByText(/пока нет связи/)).toBeInTheDocument();
 		expect(screen.queryByText("Создать автоматически")).not.toBeInTheDocument();
+		expect(screen.queryByRole("combobox", { name: "Компания в Битрикс24" })).not.toBeInTheDocument();
 	});
 });

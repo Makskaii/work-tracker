@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportCodes } from "@/components/calendar/constants/const";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import type { ProfitabilityProject, ReportProject } from "./model/types";
-import type { ReportProjectFormState } from "./model/reportProjectForm";
+import type { CompanyCreationMode, ReportProjectFormState } from "./model/reportProjectForm";
 import { DEFAULT_REPORT_NAVIGATION, getReportNavigationStorageKey, writeReportNavigation } from "./model/reportNavigation";
 import { SalesProfitabilityReport } from "./SalesProfitabilityReport";
 
@@ -75,7 +75,7 @@ vi.mock("./components/DealProjectTeamCostTable", () => ({
 	),
 }));
 vi.mock("./components/ReportProjectModal", () => ({
-	ReportProjectModal: ({ isOpen, form, onFormChange, onFileDraftChange, onSubmit, onClose, saving, projectFormError }: {
+	ReportProjectModal: ({ isOpen, form, onFormChange, onFileDraftChange, onSubmit, onClose, saving, projectFormError, companyCreationMode, onCompanyCreationModeChange, newCompanyTitle, onNewCompanyTitleChange }: {
 		isOpen: boolean;
 		form: ReportProjectFormState;
 		onFormChange: (form: ReportProjectFormState) => void;
@@ -84,12 +84,22 @@ vi.mock("./components/ReportProjectModal", () => ({
 		onClose: () => void;
 		saving: boolean;
 		projectFormError: string | null;
+		companyCreationMode: CompanyCreationMode;
+		onCompanyCreationModeChange: (mode: CompanyCreationMode) => void;
+		newCompanyTitle: string;
+		onNewCompanyTitleChange: (title: string) => void;
 	}) => isOpen ? <div>
 		{projectFormError ? <p role="alert">{projectFormError}</p> : null}
 		<button type="button" onClick={() => onFormChange({ ...form, title: "Новый проект", projectGoal: "Запустить CRM", clientCompanyId: "22", clientCompany: "Компания Бета" })}>Заполнить новый проект</button>
+		<button type="button" onClick={() => {
+			onCompanyCreationModeChange("new");
+			onNewCompanyTitleChange("  Новая компания  ");
+			onFormChange({ ...form, title: "Новый проект", projectGoal: "Запустить CRM", clientCompanyId: "", clientCompany: "" });
+		}}>Создать проект с новой компанией</button>
 		<button type="button" onClick={() => onFormChange({ ...form, title: "Исправленный проект" })}>Изменить название проекта</button>
 		<button type="button" onClick={() => onFileDraftChange("estimate", [new File(["estimate"], "estimate.pdf", { type: "application/pdf" })])}>Добавить файл проекта</button>
 		<output data-testid="project-form-bitrix-id">{form.bitrixProjectId}</output>
+		<output data-testid="project-company-draft">{JSON.stringify({ companyCreationMode, newCompanyTitle, clientCompanyId: form.clientCompanyId, clientCompany: form.clientCompany })}</output>
 		<button type="button" disabled={saving} onClick={onSubmit}>Сохранить новый проект</button>
 		<button type="button" onClick={onClose}>Закрыть форму проекта</button>
 	</div> : null,
@@ -457,6 +467,54 @@ describe("Project report selection", () => {
 		expect(state.createProject.mock.calls[1][0]).toMatchObject({ bitrixProjectId: null, clientCompanyId: "22", projectGoal: "Запустить CRM" });
 		await waitFor(() => expect(state.reloadProjects).toHaveBeenCalledTimes(1));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+	});
+
+	it("retains a new company draft and the same request ID when a project save fails", async () => {
+		state.createProject.mockRejectedValueOnce({ response: { data: { message: "Временная ошибка Битрикс24" } } });
+		state.createProject.mockResolvedValueOnce({ ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "23", clientCompany: "Новая компания", files: [] });
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Создать проект с новой компанией" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Временная ошибка Битрикс24");
+		expect(JSON.parse(screen.getByTestId("project-company-draft").textContent ?? "{}")).toMatchObject({ companyCreationMode: "new", newCompanyTitle: "  Новая компания  " });
+		const [firstPayload, firstRequestId] = state.createProject.mock.calls[0];
+		expect(firstPayload).toMatchObject({ newCompanyTitle: "Новая компания", clientCompanyId: null, clientCompany: null });
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		await waitFor(() => expect(state.createProject).toHaveBeenCalledTimes(2));
+		expect(state.createProject.mock.calls[1]).toEqual([firstPayload, firstRequestId]);
+		await waitFor(() => expect(state.reloadProjects).toHaveBeenCalledTimes(1));
+	});
+
+	it("starts a fresh company choice after closing and reopening the project creation form", async () => {
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Создать проект с новой компанией" }));
+		fireEvent.click(screen.getByRole("button", { name: "Закрыть форму проекта" }));
+		fireEvent.click(screen.getByTitle("Добавить проект"));
+		expect(screen.getByTestId("project-company-draft")).toHaveTextContent('"companyCreationMode":"existing","newCompanyTitle":"","clientCompanyId":"","clientCompany":""');
+	});
+
+	it("keeps the created company after attachment failure and retries the same project via PATCH without a company creation field", async () => {
+		const createdProject = { ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "23", clientCompany: "Новая компания", files: [] };
+		state.projects = [...state.projects, catalog(createdProject)];
+		state.createProject.mockResolvedValueOnce(createdProject);
+		state.updateProject.mockImplementation(async (id, payload) => ({ ...createdProject, ...payload, id }));
+		state.uploadProjectFile.mockRejectedValueOnce(new Error("attachment connection failed"));
+		state.uploadProjectFile.mockResolvedValueOnce({ id: 101, projectId: 3, fileKind: "estimate", originalName: "estimate.pdf" });
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Создать проект с новой компанией" }));
+		fireEvent.click(screen.getByRole("button", { name: "Добавить файл проекта" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Проект сохранён. Не удалось загрузить файлы");
+		expect(screen.getByTestId("project-company-draft")).toHaveTextContent('"clientCompanyId":"23","clientCompany":"Новая компания"');
+		expect(screen.getByTestId("project-company-draft")).toHaveTextContent('"companyCreationMode":"existing","newCompanyTitle":""');
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		expect(state.createProject).toHaveBeenCalledTimes(1);
+		expect(state.updateProject.mock.calls[0][1]).toMatchObject({ clientCompanyId: "23", clientCompany: "Новая компания" });
+		expect(state.updateProject.mock.calls[0][1]).not.toHaveProperty("newCompanyTitle");
 	});
 
 	it("keeps a successfully created project after attachment failure and retries edits via PATCH on the same project", async () => {
