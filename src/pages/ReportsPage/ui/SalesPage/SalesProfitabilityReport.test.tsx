@@ -1,4 +1,5 @@
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -189,9 +190,54 @@ beforeEach(() => {
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
+	vi.unstubAllEnvs();
 });
 
 describe("Project report selection", () => {
+	it("keeps initial project and tab actions unavailable until saved navigation restoration commits", async () => {
+		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
+		writeReportNavigation(storageKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-2", activeTab: "projectDetails" });
+		let finishLoading: ((projects: ReportProject[]) => void) | undefined;
+		state.fetchProjects.mockImplementationOnce(() => new Promise<ReportProject[]>((resolve) => { finishLoading = resolve; }));
+		const getStoredValue = Storage.prototype.getItem;
+		let actionsAvailableDuringRestoration: { project: boolean; create: boolean; tab: boolean; plan: boolean } | undefined;
+		vi.spyOn(Storage.prototype, "getItem").mockImplementation(function (this: Storage, key: string) {
+			if (key === storageKey && !actionsAvailableDuringRestoration) {
+				actionsAvailableDuringRestoration = {
+					project: Boolean(screen.queryByTitle(waterfall.title)),
+					create: Boolean(screen.queryByTitle("Добавить проект")),
+					tab: !screen.getByRole("button", { name: "Проекты" }).hasAttribute("disabled"),
+					plan: !screen.getByRole("button", { name: /Все проекты/ }).hasAttribute("disabled"),
+				};
+			}
+			return getStoredValue.call(this, key);
+		});
+		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
+		expect(screen.queryByTitle(waterfall.title)).not.toBeInTheDocument();
+		expect(screen.queryByTitle("Добавить проект")).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Проекты" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: /Все проекты/ })).toBeDisabled();
+		await act(async () => { finishLoading?.([support, waterfall]); });
+		expect(actionsAvailableDuringRestoration).toEqual({ project: false, create: false, tab: false, plan: false });
+		expect(await screen.findByText(`Детали: ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Проекты" })).toBeEnabled();
+		expect(screen.getByTitle("Добавить проект")).toBeEnabled();
+		fireEvent.click(screen.getByTitle(support.title));
+		expect(await screen.findByText(`Детали: ${support.title}`)).toBeInTheDocument();
+	});
+
+	it("becomes ready with default navigation when production has no user-scoped storage key", async () => {
+		vi.stubEnv("DEV", false);
+		const storageRead = vi.spyOn(Storage.prototype, "getItem");
+		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: null }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
+		expect(await screen.findByText(/Выберите проект в списке слева/)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Проекты" })).toBeEnabled();
+		expect(screen.getByTitle("Добавить проект")).toBeEnabled();
+		expect(storageRead).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByTitle(waterfall.title));
+		expect(await screen.findByRole("heading", { name: waterfall.title })).toBeInTheDocument();
+	});
+
 	it("restores the selected project and detail tab after loading the current user's project list", async () => {
 		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
 		const report = () => <B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>;

@@ -539,7 +539,7 @@ export const SalesProfitabilityReport = ({
 	const [isReportProjectModalOpen, setIsReportProjectModalOpen] =
 		useState(false);
 	const [isReportProjectDrawer, setIsReportProjectDrawer] = useState(false);
-	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(false);
+	const [isReportProjectsLoading, setIsReportProjectsLoading] = useState(true);
 	const [projectFormError, setProjectFormError] = useState<string | null>(null);
 	const [isReportProjectSaving, setIsReportProjectSaving] = useState(false);
 	const [projectSearchQuery, setProjectSearchQuery] = useState("");
@@ -575,6 +575,8 @@ export const SalesProfitabilityReport = ({
 			(project) => getDbProjectId(project) === selectedProjectId,
 		) ?? null;
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
+	const isInitialNavigationLoading = isReportProjectsLoading ||
+		(hasLoadedReportProjects && restoredNavigationKey !== navigationStorageKey);
 
 	useEffect(() => {
 		if (!hasLoadedReportProjects || restoredNavigationKey === navigationStorageKey) return;
@@ -831,7 +833,7 @@ export const SalesProfitabilityReport = ({
 	);
 	const isBusy =
 		loading ||
-		isReportProjectsLoading ||
+		isInitialNavigationLoading ||
 		(shouldLoadBitrixProjectDetails &&
 			(isBitrixProjectsLoading ||
 				isBitrixProjectDetailsLoading ||
@@ -1751,6 +1753,7 @@ export const SalesProfitabilityReport = ({
 								<button
 									type="button"
 									className={styles.projectsPlanButton}
+									disabled={isInitialNavigationLoading}
 									onClick={() => navigate("/reports/projects-plan")}
 								>
 									<span className={styles.projectsPlanIcon}>
@@ -1791,8 +1794,8 @@ export const SalesProfitabilityReport = ({
 									))}
 								</div>
 							</div>
-							{isReportProjectsLoading ? <ProjectListSkeleton /> : null}
-							{!isReportProjectsLoading &&
+							{isInitialNavigationLoading ? <ProjectListSkeleton /> : null}
+							{!isInitialNavigationLoading &&
 								visibleReportProjectGroups.map((group) => (
 									<div key={group.key} className={styles.reportProjectGroup}>
 										<div className={styles.reportProjectGroupTitle}>
@@ -1866,14 +1869,14 @@ export const SalesProfitabilityReport = ({
 										})}
 									</div>
 								))}
-							<button
+							{!isInitialNavigationLoading ? <button
 								type="button"
 								className={styles.dealProjectAddButton}
 								onClick={openReportProjectCreateModal}
 								title="Добавить проект"
 							>
 								+
-							</button>
+							</button> : null}
 						</div>
 					</aside>
 
@@ -1885,6 +1888,7 @@ export const SalesProfitabilityReport = ({
 										key={tab.id}
 										type="button"
 										className={activeTab === tab.id ? styles.activeTab : ""}
+										disabled={isInitialNavigationLoading}
 										onClick={() => setActiveTab(tab.id)}
 									>
 										{tab.title}
@@ -1893,6 +1897,7 @@ export const SalesProfitabilityReport = ({
 							</div>
 							<button
 								type="button"
+								disabled={isInitialNavigationLoading}
 								className={`${styles.marginalityTabButton} ${
 									activeTab === "marginality" ? styles.activeTab : ""
 								}`}
