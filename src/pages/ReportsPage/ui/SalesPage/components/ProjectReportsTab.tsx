@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/modal/Modal";
+import {
+	acquireAppUpdateBlocker,
+	useAppUpdateBlocker,
+} from "@/shared/lib/appUpdates";
 import type { User } from "@/shared/types/types";
 import {
 	formatFileSize,
@@ -94,7 +98,7 @@ export const ProjectReportsTab = ({
 	}
 
 	return (
-		<section className={styles.projectReportsPanel}>
+		<section className={styles.projectReportsPanel} data-app-update-managed="true">
 			<div className={styles.projectReportsHeader}>
 				<div>
 					<h3>Отчёты по проекту</h3>
@@ -244,6 +248,7 @@ const ProjectReportViewModal = ({
 		nextReportDate: "",
 		text: "",
 	});
+	useAppUpdateBlocker(Boolean(reportEntry) || isSaving || isDeleting);
 
 	useEffect(() => {
 		if (!reportEntry) {
@@ -275,6 +280,7 @@ const ProjectReportViewModal = ({
 			return;
 		}
 
+		const releaseUpdateBlocker = acquireAppUpdateBlocker();
 		setIsSaving(true);
 		setError(null);
 
@@ -296,6 +302,7 @@ const ProjectReportViewModal = ({
 			setError("Не удалось сохранить отчёт");
 		} finally {
 			setIsSaving(false);
+			releaseUpdateBlocker();
 		}
 	};
 
@@ -309,6 +316,7 @@ const ProjectReportViewModal = ({
 			return;
 		}
 
+		const releaseUpdateBlocker = acquireAppUpdateBlocker();
 		setIsDeleting(true);
 		setError(null);
 
@@ -319,6 +327,7 @@ const ProjectReportViewModal = ({
 			setError("Не удалось удалить отчёт");
 		} finally {
 			setIsDeleting(false);
+			releaseUpdateBlocker();
 		}
 	};
 
@@ -375,6 +384,7 @@ const ProjectReportViewModal = ({
 			{reportEntry ? (
 				<div
 					className={`${styles.ganttFormModal} ${styles.projectReportModal}`}
+					data-app-update-managed="true"
 				>
 					<div className={styles.projectReportViewHeader}>
 						<h3>Отчёт по проекту</h3>
@@ -552,10 +562,11 @@ const ProjectReportCreateModal = ({
 	users: User[];
 }) => {
 	const authorOptions = getUserAutocompleteOptions(users);
+	useAppUpdateBlocker(isOpen || isSaving);
 
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} size="small">
-			<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`}>
+			<div className={`${styles.ganttFormModal} ${styles.projectReportModal}`} data-app-update-managed="true">
 				<h3>Создать отчёт по проекту</h3>
 				<div className={styles.projectReportComposer}>
 					<label>

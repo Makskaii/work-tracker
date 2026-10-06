@@ -9,6 +9,8 @@ import {
 	REPORT_ACCESS_USER_IDS,
 } from "@/shared/constants/const";
 import { type CurrentUserDepartmentInfo } from "@/shared/hooks/useCurrentBitrixUser";
+import { getAppNavigationKey, readAppNavigation, saveAppNavigation } from "@/shared/lib/appNavigation";
+import { useAppUpdateBlocker } from "@/shared/lib/appUpdates";
 import { ability } from "../../shared/config/ability/casl";
 import { Spinner } from "../spinner/Spinner";
 import { AppHeader } from "./AppHeader";
@@ -24,6 +26,13 @@ type AbilityRule = {
 };
 
 type BitrixFrameStatus = "loading" | "ready" | "unavailable";
+
+const canRestorePath = (pathname: string) => {
+	if (pathname === "/create-client-form") return ability.can("create-client", "client");
+	const employee = pathname.match(/^\/employee\/([1-9]\d*)\/stats$/);
+	if (employee) return ability.can("read", `employee-${employee[1]}`);
+	return ability.can("read", "post");
+};
 
 const addRuleIfMissing = (rules: AbilityRule[], rule: AbilityRule) => {
 	const exists = rules.some(
@@ -70,10 +79,26 @@ const BitrixFrameUnavailable = () => (
 
 export const MainLayout = () => {
 	const [b24, setB24] = useState<B24Frame | null>(null);
+	const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 	const [frameStatus, setFrameStatus] = useState<BitrixFrameStatus>("loading");
 	const navigate = useNavigate();
 	const location = useLocation();
 	const initialPathname = useRef(location.pathname).current;
+	const initialSearch = useRef(location.search).current;
+	const initialHash = useRef(location.hash).current;
+	const pendingRestoredPath = useRef<string | null>(null);
+	useAppUpdateBlocker(frameStatus === "loading");
+
+	useEffect(() => {
+		if (frameStatus !== "ready" || !currentUserId) return;
+		if (pendingRestoredPath.current) {
+			if (location.pathname !== pendingRestoredPath.current) return;
+			pendingRestoredPath.current = null;
+		}
+		if (canRestorePath(location.pathname)) {
+			saveAppNavigation(getAppNavigationKey(currentUserId), location.pathname);
+		}
+	}, [frameStatus, currentUserId, location.pathname]);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -233,13 +258,19 @@ export const MainLayout = () => {
 
 				if (isMounted) {
 					setB24(frame);
+					setCurrentUserId(currUser?.userId ?? null);
 					setFrameStatus("ready");
 
-					if (
-						redirectTo &&
-						(initialPathname === "/" || initialPathname === "/reports")
-					) {
-						navigate(redirectTo, { replace: true });
+					const isLanding = ["/", "/reports", "/reports/calendar"].includes(initialPathname);
+					const savedPath = isLanding && currUser?.userId
+						? readAppNavigation(getAppNavigationKey(currUser.userId), canRestorePath)
+						: null;
+					const target = savedPath ?? (
+						initialPathname === "/" || initialPathname === "/reports" ? redirectTo : null
+					);
+					if (target && target !== initialPathname) {
+						pendingRestoredPath.current = target;
+						navigate(savedPath ? { pathname: target, search: initialSearch, hash: initialHash } : target, { replace: true });
 					}
 				}
 			} catch {
@@ -260,7 +291,7 @@ export const MainLayout = () => {
 			// here breaks later mounts and StrictMode: the loader returns the
 			// same frame with its message subscription already removed.
 		};
-	}, [navigate, initialPathname]);
+	}, [navigate, initialPathname, initialSearch, initialHash]);
 
 	if (frameStatus === "loading") {
 		return <Spinner />;
@@ -271,7 +302,7 @@ export const MainLayout = () => {
 	}
 
 	return (
-		<B24Context.Provider value={{ b24, status: b24 ? "ready" : "standalone" }}>
+		<B24Context.Provider value={{ b24, currentUserId, status: b24 ? "ready" : "standalone" }}>
 			<div
 				style={{
 					display: "flex",

@@ -5,6 +5,7 @@ import axios, {
 	type InternalAxiosRequestConfig,
 } from "axios";
 import { authStorage } from "../auth/auth.sessions";
+import { trackAppUpdateRequests } from "./axios-update-tracker";
 
 const defaultConfig = {
 	timeout: 30000,
@@ -23,6 +24,9 @@ export const $backendApi = axios.create({
 	baseURL: import.meta.env.VITE_BFF_API_URL,
 	...defaultConfig,
 });
+
+trackAppUpdateRequests($api);
+trackAppUpdateRequests($backendApi);
 
 const BITRIX_CACHE_TTL_MS = 5 * 60 * 1000;
 const BITRIX_CACHEABLE_ENDPOINTS = new Set([

@@ -27,6 +27,7 @@ vi.mock("@bitrix24/b24jssdk", () => ({
 vi.mock("../../shared/config/ability/casl", () => ({
 	ability: {
 		update: mockAbilityUpdate,
+		can: () => true,
 	},
 }));
 
@@ -63,6 +64,7 @@ describe("MainLayout", () => {
 	});
 
 	beforeEach(() => {
+		sessionStorage.clear();
 		vi.clearAllMocks();
 		vi.resetModules();
 		mockGetDepartmentsHeads.mockResolvedValue([]);

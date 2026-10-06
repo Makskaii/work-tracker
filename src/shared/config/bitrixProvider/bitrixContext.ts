@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 
 type B24ContextValue = {
 	b24: B24Frame | null;
+	currentUserId?: number | null;
 	status?: "loading" | "ready" | "standalone" | "unavailable";
 };
 

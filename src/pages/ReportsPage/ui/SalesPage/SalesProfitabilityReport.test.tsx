@@ -7,8 +7,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportCodes } from "@/components/calendar/constants/const";
+import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import type { ProfitabilityProject, ReportProject } from "./model/types";
 import type { ReportProjectFormState } from "./model/reportProjectForm";
+import { DEFAULT_REPORT_NAVIGATION, getReportNavigationStorageKey, writeReportNavigation } from "./model/reportNavigation";
 import { SalesProfitabilityReport } from "./SalesProfitabilityReport";
 
 const state = vi.hoisted(() => ({
@@ -24,6 +26,13 @@ const state = vi.hoisted(() => ({
 	fetchPayments: vi.fn(),
 	fetchStages: vi.fn(),
 	fetchEvents: vi.fn(),
+	updateBlocker: vi.fn(),
+	acquireUpdateBlocker: vi.fn(),
+	releaseUpdateBlocker: vi.fn(),
+}));
+vi.mock("@/shared/lib/appUpdates", () => ({
+	useAppUpdateBlocker: state.updateBlocker,
+	acquireAppUpdateBlocker: state.acquireUpdateBlocker,
 }));
 vi.mock("react-router", () => ({ useNavigate: () => state.navigate }));
 vi.mock("@/shared/hooks/useBitrixSlider", () => ({
@@ -66,12 +75,13 @@ vi.mock("./components/DealProjectTeamCostTable", () => ({
 	),
 }));
 vi.mock("./components/ReportProjectModal", () => ({
-	ReportProjectModal: ({ isOpen, form, onFormChange, onFileDraftChange, onSubmit, saving, projectFormError }: {
+	ReportProjectModal: ({ isOpen, form, onFormChange, onFileDraftChange, onSubmit, onClose, saving, projectFormError }: {
 		isOpen: boolean;
 		form: ReportProjectFormState;
 		onFormChange: (form: ReportProjectFormState) => void;
 		onFileDraftChange: (kind: "estimate", files: File[]) => void;
 		onSubmit: () => void;
+		onClose: () => void;
 		saving: boolean;
 		projectFormError: string | null;
 	}) => isOpen ? <div>
@@ -81,10 +91,14 @@ vi.mock("./components/ReportProjectModal", () => ({
 		<button type="button" onClick={() => onFileDraftChange("estimate", [new File(["estimate"], "estimate.pdf", { type: "application/pdf" })])}>Добавить файл проекта</button>
 		<output data-testid="project-form-bitrix-id">{form.bitrixProjectId}</output>
 		<button type="button" disabled={saving} onClick={onSubmit}>Сохранить новый проект</button>
+		<button type="button" onClick={onClose}>Закрыть форму проекта</button>
 	</div> : null,
 }));
 vi.mock("./components/ReportProjectDetailsTab", () => ({
-	ReportProjectDetailsTab: () => null,
+	ReportProjectDetailsTab: ({ project, form, onFormChange }: { project: ReportProject; form: ReportProjectFormState; onFormChange: (form: ReportProjectFormState) => void }) => <div>
+		<p>Детали: {project.title}</p>
+		<button type="button" onClick={() => onFormChange({ ...form, title: "Несохранённое название" })}>Изменить детали</button>
+	</div>,
 }));
 vi.mock("./components/ProjectReportsTab", () => ({
 	ProjectReportsTab: () => null,
@@ -124,6 +138,8 @@ const props = { activities: [], deals: [], users: [] };
 
 beforeEach(() => {
 	vi.resetAllMocks();
+	window.sessionStorage.clear();
+	state.acquireUpdateBlocker.mockReturnValue(state.releaseUpdateBlocker);
 	state.projects = [catalog(support), catalog(waterfall)];
 	state.projectsError = null;
 	state.fetchPayments.mockImplementation(async (projectId: string) => [
@@ -159,6 +175,89 @@ afterEach(() => {
 });
 
 describe("Project report selection", () => {
+	it("restores the selected project and detail tab after loading the current user's project list", async () => {
+		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
+		const report = () => <B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>;
+		const firstRender = render(report());
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
+		await screen.findByText(`Детали: ${waterfall.title}`);
+		await waitFor(() => expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}")).toMatchObject({ selectedProjectId: "db-2", activeTab: "projectDetails" }));
+		firstRender.unmount();
+		state.fetchDetails.mockClear();
+		let finishLoading: ((projects: ReportProject[]) => void) | undefined;
+		state.fetchProjects.mockImplementationOnce(() => new Promise<ReportProject[]>((resolve) => { finishLoading = resolve; }));
+		render(report());
+		expect(screen.queryByText(`Детали: ${waterfall.title}`)).not.toBeInTheDocument();
+		expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}")).toMatchObject({ selectedProjectId: "db-2" });
+		finishLoading?.([support, waterfall]);
+		expect(await screen.findByText(`Детали: ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.queryByText(`Детали: ${support.title}`)).not.toBeInTheDocument();
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+	});
+
+	it("clears an unavailable restored project without selecting another project or hiding the list", async () => {
+		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
+		writeReportNavigation(storageKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-999", activeTab: "tasks" });
+		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(screen.getByTitle(support.title)).toBeInTheDocument();
+		expect(screen.getByTitle(waterfall.title)).toBeInTheDocument();
+		await waitFor(() => expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}")).toMatchObject({ selectedProjectId: null, activeTab: "projects" }));
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+	});
+
+	it("does not reuse another signed-in user's project selection", async () => {
+		const anotherUsersKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 41);
+		writeReportNavigation(anotherUsersKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-2", activeTab: "projectDetails" });
+		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(screen.queryByText(`Детали: ${waterfall.title}`)).not.toBeInTheDocument();
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+	});
+
+	it("keeps the saved selection when the project list cannot be loaded", async () => {
+		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
+		writeReportNavigation(storageKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-2", activeTab: "projectDetails" });
+		state.fetchProjects.mockRejectedValueOnce(new Error("Project list unavailable"));
+		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}")).toMatchObject({ selectedProjectId: "db-2", activeTab: "projectDetails" });
+	});
+
+	it("holds automatic updates while a project form is open and releases them after closing", async () => {
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		expect(state.updateBlocker).toHaveBeenLastCalledWith(true);
+		fireEvent.click(screen.getByRole("button", { name: "Закрыть форму проекта" }));
+		await waitFor(() => expect(state.updateBlocker).toHaveBeenLastCalledWith(false));
+	});
+
+	it("keeps dirty project details protected even after switching to another tab", async () => {
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
+		fireEvent.click(await screen.findByRole("button", { name: "Изменить детали" }));
+		expect(state.updateBlocker).toHaveBeenLastCalledWith(true);
+		fireEvent.click(screen.getByRole("button", { name: "Задачи" }));
+		expect(state.updateBlocker).toHaveBeenLastCalledWith(true);
+	});
+
+	it("acquires a synchronous update blocker until a save fails or finishes", async () => {
+		let rejectSave: ((error: Error) => void) | undefined;
+		state.createProject.mockImplementationOnce(() => new Promise<ReportProject>((_, reject) => { rejectSave = reject; }));
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(state.acquireUpdateBlocker).toHaveBeenCalledTimes(1);
+		expect(state.releaseUpdateBlocker).not.toHaveBeenCalled();
+		rejectSave?.(new Error("save failed"));
+		await screen.findByRole("alert");
+		await waitFor(() => expect(state.releaseUpdateBlocker).toHaveBeenCalledTimes(1));
+		expect(state.updateBlocker).toHaveBeenLastCalledWith(true);
+	});
+
 	it("allows all-project payments without implicitly selecting a project", async () => {
 		render(<SalesProfitabilityReport {...props} />);
 		await screen.findByText(/Выберите проект в списке слева/);

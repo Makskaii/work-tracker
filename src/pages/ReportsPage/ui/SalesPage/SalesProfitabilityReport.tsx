@@ -1,7 +1,9 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaCalendarAlt, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router";
+import { useB24 } from "@/shared/config/bitrixProvider/bitrixContext";
 import { EntityTypeIds } from "@/shared/constants/const";
+import { acquireAppUpdateBlocker, useAppUpdateBlocker } from "@/shared/lib/appUpdates";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
@@ -68,6 +70,12 @@ import {
 	type ReportProjectFormState,
 } from "./model/reportProjectForm";
 import { formatProjectReportDate } from "./model/reportProjectFormat";
+import {
+	DEFAULT_REPORT_NAVIGATION,
+	getReportNavigationStorageKey,
+	readReportNavigation,
+	writeReportNavigation,
+} from "./model/reportNavigation";
 import type {
 	AutonomousProjectPayment,
 	CreateProjectReportEntryPayload,
@@ -190,6 +198,13 @@ const paymentsScopeLabels: Record<PaymentsScope, string> = {
 };
 
 const getDbProjectId = (project: ReportProject) => `db-${project.id}`;
+
+const protectReportMutation = <Args extends unknown[], Result>(
+	operation: (...args: Args) => Promise<Result>,
+) => (...args: Args): Promise<Result> => {
+	const release = acquireAppUpdateBlocker();
+	return operation(...args).finally(release);
+};
 
 const normalizeProjectTitle = (title: string) => title.trim().toLowerCase();
 const normalizeProjectId = (value: string | number | null | undefined) =>
@@ -430,6 +445,15 @@ export const SalesProfitabilityReport = ({
 }: SalesProfitabilityReportProps) => {
 	void deals;
 	const navigate = useNavigate();
+	const { currentUserId } = useB24();
+	const navigationStorageKey = currentUserId || import.meta.env.DEV
+		? getReportNavigationStorageKey({
+			origin: window.location.origin,
+			pathname: import.meta.env.BASE_URL,
+		}, currentUserId)
+		: null;
+	const [restoredNavigationKey, setRestoredNavigationKey] = useState<string | null | undefined>(undefined);
+	const [hasLoadedReportProjects, setHasLoadedReportProjects] = useState(false);
 
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
@@ -544,6 +568,37 @@ export const SalesProfitabilityReport = ({
 			(project) => getDbProjectId(project) === selectedProjectId,
 		) ?? null;
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
+
+	useEffect(() => {
+		if (!hasLoadedReportProjects || restoredNavigationKey === navigationStorageKey) return;
+		const stored = navigationStorageKey
+			? readReportNavigation(navigationStorageKey)
+			: DEFAULT_REPORT_NAVIGATION;
+		const selectedProjectExists = reportProjects.some(
+			(project) => getDbProjectId(project) === stored.selectedProjectId,
+		);
+		const isUnavailableSelection = Boolean(stored.selectedProjectId && !selectedProjectExists);
+		setSelectedProjectId(selectedProjectExists ? stored.selectedProjectId : null);
+		setActiveTab(isUnavailableSelection ? "projects" : stored.activeTab);
+		setPaymentsScope(isUnavailableSelection ? "project" : stored.paymentsScope);
+		setIsStructureCollapsed(stored.isStructureCollapsed);
+		setRestoredNavigationKey(navigationStorageKey);
+	}, [hasLoadedReportProjects, navigationStorageKey, restoredNavigationKey, reportProjects]);
+
+	useEffect(() => {
+		if (!hasLoadedReportProjects || restoredNavigationKey !== navigationStorageKey) return;
+		if (selectedProjectId && !selectedReportProject) {
+			setSelectedProjectId(null);
+			return;
+		}
+		if (!navigationStorageKey) return;
+		writeReportNavigation(navigationStorageKey, {
+			selectedProjectId,
+			activeTab,
+			paymentsScope,
+			isStructureCollapsed,
+		});
+	}, [activeTab, hasLoadedReportProjects, isStructureCollapsed, navigationStorageKey, paymentsScope, restoredNavigationKey, selectedProjectId, selectedReportProject]);
 	const paymentsScopeProjects = useMemo(
 		() =>
 			getPaymentsScopeProjects(
@@ -936,6 +991,19 @@ export const SalesProfitabilityReport = ({
 	const shouldShowDetailsSave =
 		Boolean(selectedReportProject) &&
 		(isDetailsProjectDirty || hasDetailsFileDrafts);
+	const isSummaryDirty = Boolean(selectedReportProject) &&
+		JSON.stringify(summaryForm) !== JSON.stringify(getProjectSummaryForm(selectedReportProject));
+	useAppUpdateBlocker(
+		isReportProjectModalOpen ||
+		isProjectReportModalOpen ||
+		isPaymentModalOpen ||
+		shouldShowDetailsSave ||
+		isSummaryDirty ||
+		Boolean(projectReportText.trim() || projectReportNextDate || projectReportFileDrafts.length) ||
+		isDetailsProjectSaving ||
+		isReportProjectSaving ||
+		isProjectReportSaving,
+	);
 	const selectReportProject = (project: ReportProject) => {
 		setSelectedProjectId(getDbProjectId(project));
 	};
@@ -1020,7 +1088,11 @@ export const SalesProfitabilityReport = ({
 
 		setIsReportProjectsLoading(true);
 		fetchReportProjects(controller.signal)
-			.then(setReportProjects)
+			.then((projects) => {
+				if (controller.signal.aborted) return;
+				setReportProjects(projects);
+				setHasLoadedReportProjects(true);
+			})
 			.catch(() => {
 				if (controller.signal.aborted) {
 					return;
@@ -1584,6 +1656,7 @@ export const SalesProfitabilityReport = ({
 						</div>
 						<div className={styles.dealsList}>
 							<input
+								data-app-update-managed="true"
 								type="search"
 								className={styles.projectSearchInput}
 								placeholder="Поиск по проектам"
@@ -1874,6 +1947,7 @@ export const SalesProfitabilityReport = ({
 								)}
 
 								{activeTab === "projectDetails" && (
+									<div data-app-update-managed="true">
 									<ReportProjectDetailsTab
 										bitrixProjectOptions={bitrixProjectOptions}
 										companyOptions={companyOptions}
@@ -1884,7 +1958,7 @@ export const SalesProfitabilityReport = ({
 										detailsProjectError={detailsProjectError}
 										form={detailsProjectForm}
 										isSaving={isDetailsProjectSaving}
-										onFileDelete={deleteProjectFile}
+										onFileDelete={protectReportMutation(deleteProjectFile)}
 										onFileDownload={downloadProjectFile}
 										onFileDraftChange={(fileKind, file) =>
 											setDetailsFileDrafts((prev) => ({
@@ -1893,11 +1967,12 @@ export const SalesProfitabilityReport = ({
 											}))
 										}
 										onFormChange={setDetailsProjectForm}
-										onSave={handleDetailsProjectSave}
+										onSave={protectReportMutation(handleDetailsProjectSave)}
 										project={selectedReportProject}
 										shouldShowSave={shouldShowDetailsSave}
 										users={users}
 									/>
+									</div>
 								)}
 
 								{activeTab === "tasks" &&
@@ -1955,11 +2030,11 @@ export const SalesProfitabilityReport = ({
 											setProjectReportAuthorId(authorId);
 										}}
 										onCloseModal={() => setIsProjectReportModalOpen(false)}
-										onCreate={handleProjectReportCreate}
-										onDelete={handleProjectReportDelete}
-										onFileDelete={deleteProjectReportFile}
+										onCreate={protectReportMutation(handleProjectReportCreate)}
+										onDelete={protectReportMutation(handleProjectReportDelete)}
+										onFileDelete={protectReportMutation(deleteProjectReportFile)}
 										onFileDownload={downloadProjectReportFile}
-										onFileUpload={uploadProjectReportFiles}
+										onFileUpload={protectReportMutation(uploadProjectReportFiles)}
 										onFilesChange={setProjectReportFileDrafts}
 										onNextReportDateChange={setProjectReportNextDate}
 										onOpenModal={() => {
@@ -1968,7 +2043,7 @@ export const SalesProfitabilityReport = ({
 										}}
 										onRefreshReports={refreshSelectedProjectReports}
 										onTextChange={setProjectReportText}
-										onUpdate={handleProjectReportUpdate}
+										onUpdate={protectReportMutation(handleProjectReportUpdate)}
 										project={selectedReportProject}
 										reports={projectReportEntries}
 										text={projectReportText}
@@ -1998,8 +2073,8 @@ export const SalesProfitabilityReport = ({
 					setIsReportProjectDrawer(false);
 					setIsReportProjectModalOpen(false);
 				}}
-				onDelete={handleReportProjectDelete}
-				onFileDelete={deleteProjectFile}
+				onDelete={protectReportMutation(handleReportProjectDelete)}
+				onFileDelete={protectReportMutation(deleteProjectFile)}
 				onFileDownload={downloadProjectFile}
 				onFileDraftChange={(fileKind, file) =>
 					setProjectFileDrafts((prev) => ({
@@ -2008,7 +2083,7 @@ export const SalesProfitabilityReport = ({
 					}))
 				}
 				onFormChange={setProjectForm}
-				onSubmit={handleReportProjectSubmit}
+				onSubmit={protectReportMutation(handleReportProjectSubmit)}
 				project={editingReportProject}
 				projectFormError={projectFormError}
 				position={isReportProjectDrawer ? "right" : "center"}
@@ -2023,9 +2098,9 @@ export const SalesProfitabilityReport = ({
 					setDeletingPaymentId(null);
 					setIsPaymentModalOpen(false);
 				}}
-				onDelete={handlePaymentDelete}
+				onDelete={protectReportMutation(handlePaymentDelete)}
 				onFormChange={setPaymentForm}
-				onSubmit={handlePaymentSubmit}
+				onSubmit={protectReportMutation(handlePaymentSubmit)}
 				projectAmount={selectedReportProject?.projectAmount}
 				stages={autonomousPaymentStages}
 			/>
