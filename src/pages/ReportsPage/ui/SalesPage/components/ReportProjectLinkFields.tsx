@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
-import type { ReportProjectFormState } from "../model/reportProjectForm";
+import type { CompanyCreationMode, ReportProjectFormState } from "../model/reportProjectForm";
 import type { ReportProjectAutocompleteOption } from "./ReportProjectFileInput";
 import styles from "../SalesProfitabilityReport.module.scss";
 
@@ -122,6 +122,10 @@ export const ReportProjectLinkFields = ({
 	isCreating = false,
 	creationMode = "new",
 	onCreationModeChange,
+	companyCreationMode = "existing",
+	onCompanyCreationModeChange,
+	newCompanyTitle = "",
+	onNewCompanyTitleChange,
 	loading = false,
 	error,
 	onRetry,
@@ -133,6 +137,10 @@ export const ReportProjectLinkFields = ({
 	isCreating?: boolean;
 	creationMode?: ProjectCreationMode;
 	onCreationModeChange?: (mode: ProjectCreationMode) => void;
+	companyCreationMode?: CompanyCreationMode;
+	onCompanyCreationModeChange?: (mode: CompanyCreationMode) => void;
+	newCompanyTitle?: string;
+	onNewCompanyTitleChange?: (title: string) => void;
 	loading?: boolean;
 	error?: string | null;
 	onRetry?: () => void;
@@ -145,6 +153,7 @@ export const ReportProjectLinkFields = ({
 		? selectedProject.companyTitle || companyOptions.find((option) => option.id === companyId)?.title || (companyId ? `Компания #${companyId}` : "Компания в карточке не указана")
 		: companyOptions.find((option) => option.id === companyId)?.title || form.clientCompany;
 	const showProjectSearch = !isCreating || creationMode === "existing";
+	const canCreateCompany = isCreating && creationMode === "new" && !linked;
 
 	return (
 		<div className={styles.projectLinkFields}>
@@ -156,6 +165,8 @@ export const ReportProjectLinkFields = ({
 						onChange={(event) => {
 							const mode = event.target.value as ProjectCreationMode;
 							onCreationModeChange?.(mode);
+							onCompanyCreationModeChange?.("existing");
+							onNewCompanyTitleChange?.("");
 							onFormChange({ ...form, bitrixProjectId: "", clientCompanyId: "", clientCompany: "" });
 						}}
 					>
@@ -185,7 +196,36 @@ export const ReportProjectLinkFields = ({
 					}}
 				/>
 			) : <p className={styles.projectLinkHint}>При сохранении появится карточка в «WT Канбан проектов» и связь с Work Tracker.</p>}
-			<EntitySearch
+			{canCreateCompany ? (
+				<label className={styles.reportProjectField}>
+					<span>Компания в Битрикс24</span>
+					<select
+						value={companyCreationMode}
+						onChange={(event) => {
+							onCompanyCreationModeChange?.(event.target.value as CompanyCreationMode);
+							onNewCompanyTitleChange?.("");
+							onFormChange({ ...form, clientCompanyId: "", clientCompany: "" });
+						}}
+					>
+						<option value="existing">Выбрать существующую</option>
+						<option value="new">Создать новую</option>
+					</select>
+				</label>
+			) : null}
+			{canCreateCompany && companyCreationMode === "new" ? (
+				<>
+					<label className={styles.reportProjectField}>
+						<span>Название новой компании</span>
+						<input
+							required
+							maxLength={255}
+							value={newCompanyTitle}
+							onChange={(event) => onNewCompanyTitleChange?.(event.target.value)}
+						/>
+					</label>
+					<p className={styles.projectLinkHint}>Компания создастся в Битрикс24 при сохранении проекта и будет привязана к его карточке.</p>
+				</>
+			) : <EntitySearch
 				key={linked ? `linked-${form.bitrixProjectId}` : "company"}
 				label="Компания клиента"
 				options={companyOptions}
@@ -194,7 +234,7 @@ export const ReportProjectLinkFields = ({
 				disabled={linked || loading}
 				onQueryChange={() => onFormChange({ ...form, clientCompanyId: "", clientCompany: "" })}
 				onSelect={(option) => onFormChange({ ...form, clientCompanyId: option.id, clientCompany: option.title })}
-			/>
+			/>}
 			{linked ? (
 				<div className={styles.projectLinkActions}>
 					<span className={styles.projectLinkHint}>Компания берётся из карточки проекта в Битрикс24.</span>

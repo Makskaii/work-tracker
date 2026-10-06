@@ -11,6 +11,7 @@ import {
 	reportProjectFileLabels,
 	type ReportProjectFileDrafts,
 	type ReportProjectFormState,
+	type CompanyCreationMode,
 } from "../model/reportProjectForm";
 import {
 	getUserAutocompleteOptions,
@@ -27,6 +28,10 @@ export const ReportProjectModal = ({
 	companyOptions,
 	creationMode,
 	onCreationModeChange,
+	companyCreationMode,
+	onCompanyCreationModeChange,
+	newCompanyTitle,
+	onNewCompanyTitleChange,
 	bitrixProjectsLoading,
 	bitrixProjectsError,
 	onRetryBitrixProjects,
@@ -51,6 +56,10 @@ export const ReportProjectModal = ({
 	companyOptions: ReportProjectAutocompleteOption[];
 	creationMode: ProjectCreationMode;
 	onCreationModeChange: (mode: ProjectCreationMode) => void;
+	companyCreationMode: CompanyCreationMode;
+	onCompanyCreationModeChange: (mode: CompanyCreationMode) => void;
+	newCompanyTitle: string;
+	onNewCompanyTitleChange: (title: string) => void;
 	bitrixProjectsLoading?: boolean;
 	bitrixProjectsError?: string | null;
 	onRetryBitrixProjects?: () => void;
@@ -97,6 +106,10 @@ export const ReportProjectModal = ({
 					form={form}
 					isCreating={!project}
 					onCreationModeChange={onCreationModeChange}
+					companyCreationMode={companyCreationMode}
+					onCompanyCreationModeChange={onCompanyCreationModeChange}
+					newCompanyTitle={newCompanyTitle}
+					onNewCompanyTitleChange={onNewCompanyTitleChange}
 					onFormChange={onFormChange}
 					loading={bitrixProjectsLoading}
 					error={bitrixProjectsError}

@@ -4,6 +4,7 @@ import type {
 	ProjectReportEntry,
 	ProjectReportEntryFile,
 	ReportProject,
+	ReportProjectCreatePayload,
 	ReportProjectFile,
 	ReportProjectFileKind,
 	ReportProjectPayload,
@@ -40,7 +41,7 @@ export const fetchReportProjects = async (signal?: AbortSignal) => {
 };
 
 export const createReportProject = async (
-	payload: ReportProjectPayload,
+	payload: ReportProjectCreatePayload,
 	creationRequestId?: string,
 ) => {
 	const response = await $backendApi.post<ReportProject>(

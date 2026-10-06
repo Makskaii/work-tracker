@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	DEFAULT_REPORT_PROJECT_FORM,
 	getReportProjectForm,
+	getReportProjectCreatePayload,
 	getReportProjectPayload,
 	getReportProjectSaveError,
 	validateReportProjectLink,
@@ -9,6 +10,24 @@ import {
 import type { ReportProject } from "./types";
 
 describe("project link form", () => {
+	it("requires a nonblank company name in company creation mode without demanding an existing company ID", () => {
+		const form = { ...DEFAULT_REPORT_PROJECT_FORM, projectGoal: "Запустить CRM" };
+		expect(validateReportProjectLink(form, { isCreating: true, companyCreationMode: "new", newCompanyTitle: "  " })).toContain("название новой компании");
+		expect(validateReportProjectLink(form, { isCreating: true, companyCreationMode: "new", newCompanyTitle: "Новая компания" })).toBeNull();
+		expect(validateReportProjectLink(form, { isCreating: true, companyCreationMode: "new", newCompanyTitle: "К".repeat(256) })).toContain("255");
+	});
+	it("uses only the trimmed creation-only company title and ignores stale selected-company data", () => {
+		const form = { ...DEFAULT_REPORT_PROJECT_FORM, title: "Проект", clientCompanyId: "11", clientCompany: "Старая компания" };
+		expect(getReportProjectCreatePayload(form, { creationMode: "new", companyCreationMode: "new", newCompanyTitle: "  Новая компания  " })).toMatchObject({ newCompanyTitle: "Новая компания", clientCompanyId: null, clientCompany: null });
+		expect(getReportProjectPayload(form)).not.toHaveProperty("newCompanyTitle");
+		expect(getReportProjectCreatePayload(form, { creationMode: "new", companyCreationMode: "existing", newCompanyTitle: "Черновик" })).not.toHaveProperty("newCompanyTitle");
+		expect(getReportProjectCreatePayload({ ...form, bitrixProjectId: "77" }, { creationMode: "existing", companyCreationMode: "new", newCompanyTitle: "Черновик" })).toMatchObject({ bitrixProjectId: "77", clientCompanyId: "11" });
+		expect(getReportProjectCreatePayload(form, { creationMode: "existing", companyCreationMode: "new", newCompanyTitle: "Черновик" })).not.toHaveProperty("newCompanyTitle");
+	});
+	it("does not validate a stale new-company draft when editing or linking an existing card", () => {
+		expect(validateReportProjectLink(DEFAULT_REPORT_PROJECT_FORM, { isCreating: false, companyCreationMode: "new" })).toBeNull();
+		expect(validateReportProjectLink({ ...DEFAULT_REPORT_PROJECT_FORM, bitrixProjectId: "77" }, { isCreating: true, creationMode: "existing", companyCreationMode: "new" })).toBeNull();
+	});
 	it("requires choosing a company for an automatically created Bitrix card", () => {
 		expect(validateReportProjectLink({ ...DEFAULT_REPORT_PROJECT_FORM, clientCompany: "Компания" }, { isCreating: true })).toContain("Выберите компанию");
 		expect(validateReportProjectLink({ ...DEFAULT_REPORT_PROJECT_FORM, clientCompanyId: "11", clientCompany: "Компания", projectGoal: "Запустить CRM" }, { isCreating: true })).toBeNull();

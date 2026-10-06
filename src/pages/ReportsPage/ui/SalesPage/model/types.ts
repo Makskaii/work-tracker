@@ -395,6 +395,10 @@ export type ReportProjectPayload = {
 	closeDate?: string | null;
 };
 
+export type ReportProjectCreatePayload = ReportProjectPayload & {
+	newCompanyTitle?: string;
+};
+
 export type FinancialProjectSummary = {
 	purchasedHours: number;
 	revenue: number;
