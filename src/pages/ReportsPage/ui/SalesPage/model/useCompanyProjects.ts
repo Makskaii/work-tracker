@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-	ProjectCodes,
 	ReportCodes,
 	ReportStageIds,
 	TaskCodes,
 } from "@/components/calendar/constants/const";
 import type { ReportProps } from "@/components/calendar/types/types";
-import { EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
+import { Endpoints, EntityTypeIds, TASK_SELECT_FIELDS } from "@/shared/constants/const";
+import { clearBitrixReadCache } from "@/shared/config/axios/axios.config";
 import type { ClientProjectProps, TaskProps } from "@/shared/types/types";
 import { fetchAllCrmItems } from "./api";
 import { PROJECT_SELECT_FIELDS, REPORT_SELECT_FIELDS } from "./constants";
@@ -23,11 +23,6 @@ type CompanyFromCrm = {
 	id: string | number;
 	title?: string | null;
 };
-
-const getUniqueValues = (values: Array<string | number | null | undefined>) =>
-	Array.from(
-		new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)),
-	);
 
 export const fetchProfitabilityProjectDetails = async (
 	project: ProfitabilityProject,
@@ -84,6 +79,7 @@ export const useCompanyProjects = () => {
 	});
 	const [requestRevision, setRequestRevision] = useState(0);
 	const reloadProjects = useCallback(() => {
+		clearBitrixReadCache([Endpoints.crmItems]);
 		setRequestRevision((value) => value + 1);
 	}, []);
 
@@ -106,17 +102,13 @@ export const useCompanyProjects = () => {
 					filter: {},
 					signal: controller.signal,
 				});
-				const companyIds = getUniqueValues(
-					projects.map((project) => project[ProjectCodes.company]),
-				);
-				const companies = companyIds.length
-					? await fetchAllCrmItems<CompanyFromCrm>({
-							entityTypeId: EntityTypeIds.companies,
-							select: ["id", "title"],
-							filter: { "@id": companyIds },
-							signal: controller.signal,
-						})
-					: [];
+				// New projects may belong to a company with no existing project yet.
+				const companies = await fetchAllCrmItems<CompanyFromCrm>({
+					entityTypeId: EntityTypeIds.companies,
+					select: ["id", "title"],
+					filter: {},
+					signal: controller.signal,
+				});
 				const companyTitleEntries: Array<[string, string]> = companies
 					.map((company): [string, string] => [
 						String(company.id ?? "").trim(),

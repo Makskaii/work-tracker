@@ -30,6 +30,7 @@ export const PROJECT_SELECT_FIELDS = [
 	"updatedTime",
 	"stageId",
 	ProjectCodes.company,
+	ProjectCodes.goal,
 	ProjectCodes.financialProjectType,
 	ProjectCodes.projectAmount,
 	ProjectCodes.parentproject,

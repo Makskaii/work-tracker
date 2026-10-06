@@ -20,10 +20,16 @@ import {
 	ReportProjectSection,
 } from "./ReportProjectFileInput";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { ReportProjectLinkFields, type BitrixProjectOption, type ProjectCreationMode } from "./ReportProjectLinkFields";
 
 export const ReportProjectModal = ({
 	bitrixProjectOptions,
 	companyOptions,
+	creationMode,
+	onCreationModeChange,
+	bitrixProjectsLoading,
+	bitrixProjectsError,
+	onRetryBitrixProjects,
 	deletingReportProjectId,
 	fileDrafts,
 	form,
@@ -41,8 +47,13 @@ export const ReportProjectModal = ({
 	saving,
 	users,
 }: {
-	bitrixProjectOptions: ReportProjectAutocompleteOption[];
+	bitrixProjectOptions: BitrixProjectOption[];
 	companyOptions: ReportProjectAutocompleteOption[];
+	creationMode: ProjectCreationMode;
+	onCreationModeChange: (mode: ProjectCreationMode) => void;
+	bitrixProjectsLoading?: boolean;
+	bitrixProjectsError?: string | null;
+	onRetryBitrixProjects?: () => void;
 	deletingReportProjectId: number | null;
 	fileDrafts: ReportProjectFileDrafts;
 	form: ReportProjectFormState;
@@ -77,6 +88,26 @@ export const ReportProjectModal = ({
 					label="Название"
 					name="title"
 					onFormChange={onFormChange}
+				/>
+				<ReportProjectLinkFields
+					key={project?.id ?? "new"}
+					bitrixProjectOptions={bitrixProjectOptions}
+					companyOptions={companyOptions}
+					creationMode={creationMode}
+					form={form}
+					isCreating={!project}
+					onCreationModeChange={onCreationModeChange}
+					onFormChange={onFormChange}
+					loading={bitrixProjectsLoading}
+					error={bitrixProjectsError}
+					onRetry={onRetryBitrixProjects}
+				/>
+				<ReportProjectInput
+					form={form}
+					label="Цель проекта"
+					name="projectGoal"
+					onFormChange={onFormChange}
+					textarea
 				/>
 				{isProjectDrawer ? (
 					<>
@@ -122,20 +153,6 @@ export const ReportProjectModal = ({
 					</>
 				) : (
 					<>
-				<ReportProjectInput
-					form={form}
-					label="ID проекта в Битрикс"
-					name="bitrixProjectId"
-					onFormChange={onFormChange}
-					options={bitrixProjectOptions}
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Цель проекта"
-					name="projectGoal"
-					onFormChange={onFormChange}
-					textarea
-				/>
 				<label className={styles.reportProjectField}>
 					<span>Тип проекта</span>
 					<select
@@ -178,13 +195,6 @@ export const ReportProjectModal = ({
 					name="projectAmount"
 					onFormChange={onFormChange}
 					type="number"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Компания клиента"
-					name="clientCompany"
-					onFormChange={onFormChange}
-					options={companyOptions}
 				/>
 				<ReportProjectFileInput
 					files={project?.files.filter(

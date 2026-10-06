@@ -36,6 +36,7 @@ export const DEFAULT_REPORT_PROJECT_FORM: ReportProjectFormState = {
 	analystId: "",
 	bitrixProjectId: "",
 	clientCompany: "",
+	clientCompanyId: "",
 	contractEndDate: "",
 	closeDate: "",
 	deadline: "",
@@ -132,6 +133,36 @@ export const numberOrNull = (value: string) => {
 
 const dateOrNull = (value: string) => value || null;
 
+export const validateReportProjectLink = (
+	form: ReportProjectFormState,
+	{ isCreating, creationMode = "new", previouslyLinked = false }: {
+		isCreating: boolean;
+		creationMode?: "new" | "existing";
+		previouslyLinked?: boolean;
+	},
+): string | null => {
+	if (form.bitrixProjectId && !/^[1-9]\d*$/.test(form.bitrixProjectId)) {
+		return "Выберите проект из списка Битрикс24";
+	}
+	if ((isCreating && creationMode === "existing" || previouslyLinked) && !form.bitrixProjectId) {
+		return "Выберите проект из списка Битрикс24";
+	}
+	if (isCreating && creationMode === "new" && !/^[1-9]\d*$/.test(form.clientCompanyId)) {
+		return "Выберите компанию из списка для создания проекта в Битрикс24";
+	}
+	if (isCreating && creationMode === "new" && !form.projectGoal.trim()) {
+		return "Заполните цель проекта для создания карточки в Битрикс24";
+	}
+	return null;
+};
+
+export const getReportProjectSaveError = (error: unknown, fallback = "Не удалось сохранить проект"): string => {
+	const message = (error as { response?: { data?: { message?: unknown } } } | null)?.response?.data?.message;
+	if (typeof message === "string" && message.trim()) return message;
+	if (Array.isArray(message) && message.every((item) => typeof item === "string")) return message.join(". ");
+	return fallback;
+};
+
 export const getReportProjectForm = (
 	project?: ReportProject | null,
 ): ReportProjectFormState => {
@@ -144,6 +175,7 @@ export const getReportProjectForm = (
 		analystId: project.analystId ?? "",
 		bitrixProjectId: project.bitrixProjectId ?? "",
 		clientCompany: project.clientCompany ?? "",
+		clientCompanyId: project.clientCompanyId ?? "",
 		contractEndDate: project.contractEndDate ?? "",
 		closeDate: project.closeDate ?? "",
 		deadline: project.deadline ?? "",
@@ -231,6 +263,7 @@ export const getReportProjectPayload = (
 	analystId: textOrNull(form.analystId),
 	bitrixProjectId: textOrNull(form.bitrixProjectId),
 	clientCompany: textOrNull(form.clientCompany),
+	clientCompanyId: textOrNull(form.clientCompanyId),
 	contractEndDate: dateOrNull(form.contractEndDate),
 	closeDate: dateOrNull(form.closeDate),
 	deadline: dateOrNull(form.deadline),

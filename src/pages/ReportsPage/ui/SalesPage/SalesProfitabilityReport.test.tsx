@@ -8,11 +8,15 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportCodes } from "@/components/calendar/constants/const";
 import type { ProfitabilityProject, ReportProject } from "./model/types";
+import type { ReportProjectFormState } from "./model/reportProjectForm";
 import { SalesProfitabilityReport } from "./SalesProfitabilityReport";
 
 const state = vi.hoisted(() => ({
 	projects: [] as unknown[],
 	fetchProjects: vi.fn(),
+	createProject: vi.fn(),
+	updateProject: vi.fn(),
+	uploadProjectFile: vi.fn(),
 	fetchDetails: vi.fn(),
 	navigate: vi.fn(),
 	projectsError: null as string | null,
@@ -38,6 +42,9 @@ vi.mock("./model/useCompanyProjects", () => ({
 vi.mock("./model/projectReports.api", async (importOriginal) => ({
 	...(await importOriginal<typeof import("./model/projectReports.api")>()),
 	fetchReportProjects: state.fetchProjects,
+	createReportProject: state.createProject,
+	updateReportProject: state.updateProject,
+	uploadReportProjectFile: state.uploadProjectFile,
 }));
 vi.mock("./model/projectPayments.api", async (importOriginal) => ({
 	...(await importOriginal<typeof import("./model/projectPayments.api")>()),
@@ -59,7 +66,22 @@ vi.mock("./components/DealProjectTeamCostTable", () => ({
 	),
 }));
 vi.mock("./components/ReportProjectModal", () => ({
-	ReportProjectModal: () => null,
+	ReportProjectModal: ({ isOpen, form, onFormChange, onFileDraftChange, onSubmit, saving, projectFormError }: {
+		isOpen: boolean;
+		form: ReportProjectFormState;
+		onFormChange: (form: ReportProjectFormState) => void;
+		onFileDraftChange: (kind: "estimate", files: File[]) => void;
+		onSubmit: () => void;
+		saving: boolean;
+		projectFormError: string | null;
+	}) => isOpen ? <div>
+		{projectFormError ? <p role="alert">{projectFormError}</p> : null}
+		<button type="button" onClick={() => onFormChange({ ...form, title: "Новый проект", projectGoal: "Запустить CRM", clientCompanyId: "22", clientCompany: "Компания Бета" })}>Заполнить новый проект</button>
+		<button type="button" onClick={() => onFormChange({ ...form, title: "Исправленный проект" })}>Изменить название проекта</button>
+		<button type="button" onClick={() => onFileDraftChange("estimate", [new File(["estimate"], "estimate.pdf", { type: "application/pdf" })])}>Добавить файл проекта</button>
+		<output data-testid="project-form-bitrix-id">{form.bitrixProjectId}</output>
+		<button type="button" disabled={saving} onClick={onSubmit}>Сохранить новый проект</button>
+	</div> : null,
 }));
 vi.mock("./components/ReportProjectDetailsTab", () => ({
 	ReportProjectDetailsTab: () => null,
@@ -318,5 +340,48 @@ describe("Project report selection", () => {
 			screen.getByRole("button", { name: "Открыть детали проекта" }),
 		);
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("retains the creation request ID on a failed retry and refreshes Bitrix after successful creation", async () => {
+		state.createProject.mockRejectedValueOnce({ response: { data: { message: "Временная ошибка подключения к Битрикс24" } } });
+		state.createProject.mockResolvedValueOnce({ ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "22", clientCompany: "Компания Бета", files: [] });
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Временная ошибка подключения к Битрикс24");
+		const firstRequestId = state.createProject.mock.calls[0][1];
+		expect(firstRequestId).toMatch(/^[0-9a-f-]{36}$/);
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		await waitFor(() => expect(state.createProject).toHaveBeenCalledTimes(2));
+		expect(state.createProject.mock.calls[1][1]).toBe(firstRequestId);
+		expect(state.createProject.mock.calls[1][0]).toMatchObject({ bitrixProjectId: null, clientCompanyId: "22", projectGoal: "Запустить CRM" });
+		await waitFor(() => expect(state.reloadProjects).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+	});
+
+	it("keeps a successfully created project after attachment failure and retries edits via PATCH on the same project", async () => {
+		const createdProject = { ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "22", clientCompany: "Компания Бета", files: [] };
+		state.projects = [...state.projects, catalog(createdProject)];
+		state.createProject.mockResolvedValueOnce(createdProject);
+		state.updateProject.mockImplementation(async (id, payload) => ({ ...createdProject, ...payload, id }));
+		state.uploadProjectFile.mockRejectedValueOnce(new Error("attachment connection failed"));
+		state.uploadProjectFile.mockResolvedValueOnce({ id: 101, projectId: 3, fileKind: "estimate", originalName: "estimate.pdf" });
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.click(screen.getByRole("button", { name: "Добавить файл проекта" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Проект сохранён. Не удалось загрузить файлы");
+		expect(screen.getByTestId("project-form-bitrix-id")).toHaveTextContent("79");
+		expect(screen.getByTitle("Новый проект")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Изменить название проекта" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		expect(state.createProject).toHaveBeenCalledTimes(1);
+		expect(state.updateProject).toHaveBeenCalledWith(3, expect.objectContaining({ title: "Исправленный проект", bitrixProjectId: "79", clientCompanyId: "22" }));
+		expect(state.uploadProjectFile).toHaveBeenCalledTimes(2);
+		expect(state.uploadProjectFile.mock.calls.map(([id]) => id)).toEqual([3, 3]);
+		expect(screen.getByTitle("Исправленный проект")).toBeInTheDocument();
 	});
 });

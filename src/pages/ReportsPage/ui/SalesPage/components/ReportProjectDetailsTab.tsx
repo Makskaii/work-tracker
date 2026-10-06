@@ -18,10 +18,14 @@ import {
 	ReportProjectSection,
 } from "./ReportProjectFileInput";
 import styles from "../SalesProfitabilityReport.module.scss";
+import { ReportProjectLinkFields, type BitrixProjectOption } from "./ReportProjectLinkFields";
 
 export const ReportProjectDetailsTab = ({
 	bitrixProjectOptions,
 	companyOptions,
+	bitrixProjectsLoading,
+	bitrixProjectsError,
+	onRetryBitrixProjects,
 	detailsFileDrafts,
 	detailsProjectError,
 	form,
@@ -35,8 +39,11 @@ export const ReportProjectDetailsTab = ({
 	shouldShowSave,
 	users,
 }: {
-	bitrixProjectOptions: ReportProjectAutocompleteOption[];
+	bitrixProjectOptions: BitrixProjectOption[];
 	companyOptions: ReportProjectAutocompleteOption[];
+	bitrixProjectsLoading?: boolean;
+	bitrixProjectsError?: string | null;
+	onRetryBitrixProjects?: () => void;
 	detailsFileDrafts: ReportProjectFileDrafts;
 	detailsProjectError: string | null;
 	form: ReportProjectFormState;
@@ -93,13 +100,15 @@ export const ReportProjectDetailsTab = ({
 						))}
 					</select>
 				</label>
-				<ReportProjectInput
+				<ReportProjectLinkFields
+					key={project.id}
+					bitrixProjectOptions={bitrixProjectOptions}
+					companyOptions={companyOptions}
 					form={form}
-					label="ID проекта в Битрикс"
-					name="bitrixProjectId"
 					onFormChange={onFormChange}
-					options={bitrixProjectOptions}
-					variant="details"
+					loading={bitrixProjectsLoading}
+					error={bitrixProjectsError}
+					onRetry={onRetryBitrixProjects}
 				/>
 				<ReportProjectInput
 					form={form}
@@ -115,14 +124,6 @@ export const ReportProjectDetailsTab = ({
 					name="projectAmount"
 					onFormChange={onFormChange}
 					type="number"
-					variant="details"
-				/>
-				<ReportProjectInput
-					form={form}
-					label="Компания клиента"
-					name="clientCompany"
-					onFormChange={onFormChange}
-					options={companyOptions}
 					variant="details"
 				/>
 				<ReportProjectFileInput

@@ -2810,7 +2810,8 @@
 	text-align: left;
 }
 
-.reportProjectField>span {
+.reportProjectField>span,
+.reportProjectField>label {
 	display: block;
 	color: rgba(238, 245, 255, 0.76);
 	font-size: 12px;
@@ -2874,6 +2875,63 @@
 
 .reportProjectAutocomplete:focus-within .reportProjectAutocompleteOptions {
 	display: flex;
+}
+
+.projectLinkFields {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 14px;
+	min-width: 0;
+
+	input,
+	select {
+		min-height: 42px;
+		padding: 10px 12px;
+		border: 1px solid #30363a;
+		border-radius: 12px;
+		background: #15191b;
+		color: var(--color-text);
+		font: inherit;
+	}
+
+	input:disabled {
+		opacity: 0.85;
+		cursor: default;
+	}
+
+	input:focus,
+	select:focus {
+		outline: 2px solid rgba(38, 240, 233, 0.45);
+	}
+
+	[role="option"][aria-selected="true"] {
+		background: rgba(38, 240, 233, 0.12);
+	}
+}
+
+.projectLinkHint {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: rgba(238, 245, 255, 0.7);
+}
+
+.projectLinkActions {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+
+	button {
+		padding: 8px 12px;
+		border: 1px solid #30363a;
+		border-radius: 10px;
+		background: #15191b;
+		color: var(--color-accent);
+		cursor: pointer;
+	}
 }
 
 .reportProjectDetailsFileField {
