@@ -461,6 +461,8 @@ export const SalesProfitabilityReport = ({
 		null,
 	);
 	const [activeTab, setActiveTab] = useState<SalesProfitabilityTab>("projects");
+	const currentNavigationRef = useRef({ selectedProjectId, activeTab });
+	currentNavigationRef.current = { selectedProjectId, activeTab };
 	const [isStructureCollapsed, setIsStructureCollapsed] = useState(false);
 	const [isStructureTransitioning, setIsStructureTransitioning] =
 		useState(false);
@@ -564,6 +566,7 @@ export const SalesProfitabilityReport = ({
 		companyTitleById,
 		projects: bitrixProjects,
 		isLoadingDetails: isBitrixProjectsLoading,
+		isRefreshing: isBitrixProjectsRefreshing,
 		error: bitrixProjectsError,
 		reloadProjects: reloadBitrixProjects,
 	} = useCompanyProjects();
@@ -789,11 +792,10 @@ export const SalesProfitabilityReport = ({
 		: null;
 
 	const summary = getReportProjectSummary(selectedReportProject);
-	const isBusy =
-		loading ||
-		isReportProjectsLoading ||
-		isBitrixProjectsLoading ||
-		isBitrixProjectDetailsLoading;
+	const shouldLoadBitrixProjectDetails =
+		activeTab === "projects" ||
+		activeTab === "tasks" ||
+		activeTab === "reports";
 	const selectedBitrixProjects = useMemo(
 		() =>
 			selectedReportProject
@@ -827,6 +829,13 @@ export const SalesProfitabilityReport = ({
 	const isBitrixProjectLinkMissing = Boolean(
 		selectedReportProject && !selectedBitrixProjects.length,
 	);
+	const isBusy =
+		loading ||
+		isReportProjectsLoading ||
+		(shouldLoadBitrixProjectDetails &&
+			(isBitrixProjectsLoading ||
+				isBitrixProjectDetailsLoading ||
+				(isBitrixProjectsRefreshing && isBitrixProjectLinkMissing)));
 	const projectMetricsError =
 		bitrixProjectDetailsError ??
 		(isBitrixProjectLinkMissing
@@ -844,10 +853,6 @@ export const SalesProfitabilityReport = ({
 			setBitrixProjectDetailsRetryKey((key) => key + 1);
 		}
 	};
-	const shouldLoadBitrixProjectDetails =
-		activeTab === "projects" ||
-		activeTab === "tasks" ||
-		activeTab === "reports";
 	const selectedBitrixProjectsWithDetails = useMemo(
 		() =>
 			selectedBitrixProjects.map((project) => {
@@ -1473,6 +1478,7 @@ export const SalesProfitabilityReport = ({
 
 		setIsReportProjectSaving(true);
 		setProjectFormError(null);
+		const navigationAtSubmit = currentNavigationRef.current;
 		let projectSaved = false;
 		const rememberSavedProject = (project: ReportProject) => {
 			setReportProjects((prev) => prev.some((item) => item.id === project.id)
@@ -1508,7 +1514,15 @@ export const SalesProfitabilityReport = ({
 			rememberSavedProject(savedProject);
 			projectSaved = true;
 			if (!editingReportProject) {
-				setSelectedProjectId(getDbProjectId(savedProject));
+				if (
+					currentNavigationRef.current.selectedProjectId === navigationAtSubmit.selectedProjectId &&
+					currentNavigationRef.current.activeTab === navigationAtSubmit.activeTab
+				) {
+					setSelectedProjectId(getDbProjectId(savedProject));
+					// The saved project is ready now. Its unrelated CRM catalogue
+					// and task/report metrics must not delay opening the details.
+					setActiveTab("projectDetails");
+				}
 				reloadBitrixProjects();
 			}
 
@@ -1888,9 +1902,17 @@ export const SalesProfitabilityReport = ({
 							</button>
 						</div>
 
+						{bitrixProjectsError && shouldLoadBitrixProjectDetails && selectedBitrixProjects.length > 0 ? (
+							<div role="alert" className={styles.emptyState}>
+								<p>{bitrixProjectsError}</p>
+								<button type="button" className={styles.filterButton} onClick={reloadBitrixProjects}>
+									Повторить загрузку
+								</button>
+							</div>
+						) : null}
 						{isBusy ? (
 							<ProfitabilitySkeleton />
-						) : bitrixProjectsError && shouldLoadBitrixProjectDetails ? (
+						) : bitrixProjectsError && shouldLoadBitrixProjectDetails && !selectedBitrixProjects.length ? (
 							<div role="alert" className={styles.emptyState}>
 								<p>{bitrixProjectsError}</p>
 								<button

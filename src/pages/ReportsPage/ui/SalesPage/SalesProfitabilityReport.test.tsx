@@ -22,6 +22,8 @@ const state = vi.hoisted(() => ({
 	fetchDetails: vi.fn(),
 	navigate: vi.fn(),
 	projectsError: null as string | null,
+	projectsLoading: false,
+	projectsRefreshing: false,
 	reloadProjects: vi.fn(),
 	fetchPayments: vi.fn(),
 	fetchStages: vi.fn(),
@@ -42,7 +44,8 @@ vi.mock("./model/useCompanyProjects", () => ({
 	useCompanyProjects: () => ({
 		companyTitleById: new Map(),
 		projects: state.projects,
-		isLoadingDetails: false,
+		isLoadingDetails: state.projectsLoading,
+		isRefreshing: state.projectsRefreshing,
 		error: state.projectsError,
 		reloadProjects: state.reloadProjects,
 	}),
@@ -105,8 +108,10 @@ vi.mock("./components/ReportProjectModal", () => ({
 	</div> : null,
 }));
 vi.mock("./components/ReportProjectDetailsTab", () => ({
-	ReportProjectDetailsTab: ({ project, form, onFormChange }: { project: ReportProject; form: ReportProjectFormState; onFormChange: (form: ReportProjectFormState) => void }) => <div>
+	ReportProjectDetailsTab: ({ project, form, onFormChange, bitrixProjectsError }: { project: ReportProject; form: ReportProjectFormState; onFormChange: (form: ReportProjectFormState) => void; bitrixProjectsError?: string | null }) => <div>
 		<p>Детали: {project.title}</p>
+		{bitrixProjectsError ? <p role="alert">{bitrixProjectsError}</p> : null}
+		<output data-testid="saved-project-link">{JSON.stringify({ bitrixProjectId: form.bitrixProjectId, clientCompanyId: form.clientCompanyId, clientCompany: form.clientCompany })}</output>
 		<button type="button" onClick={() => onFormChange({ ...form, title: "Несохранённое название" })}>Изменить детали</button>
 	</div>,
 }));
@@ -152,6 +157,8 @@ beforeEach(() => {
 	state.acquireUpdateBlocker.mockReturnValue(state.releaseUpdateBlocker);
 	state.projects = [catalog(support), catalog(waterfall)];
 	state.projectsError = null;
+	state.projectsLoading = false;
+	state.projectsRefreshing = false;
 	state.fetchPayments.mockImplementation(async (projectId: string) => [
 		{
 			id: Number(projectId),
@@ -467,6 +474,108 @@ describe("Project report selection", () => {
 		expect(state.createProject.mock.calls[1][0]).toMatchObject({ bitrixProjectId: null, clientCompanyId: "22", projectGoal: "Запустить CRM" });
 		await waitFor(() => expect(state.reloadProjects).toHaveBeenCalledTimes(1));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+	});
+
+	it("opens the saved project immediately while the CRM catalogue is still loading, without loading unrelated metrics", async () => {
+		const createdProject = { ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "23", clientCompany: "Новая компания", files: [] };
+		state.createProject.mockResolvedValueOnce(createdProject);
+		state.reloadProjects.mockImplementation(() => { state.projectsLoading = true; });
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Создать проект с новой компанией" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByText("Детали: Новый проект")).toBeInTheDocument();
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		expect(JSON.parse(screen.getByTestId("saved-project-link").textContent ?? "{}")).toEqual({ bitrixProjectId: "79", clientCompanyId: "23", clientCompany: "Новая компания" });
+		expect(screen.getByTitle("Новый проект")).toBeInTheDocument();
+		expect(state.reloadProjects).toHaveBeenCalledTimes(1);
+		expect(state.fetchProjects).toHaveBeenCalledTimes(1);
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+		expect(state.fetchPayments).not.toHaveBeenCalled();
+		expect(state.fetchStages).not.toHaveBeenCalled();
+		expect(state.fetchEvents).not.toHaveBeenCalled();
+		await waitFor(() => expect(state.updateBlocker).toHaveBeenLastCalledWith(false));
+		expect(state.releaseUpdateBlocker).toHaveBeenCalledTimes(1);
+	});
+
+	it("preserves a newer project and tab choice made while creation is pending", async () => {
+		let finishCreation: ((project: ReportProject) => void) | undefined;
+		state.createProject.mockImplementationOnce(() => new Promise<ReportProject>((resolve) => { finishCreation = resolve; }));
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		fireEvent.click(screen.getByTitle(waterfall.title));
+		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
+		expect(await screen.findByText(`Детали: ${waterfall.title}`)).toBeInTheDocument();
+		finishCreation?.({ ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "22", clientCompany: "Компания Бета", files: [] });
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		expect(screen.getByText(`Детали: ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.queryByText("Детали: Новый проект")).not.toBeInTheDocument();
+		expect(screen.getByTitle("Новый проект")).toBeInTheDocument();
+		expect(state.reloadProjects).toHaveBeenCalledTimes(1);
+	});
+
+	it("waits for a newly created card during background refresh instead of reporting a missing link", async () => {
+		const createdProject = { ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "22", clientCompany: "Компания Бета", files: [] };
+		state.createProject.mockResolvedValueOnce(createdProject);
+		state.reloadProjects.mockImplementation(() => { state.projectsRefreshing = true; });
+		const view = render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByText("Детали: Новый проект")).toBeInTheDocument();
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		fireEvent.click(screen.getByRole("button", { name: "Проекты" }));
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: createdProject.title })).not.toBeInTheDocument();
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+		state.projects = [...state.projects, catalog(createdProject)];
+		state.projectsRefreshing = false;
+		view.rerender(<SalesProfitabilityReport {...props} />);
+		expect(await screen.findByRole("heading", { name: createdProject.title })).toBeInTheDocument();
+		expect(state.fetchDetails).toHaveBeenCalledTimes(1);
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("keeps saved details and authoritative company visible when the background catalogue refresh fails", async () => {
+		const refreshError = "Не удалось обновить каталог Битрикс24";
+		const createdProject = { ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "23", clientCompany: "Новая компания", files: [] };
+		state.createProject.mockResolvedValueOnce(createdProject);
+		state.reloadProjects.mockImplementation(() => { state.projectsError = refreshError; });
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Создать проект с новой компанией" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		expect(await screen.findByText("Детали: Новый проект")).toBeInTheDocument();
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		expect(screen.getByRole("alert")).toHaveTextContent(refreshError);
+		expect(JSON.parse(screen.getByTestId("saved-project-link").textContent ?? "{}")).toEqual({ bitrixProjectId: "79", clientCompanyId: "23", clientCompany: "Новая компания" });
+		expect(state.createProject).toHaveBeenCalledTimes(1);
+	});
+
+	it("shows a refresh error without hiding an already loaded project's plan and metrics", async () => {
+		const refreshError = "Не удалось обновить каталог Битрикс24";
+		state.projectsError = refreshError;
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		expect(await screen.findByRole("heading", { name: waterfall.title })).toBeInTheDocument();
+		expect(screen.getByText(`План проекта ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.getByText("Себестоимость по загруженным отчётам")).toBeInTheDocument();
+		expect(screen.getByRole("alert")).toHaveTextContent(refreshError);
+		fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку" }));
+		expect(state.reloadProjects).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not hide saved details behind an unrelated pending metrics request", async () => {
+		state.fetchDetails.mockImplementationOnce(() => new Promise<ProfitabilityProject>(() => undefined));
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		await waitFor(() => expect(state.fetchDetails).toHaveBeenCalledTimes(1));
+		const metricsSignal = state.fetchDetails.mock.calls[0][1] as AbortSignal;
+		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
+		expect(await screen.findByText(`Детали: ${waterfall.title}`)).toBeInTheDocument();
+		expect(metricsSignal.aborted).toBe(true);
 	});
 
 	it("retains a new company draft and the same request ID when a project save fails", async () => {
