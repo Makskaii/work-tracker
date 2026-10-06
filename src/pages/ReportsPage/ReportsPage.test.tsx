@@ -30,6 +30,16 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("report data on demand", () => {
+	it.each(["/reports/calendar/", "/REPORTS/CALENDAR", "/Reports/Calendar/"])("loads calendar resources for the router-compatible path %s", async (path) => {
+		mount(path);
+		await waitFor(() => expect(screen.getByTestId("context")).toHaveTextContent("Имя Фамилия"));
+		await waitFor(() => expect(screen.getByTestId("context")).toHaveTextContent("Разработка"));
+		expect(requests.users).toHaveBeenCalledTimes(1);
+		expect(requests.activities).toHaveBeenCalledTimes(1);
+		expect(requests.get).toHaveBeenCalledTimes(1);
+		expect(requests.statuses).not.toHaveBeenCalled();
+	});
+
 	it("does not load unrelated CRM users, tasks, statuses or catalog for the project report", async () => {
 		mount("/reports/profitability");
 		await waitFor(() => expect(screen.getByTestId("context")).toHaveTextContent("Разработка"));

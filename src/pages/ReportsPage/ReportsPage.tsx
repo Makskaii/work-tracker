@@ -321,7 +321,7 @@ const ReportsPage = () => {
 };
 
 export const getReportDataNeeds = (pathname: string) => {
-	const section = pathname.split("/").filter(Boolean)[1] ?? "calendar";
+	const section = pathname.toLowerCase().split("/").filter(Boolean)[1] ?? "calendar";
 	return {
 		users: ["calendar", "projects", "clients", "developers", "development", "workload"].includes(section),
 		statuses: ["projects", "clients", "developers", "progress"].includes(section),
