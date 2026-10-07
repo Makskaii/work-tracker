@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectPlanningWorkspace } from "./ProjectPlanningWorkspace";
-import type { ProjectGanttEvent, ProjectGanttStage, ReportProject } from "../model/types";
+import type { AutonomousProjectPayment, ProjectGanttEvent, ProjectGanttStage, ReportProject } from "../model/types";
 
 const api = vi.hoisted(() => ({
   fetchProjectGanttStages: vi.fn(), fetchProjectGanttEvents: vi.fn(), createProjectGanttStage: vi.fn(),
@@ -46,6 +46,10 @@ beforeEach(() => {
   api.updateProjectGanttStage.mockImplementation(async (id: number, payload: Partial<ProjectGanttStage>) => {
     stages = stages.map((item) => item.id === id ? { ...item, ...payload } : item);
     return structuredClone(stages.find((item) => item.id === id));
+  });
+  api.updateProjectGanttEvent.mockImplementation(async (id: number, payload: Partial<ProjectGanttEvent>) => {
+    events = events.map((item) => item.id === id ? { ...item, ...payload } : item);
+    return structuredClone(events.find((item) => item.id === id));
   });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -165,5 +169,116 @@ describe("Gantt planning workspace", () => {
     render(<ProjectPlanningWorkspace project={project} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Сводка этапов недоступна");
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+  it("renders the saved milestone date even when its dependency completed on a different date", async () => {
+    stages[3].stageType = "closing";
+    stages[3].dependsOnStageId = 2;
+    events[0] = { ...events[0], planStartDate: "2026-08-10", planEndDate: "2026-08-22", factEndDate: "2026-08-24" };
+    events.push({ ...events[0], id: 3, stageId: 3, title: "Демонстрация проекта клиенту", eventKind: "one_time",
+      planStartDate: "2026-09-11", planEndDate: null, factStartDate: null, factEndDate: null });
+    render(<ProjectPlanningWorkspace project={project} />);
+    const marker = await screen.findByRole("button", { name: /Демонстрация проекта клиенту\nПлан: 11\.09/ });
+    expect(marker).toHaveAttribute("data-gantt-plan-event", "3");
+    expect(marker.getAttribute("title")).toContain("Прогноз по зависимости: 24.08");
+    fireEvent.click(marker);
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Плановая дата")).toHaveValue("2026-09-11");
+    expect(api.updateProjectGanttEvent).not.toHaveBeenCalled();
+  });
+  it("loads a legacy one-time end-only date in editing and preserves it when only hours change", async () => {
+    stages[2].stageType = "closing";
+    events[0] = { ...events[0], eventKind: "one_time", planStartDate: null, planEndDate: "2026-08-14" };
+    render(<ProjectPlanningWorkspace project={project} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Настройка CRM\nПлан: 14\.08/ }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Плановая дата")).toHaveValue("2026-08-14");
+    fireEvent.change(dialog.getByLabelText("Плановый объём, ч"), { target: { value: "24" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(api.updateProjectGanttStage).toHaveBeenCalledWith(2, expect.objectContaining({ plannedHours: 24 })));
+    expect(api.updateProjectGanttEvent).not.toHaveBeenCalled();
+    expect(events[0]).toMatchObject({ planStartDate: null, planEndDate: "2026-08-14" });
+  });
+  it("shows missing estimates as unknown instead of a fake stage percentage, with an editing action", async () => {
+    stages = stages.map((stage) => ({ ...stage, plannedHours: null }));
+    render(<ProjectPlanningWorkspace project={project} />);
+    expect(await screen.findByText("Процент не рассчитан: у этапов нет плановых часов.")).toBeInTheDocument();
+    expect(overall()).not.toHaveAttribute("aria-valuenow");
+    expect(row(2).getByText("Готовность: — · Разработка")).toBeInTheDocument();
+    fireEvent.click(row(2).getByRole("button", { name: "Указать плановые часы" }));
+    expect(within(await screen.findByRole("dialog")).getByLabelText("Плановый объём, ч")).toHaveValue("");
+  });
+  it("explains an empty working plan and opens creation without inventing stages", async () => {
+    stages = [stages[0]];
+    events = [];
+    render(<ProjectPlanningWorkspace project={project} />);
+    expect(await screen.findByText("Рабочие этапы ещё не созданы. Добавьте этап, чтобы задать сроки и плановые часы.")).toBeInTheDocument();
+    expect(overall()).not.toHaveAttribute("aria-valuenow");
+    fireEvent.click(screen.getByRole("button", { name: "Добавить этап проекта" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Название")).toHaveValue("Новый этап");
+    expect(dialog.getByLabelText("Плановый объём, ч")).toHaveValue("");
+    expect(dialog.queryByLabelText("Этап привязки")).not.toBeInTheDocument();
+    expect(dialog.queryByLabelText(/Плановая дата/)).not.toBeInTheDocument();
+    expect(api.createProjectGanttStage).not.toHaveBeenCalled();
+  });
+  it.each(["type", "duration"] as const)("does not turn a fact-only dependency into a saved plan when editing its %s", async (change) => {
+    stages[3] = { ...stages[3], dependsOnStageId: 2, dependencyAnchor: "stage_end", durationDays: 3 };
+    events[0] = { ...events[0], planStartDate: null, planEndDate: null };
+    events.push({ ...events[0], id: 3, stageId: 3, title: "Интеграция", factStartDate: null, factEndDate: null });
+    render(<ProjectPlanningWorkspace project={project} />);
+    await waitFor(() => expect(overall()).toHaveAttribute("aria-valuenow", "25"));
+    fireEvent.click(row(3).getByRole("button", { name: "..." }));
+    fireEvent.click(row(3).getByRole("button", { name: "Редактировать" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Плановая дата начала")).toHaveValue("");
+    expect(dialog.getByLabelText("Плановая дата завершения")).toHaveValue("");
+    if (change === "type") fireEvent.change(dialog.getByLabelText("Тип этапа"), { target: { value: "education" } });
+    else fireEvent.change(dialog.getByLabelText("Длительность, дней"), { target: { value: "5" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(api.updateProjectGanttEvent).toHaveBeenCalledWith(3, expect.objectContaining({ planStartDate: null, planEndDate: null })));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(events[0]).toMatchObject({ planStartDate: null, planEndDate: null, factStartDate: "2026-09-02", factEndDate: "2026-09-06" });
+    expect(events[1]).toMatchObject({ planStartDate: null, planEndDate: null, factStartDate: null, factEndDate: null });
+    expect(document.querySelector('[data-gantt-plan-event="3"]')).toBeNull();
+    expect(document.querySelector('[data-gantt-forecast-event="3"]')).toBeInTheDocument();
+  });
+  it("keeps a manually saved start while changing a dependent duration and preserves historical fact dates", async () => {
+    stages[3] = { ...stages[3], dependsOnStageId: 2, dependencyAnchor: "stage_end", durationDays: 3 };
+    events.push({ ...events[0], id: 3, stageId: 3, title: "Интеграция", planStartDate: "2026-09-11", planEndDate: "2026-09-13", factStartDate: "2026-09-12", factEndDate: "2026-09-20" });
+    render(<ProjectPlanningWorkspace project={project} />);
+    await waitFor(() => expect(overall()).toHaveAttribute("aria-valuenow", "25"));
+    fireEvent.click(row(3).getByRole("button", { name: "..." }));
+    fireEvent.click(row(3).getByRole("button", { name: "Редактировать" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    fireEvent.change(dialog.getByLabelText("Длительность, дней"), { target: { value: "5" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Сохранить" }));
+    await waitFor(() => expect(api.updateProjectGanttEvent).toHaveBeenCalledWith(3, expect.objectContaining({ planStartDate: "2026-09-11", planEndDate: "2026-09-15" })));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(events[1]).toMatchObject({ planStartDate: "2026-09-11", planEndDate: "2026-09-15", factStartDate: "2026-09-12", factEndDate: "2026-09-20" });
+    expect(events[0]).toMatchObject({ planStartDate: "2026-09-01", planEndDate: "2026-09-04", factStartDate: "2026-09-02", factEndDate: "2026-09-06" });
+  });
+  it("lists undated payments including an unresolved stage-linked payment and opens its settings", async () => {
+    const payments: AutonomousProjectPayment[] = [
+      { id: 501, projectId: "31", stageId: 3, status: "todo", paymentAnchor: "stage_end", paymentDate: null,
+        percent: 10, amount: 1000, waitingDays: null, sortOrder: 0, createdAt: "", updatedAt: "" },
+      { id: 502, projectId: "31", stageId: 3, status: "todo", paymentAnchor: null, paymentDate: null,
+        percent: null, amount: null, waitingDays: null, sortOrder: 1, createdAt: "", updatedAt: "" },
+    ];
+    api.fetchAutonomousProjectPayments.mockResolvedValue(payments);
+    render(<ProjectPlanningWorkspace project={project} />);
+    const notice = within(await screen.findByRole("region", { name: "Платежи без даты" }));
+    expect(notice.getByText(/Платежи без даты: 2/)).toBeInTheDocument();
+    fireEvent.click(notice.getByRole("button", { name: /Платёж №501.*Настроить привязку/ }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByLabelText("Этап, к которому привязана оплата")).toHaveValue("3");
+    expect(dialog.getByLabelText("Дата оплаты от этапа")).toHaveValue("stage_end");
+    expect(api.updateAutonomousProjectPayment).not.toHaveBeenCalled();
+  });
+  it("flags completed projects with open manual stages without completing those stages", async () => {
+    render(<ProjectPlanningWorkspace project={{ ...project, projectStatus: "completed" }} />);
+    expect(await screen.findByText(/Проект завершён, но статусы этапов ещё не отмечены/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Проверить этапы" })).toBeInTheDocument();
+    expect(api.updateProjectGanttStage).not.toHaveBeenCalled();
+    expect(stages[3].groupStatus).toBe("in_progress");
   });
 });

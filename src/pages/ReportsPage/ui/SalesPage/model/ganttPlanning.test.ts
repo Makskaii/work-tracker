@@ -46,6 +46,13 @@ describe("manual Gantt planning", () => {
     expect(buildGanttPlanning([stage(1)]).overall).toMatchObject({ plannedHours: null, progress: null, missingEstimates: 1 });
     expect(buildGanttPlanning([stage(1, { plannedHours: 0 })]).overall).toMatchObject({ plannedHours: 0, progress: null, missingEstimates: 0 });
   });
+  it("does not invent stage percentages for missing or zero-hour estimates even after completion", () => {
+    expect(getGanttStagePlanning(stage(1), [stage(1)]).progress).toBeNull();
+    const missing = stage(1, { groupStatus: "completed" });
+    expect(getGanttStagePlanning(missing, [missing]).progress).toBeNull();
+    const zero = stage(1, { plannedHours: 0, groupStatus: "completed" });
+    expect(getGanttStagePlanning(zero, [zero]).progress).toBeNull();
+  });
   it("flags partially estimated work instead of claiming a complete plan", () => {
     const values = example(); values[2].plannedHours = null;
     expect(buildGanttPlanning(values).overall).toMatchObject({ plannedHours: 80, progress: 25, missingEstimates: 1 });

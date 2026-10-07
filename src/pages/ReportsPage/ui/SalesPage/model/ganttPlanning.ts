@@ -35,7 +35,7 @@ export type GanttStagePlanning = {
   category: GanttProgressCategory;
   plannedHours: number | null;
   completedHours: number;
-  progress: number;
+  progress: number | null;
   derivedFromChildren: boolean;
   childHours: number;
   unallocatedToChildren: number;
@@ -61,7 +61,7 @@ export function getGanttStagePlanning(stage: ProjectGanttStage, stages: ProjectG
   return {
     stage, category: stageCategory(parent && (parent.stageType !== null || cents(parent.plannedHours) !== null) ? parent : stage), plannedHours: hours(budget),
     completedHours: credit / 100,
-    progress: complete ? 100 : budget && budget > 0 ? credit / budget * 100 : 0,
+    progress: budget && budget > 0 ? credit / budget * 100 : null,
     derivedFromChildren: ownHours === null && estimatedChildren.length > 0,
     childHours: childHours / 100,
     unallocatedToChildren: children.length ? Math.max(0, (budget ?? 0) - childHours) / 100 : 0,
@@ -111,7 +111,7 @@ export function buildGanttPlanning(stages: ProjectGanttStage[]) {
       .map((stage) => {
         const child = getGanttStagePlanning(stage, unique);
         return root.stage.groupStatus === "completed"
-          ? { ...child, completedHours: child.plannedHours ?? 0, progress: 100 }
+          ? { ...child, completedHours: child.plannedHours ?? 0, progress: child.plannedHours !== null && child.plannedHours > 0 ? 100 : null }
           : child;
       });
   });

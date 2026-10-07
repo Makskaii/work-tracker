@@ -1,6 +1,7 @@
 import { formatHours, formatMoney } from "../model/profitabilityUtils";
 import {
 	type ProjectSummaryFormState,
+	numberOrNull,
 	projectStatusOptions,
 } from "../model/reportProjectForm";
 import type {
@@ -52,6 +53,7 @@ export const SummaryCards = ({
 	summary,
 }: SummaryCardsProps) => {
 	const normalizedProjectStatus = projectStatus ?? "not_started";
+	const purchasedHours = numberOrNull(form.summaryPurchasedHours);
 	const projectStatusLabel =
 		projectStatusOptions.find(
 			(option) => option.value === normalizedProjectStatus,
@@ -99,7 +101,7 @@ export const SummaryCards = ({
 						<strong
 							className={`${styles.dealSummaryValue} ${styles.dealSummaryPurchased}`}
 						>
-							{formatHours(summary.purchasedHours)}
+							{purchasedHours === null ? "Не заданы" : formatHours(purchasedHours)}
 						</strong>
 					</div>
 					<div className={styles.dealSummaryStat}>

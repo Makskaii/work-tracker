@@ -141,6 +141,25 @@ export const getProjectPlannedEndDate = (
 	project?: Pick<ReportProject, "contractEndDate" | "summaryPlanCompletionDate"> | null,
 ) => project?.contractEndDate || project?.summaryPlanCompletionDate || "";
 
+export const isProjectReportProject = (
+	project: Pick<ReportProject, "projectType">,
+) => project.projectType !== "support";
+
+export const validateReportProjectPlanning = (
+	form: Pick<ReportProjectFormState, "summaryPurchasedHours" | "projectStartDate" | "contractEndDate">,
+): string | null => {
+	if (form.summaryPurchasedHours.trim()) {
+		const purchasedHours = numberOrNull(form.summaryPurchasedHours);
+		if (purchasedHours === null || purchasedHours < 0) {
+			return "Куплено часов: укажите число не меньше нуля";
+		}
+	}
+	if (form.projectStartDate && form.contractEndDate && form.contractEndDate < form.projectStartDate) {
+		return "Дата окончания проекта не может быть раньше даты начала";
+	}
+	return null;
+};
+
 const getLegacyEndDateClear = (
 	form: Pick<ReportProjectFormState, "contractEndDate" | "summaryPlanCompletionDate">,
 ): Partial<ReportProjectPayload> =>
@@ -261,7 +280,7 @@ export const getReportProjectForm = (
 		summaryPlanHours:
 			project.summaryPlanHours === null ? "" : String(project.summaryPlanHours),
 		summaryPurchasedHours:
-			project.summaryPurchasedHours === null
+			project.summaryPurchasedHours == null
 				? ""
 				: String(project.summaryPurchasedHours),
 		title: project.title,

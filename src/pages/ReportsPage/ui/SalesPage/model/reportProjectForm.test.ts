@@ -9,10 +9,24 @@ import {
 	getReportProjectPayload,
 	getReportProjectSaveError,
 	validateReportProjectLink,
+	validateReportProjectPlanning,
 } from "./reportProjectForm";
 import type { ReportProject } from "./types";
 
 describe("project link form", () => {
+	it.each(["", "0", "12.5", "12,5"])("accepts blank, zero and nonnegative purchased hours %s", (hours) => {
+		expect(validateReportProjectPlanning({ ...DEFAULT_REPORT_PROJECT_FORM, summaryPurchasedHours: hours })).toBeNull();
+	});
+	it.each(["-1", "-0.5", "not-a-number", "Infinity"])("rejects invalid purchased hours %s without silently clearing them", (hours) => {
+		expect(validateReportProjectPlanning({ ...DEFAULT_REPORT_PROJECT_FORM, summaryPurchasedHours: hours })).toContain("не меньше нуля");
+	});
+	it("checks the contract range and permits blank dates or a one-day project", () => {
+		const form = { ...DEFAULT_REPORT_PROJECT_FORM, projectStartDate: "2026-10-08", contractEndDate: "2026-10-07" };
+		expect(validateReportProjectPlanning(form)).toContain("раньше даты начала");
+		expect(validateReportProjectPlanning({ ...form, contractEndDate: "2026-10-08" })).toBeNull();
+		expect(validateReportProjectPlanning({ ...form, contractEndDate: "" })).toBeNull();
+		expect(validateReportProjectPlanning({ ...form, projectStartDate: "" })).toBeNull();
+	});
 	it("round-trips the local project dates and zero purchased hours without substituting actual or legacy dates", () => {
 		const form = { ...DEFAULT_REPORT_PROJECT_FORM, title: "Проект", projectStartDate: "2026-10-01", contractEndDate: "2026-12-31", summaryFactCompletionDate: "2027-01-05", summaryPlanCompletionDate: "2026-12-01", summaryPurchasedHours: "0" };
 		const payload = getReportProjectPayload(form);
