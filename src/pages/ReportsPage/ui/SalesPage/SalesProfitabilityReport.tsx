@@ -2,7 +2,8 @@
 import { FaCalendarAlt, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router";
 import { useB24 } from "@/shared/config/bitrixProvider/bitrixContext";
-import { EntityTypeIds } from "@/shared/constants/const";
+import { clearBitrixReadCache } from "@/shared/config/axios/axios.config";
+import { Endpoints, EntityTypeIds } from "@/shared/constants/const";
 import { acquireAppUpdateBlocker, useAppUpdateBlocker } from "@/shared/lib/appUpdates";
 import { ProjectCodes } from "@/components/calendar/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
@@ -96,6 +97,7 @@ import type {
 } from "./model/types";
 import {
 	fetchProfitabilityProjectDetails,
+	type ProfitabilityProjectReference,
 	useCompanyProjects,
 } from "./model/useCompanyProjects";
 import styles from "./SalesProfitabilityReport.module.scss";
@@ -105,6 +107,8 @@ type SalesProfitabilityReportProps = {
 	deals: Deal[];
 	users: User[];
 	loading?: boolean;
+	usersError?: string | null;
+	onRetryUsers?: () => void;
 };
 
 const tabs: Array<{ id: SalesProfitabilityTab; title: string }> = [
@@ -444,6 +448,8 @@ export const SalesProfitabilityReport = ({
 	deals,
 	users,
 	loading,
+	usersError,
+	onRetryUsers,
 }: SalesProfitabilityReportProps) => {
 	void deals;
 	const navigate = useNavigate();
@@ -562,18 +568,24 @@ export const SalesProfitabilityReport = ({
 	const [bitrixProjectDetailsRetryKey, setBitrixProjectDetailsRetryKey] =
 		useState(0);
 	const { openTask } = useBitrixSlider();
-	const {
-		companyTitleById,
-		projects: bitrixProjects,
-		isLoadingDetails: isBitrixProjectsLoading,
-		isRefreshing: isBitrixProjectsRefreshing,
-		error: bitrixProjectsError,
-		reloadProjects: reloadBitrixProjects,
-	} = useCompanyProjects();
 	const selectedReportProject =
 		reportProjects.find(
 			(project) => getDbProjectId(project) === selectedProjectId,
 		) ?? null;
+	const shouldLoadBitrixProjectDetails =
+		activeTab === "projects" || activeTab === "tasks" || activeTab === "reports";
+	const selectedLinkedProjectId = normalizeProjectId(selectedReportProject?.bitrixProjectId);
+	const hasNumericProjectLink = /^\d+$/.test(selectedLinkedProjectId) && Number(selectedLinkedProjectId) > 0;
+	const needsBitrixCatalogue = isReportProjectModalOpen ||
+		(activeTab === "projectDetails" && Boolean(selectedReportProject)) ||
+		(shouldLoadBitrixProjectDetails && Boolean(selectedReportProject) && !hasNumericProjectLink);
+	const {
+		companyTitleById,
+		projects: bitrixProjects,
+		isLoadingDetails: isBitrixProjectsLoading,
+		error: bitrixProjectsError,
+		reloadProjects: reloadBitrixProjects,
+	} = useCompanyProjects({ enabled: needsBitrixCatalogue });
 	const selectedReportProjectId = selectedReportProject?.id ?? null;
 	const isInitialNavigationLoading = isReportProjectsLoading ||
 		(hasLoadedReportProjects && restoredNavigationKey !== navigationStorageKey);
@@ -794,32 +806,17 @@ export const SalesProfitabilityReport = ({
 		: null;
 
 	const summary = getReportProjectSummary(selectedReportProject);
-	const shouldLoadBitrixProjectDetails =
-		activeTab === "projects" ||
-		activeTab === "tasks" ||
-		activeTab === "reports";
 	const selectedBitrixProjects = useMemo(
-		() =>
-			selectedReportProject
-				? bitrixProjects.filter((project) => {
-						const bitrixProjectId = normalizeProjectId(
-							project.projectId ?? project.id,
-						);
-						const selectedBitrixProjectId = normalizeProjectId(
-							selectedReportProject.bitrixProjectId,
-						);
-
-						if (selectedBitrixProjectId) {
-							return bitrixProjectId === selectedBitrixProjectId;
-						}
-
-						return (
-							normalizeProjectTitle(project.title ?? "") ===
-							normalizeProjectTitle(selectedReportProject.title)
-						);
-					})
-				: [],
-		[bitrixProjects, selectedReportProject],
+		(): ProfitabilityProjectReference[] => {
+			if (!selectedReportProject) return [];
+			if (hasNumericProjectLink) {
+				return [{ id: Number(selectedLinkedProjectId), projectId: selectedLinkedProjectId, title: selectedReportProject.title }];
+			}
+			return bitrixProjects.filter((project) =>
+				normalizeProjectTitle(project.title ?? "") === normalizeProjectTitle(selectedReportProject.title),
+			);
+		},
+		[bitrixProjects, hasNumericProjectLink, selectedLinkedProjectId, selectedReportProject],
 	);
 	const selectedBitrixProjectIds = useMemo(
 		() =>
@@ -829,38 +826,42 @@ export const SalesProfitabilityReport = ({
 		[selectedBitrixProjects],
 	);
 	const isBitrixProjectLinkMissing = Boolean(
-		selectedReportProject && !selectedBitrixProjects.length,
+		selectedReportProject && !selectedBitrixProjects.length && !isBitrixProjectsLoading,
 	);
-	const isBusy =
-		loading ||
-		isInitialNavigationLoading ||
-		(shouldLoadBitrixProjectDetails &&
-			(isBitrixProjectsLoading ||
-				isBitrixProjectDetailsLoading ||
-				(isBitrixProjectsRefreshing && isBitrixProjectLinkMissing)));
+	// The local project and its Gantt do not depend on CRM metrics or employee names.
+	const isBusy = isInitialNavigationLoading;
 	const projectMetricsError =
-		bitrixProjectDetailsError ??
+		bitrixProjectDetailsError ?? usersError ??
 		(isBitrixProjectLinkMissing
-			? selectedReportProject?.bitrixProjectId
+			? bitrixProjectsError ?? (selectedReportProject?.bitrixProjectId
 				? "Связанный проект Битрикс24 не найден. Проверьте привязку в деталях проекта."
-				: "Выберите связанный проект Битрикс24 в деталях проекта, чтобы загрузить задачи и ежедневные отчёты."
+				: "Выберите связанный проект Битрикс24 в деталях проекта, чтобы загрузить задачи и ежедневные отчёты.")
 			: null);
-	const projectMetricsActionLabel = isBitrixProjectLinkMissing
+	const areProjectMetricsLoading = Boolean(selectedReportProject && shouldLoadBitrixProjectDetails &&
+		!projectMetricsError && (loading || isBitrixProjectDetailsLoading ||
+			(!hasNumericProjectLink && isBitrixProjectsLoading) ||
+			selectedBitrixProjectIds.some((id) => !bitrixProjectDetailsById.has(id))));
+	const projectMetricsActionLabel = usersError && !bitrixProjectDetailsError
+		? "Повторить загрузку сотрудников"
+		: isBitrixProjectLinkMissing
 		? "Открыть детали проекта"
 		: "Повторить загрузку";
 	const handleProjectMetricsRetry = () => {
-		if (isBitrixProjectLinkMissing) {
+		if (usersError && !bitrixProjectDetailsError) {
+			onRetryUsers?.();
+		} else if (isBitrixProjectLinkMissing) {
 			setActiveTab("projectDetails");
 		} else {
+			clearBitrixReadCache([Endpoints.crmItems]);
 			setBitrixProjectDetailsRetryKey((key) => key + 1);
 		}
 	};
 	const selectedBitrixProjectsWithDetails = useMemo(
 		() =>
-			selectedBitrixProjects.map((project) => {
+			selectedBitrixProjects.flatMap((project) => {
 				const projectId = normalizeProjectId(project.projectId ?? project.id);
-
-				return bitrixProjectDetailsById.get(projectId) ?? project;
+				const details = bitrixProjectDetailsById.get(projectId);
+				return details ? [details] : [];
 			}),
 		[bitrixProjectDetailsById, selectedBitrixProjects],
 	);
@@ -1071,7 +1072,7 @@ export const SalesProfitabilityReport = ({
 			.catch((error) => {
 				if (!controller.signal.aborted) {
 					setBitrixProjectDetailsError(
-						"Не удалось загрузить задачи и ежедневные отчёты из Битрикс24. Показатели недоступны.",
+						`Не удалось загрузить задачи и ежедневные отчёты из Битрикс24. Показатели недоступны.${error instanceof Error ? ` ${error.message}` : ""}`,
 					);
 					console.error(
 						"Failed to fetch selected Bitrix project details",
@@ -1907,27 +1908,8 @@ export const SalesProfitabilityReport = ({
 							</button>
 						</div>
 
-						{bitrixProjectsError && shouldLoadBitrixProjectDetails && selectedBitrixProjects.length > 0 ? (
-							<div role="alert" className={styles.emptyState}>
-								<p>{bitrixProjectsError}</p>
-								<button type="button" className={styles.filterButton} onClick={reloadBitrixProjects}>
-									Повторить загрузку
-								</button>
-							</div>
-						) : null}
 						{isBusy ? (
 							<ProfitabilitySkeleton />
-						) : bitrixProjectsError && shouldLoadBitrixProjectDetails && !selectedBitrixProjects.length ? (
-							<div role="alert" className={styles.emptyState}>
-								<p>{bitrixProjectsError}</p>
-								<button
-									type="button"
-									className={styles.filterButton}
-									onClick={reloadBitrixProjects}
-								>
-									Повторить загрузку
-								</button>
-							</div>
 						) : !selectedReportProject && activeTab !== "marginality" ? (
 							<div className={styles.projectReportEmptyState}>
 								<p>
@@ -1986,6 +1968,7 @@ export const SalesProfitabilityReport = ({
 										projects={reportProjects}
 										selectedProjectId={effectiveSelectedProjectId}
 										reportsError={projectMetricsError}
+										reportsLoading={areProjectMetricsLoading}
 										onRetryReports={handleProjectMetricsRetry}
 										retryReportsLabel={projectMetricsActionLabel}
 										users={users}
@@ -2022,7 +2005,9 @@ export const SalesProfitabilityReport = ({
 								)}
 
 								{activeTab === "tasks" &&
-									(projectMetricsError ? (
+									(areProjectMetricsLoading ? (
+										<div role="status" aria-busy="true" className={styles.emptyState}>Загружаем задачи и сотрудников…</div>
+									) : projectMetricsError ? (
 										<div role="alert" className={styles.emptyState}>
 											<p>{projectMetricsError}</p>
 											<button
@@ -2042,7 +2027,9 @@ export const SalesProfitabilityReport = ({
 									))}
 
 								{activeTab === "reports" &&
-									(projectMetricsError ? (
+									(areProjectMetricsLoading ? (
+										<div role="status" aria-busy="true" className={styles.emptyState}>Загружаем ежедневные отчёты и сотрудников…</div>
+									) : projectMetricsError ? (
 										<div role="alert" className={styles.emptyState}>
 											<p>{projectMetricsError}</p>
 											<button

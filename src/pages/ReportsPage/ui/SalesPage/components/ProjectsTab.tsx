@@ -14,6 +14,7 @@ type ProjectsTabProps = {
 	selectedProjectId: string | null;
 	users: User[];
 	reportsError?: string | null;
+	reportsLoading?: boolean;
 	onRetryReports?: () => void;
 	retryReportsLabel?: string;
 };
@@ -24,6 +25,7 @@ export const ProjectsTab = ({
 	projects,
 	selectedProjectId,
 	reportsError,
+	reportsLoading = false,
 	onRetryReports,
 	retryReportsLabel = "Повторить загрузку",
 	users,
@@ -46,7 +48,11 @@ export const ProjectsTab = ({
 							project={selectedProject}
 						/>
 					)}
-					{reportsError ? (
+					{reportsLoading ? (
+						<div role="status" aria-busy="true" className={styles.emptyState}>
+							Загружаем задачи, ежедневные отчёты и сотрудников…
+						</div>
+					) : reportsError ? (
 						<div role="alert" className={styles.emptyState}>
 							<p>{reportsError}</p>
 							<button

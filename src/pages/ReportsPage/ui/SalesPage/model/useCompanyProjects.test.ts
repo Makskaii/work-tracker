@@ -39,6 +39,7 @@ describe("selected Bitrix project reports", () => {
 		const tasks = [{ id: "1", [TaskCodes.estimateTime]: "8" }];
 		const reports = [{ id: "101", [ReportCodes.timeSpent]: "6.5" }];
 		crm.get.mockImplementation((_url, { params }) => {
+			if (params.entityTypeId === EntityTypeIds.projects) return Promise.resolve(page([project]));
 			if (params.entityTypeId === EntityTypeIds.projectPayments) {
 				return Promise.reject({
 					response: {
@@ -61,7 +62,7 @@ describe("selected Bitrix project reports", () => {
 		expect(getProjectAutomaticHours([result]).developmentFactHours).toBe(6.5);
 		expect(
 			crm.get.mock.calls.map(([, config]) => config.params.entityTypeId).sort(),
-		).toEqual([EntityTypeIds.reports, EntityTypeIds.tasks]);
+		).toEqual([EntityTypeIds.reports, EntityTypeIds.tasks, EntityTypeIds.projects]);
 	});
 
 	it("keeps correctly linked tasks and reports with missing or stale company values", async () => {
@@ -90,6 +91,7 @@ describe("selected Bitrix project reports", () => {
 		];
 
 		crm.get.mockImplementation((_url, { params }) => {
+			if (params.entityTypeId === EntityTypeIds.projects) return Promise.resolve(page([project]));
 			const field =
 				params.entityTypeId === EntityTypeIds.tasks
 					? TaskCodes.company
@@ -147,6 +149,7 @@ describe("selected Bitrix project reports", () => {
 		const controller = new AbortController();
 		crm.get.mockImplementation((_url, { params, signal }) => {
 			expect(signal).toBe(controller.signal);
+			if (params.entityTypeId === EntityTypeIds.projects) return Promise.resolve(page([project]));
 			if (params.entityTypeId !== EntityTypeIds.reports)
 				return Promise.resolve(page([]));
 			return Promise.resolve(
@@ -173,7 +176,7 @@ describe("selected Bitrix project reports", () => {
 
 	it("rejects a CRM error response instead of turning unavailable reports into zero hours", async () => {
 		crm.get.mockImplementation((_url, { params }) =>
-			Promise.resolve(
+			Promise.resolve(params.entityTypeId === EntityTypeIds.projects ? page([project]) :
 				params.entityTypeId === EntityTypeIds.reports
 					? {
 							data: {
@@ -190,6 +193,23 @@ describe("selected Bitrix project reports", () => {
 		);
 	});
 
+	it("validates a numeric link with one scoped project read, without loading the project or company catalogue", async () => {
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(
+			params.entityTypeId === EntityTypeIds.projects ? [project] : [],
+		)));
+		const result = await fetchProfitabilityProjectDetails({ id: 77, projectId: "77", title: "WT project" });
+		expect(result.title).toBe(project.title);
+		const projectReads = crm.get.mock.calls.filter(([, config]) => config.params.entityTypeId === EntityTypeIds.projects);
+		expect(projectReads).toHaveLength(1);
+		expect(projectReads[0][1].params.filter).toEqual({ id: "77" });
+		expect(crm.get.mock.calls.some(([, config]) => config.params.entityTypeId === EntityTypeIds.companies)).toBe(false);
+	});
+
+	it("rejects a deleted or inaccessible numeric project instead of displaying zero metrics", async () => {
+		crm.get.mockResolvedValue(page([]));
+		await expect(fetchProfitabilityProjectDetails(project)).rejects.toThrow("не найден или недоступен");
+	});
+
 	it("rejects an invalid project relation before sending an unscoped CRM request", async () => {
 		await expect(
 			fetchProfitabilityProjectDetails({ ...project, projectId: "" }),
@@ -199,6 +219,20 @@ describe("selected Bitrix project reports", () => {
 });
 
 describe("Bitrix project catalogue", () => {
+	it("does not start catalogue reads until enabled, and reuses a completed catalogue when reopening a form", async () => {
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(
+			params.entityTypeId === EntityTypeIds.projects ? [project] : [{ id: 4877, title: "Компания" }],
+		)));
+		const { result, rerender } = renderHook(({ enabled }) => useCompanyProjects({ enabled }), { initialProps: { enabled: false } });
+		expect(crm.get).not.toHaveBeenCalled();
+		expect(result.current.isLoadingDetails).toBe(false);
+		rerender({ enabled: true });
+		await waitFor(() => expect(result.current.projects).toHaveLength(1));
+		expect(crm.get).toHaveBeenCalledTimes(2);
+		rerender({ enabled: false });
+		rerender({ enabled: true });
+		expect(crm.get).toHaveBeenCalledTimes(2);
+	});
 	it("starts project and company reads together instead of waiting for the project catalogue", async () => {
 		let finishProjects: ((value: ReturnType<typeof page>) => void) | undefined;
 		let finishCompanies: ((value: ReturnType<typeof page>) => void) | undefined;
@@ -216,6 +250,26 @@ describe("Bitrix project catalogue", () => {
 		await act(async () => { finishCompanies?.(page([{ id: 4877, title: "Компания" }])); });
 		expect(result.current.isLoadingDetails).toBe(false);
 		expect(result.current.companyTitleById.get("4877")).toBe("Компания");
+	});
+
+	it("aborts an unfinished catalogue when the form closes and restarts it when needed again", async () => {
+		const pendingSignals: AbortSignal[] = [];
+		crm.get.mockImplementation((_url, { signal }) => {
+			pendingSignals.push(signal);
+			return new Promise(() => undefined);
+		});
+		const { result, rerender } = renderHook(({ enabled }) => useCompanyProjects({ enabled }), { initialProps: { enabled: true } });
+		expect(crm.get).toHaveBeenCalledTimes(2);
+		rerender({ enabled: false });
+		expect(pendingSignals.every((signal) => signal.aborted)).toBe(true);
+		expect(result.current.isLoadingDetails).toBe(false);
+		crm.get.mockImplementation((_url, { params }) => Promise.resolve(page(
+			params.entityTypeId === EntityTypeIds.projects ? [project] : [{ id: 4877, title: "Компания" }],
+		)));
+		rerender({ enabled: true });
+		await waitFor(() => expect(result.current.projects).toHaveLength(1));
+		expect(result.current.isLoadingDetails).toBe(false);
+		expect(crm.get).toHaveBeenCalledTimes(4);
 	});
 
 	it("keeps loaded projects and companies visible during a refresh and adds the newly created company", async () => {

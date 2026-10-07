@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	ProjectCodes,
 	ReportCodes,
 	ReportStageIds,
 	TaskCodes,
@@ -26,8 +27,13 @@ type CompanyFromCrm = {
 	title?: string | null;
 };
 
+export type ProfitabilityProjectReference = Pick<
+	ProfitabilityProject,
+	"id" | "projectId" | "title"
+>;
+
 export const fetchProfitabilityProjectDetails = async (
-	project: ProfitabilityProject,
+	project: ProfitabilityProjectReference,
 	signal?: AbortSignal,
 ): Promise<ProfitabilityProject> => {
 	const projectId = String(project.projectId ?? project.id).trim();
@@ -59,20 +65,31 @@ export const fetchProfitabilityProjectDetails = async (
 
 	// The current payment list/Gantt loads payments from Work Tracker's API.
 	// The retired CRM payment type is not part of task/report metrics.
-	const [tasks, reports] = await Promise.all([
+	const [linkedProjects, tasks, reports] = await Promise.all([
+		fetchAllCrmItems<ClientProjectProps>({
+			entityTypeId: EntityTypeIds.projects,
+			select: ["id", "title", "assignedById", ProjectCodes.company],
+			filter: { id: projectId },
+			signal,
+		}),
 		fetchProjectTasks(),
 		fetchProjectReports(),
 	]);
+	const linkedProject = linkedProjects.find((item) => String(item.id) === projectId);
+	if (!linkedProject) {
+		throw new Error("Связанный проект Битрикс24 не найден или недоступен");
+	}
 
 	return {
-		...project,
+		...linkedProject,
 		projectId,
 		tasks,
 		reports,
+		payments: [],
 	};
 };
 
-export const useCompanyProjects = () => {
+export const useCompanyProjects = ({ enabled = true } = {}) => {
 	const [projectsState, setProjectsState] = useState<ProjectsState>({
 		companyTitleById: new Map(),
 		isLoading: true,
@@ -82,13 +99,14 @@ export const useCompanyProjects = () => {
 		error: null,
 	});
 	const [requestRevision, setRequestRevision] = useState(0);
+	const completedRevision = useRef<number | null>(null);
 	const reloadProjects = useCallback(() => {
 		clearBitrixReadCache([Endpoints.crmItems]);
 		setRequestRevision((value) => value + 1);
 	}, []);
 
 	useEffect(() => {
-		void requestRevision;
+		if (!enabled || completedRevision.current === requestRevision) return;
 		const controller = new AbortController();
 
 		const fetchProjects = async () => {
@@ -132,6 +150,7 @@ export const useCompanyProjects = () => {
 				}));
 
 				if (!controller.signal.aborted) {
+					completedRevision.current = requestRevision;
 					setProjectsState({
 						companyTitleById,
 						isLoading: false,
@@ -163,13 +182,13 @@ export const useCompanyProjects = () => {
 		return () => {
 			controller.abort();
 		};
-	}, [requestRevision]);
+	}, [enabled, requestRevision]);
 
 	return {
 		companyTitleById: projectsState.companyTitleById,
 		projects: projectsState.projects,
-		isLoadingDetails: projectsState.isLoading,
-		isRefreshing: projectsState.isRefreshing,
+		isLoadingDetails: enabled && projectsState.isLoading,
+		isRefreshing: enabled && projectsState.isRefreshing,
 		error: projectsState.error,
 		reloadProjects,
 	};

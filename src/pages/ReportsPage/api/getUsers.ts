@@ -3,6 +3,7 @@ import { Endpoints } from "@/shared/constants/const";
 
 export const getUsers = async (
   signal?: AbortSignal,
+  { throwOnError = false } = {},
 ): Promise<
   {
     ID: string;
@@ -31,6 +32,9 @@ export const getUsers = async (
     const items = response.data?.result;
 
     if (!Array.isArray(items)) {
+      if (throwOnError) {
+        throw new Error(response.data?.error_description || "Не удалось получить сотрудников из Битрикс24");
+      }
       console.warn("Expected items to be an array, but got:", items);
       return [];
     }
@@ -40,6 +44,8 @@ export const getUsers = async (
     if (signal?.aborted) {
       return [];
     }
+
+    if (throwOnError) throw error;
 
     console.error("Failed to fetch users", error);
     return [];
