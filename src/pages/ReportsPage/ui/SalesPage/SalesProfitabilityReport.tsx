@@ -64,7 +64,9 @@ import {
 	getReportProjectCreatePayload,
 	getReportProjectPayload,
 	getReportProjectSaveError,
+	isProjectReportProject,
 	validateReportProjectLink,
+	validateReportProjectPlanning,
 	numberOrNull,
 	type ProjectSummaryFormState,
 	projectStatusOptions,
@@ -568,8 +570,12 @@ export const SalesProfitabilityReport = ({
 	const [bitrixProjectDetailsRetryKey, setBitrixProjectDetailsRetryKey] =
 		useState(0);
 	const { openTask } = useBitrixSlider();
+	const reportScopeProjects = useMemo(
+		() => reportProjects.filter(isProjectReportProject),
+		[reportProjects],
+	);
 	const selectedReportProject =
-		reportProjects.find(
+		(activeTab === "marginality" ? reportProjects : reportScopeProjects).find(
 			(project) => getDbProjectId(project) === selectedProjectId,
 		) ?? null;
 	const shouldLoadBitrixProjectDetails =
@@ -596,7 +602,8 @@ export const SalesProfitabilityReport = ({
 			? readReportNavigation(navigationStorageKey)
 			: DEFAULT_REPORT_NAVIGATION;
 		const selectedProjectExists = reportProjects.some(
-			(project) => getDbProjectId(project) === stored.selectedProjectId,
+			(project) => getDbProjectId(project) === stored.selectedProjectId &&
+				(stored.activeTab === "marginality" || isProjectReportProject(project)),
 		);
 		const isUnavailableSelection = Boolean(stored.selectedProjectId && !selectedProjectExists);
 		setSelectedProjectId(selectedProjectExists ? stored.selectedProjectId : null);
@@ -610,6 +617,8 @@ export const SalesProfitabilityReport = ({
 		if (!hasLoadedReportProjects || restoredNavigationKey !== navigationStorageKey) return;
 		if (selectedProjectId && !selectedReportProject) {
 			setSelectedProjectId(null);
+			setActiveTab("projects");
+			setPaymentsScope("project");
 			return;
 		}
 		if (!navigationStorageKey) return;
@@ -894,7 +903,7 @@ export const SalesProfitabilityReport = ({
 				(user) => normalizeProjectId(user.id) === selectedResponsibleFilter,
 			)
 		: undefined;
-	const visibleReportProjects = reportProjects.filter((project) => {
+	const visibleReportProjects = reportScopeProjects.filter((project) => {
 		const matchesResponsible = isProjectResponsibleMatched(
 			project,
 			selectedResponsibleUser,
@@ -1464,6 +1473,11 @@ export const SalesProfitabilityReport = ({
 			setProjectFormError("Заполните название проекта");
 			return;
 		}
+		const planningError = validateReportProjectPlanning(projectForm);
+		if (planningError) {
+			setProjectFormError(planningError);
+			return;
+		}
 
 		const linkError = validateReportProjectLink(projectForm, {
 			isCreating: !editingReportProject,
@@ -1521,10 +1535,10 @@ export const SalesProfitabilityReport = ({
 					currentNavigationRef.current.selectedProjectId === navigationAtSubmit.selectedProjectId &&
 					currentNavigationRef.current.activeTab === navigationAtSubmit.activeTab
 				) {
-					setSelectedProjectId(getDbProjectId(savedProject));
+					setSelectedProjectId(isProjectReportProject(savedProject) ? getDbProjectId(savedProject) : null);
 					// The saved project is ready now. Its unrelated CRM catalogue
 					// and task/report metrics must not delay opening the details.
-					setActiveTab("projectDetails");
+					setActiveTab(isProjectReportProject(savedProject) ? "projectDetails" : "projects");
 				}
 				reloadBitrixProjects();
 			}
@@ -1559,6 +1573,11 @@ export const SalesProfitabilityReport = ({
 
 		if (!detailsProjectForm.title.trim()) {
 			setDetailsProjectError("Заполните название проекта");
+			return;
+		}
+		const planningError = validateReportProjectPlanning(detailsProjectForm);
+		if (planningError) {
+			setDetailsProjectError(planningError);
 			return;
 		}
 
@@ -1765,7 +1784,7 @@ export const SalesProfitabilityReport = ({
 										<span>Проекты, команда и сводные окна</span>
 									</span>
 									<b className={styles.projectsPlanCount}>
-										{reportProjects.length}
+										{reportScopeProjects.length}
 									</b>
 									<FaEllipsisH
 										aria-hidden="true"
@@ -1965,7 +1984,7 @@ export const SalesProfitabilityReport = ({
 										bitrixProjects={selectedBitrixProjectsWithDetails}
 										form={summaryForm}
 										onPaymentsChanged={refreshAutonomousPayments}
-										projects={reportProjects}
+										projects={reportScopeProjects}
 										selectedProjectId={effectiveSelectedProjectId}
 										reportsError={projectMetricsError}
 										reportsLoading={areProjectMetricsLoading}

@@ -22,6 +22,7 @@ export const ReportProjectPlanningFields = ({
 		<ReportProjectInput
 			form={form}
 			label="Дата окончания проекта по договору"
+			min={form.projectStartDate || undefined}
 			name="contractEndDate"
 			onFormChange={onFormChange}
 			type="date"
@@ -30,6 +31,7 @@ export const ReportProjectPlanningFields = ({
 		<ReportProjectInput
 			form={form}
 			label="Куплено часов"
+			min={0}
 			name="summaryPurchasedHours"
 			onFormChange={onFormChange}
 			type="number"

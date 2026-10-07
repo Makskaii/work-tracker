@@ -76,6 +76,32 @@ beforeEach(() => { vi.spyOn(window, "scrollTo").mockImplementation(() => undefin
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("local project metadata across creation, details and edit drawer", () => {
+	it("distinguishes missing purchased hours from an explicitly saved zero", () => {
+		const view = render(<MetadataWorkspace initialProject={createStoredProject({ summaryPurchasedHours: null })} onSaved={vi.fn()} />);
+		expect(screen.getByText("Куплено:").parentElement).toHaveTextContent("Не заданы");
+		expect(screen.queryByText("0 ч")).not.toBeInTheDocument();
+		view.unmount();
+		render(<MetadataWorkspace initialProject={createStoredProject({ summaryPurchasedHours: 0 })} onSaved={vi.fn()} />);
+		expect(screen.getByText("Куплено:").parentElement).toHaveTextContent("0 ч");
+		expect(screen.queryByText("Не заданы")).not.toBeInTheDocument();
+	});
+	it("applies the same nonnegative hour and contract-date limits in creation, edit and details", () => {
+		render(<MetadataWorkspace onSaved={vi.fn()} />);
+		const checkLimits = () => {
+			const hours = screen.getByLabelText("Куплено часов");
+			expect(hours).toHaveAttribute("min", "0");
+			expect(hours).toHaveAttribute("step", "any");
+			fireEvent.change(screen.getByLabelText("Дата начала проекта"), { target: { value: "2026-10-01" } });
+			expect(screen.getByLabelText("Дата окончания проекта по договору")).toHaveAttribute("min", "2026-10-01");
+		};
+		checkLimits();
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+		fireEvent.click(screen.getByRole("button", { name: "Изменить проект" }));
+		checkLimits();
+		fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
+		fireEvent.click(screen.getByRole("button", { name: "Открыть детали" }));
+		checkLimits();
+	});
 	it("shows a date entered at creation in the summary, details and compact edit form", () => {
 		const onSaved = vi.fn();
 		render(<MetadataWorkspace onSaved={onSaved} />);

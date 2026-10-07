@@ -10,7 +10,7 @@ import { getMonthTicks, getSegmentStyle, getWeekTicks, parseGanttDate } from "..
 import type { GanttTimeline } from "../SalesPage/model/ganttTypes";
 import type { ProjectGanttEvent, ProjectGanttStage, ReportProject } from "../SalesPage/model/types";
 import { getProjectMemberIds } from "../SalesPage/model/projectTeam";
-import { getProjectPlannedEndDate } from "../SalesPage/model/reportProjectForm";
+import { getProjectPlannedEndDate, isProjectReportProject } from "../SalesPage/model/reportProjectForm";
 import { ProjectPlanTeamView } from "./ProjectPlanTeamView";
 import styles from "./ProjectPlanPage.module.scss";
 
@@ -126,7 +126,7 @@ export const ProjectPlanPage = () => {
 					getUsers(controller.signal),
 				]);
 				const loadedItems = await Promise.all(
-					projects.map(async (project) => {
+					projects.filter(isProjectReportProject).map(async (project) => {
 						const [stages, events] = await Promise.all([
 							fetchProjectGanttStages(String(project.id), controller.signal),
 							fetchProjectGanttEvents(String(project.id), controller.signal),

@@ -26,3 +26,8 @@
 .stickyOverlay .stickyDates { position: absolute; top: 0; bottom: 0; z-index: 1; min-width: 0; background: var(--color-background, #111416); }
 .stickyDates > div, .stickyDates > div > div { min-width: 0; }
 .planningFieldHint { color: var(--color-text-secondary, #98a3a9); font-size: 12px; line-height: 1.4; }
+.inlineAction { border: 0; background: none; padding: 0; color: var(--color-primary, #58d2eb); font: inherit; cursor: pointer; text-decoration: underline; }
+.dataNotice { margin: 12px 0; padding: 12px; border: 1px solid var(--color-border, #293136); border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.dataNotice p { margin: 0 0 8px; }
+.undatedPayments { display: flex; flex-wrap: wrap; gap: 8px; }
+.undatedPayments button { border: 1px solid var(--color-border, #293136); border-radius: 6px; padding: 6px 10px; background: none; color: var(--color-primary, #58d2eb); font: inherit; cursor: pointer; }

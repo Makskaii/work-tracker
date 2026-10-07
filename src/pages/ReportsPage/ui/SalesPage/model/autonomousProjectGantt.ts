@@ -23,8 +23,11 @@ export type AutonomousGanttEventRow = {
 	event: ProjectGanttEvent;
 	factEnd: Date | null;
 	factStart: Date | null;
+	forecastEnd: Date | null;
+	forecastStart: Date | null;
 	isDependencyDuration: boolean;
 	isCollapsedGroupSummary?: boolean;
+	isPlanDerived: boolean;
 	planEnd: Date | null;
 	planStart: Date | null;
 };
@@ -56,18 +59,22 @@ const getCollapsedGroupSummaryRow = (
 		return groupRow;
 	}
 
-	const planStart = getEarliestDate(
-		childEvents.flatMap((event) => [event.planStart, event.displayDate]),
-	);
+	const planStart = getEarliestDate(childEvents.map((event) => event.planStart));
 	const planEnd = getLatestDate(
-		childEvents.flatMap((event) => [event.planEnd, event.displayDate]),
+		childEvents.map((event) => event.planEnd ?? event.planStart),
+	);
+	const forecastStart = getEarliestDate(
+		childEvents.map((event) => event.forecastStart),
+	);
+	const forecastEnd = getLatestDate(
+		childEvents.map((event) => event.forecastEnd ?? event.forecastStart),
 	);
 	const factStart = getEarliestDate(
 		childEvents.map((event) => event.factStart),
 	);
 	const factEnd = getLatestDate(childEvents.map((event) => event.factEnd));
-	const displayStart = planStart ?? factStart;
-	const displayEnd = planEnd ?? factEnd ?? displayStart;
+	const displayStart = planStart ?? forecastStart;
+	const displayEnd = planEnd ?? forecastEnd ?? displayStart;
 
 	if (!displayStart || !displayEnd) {
 		return groupRow;
@@ -90,9 +97,12 @@ const getCollapsedGroupSummaryRow = (
 				},
 				factEnd,
 				factStart,
+				forecastEnd,
+				forecastStart,
 				isCollapsedGroupSummary: true,
 				isDependencyDuration: false,
-				planEnd: planEnd ?? planStart,
+				isPlanDerived: childEvents.some((event) => event.isPlanDerived),
+				planEnd,
 				planStart,
 			},
 		],
@@ -244,18 +254,12 @@ export const getAutonomousPlanAnchorDate = (
 	const dependencyAnchor = anchor ?? DEFAULT_DEPENDENCY_ANCHOR;
 
 	if (dependencyAnchor === "stage_start") {
-		return (
-			event.planStart ??
-			(event.isDependencyDuration ? event.displayStart : null) ??
-			event.displayDate
-		);
+		return event.planStart;
 	}
 
 	return (
 		event.planEnd ??
-		(event.isDependencyDuration ? event.displayEnd : null) ??
-		event.planStart ??
-		event.displayDate
+		event.planStart
 	);
 };
 
@@ -271,9 +275,7 @@ export const getAutonomousDependencyAnchorDate = (
 			event.factStart ??
 			(event.event.eventKind === "one_time" ? event.factEnd : null);
 		const planDate =
-			event.planStart ??
-			(event.isDependencyDuration ? event.displayStart : null) ??
-			event.displayDate;
+			event.forecastStart ?? event.planStart;
 
 		return factDate ?? getDependencyFallbackDate(planDate, today);
 	}
@@ -282,10 +284,7 @@ export const getAutonomousDependencyAnchorDate = (
 		event.factEnd ??
 		(event.event.eventKind === "one_time" ? event.factStart : null);
 	const planDate =
-		event.planEnd ??
-		(event.isDependencyDuration ? event.displayEnd : null) ??
-		event.planStart ??
-		event.displayDate;
+		event.forecastEnd ?? event.forecastStart ?? event.planEnd ?? event.planStart;
 
 	return factDate ?? getDependencyFallbackDate(planDate, today);
 };
@@ -305,8 +304,14 @@ const buildEventRow = (
 	}
 
 	const stage = stageById.get(event.stageId);
-	const planStart = parseGanttDate(event.planStartDate);
-	const planEnd = parseGanttDate(event.planEndDate);
+	const storedPlanStart = parseGanttDate(event.planStartDate);
+	const storedPlanEnd = parseGanttDate(event.planEndDate);
+	// Older one-time events sometimes stored their sole date in planEndDate.
+	const planStart = storedPlanStart ??
+		(event.eventKind === "one_time" ? storedPlanEnd : null);
+	const planEnd = event.eventKind === "one_time"
+		? planStart
+		: storedPlanEnd;
 	const factStart = parseGanttDate(event.factStartDate);
 	const factEnd = parseGanttDate(event.factEndDate);
 	const dependencyEvent =
@@ -338,30 +343,39 @@ const buildEventRow = (
 		Boolean(stage?.dependsOnStageId) &&
 		event.eventKind === "duration" &&
 		dependencyDurationDays > 0;
+	const resolvedPlanStart = planStart ?? dependencyPlanStart;
+	const resolvedPlanEnd = planEnd ??
+		(hasDependencyDuration && resolvedPlanStart
+			? addDays(resolvedPlanStart, dependencyDurationDays - 1)
+			: event.eventKind === "one_time" ? resolvedPlanStart : null);
+	const isPlanDerived = !planStart && Boolean(dependencyPlanStart);
 
 	if (hasDependencyDuration) {
 		const isAlignedToDependencyPlan =
 			Boolean(planStart && dependencyPlanStart) &&
 			planStart?.getTime() === dependencyPlanStart?.getTime();
-		const displayStart =
+		const forecastStart =
 			isAlignedToDependencyPlan || !planStart
 				? (dependencyStart ?? planStart ?? factStart)
 				: planStart;
-		const displayEnd =
+		const forecastEnd =
 			(isAlignedToDependencyPlan || !planEnd
 				? null
 				: planEnd) ??
-			(displayStart ? addDays(displayStart, dependencyDurationDays - 1) : null);
+			(forecastStart ? addDays(forecastStart, dependencyDurationDays - 1) : null);
 		const eventRow = {
-			displayDate: displayStart,
-			displayEnd,
-			displayStart,
+			displayDate: resolvedPlanStart ?? forecastStart,
+			displayEnd: resolvedPlanEnd ?? forecastEnd,
+			displayStart: resolvedPlanStart ?? forecastStart,
 			event,
 			factEnd,
 			factStart,
+			forecastEnd,
+			forecastStart,
 			isDependencyDuration: true,
-			planEnd: displayEnd,
-			planStart: displayStart,
+			isPlanDerived,
+			planEnd: resolvedPlanEnd,
+			planStart: resolvedPlanStart,
 		};
 
 		eventRowsByStageId.set(event.stageId, eventRow);
@@ -369,25 +383,27 @@ const buildEventRow = (
 		return eventRow;
 	}
 
-	const resolvedPlanStart = dependencyStart ?? planStart;
-	const resolvedPlanEnd = planEnd;
-	const resolvedFactStart = factStart;
-	const resolvedFactEnd = factEnd;
-	const displayDate = resolvedFactStart ?? resolvedPlanStart;
+	const forecastStart = dependencyStart ?? planStart;
+	const forecastEnd = event.eventKind === "one_time"
+		? forecastStart
+		: planEnd ?? forecastStart;
+	const displayDate = resolvedPlanStart ?? forecastStart;
 	const displayStart = event.eventKind === "duration" ? displayDate : null;
-	const displayEnd =
-		event.eventKind === "duration"
-			? (resolvedPlanEnd ?? resolvedFactEnd ?? displayStart)
-			: null;
+	const displayEnd = event.eventKind === "duration"
+		? resolvedPlanEnd ?? forecastEnd ?? displayStart
+		: null;
 
 	const eventRow = {
 		displayDate,
 		displayEnd,
 		displayStart,
 		event,
-		factEnd: resolvedFactEnd,
-		factStart: resolvedFactStart,
+		factEnd,
+		factStart,
+		forecastEnd,
+		forecastStart,
 		isDependencyDuration: false,
+		isPlanDerived,
 		planEnd: resolvedPlanEnd,
 		planStart: resolvedPlanStart,
 	};
@@ -507,56 +523,59 @@ export const recalculateAutonomousDependencyEvents = (
 
 			const parentRow = eventRowsByStageId.get(stage.dependsOnStageId);
 			const planStart = parentRow
-				? getAutonomousDependencyAnchorDate(
-						parentRow,
-						stage.dependencyAnchor,
-						today,
-					)
+				? getAutonomousPlanAnchorDate(parentRow, stage.dependencyAnchor)
 				: null;
-
-			if (!planStart) {
-				return event;
-			}
 
 			const previousStage = previousStageById.get(stage.id);
 			const previousParentRow =
 				previousStage?.dependsOnStageId === stage.dependsOnStageId
 					? previousEventRowsByStageId.get(stage.dependsOnStageId)
 					: null;
-			const previousPlanStart = previousEventById.get(event.id)?.planStartDate
-				? parseGanttDate(previousEventById.get(event.id)?.planStartDate)
-				: null;
-			const currentPlanStart = parseGanttDate(event.planStartDate);
+			const previousEvent = previousEventById.get(event.id);
+			const previousPlanStart = parseGanttDate(previousEvent?.planStartDate) ??
+				(event.eventKind === "one_time" ? parseGanttDate(previousEvent?.planEndDate) : null);
+			const currentPlanStart = parseGanttDate(event.planStartDate) ??
+				(event.eventKind === "one_time" ? parseGanttDate(event.planEndDate) : null);
 			const previousParentPlanStart = previousParentRow
-				? getAutonomousDependencyAnchorDate(
-						previousParentRow,
-						previousStage?.dependencyAnchor,
-						today,
-					)
-				: null;
-			const previousParentPlanAnchor = previousParentRow
 				? getAutonomousPlanAnchorDate(
 						previousParentRow,
 						previousStage?.dependencyAnchor,
 					)
 				: null;
 			const hasManualPlanStartChange =
-				Boolean(currentPlanStart && previousPlanStart) &&
+				Boolean(currentPlanStart) &&
 				currentPlanStart?.getTime() !== previousPlanStart?.getTime();
-			const wasAlignedToParentPlan =
-				Boolean(previousPlanStart && previousParentPlanAnchor) &&
-				previousPlanStart?.getTime() === previousParentPlanAnchor?.getTime();
+			const isDependencyChanged =
+				previousStage?.dependsOnStageId !== stage.dependsOnStageId ||
+				(previousStage?.dependencyAnchor ?? DEFAULT_DEPENDENCY_ANCHOR) !==
+					(stage.dependencyAnchor ?? DEFAULT_DEPENDENCY_ANCHOR);
+			const isParentPlanChanged = planStart?.getTime() !== previousParentPlanStart?.getTime();
+			const isDurationChanged = previousStage?.durationDays !== stage.durationDays;
+
+			// Reading a forecast, or changing hours/status/title, must never persist it as the plan.
+			if (!isDependencyChanged && !isParentPlanChanged && !isDurationChanged) {
+				return event;
+			}
+
+			const dependencyStart = planStart ??
+				(isDependencyChanged && parentRow
+					? getAutonomousDependencyAnchorDate(parentRow, stage.dependencyAnchor, today)
+					: null);
 			const nextPlanStart =
 				hasManualPlanStartChange && currentPlanStart
 					? currentPlanStart
-					: wasAlignedToParentPlan
-						? planStart
-					: previousParentPlanStart && previousPlanStart
+					: isDependencyChanged
+						? dependencyStart ?? currentPlanStart
+					: !isDependencyChanged && previousParentPlanStart && previousPlanStart && planStart
 						? addDays(
 								previousPlanStart,
 								daysBetween(previousParentPlanStart, planStart),
 							)
-						: planStart;
+						: currentPlanStart ?? dependencyStart;
+
+			if (!nextPlanStart) {
+				return event;
+			}
 			const durationDays =
 				event.eventKind === "duration"
 					? getDependencyEventDurationDays(stage, event)
@@ -564,7 +583,9 @@ export const recalculateAutonomousDependencyEvents = (
 			const planStartDate = formatInputDate(nextPlanStart);
 			const planEndDate =
 				event.eventKind === "duration" && durationDays
-					? formatInputDate(addDays(nextPlanStart, durationDays - 1))
+					? !isDurationChanged && nextPlanStart.getTime() === currentPlanStart?.getTime() && event.planEndDate
+						? event.planEndDate
+						: formatInputDate(addDays(nextPlanStart, durationDays - 1))
 					: null;
 
 			if (
@@ -718,28 +739,27 @@ export const getPaymentStatusLabel = (
 
 export const formatAutonomousEventTooltip = (
 	event: AutonomousGanttEventRow,
+	formatDate = formatDateFull,
 ) => {
-	if (event.isDependencyDuration) {
-		return [
-			event.event.title,
-			`Расчётный период: ${formatDateFull(event.displayStart)} — ${formatDateFull(event.displayEnd)}`,
-			`Факт. завершение: ${formatDateFull(event.factEnd)}`,
-		].join("\n");
+	const isDuration = event.event.eventKind === "duration";
+	const range = (start: Date | null, end: Date | null) =>
+		`${formatDate(start)}${isDuration ? ` — ${formatDate(end ?? start)}` : ""}`;
+	const lines = [event.event.title];
+	if (event.planStart) {
+		lines.push(`${event.isPlanDerived ? "План по зависимости" : "План"}: ${range(event.planStart, event.planEnd)}`);
+	} else {
+		lines.push("Плановые даты не заданы");
 	}
-
-	if (event.event.eventKind === "one_time") {
-		return [
-			event.event.title,
-			`План: ${formatDateFull(event.planStart)}`,
-			`Факт: ${formatDateFull(event.factStart)}`,
-		].join("\n");
+	if (event.forecastStart && (
+		event.forecastStart.getTime() !== event.planStart?.getTime() ||
+		event.forecastEnd?.getTime() !== event.planEnd?.getTime()
+	)) {
+		lines.push(`Прогноз по зависимости: ${range(event.forecastStart, event.forecastEnd)}`);
 	}
-
-	return [
-		event.event.title,
-		`План: ${formatDateFull(event.planStart)} — ${formatDateFull(event.planEnd)}`,
-		`Факт: ${formatDateFull(event.factStart)} — ${formatDateFull(event.factEnd)}`,
-	].join("\n");
+	if (event.factStart || event.factEnd) {
+		lines.push(`Факт: ${range(event.factStart ?? event.factEnd, event.factEnd)}`);
+	}
+	return lines.join("\n");
 };
 
 export const formatAutonomousPaymentTooltip = (

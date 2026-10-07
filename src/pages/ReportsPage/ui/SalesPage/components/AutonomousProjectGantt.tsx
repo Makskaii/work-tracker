@@ -19,8 +19,9 @@ import {
 } from "../model/autonomousPaymentForm";
 import {
 	buildAutonomousProjectGantt,
+	formatAutonomousEventTooltip,
 	formatAutonomousPaymentTooltip,
-	getAutonomousDependencyAnchorDate,
+	getAutonomousPlanAnchorDate,
 	getAutonomousPaymentAnchorDate,
 	getVisibleAutonomousGanttRows,
 	isAutonomousPaymentDueByCompletedStage,
@@ -545,11 +546,16 @@ const getPlanAnchorDateFromEvent = (
 		return null;
 	}
 
-	const planStart = parseGanttDate(event.planStartDate);
+  const planStart = parseGanttDate(event.planStartDate);
 	const planEnd = parseGanttDate(event.planEndDate);
 
-	return anchor === "stage_start" ? planStart : (planEnd ?? planStart);
+	return anchor === "stage_start"
+		? planStart ?? (event.eventKind === "one_time" ? planEnd : null)
+		: planEnd ?? planStart;
 };
+
+const getEventPlanStartValue = (event: ProjectGanttEvent | null | undefined) =>
+	event?.planStartDate ?? (event?.eventKind === "one_time" ? event.planEndDate ?? "" : "");
 
 let shouldSuppressNextGanttClick = false;
 
@@ -626,7 +632,7 @@ const getPaymentLayoutItems = (
 ): PaymentLayoutItem[] => {
 	const levelPositions: number[][] = [];
 
-	return payments.map((payment) => {
+	return payments.filter((payment) => parseGanttDate(payment.paymentDate)).map((payment) => {
 		const position = getPaymentTimelinePercent(payment, timeline);
 		const safePosition = position ?? -1000;
 		const level = levelPositions.findIndex(
@@ -757,6 +763,11 @@ export const AutonomousProjectGantt = ({
 		() => buildAutonomousProjectGantt({ events, payments, stages, today }),
 		[events, payments, stages, today],
 	);
+	const undatedPayments = useMemo(
+		() => baseGantt.rows.flatMap((row) => row.payments)
+			.filter((payment) => !parseGanttDate(payment.paymentDate)),
+		[baseGantt.rows],
+	);
 	const availableTimelineWidth = Math.max(
 		ganttViewportWidth - GANTT_STAGE_COLUMN_WIDTH,
 		1,
@@ -784,7 +795,7 @@ export const AutonomousProjectGantt = ({
 		() => getVisibleAutonomousGanttRows(gantt.rows.map((row) => ({
       ...row, events: row.events.map((item) => ({
         ...item, factStart: null, factEnd: null,
-        displayDate: item.planStart ?? (item.isDependencyDuration ? item.displayStart : null),
+        displayDate: item.planStart ?? item.forecastStart,
       })),
     })), expandedGroupIds),
 		[expandedGroupIds, gantt.rows],
@@ -1351,7 +1362,7 @@ export const AutonomousProjectGantt = ({
 			plannedHours: stage.plannedHours == null ? "" : String(stage.plannedHours),
 			groupStatus: stage.groupStatus ?? "not_started",
 			planEndDate: stageEvent?.planEndDate ?? "",
-			planStartDate: stageEvent?.planStartDate ?? "",
+			planStartDate: getEventPlanStartValue(stageEvent),
 			stageType,
 			title: stage.title,
 		};
@@ -2117,9 +2128,9 @@ export const AutonomousProjectGantt = ({
         stageForm.stageType === previousStage.stageType &&
         stageForm.dependsOnStageId === previousStage.dependsOnStageId &&
         stageForm.dependencyAnchor === (previousStage.dependencyAnchor ?? "stage_end") &&
-        stageForm.planStartDate === (previousEvent?.planStartDate ?? "") &&
+        stageForm.planStartDate === getEventPlanStartValue(previousEvent) &&
         stageForm.planEndDate === (previousEvent?.planEndDate ?? "") &&
-        stageForm.durationDays === (getInclusiveDurationFromValues(previousEvent?.planStartDate ?? "", previousEvent?.planEndDate ?? "") || (previousStage.durationDays == null ? "" : String(previousStage.durationDays)))) {
+        stageForm.durationDays === (getInclusiveDurationFromValues(getEventPlanStartValue(previousEvent), previousEvent?.planEndDate ?? "") || (previousStage.durationDays == null ? "" : String(previousStage.durationDays)))) {
       await updateProjectGanttStage(previousStage.id, {
         title: stageForm.title.trim() || previousStage.title, plannedHours, groupStatus: stageForm.groupStatus,
       });
@@ -2187,10 +2198,9 @@ export const AutonomousProjectGantt = ({
 					?.events.at(0) ?? null)
 			: null;
 		const dependencyStart = dependencyEventRow
-			? getAutonomousDependencyAnchorDate(
+			? getAutonomousPlanAnchorDate(
 					dependencyEventRow,
 					stageForm.dependencyAnchor,
-					today,
 				)
 			: null;
 		const dependencyPlanStart =
@@ -2483,6 +2493,22 @@ export const AutonomousProjectGantt = ({
 	return (
 		<>
 			{error ? <div className={styles.emptyState}>{error}</div> : null}
+			{!isLoading && !error && !stages.some((stage) => stage.code !== "payments" && stage.stageType !== "payments") && (
+				<div className={planningStyles.dataNotice}>
+					<p>Рабочие этапы ещё не созданы. Добавьте этап, чтобы задать сроки и плановые часы.</p>
+					<button type="button" className={planningStyles.inlineAction} onClick={openGroupCreateModal}>Добавить этап проекта</button>
+				</div>
+			)}
+			{!isLoading && undatedPayments.length > 0 && (
+				<section className={planningStyles.dataNotice} aria-label="Платежи без даты">
+					<p>Платежи без даты: {undatedPayments.length}. Привяжите платёж к этапу с плановой датой, чтобы увидеть его на календаре.</p>
+					<div className={planningStyles.undatedPayments}>
+						{undatedPayments.map((payment) => <button key={payment.id} type="button" onClick={() => openPaymentEditModal(payment)}>
+							Платёж №{payment.id} · {payment.amount === null ? "Сумма не указана" : formatMoney(payment.amount)} · Настроить привязку
+						</button>)}
+					</div>
+				</section>
+			)}
 			{isLoading ? (
 				<div className={styles.emptyState}>Загрузка Ганта...</div>
 			) : (
@@ -3014,7 +3040,8 @@ const AutonomousStageRow = ({
 				</div>
         {!isPaymentsStage && <div className={planningStyles.rowMeta}>
           <strong>План: {formatGanttHours(planning.plannedHours)}{planning.derivedFromChildren ? " (по подэтапам)" : ""}</strong>
-          <small>Готовность: {planning.progress.toLocaleString("ru-RU", { maximumFractionDigits: 1 })}% · {GANTT_CATEGORY_LABELS[planning.category]}</small>
+          <small>Готовность: {planning.progress === null ? "—" : `${planning.progress.toLocaleString("ru-RU", { maximumFractionDigits: 1 })}%`} · {GANTT_CATEGORY_LABELS[planning.category]}</small>
+          {planning.plannedHours === null && <button type="button" className={planningStyles.inlineAction} onClick={() => onStageEdit(row.stage)}>Указать плановые часы</button>}
           {planning.unallocatedToChildren > 0 && <small>Не распределено по подэтапам: {formatGanttHours(planning.unallocatedToChildren)}</small>}
           {planning.overallocatedToChildren > 0 && <small className={planningStyles.warning}>Превышение оценок: {formatGanttHours(planning.overallocatedToChildren)}</small>}
           {planning.childCount > 0 && planning.missingEstimates > 0 && <small className={planningStyles.warning}>Подэтапов без оценки: {planning.missingEstimates}</small>}
@@ -3147,13 +3174,13 @@ const AutonomousEventItem = ({
 	timeline: ReturnType<typeof buildAutonomousProjectGantt>["timeline"];
 }) => {
   const isSummary = Boolean(event.isCollapsedGroupSummary);
-  const start = event.planStart ?? (event.isDependencyDuration ? event.displayStart : null);
-  const end = event.planEnd ?? (event.isDependencyDuration ? event.displayEnd : null) ?? start;
+  const start = event.planStart ?? event.forecastStart;
+  const end = event.planEnd ?? event.forecastEnd ?? start;
   const isDuration = event.event.eventKind === "duration" || event.isDependencyDuration;
-  if (!start || !end) return <span className={styles.ganttNoDate}>Плановые даты не заданы</span>;
-  const tooltip = `${event.event.title}\nПлан: ${formatDateShort(start)}${isDuration ? ` — ${formatDateShort(end)}` : ""}`;
+  if (!start || !end) return <button type="button" className={`${styles.ganttNoDate} ${planningStyles.inlineAction}`} onClick={(click) => { click.stopPropagation(); onEdit(); }}>Плановые даты не заданы — указать</button>;
+  const tooltip = formatAutonomousEventTooltip(event, formatDateShort);
   const position = isDuration ? getSegmentStyle(start, end, timeline) : { ...getMilestoneStyle(start, timeline), width: "18px" };
-  return <button type="button" data-gantt-plan-event={event.event.id}
+  return <button type="button" data-gantt-plan-event={event.planStart ? event.event.id : undefined} data-gantt-forecast-event={!event.planStart ? event.event.id : undefined}
     className={`${styles.ganttCustomEventSegmentShell} ${isSummary ? styles.ganttGroupSummaryEvent : ""}`}
     style={{ ...position, top: "50%", transform: isDuration ? "translateY(-50%)" : "translate(-50%, -50%)", height: 36 }}
     ref={isSummary ? undefined : targetRef} title={tooltip} aria-label={tooltip}
@@ -3191,7 +3218,7 @@ const AutonomousPaymentItem = ({
 	top: number;
 }) => {
 	const paymentDate = parseGanttDate(payment.paymentDate);
-	if (!paymentDate && payment.paymentAnchor) {
+	if (!paymentDate) {
 		return null;
 	}
 

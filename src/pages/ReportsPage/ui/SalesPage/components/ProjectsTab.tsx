@@ -34,7 +34,6 @@ export const ProjectsTab = ({
 		projects.find((project) => `db-${project.id}` === selectedProjectId) ??
 		null;
 	const isSupportProject = selectedProject?.projectType === "support";
-	const isWaterfallProject = selectedProject?.projectType === "waterfall";
 
 	return (
 		<div className={`${styles.tabContent} ${styles.projectsTabContent}`}>
@@ -43,7 +42,7 @@ export const ProjectsTab = ({
 					{!isSupportProject && (
 						<ProjectPlanningWorkspace
 							key={selectedProject.id}
-							showProgress={isWaterfallProject}
+							showProgress
 							onPaymentsChanged={onPaymentsChanged}
 							project={selectedProject}
 						/>

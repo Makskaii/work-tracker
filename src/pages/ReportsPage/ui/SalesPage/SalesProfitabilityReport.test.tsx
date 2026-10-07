@@ -75,8 +75,8 @@ vi.mock("./model/projectGantt.api", async (importOriginal) => ({
 	fetchProjectGanttEvents: state.fetchEvents,
 }));
 vi.mock("./components/ProjectPlanningWorkspace", () => ({
-	ProjectPlanningWorkspace: ({ project }: { project: ReportProject }) => (
-		<div>План проекта {project.title}</div>
+	ProjectPlanningWorkspace: ({ project, showProgress }: { project: ReportProject; showProgress?: boolean }) => (
+		<div>План проекта {project.title}{showProgress ? <span>Прогресс проекта</span> : null}</div>
 	),
 }));
 vi.mock("./components/DealProjectTeamCostTable", () => ({
@@ -100,6 +100,9 @@ vi.mock("./components/ReportProjectModal", () => ({
 		onNewCompanyTitleChange: (title: string) => void;
 	}) => isOpen ? <div>
 		{projectFormError ? <p role="alert">{projectFormError}</p> : null}
+		<input aria-label="Куплено часов" value={form.summaryPurchasedHours} onChange={(event) => onFormChange({ ...form, summaryPurchasedHours: event.target.value })} />
+		<input aria-label="Дата начала проекта" value={form.projectStartDate} onChange={(event) => onFormChange({ ...form, projectStartDate: event.target.value })} />
+		<input aria-label="Дата окончания проекта" value={form.contractEndDate} onChange={(event) => onFormChange({ ...form, contractEndDate: event.target.value })} />
 		<button type="button" onClick={() => onFormChange({ ...form, title: "Новый проект", projectGoal: "Запустить CRM", clientCompanyId: "22", clientCompany: "Компания Бета" })}>Заполнить новый проект</button>
 		<button type="button" onClick={() => {
 			onCompanyCreationModeChange("new");
@@ -115,9 +118,14 @@ vi.mock("./components/ReportProjectModal", () => ({
 	</div> : null,
 }));
 vi.mock("./components/ReportProjectDetailsTab", () => ({
-	ReportProjectDetailsTab: ({ project, form, onFormChange, bitrixProjectsError }: { project: ReportProject; form: ReportProjectFormState; onFormChange: (form: ReportProjectFormState) => void; bitrixProjectsError?: string | null }) => <div>
+	ReportProjectDetailsTab: ({ project, form, onFormChange, onSave, bitrixProjectsError, detailsProjectError }: { project: ReportProject; form: ReportProjectFormState; onFormChange: (form: ReportProjectFormState) => void; onSave: () => void; bitrixProjectsError?: string | null; detailsProjectError?: string | null }) => <div>
 		<p>Детали: {project.title}</p>
 		{bitrixProjectsError ? <p role="alert">{bitrixProjectsError}</p> : null}
+		{detailsProjectError ? <p role="alert">{detailsProjectError}</p> : null}
+		<input aria-label="Куплено часов" value={form.summaryPurchasedHours} onChange={(event) => onFormChange({ ...form, summaryPurchasedHours: event.target.value })} />
+		<input aria-label="Дата начала проекта" value={form.projectStartDate} onChange={(event) => onFormChange({ ...form, projectStartDate: event.target.value })} />
+		<input aria-label="Дата окончания проекта" value={form.contractEndDate} onChange={(event) => onFormChange({ ...form, contractEndDate: event.target.value })} />
+		<button type="button" onClick={onSave}>Сохранить детали</button>
 		<output data-testid="saved-project-link">{JSON.stringify({ bitrixProjectId: form.bitrixProjectId, clientCompanyId: form.clientCompanyId, clientCompany: form.clientCompany })}</output>
 		<button type="button" onClick={() => onFormChange({ ...form, title: "Несохранённое название" })}>Изменить детали</button>
 	</div>,
@@ -202,6 +210,91 @@ afterEach(() => {
 });
 
 describe("Project report selection", () => {
+	it("clears a restored support selection outside payments without selecting another project", async () => {
+		const storageKey = getReportNavigationStorageKey({ origin: window.location.origin, pathname: import.meta.env.BASE_URL }, 42);
+		writeReportNavigation(storageKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-1", activeTab: "projectDetails" });
+		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(screen.queryByTitle(support.title)).not.toBeInTheDocument();
+		expect(screen.getByTitle(waterfall.title)).toBeInTheDocument();
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+		await waitFor(() => expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}")).toMatchObject({ selectedProjectId: null, activeTab: "projects" }));
+	});
+	it("keeps support payments editable and clears support selection when returning to project reports", async () => {
+		render(<SalesProfitabilityReport {...props} />);
+		await screen.findByText(/Выберите проект в списке слева/);
+		fireEvent.click(screen.getByRole("button", { name: "Список оплат" }));
+		fireEvent.click(screen.getByRole("button", { name: "Все проекты" }));
+		fireEvent.click(await screen.findByText(`${support.title} · Платёж`));
+		expect(screen.getByRole("button", { name: "Создать платёж" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(screen.queryByText(`Детали: ${support.title}`)).not.toBeInTheDocument();
+		expect(state.fetchDetails).not.toHaveBeenCalled();
+		expect(screen.getByTitle(waterfall.title)).toBeInTheDocument();
+	});
+	it.each(["create", "edit", "details"] as const)("validates bought hours and project date range before saving from %s", async (view) => {
+		render(<SalesProfitabilityReport {...props} />);
+		if (view === "create") {
+			fireEvent.click(await screen.findByTitle("Добавить проект"));
+			fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		} else {
+			fireEvent.click(await screen.findByTitle(waterfall.title));
+			await screen.findByText("Себестоимость по загруженным отчётам");
+			if (view === "edit") fireEvent.click(screen.getByRole("button", { name: "Изменить проект" }));
+			else fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
+		}
+		const saveLabel = view === "details" ? "Сохранить детали" : "Сохранить новый проект";
+		fireEvent.change(screen.getByLabelText("Куплено часов"), { target: { value: "-1" } });
+		fireEvent.click(screen.getByRole("button", { name: saveLabel }));
+		expect(screen.getByRole("alert")).toHaveTextContent("не меньше нуля");
+		expect(state.createProject).not.toHaveBeenCalled();
+		expect(state.updateProject).not.toHaveBeenCalled();
+		fireEvent.change(screen.getByLabelText("Куплено часов"), { target: { value: "0" } });
+		fireEvent.change(screen.getByLabelText("Дата начала проекта"), { target: { value: "2026-10-08" } });
+		fireEvent.change(screen.getByLabelText("Дата окончания проекта"), { target: { value: "2026-10-07" } });
+		fireEvent.click(screen.getByRole("button", { name: saveLabel }));
+		expect(screen.getByRole("alert")).toHaveTextContent("раньше даты начала");
+		expect(state.createProject).not.toHaveBeenCalled();
+		expect(state.updateProject).not.toHaveBeenCalled();
+	});
+	it("keeps a newly created support project out of the report list while retaining it for all payments", async () => {
+		const created = { ...support, id: 3, title: "Новый проект", files: [] };
+		state.createProject.mockResolvedValueOnce(created);
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
+		expect(screen.queryByTitle(created.title)).not.toBeInTheDocument();
+		expect(screen.queryByText(`Детали: ${created.title}`)).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /Все проекты/ })).toHaveTextContent("1");
+		fireEvent.click(screen.getByRole("button", { name: "Список оплат" }));
+		fireEvent.click(screen.getByRole("button", { name: "Все проекты" }));
+		expect(await screen.findByText(`${created.title} · Платёж`)).toBeInTheDocument();
+		expect(screen.getByText("Проектов").parentElement).toHaveTextContent("3");
+	});
+	it.each([0, 40.5])("submits bought hours %s and the contract date at creation and reopens the saved values", async (hours) => {
+		state.createProject.mockImplementationOnce(async (payload) => ({ ...waterfall, ...payload, id: 3, bitrixProjectId: "79", files: [] }));
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle("Добавить проект"));
+		fireEvent.click(screen.getByRole("button", { name: "Заполнить новый проект" }));
+		fireEvent.change(screen.getByLabelText("Куплено часов"), { target: { value: String(hours) } });
+		fireEvent.change(screen.getByLabelText("Дата начала проекта"), { target: { value: "2026-10-07" } });
+		fireEvent.change(screen.getByLabelText("Дата окончания проекта"), { target: { value: "2026-12-31" } });
+		fireEvent.click(screen.getByRole("button", { name: "Сохранить новый проект" }));
+		await screen.findByText("Детали: Новый проект");
+		expect(state.createProject).toHaveBeenCalledWith(expect.objectContaining({ summaryPurchasedHours: hours, projectStartDate: "2026-10-07", contractEndDate: "2026-12-31" }), expect.any(String));
+		await waitFor(() => expect(screen.getByLabelText("Куплено часов")).toHaveValue(String(hours)));
+		expect(screen.getByLabelText("Дата окончания проекта")).toHaveValue("2026-12-31");
+		fireEvent.click(screen.getByRole("button", { name: "Проекты" }));
+		await screen.findByText("Себестоимость по загруженным отчётам");
+		expect(screen.getByText("Куплено:").parentElement).toHaveTextContent(`${hours} ч`);
+		expect(screen.getByText("31.12")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Изменить проект" }));
+		expect(screen.getByLabelText("Куплено часов")).toHaveValue(String(hours));
+		expect(screen.getByLabelText("Дата окончания проекта")).toHaveValue("2026-12-31");
+	});
 	it("keeps the local list, project dates, edit action and plan available while users and the CRM catalogue are pending", async () => {
 		state.projects = [];
 		state.projectsLoading = true;
@@ -280,8 +373,7 @@ describe("Project report selection", () => {
 		expect(await screen.findByText(`Детали: ${waterfall.title}`)).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Проекты" })).toBeEnabled();
 		expect(screen.getByTitle("Добавить проект")).toBeEnabled();
-		fireEvent.click(screen.getByTitle(support.title));
-		expect(await screen.findByText(`Детали: ${support.title}`)).toBeInTheDocument();
+		expect(screen.queryByTitle(support.title)).not.toBeInTheDocument();
 	});
 
 	it("becomes ready with default navigation when production has no user-scoped storage key", async () => {
@@ -322,7 +414,7 @@ describe("Project report selection", () => {
 		writeReportNavigation(storageKey, { ...DEFAULT_REPORT_NAVIGATION, selectedProjectId: "db-999", activeTab: "tasks" });
 		render(<B24Context.Provider value={{ b24: null, status: "ready", currentUserId: 42 }}><SalesProfitabilityReport {...props} /></B24Context.Provider>);
 		await screen.findByText(/Выберите проект в списке слева/);
-		expect(screen.getByTitle(support.title)).toBeInTheDocument();
+		expect(screen.queryByTitle(support.title)).not.toBeInTheDocument();
 		expect(screen.getByTitle(waterfall.title)).toBeInTheDocument();
 		await waitFor(() => expect(JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}")).toMatchObject({ selectedProjectId: null, activeTab: "projects" }));
 		expect(state.fetchDetails).not.toHaveBeenCalled();
@@ -470,10 +562,16 @@ describe("Project report selection", () => {
 		expect(screen.queryByText("Купленные часы")).not.toBeInTheDocument();
 	});
 
-	it("shows real support metrics without a fabricated purchased-hours chart", async () => {
+	it("shows progress for projects with an unselected type and excludes support from the report list", async () => {
+		const untyped = { ...waterfall, id: 3, title: "МСК Энерго", projectType: "none" } as ReportProject;
+		state.fetchProjects.mockResolvedValue([support, waterfall, untyped]);
 		render(<SalesProfitabilityReport {...props} />);
-		fireEvent.click(await screen.findByTitle(support.title));
-		expect(await screen.findByText("Проект техподдержки")).toBeInTheDocument();
+		fireEvent.click(await screen.findByTitle(untyped.title));
+		expect(await screen.findByRole("heading", { name: untyped.title })).toBeInTheDocument();
+		expect(screen.getByText("Прогресс проекта")).toBeInTheDocument();
+		expect(screen.queryByTitle(support.title)).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /Все проекты/ })).toHaveTextContent("2");
+		expect(screen.getByRole("button", { name: /^Все\s?2$/ })).toBeInTheDocument();
 		expect(await screen.findByText("Плотность работ по проекту")).toBeInTheDocument();
 		expect(screen.queryByText("Тестовая шкала часов")).not.toBeInTheDocument();
 		expect(screen.queryByText("Купленные часы")).not.toBeInTheDocument();

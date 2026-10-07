@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import type { ProjectGanttStage, ReportProject } from "../model/types";
-import { buildGanttPlanning, formatGanttHours, GANTT_CATEGORY_LABELS, type GanttPlanningTotal } from "../model/ganttPlanning";
+import { buildGanttPlanning, formatGanttHours, GANTT_CATEGORY_LABELS, isWorkStage, type GanttPlanningTotal } from "../model/ganttPlanning";
 import { AutonomousProjectGantt } from "./AutonomousProjectGantt";
 import styles from "../SalesProfitabilityReport.module.scss";
 import planningStyles from "./ProjectPlanning.module.scss";
@@ -15,16 +15,20 @@ function ProgressBar({ value, label }: { value: number | null; label: string }) 
 function Metrics({ value }: { value: GanttPlanningTotal }) {
   return <div className={styles.projectHoursStageMetrics}>
     <div><span>Плановый объём</span><strong>{formatGanttHours(value.plannedHours)}</strong></div>
-    <div><span>Завершённый объём</span><strong>{formatGanttHours(value.completedHours)}</strong></div>
+    <div><span>Завершённый объём</span><strong>{formatGanttHours(value.plannedHours === null ? null : value.completedHours)}</strong></div>
     <div><span>Осталось по плану</span><strong>{formatGanttHours(value.remainingHours)}</strong></div>
   </div>;
 }
-export function ProjectGanttProgress({ stages, error, onSelectStage }: {
+export function ProjectGanttProgress({ stages, error, onSelectStage, projectStatus }: {
   stages: ProjectGanttStage[] | null; error: string | null; onSelectStage: (stageId: number) => void;
+  projectStatus?: ReportProject["projectStatus"];
 }) {
   if (error) return <section className={styles.projectHoursSection} role="alert">{error}. Сводка этапов недоступна, нулевые значения не подставлены.</section>;
   if (stages === null) return <section className={styles.projectHoursSection} aria-busy="true">Загрузка этапов и плановых часов…</section>;
   const { overall, categories } = buildGanttPlanning(stages);
+  const firstUnestimatedStage = stages.find((stage) => isWorkStage(stage) && stage.plannedHours === null && !stage.isGroup)
+    ?? stages.find((stage) => isWorkStage(stage) && stage.plannedHours === null);
+  const openStages = stages.filter((stage) => isWorkStage(stage) && stage.groupStatus !== "completed");
   return <section className={`${styles.projectHoursSection} ${planningStyles.summary}`} aria-label="План и готовность этапов">
     <div className={styles.projectHoursOverview}>
       <div className={styles.projectHoursHeading}><span>Итог</span><h3>План и готовность проекта</h3>
@@ -34,7 +38,15 @@ export function ProjectGanttProgress({ stages, error, onSelectStage }: {
     </div>
     <ProgressBar value={overall.progress} label="Готовность проекта по ручным статусам" />
     <Metrics value={overall} />
-    {overall.missingEstimates > 0 && <p className={planningStyles.warning}>План неполный: без оценки {overall.missingEstimates}. Процент учитывает только оценённый объём.</p>}
+    {overall.missingEstimates > 0 && <p className={planningStyles.warning}>
+      {overall.progress === null ? "Процент не рассчитан: у этапов нет плановых часов." : `План неполный: без оценки ${overall.missingEstimates}. Процент учитывает только оценённый объём.`}
+      {firstUnestimatedStage && <> <button type="button" className={planningStyles.inlineAction} onClick={() => onSelectStage(firstUnestimatedStage.id)}>Перейти к этапу и указать часы</button></>}
+    </p>}
+    {overall.roots.length > 0 && overall.progress === null && overall.missingEstimates === 0 && <p className={planningStyles.warning}>Процент не рассчитан: суммарные плановые часы равны нулю.</p>}
+    {projectStatus === "completed" && openStages.length > 0 && <p className={planningStyles.warning}>
+      Проект завершён, но статусы этапов ещё не отмечены. Проверьте их в Ганте: незавершённых этапов {openStages.length}.
+      {" "}<button type="button" className={planningStyles.inlineAction} onClick={() => onSelectStage(openStages[0].id)}>Проверить этапы</button>
+    </p>}
     {!overall.roots.length && <p>Добавьте этапы в Ганте и укажите плановые часы.</p>}
     <div className={styles.projectHoursStageCards}>
       {categories.filter((value) => value.category !== "other" || value.roots.length > 0).map((value) => <article key={value.category} className={styles.projectHoursStageCard}>
@@ -64,7 +76,7 @@ export function ProjectPlanningWorkspace({ project, onPaymentsChanged, showProgr
   const [focusStage, setFocusStage] = useState<{ id: number; revision: number } | null>(null);
   const onPlanningChange = useCallback((stages: ProjectGanttStage[] | null, error: string | null) => setSnapshot({ stages, error }), []);
   return <>
-    {showProgress && <ProjectGanttProgress {...snapshot} onSelectStage={(id) => setFocusStage((previous) => ({ id, revision: (previous?.revision ?? 0) + 1 }))} />}
+    {showProgress && <ProjectGanttProgress {...snapshot} projectStatus={project.projectStatus} onSelectStage={(id) => setFocusStage((previous) => ({ id, revision: (previous?.revision ?? 0) + 1 }))} />}
     <AutonomousProjectGantt project={project} onPaymentsChanged={onPaymentsChanged} onPlanningChange={onPlanningChange} focusStage={focusStage} />
   </>;
 }

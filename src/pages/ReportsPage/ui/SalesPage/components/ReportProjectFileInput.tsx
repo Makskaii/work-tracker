@@ -107,6 +107,7 @@ export const ReportProjectFileInput = ({
 export const ReportProjectInput = ({
 	form,
 	label,
+	min,
 	multiple = false,
 	name,
 	onFormChange,
@@ -117,6 +118,7 @@ export const ReportProjectInput = ({
 }: {
 	form: ReportProjectFormState;
 	label: string;
+	min?: number | string;
 	multiple?: boolean;
 	name: keyof ReportProjectFormState;
 	onFormChange: (value: ReportProjectFormState) => void;
@@ -161,6 +163,8 @@ export const ReportProjectInput = ({
 				<>
 					<input
 						type={type}
+						min={min}
+						step={type === "number" ? "any" : undefined}
 						value={value}
 						onFocus={() => setIsOptionsOpen(true)}
 						onClick={(event) => {
