@@ -32,6 +32,12 @@ const state = vi.hoisted(() => ({
 	updateBlocker: vi.fn(),
 	acquireUpdateBlocker: vi.fn(),
 	releaseUpdateBlocker: vi.fn(),
+	catalogueOptions: vi.fn(),
+	clearCache: vi.fn(),
+}));
+vi.mock("@/shared/config/axios/axios.config", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/shared/config/axios/axios.config")>()),
+	clearBitrixReadCache: state.clearCache,
 }));
 vi.mock("@/shared/lib/appUpdates", () => ({
 	useAppUpdateBlocker: state.updateBlocker,
@@ -42,14 +48,14 @@ vi.mock("@/shared/hooks/useBitrixSlider", () => ({
 	useBitrixSlider: () => ({ openTask: vi.fn() }),
 }));
 vi.mock("./model/useCompanyProjects", () => ({
-	useCompanyProjects: () => ({
+	useCompanyProjects: (options: unknown) => { state.catalogueOptions(options); return {
 		companyTitleById: new Map(),
 		projects: state.projects,
 		isLoadingDetails: state.projectsLoading,
 		isRefreshing: state.projectsRefreshing,
 		error: state.projectsError,
 		reloadProjects: state.reloadProjects,
-	}),
+	}; },
 	fetchProfitabilityProjectDetails: state.fetchDetails,
 }));
 vi.mock("./model/projectReports.api", async (importOriginal) => ({
@@ -176,6 +182,8 @@ beforeEach(() => {
 	state.fetchDetails.mockImplementation(
 		async (project: ProfitabilityProject) => ({
 			...project,
+			tasks: [],
+			payments: [],
 			reports: [
 				{
 					id: "501",
@@ -194,6 +202,47 @@ afterEach(() => {
 });
 
 describe("Project report selection", () => {
+	it("keeps the local list, project dates, edit action and plan available while users and the CRM catalogue are pending", async () => {
+		state.projects = [];
+		state.projectsLoading = true;
+		state.fetchProjects.mockResolvedValue([{ ...waterfall, contractEndDate: "2026-10-30", summaryPurchasedHours: 40 }]);
+		state.fetchDetails.mockImplementation(() => new Promise<ProfitabilityProject>(() => undefined));
+		render(<SalesProfitabilityReport {...props} loading />);
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(state.catalogueOptions).toHaveBeenLastCalledWith({ enabled: false });
+		fireEvent.click(screen.getByTitle(waterfall.title));
+		expect(await screen.findByRole("heading", { name: waterfall.title })).toBeInTheDocument();
+		expect(screen.getByText(`План проекта ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.getByText("30.10")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Изменить проект" })).toBeEnabled();
+		expect(screen.getByRole("status")).toHaveTextContent("Загружаем задачи");
+		expect(screen.queryByText("Себестоимость по загруженным отчётам")).not.toBeInTheDocument();
+		await waitFor(() => expect(state.fetchDetails).toHaveBeenCalledTimes(1));
+		expect(state.fetchDetails).toHaveBeenCalledWith(expect.objectContaining({ projectId: "77" }), expect.any(AbortSignal));
+		expect(state.catalogueOptions).toHaveBeenLastCalledWith({ enabled: false });
+		fireEvent.click(screen.getByRole("button", { name: "Изменить проект" }));
+		expect(state.catalogueOptions).toHaveBeenLastCalledWith({ enabled: true });
+	});
+
+	it("preserves title matching for a legacy project without a numeric link", async () => {
+		state.fetchProjects.mockResolvedValue([{ ...waterfall, bitrixProjectId: null }]);
+		render(<SalesProfitabilityReport {...props} />);
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		expect(await screen.findByText("Себестоимость по загруженным отчётам")).toBeInTheDocument();
+		expect(state.catalogueOptions).toHaveBeenLastCalledWith({ enabled: true });
+		expect(state.fetchDetails).toHaveBeenCalledWith(expect.objectContaining({ projectId: "77" }), expect.any(AbortSignal));
+	});
+
+	it("shows an employee-loading error in statistics, keeps the plan available, and retries employees independently", async () => {
+		const retryUsers = vi.fn();
+		render(<SalesProfitabilityReport {...props} usersError="Сотрудники недоступны" onRetryUsers={retryUsers} />);
+		fireEvent.click(await screen.findByTitle(waterfall.title));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Сотрудники недоступны");
+		expect(screen.getByText(`План проекта ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.queryByText("Себестоимость по загруженным отчётам")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку сотрудников" }));
+		expect(retryUsers).toHaveBeenCalledTimes(1);
+	});
 	it.each([0, 40])("keeps the saved purchased-hour budget %s when Bitrix tasks have a different value", async (hours) => {
 		state.fetchProjects.mockResolvedValue([{ ...waterfall, summaryPurchasedHours: hours }]);
 		state.fetchDetails.mockImplementation(async (project: ProfitabilityProject) => ({ ...project, tasks: [{ id: "9", [TaskCodes.hours]: 1234 }], reports: [] }));
@@ -308,6 +357,7 @@ describe("Project report selection", () => {
 	it("keeps dirty project details protected even after switching to another tab", async () => {
 		render(<SalesProfitabilityReport {...props} />);
 		fireEvent.click(await screen.findByTitle(waterfall.title));
+		await screen.findByText("Себестоимость по загруженным отчётам");
 		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
 		fireEvent.click(await screen.findByRole("button", { name: "Изменить детали" }));
 		expect(state.updateBlocker).toHaveBeenLastCalledWith(true);
@@ -411,7 +461,7 @@ describe("Project report selection", () => {
 			screen.getByText(`План проекта ${waterfall.title}`),
 		).toBeInTheDocument();
 		expect(screen.getByText("Финансовый вотерфол проект")).toBeInTheDocument();
-		expect(screen.getAllByText("12.5 ч").length).toBeGreaterThan(0);
+		expect((await screen.findAllByText("12.5 ч")).length).toBeGreaterThan(0);
 		expect(state.fetchDetails).toHaveBeenCalledTimes(1);
 		expect(state.fetchDetails).toHaveBeenCalledWith(
 			expect.objectContaining({ projectId: "77" }),
@@ -424,7 +474,7 @@ describe("Project report selection", () => {
 		render(<SalesProfitabilityReport {...props} />);
 		fireEvent.click(await screen.findByTitle(support.title));
 		expect(await screen.findByText("Проект техподдержки")).toBeInTheDocument();
-		expect(screen.getByText("Плотность работ по проекту")).toBeInTheDocument();
+		expect(await screen.findByText("Плотность работ по проекту")).toBeInTheDocument();
 		expect(screen.queryByText("Тестовая шкала часов")).not.toBeInTheDocument();
 		expect(screen.queryByText("Купленные часы")).not.toBeInTheDocument();
 		expect(
@@ -452,17 +502,18 @@ describe("Project report selection", () => {
 			screen.getByText(`План проекта ${waterfall.title}`),
 		).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку" }));
+		expect(state.clearCache).toHaveBeenCalledWith(["crm.item.list"]);
 		await waitFor(() =>
 			expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
 		);
 		expect(
 			await screen.findByRole("heading", { name: waterfall.title }),
 		).toBeInTheDocument();
-		expect(screen.getAllByText("12.5 ч").length).toBeGreaterThan(0);
+		expect((await screen.findAllByText("12.5 ч")).length).toBeGreaterThan(0);
 		expect(state.fetchDetails).toHaveBeenCalledTimes(2);
 	});
 
-	it("does not display automatic metrics until the selected project's reports have loaded", async () => {
+	it("shows the local project and plan while CRM reports are pending, without displaying zero metrics", async () => {
 		let finishLoading: ((project: ProfitabilityProject) => void) | undefined;
 		state.fetchDetails.mockImplementationOnce(
 			() =>
@@ -475,34 +526,37 @@ describe("Project report selection", () => {
 		await waitFor(() => expect(state.fetchDetails).toHaveBeenCalledTimes(1));
 		expect(
 			screen.queryByRole("heading", { name: waterfall.title }),
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
+		expect(screen.getByText(`План проекта ${waterfall.title}`)).toBeInTheDocument();
+		expect(screen.getByRole("status")).toHaveTextContent("Загружаем задачи");
+		expect(screen.queryByText("Себестоимость по загруженным отчётам")).not.toBeInTheDocument();
 		expect(
 			screen.queryByText("Плотность работ по проекту"),
 		).not.toBeInTheDocument();
 		finishLoading?.(catalog(waterfall));
-		expect(
-			await screen.findByRole("heading", { name: waterfall.title }),
-		).toBeInTheDocument();
+		expect(await screen.findByText("Себестоимость по загруженным отчётам")).toBeInTheDocument();
 	});
 
-	it("reports an unavailable project catalog and offers a reload", async () => {
+	it("keeps the local project list available despite a catalogue error and shows that error in the link form", async () => {
 		state.projects = [];
 		state.projectsError = "Не удалось загрузить проекты Битрикс24";
 		render(<SalesProfitabilityReport {...props} />);
+		await screen.findByText(/Выберите проект в списке слева/);
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByTitle(waterfall.title));
+		fireEvent.click(screen.getByRole("button", { name: "Детали проекта" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			state.projectsError,
 		);
-		fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку" }));
-		expect(state.reloadProjects).toHaveBeenCalledTimes(1);
-		expect(state.fetchDetails).not.toHaveBeenCalled();
 	});
 
 	it("does not mistake a missing Bitrix project relation for zero reports", async () => {
 		state.projects = [];
+		state.fetchProjects.mockResolvedValue([{ ...waterfall, bitrixProjectId: null }]);
 		render(<SalesProfitabilityReport {...props} />);
 		fireEvent.click(await screen.findByTitle(waterfall.title));
 		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"Связанный проект Битрикс24 не найден",
+			"Выберите связанный проект Битрикс24",
 		);
 		expect(
 			screen.queryByText("Плотность работ по проекту"),
@@ -571,7 +625,7 @@ describe("Project report selection", () => {
 		expect(state.reloadProjects).toHaveBeenCalledTimes(1);
 	});
 
-	it("waits for a newly created card during background refresh instead of reporting a missing link", async () => {
+	it("uses the new project's numeric link without waiting for the background catalogue refresh", async () => {
 		const createdProject = { ...waterfall, id: 3, title: "Новый проект", bitrixProjectId: "79", clientCompanyId: "22", clientCompany: "Компания Бета", files: [] };
 		state.createProject.mockResolvedValueOnce(createdProject);
 		state.reloadProjects.mockImplementation(() => { state.projectsRefreshing = true; });
@@ -583,8 +637,9 @@ describe("Project report selection", () => {
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Сохранить новый проект" })).not.toBeInTheDocument());
 		fireEvent.click(screen.getByRole("button", { name: "Проекты" }));
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-		expect(screen.queryByRole("heading", { name: createdProject.title })).not.toBeInTheDocument();
-		expect(state.fetchDetails).not.toHaveBeenCalled();
+		expect(await screen.findByRole("heading", { name: createdProject.title })).toBeInTheDocument();
+		await waitFor(() => expect(state.fetchDetails).toHaveBeenCalledTimes(1));
+		expect(state.fetchDetails).toHaveBeenCalledWith(expect.objectContaining({ projectId: "79" }), expect.any(AbortSignal));
 		state.projects = [...state.projects, catalog(createdProject)];
 		state.projectsRefreshing = false;
 		view.rerender(<SalesProfitabilityReport {...props} />);
@@ -609,17 +664,15 @@ describe("Project report selection", () => {
 		expect(state.createProject).toHaveBeenCalledTimes(1);
 	});
 
-	it("shows a refresh error without hiding an already loaded project's plan and metrics", async () => {
+	it("does not let an unrelated catalogue refresh error hide numeric-linked project metrics", async () => {
 		const refreshError = "Не удалось обновить каталог Битрикс24";
 		state.projectsError = refreshError;
 		render(<SalesProfitabilityReport {...props} />);
 		fireEvent.click(await screen.findByTitle(waterfall.title));
 		expect(await screen.findByRole("heading", { name: waterfall.title })).toBeInTheDocument();
 		expect(screen.getByText(`План проекта ${waterfall.title}`)).toBeInTheDocument();
-		expect(screen.getByText("Себестоимость по загруженным отчётам")).toBeInTheDocument();
-		expect(screen.getByRole("alert")).toHaveTextContent(refreshError);
-		fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку" }));
-		expect(state.reloadProjects).toHaveBeenCalledTimes(1);
+		expect(await screen.findByText("Себестоимость по загруженным отчётам")).toBeInTheDocument();
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 	});
 
 	it("does not hide saved details behind an unrelated pending metrics request", async () => {
