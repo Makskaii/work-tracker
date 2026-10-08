@@ -8,17 +8,18 @@ import { MainLayout } from "./MainLayout";
 const mocks = vi.hoisted(() => ({
 	userId: 30,
 	departmentIds: [23] as number[],
+	isAdmin: false,
 	rules: [] as Array<{ action: string; subject: string }>,
 }));
 vi.mock("@bitrix24/b24jssdk", () => ({
 	initializeB24Frame: async () => ({
-		auth: { isAdmin: false },
+		auth: { isAdmin: mocks.isAdmin },
 		actions: { v2: { call: { make: async () => ({ getData: () => ({ result: { ID: String(mocks.userId), UF_DEPARTMENT: mocks.departmentIds } }) }) } } },
 	}),
 	LoggerFactory: { createForBrowser: () => ({ error: vi.fn() }) },
 }));
 vi.mock("@/shared/api/getDepartments", () => ({
-	getWorkTrackerDepartmentAccess: async () => ({ heads: [], reportDepartmentIds: [23], salesDepartmentIds: [19] }),
+	getWorkTrackerDepartmentAccess: async () => ({ heads: [], reportDepartmentIds: [23, 25], salesDepartmentIds: [19] }),
 }));
 vi.mock("@/shared/config/ability/casl", () => ({
 	ability: {
@@ -43,7 +44,7 @@ const open = (path: string) => render(
 
 describe("Bitrix frame navigation after reopening", () => {
 	beforeEach(() => {
-		sessionStorage.clear(); mocks.userId = 30; mocks.departmentIds = [23]; mocks.rules = [];
+		sessionStorage.clear(); mocks.userId = 30; mocks.departmentIds = [23]; mocks.isAdmin = false; mocks.rules = [];
 		Object.defineProperty(window, "top", { configurable: true, value: {} });
 	});
 	afterEach(() => {
@@ -99,5 +100,66 @@ describe("Bitrix frame navigation after reopening", () => {
 		sessionStorage.setItem(getAppNavigationKey(30), JSON.stringify({ pathname: "/reports/profitability" }));
 		open("/reports");
 		await waitFor(() => expect(screen.getByTestId("screen")).toHaveTextContent("30:/reports/sales"));
+	});
+
+	it.each(["/reports/calendar", "/reports/calendar/", "/REPORTS/CALENDAR", "/Reports/Calendar///", "/REPORTS/"])("opens the sales report for a new sales-only user at the denied landing %s", async (path) => {
+		mocks.departmentIds = [19];
+		open(`${path}?AUTH_ID=current-session#frame`);
+		await waitFor(() => expect(screen.getByTestId("screen")).toHaveTextContent("30:/reports/sales?AUTH_ID=current-session#frame"));
+		expect(mocks.rules).toEqual([
+			{ action: "read", subject: "sales-report" },
+			{ action: "create-client", subject: "client" },
+		]);
+		expect(sessionStorage.getItem(getAppNavigationKey(30))).toBe(JSON.stringify({ pathname: "/reports/sales" }));
+	});
+
+	it("falls back to sales from the default calendar when the saved section is no longer allowed", async () => {
+		mocks.departmentIds = [19];
+		sessionStorage.setItem(getAppNavigationKey(30), JSON.stringify({ pathname: "/reports/profitability" }));
+		open("/Reports/Calendar/");
+		await waitFor(() => expect(screen.getByTestId("screen")).toHaveTextContent("30:/reports/sales"));
+	});
+
+	it("still restores a permitted saved client-account section from the calendar landing", async () => {
+		mocks.departmentIds = [19];
+		sessionStorage.setItem(getAppNavigationKey(30), JSON.stringify({ pathname: "/create-client-form" }));
+		open("/REPORTS/CALENDAR/");
+		await waitFor(() => expect(screen.getByTestId("screen")).toHaveTextContent("30:/create-client-form"));
+	});
+
+	it.each(["/reports/sales", "/Reports/Sales/", "/create-client-form", "/CREATE-CLIENT-FORM/"])("keeps the sales employee's allowed explicit page %s", async (path) => {
+		mocks.departmentIds = [19];
+		sessionStorage.setItem(getAppNavigationKey(30), JSON.stringify({ pathname: "/reports/sales" }));
+		open(path);
+		expect(await screen.findByTestId("screen")).toHaveTextContent(`30:${path}`);
+	});
+
+	it("keeps a sales-only user's unrelated explicit report denied", async () => {
+		mocks.departmentIds = [19];
+		open("/reports/profitability");
+		expect(await screen.findByText("У вас нет прав на просмотр этой страницы")).toBeInTheDocument();
+		expect(screen.queryByTestId("screen")).not.toBeInTheDocument();
+		expect(mocks.rules).not.toContainEqual({ action: "read", subject: "post" });
+	});
+
+	it.each([
+		{ departments: [23], admin: false },
+		{ departments: [25], admin: false },
+		{ departments: [19, 23], admin: false },
+		{ departments: [], admin: true },
+	])("keeps the permitted explicit calendar for the existing broad role %j", async ({ departments, admin }) => {
+		mocks.departmentIds = departments;
+		mocks.isAdmin = admin;
+		open("/Reports/Calendar/");
+		expect(await screen.findByTestId("screen")).toHaveTextContent("30:/Reports/Calendar/");
+		expect(mocks.rules).toContainEqual({ action: "read", subject: "post" });
+	});
+
+	it("does not turn a denied unrelated section into sales access", async () => {
+		mocks.departmentIds = [7];
+		open("/REPORTS/CALENDAR/");
+		expect(await screen.findByText("У вас нет прав на просмотр этой страницы")).toBeInTheDocument();
+		expect(screen.queryByTestId("screen")).not.toBeInTheDocument();
+		expect(mocks.rules).toEqual([]);
 	});
 });

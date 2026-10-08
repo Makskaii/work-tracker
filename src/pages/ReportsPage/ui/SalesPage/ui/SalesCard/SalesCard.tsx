@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { Deal } from "@/pages/ReportsPage/types/deals.types";
 import { EntityTypeIds } from "@/shared/constants/const";
 import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
 import type { User } from "@/shared/types/types";
+import cls from "./SalesCard.module.scss";
 import { SalesItem } from "./SalesItem";
 
 export const SalesCard = ({
@@ -15,145 +16,75 @@ export const SalesCard = ({
 	isTotal: boolean;
 }) => {
 	const [expanded, setExpanded] = useState(false);
-
+	const listId = useId();
 	const { openTask } = useBitrixSlider();
-
-	const opportunity = useMemo(() => {
-		if (deals.length) {
-			return deals.reduce((acc, deal) => {
-				if (deal.opportunity) {
-					acc += +deal.opportunity;
-				}
-				return acc;
-			}, 0);
-		}
-	}, [deals]);
+	const title = user.title?.trim() || "Неизвестный пользователь";
+	const initials = title
+		.split(/\s+/)
+		.slice(0, 2)
+		.map((part) => part[0])
+		.join("");
+	const opportunity = useMemo(
+		() =>
+			deals.reduce((sum, deal) => {
+				const amount = Number(deal.opportunity);
+				return sum + (Number.isFinite(amount) ? amount : 0);
+			}, 0),
+		[deals],
+	);
 
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: "16px",
-				border: "1px solid var(--color-border)",
-				borderRadius: "16px",
-				background: "var(--color-surface)",
-				boxShadow: "0 16px 36px rgba(1, 8, 14, 0.28)",
-				color: "var(--color-text)",
-				position: "relative",
-				overflowY: "auto",
-				maxHeight: "50vh",
-			}}
-		>
-			<div
-				style={{
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "space-between",
-					paddingBottom: "12px",
-					position: "sticky",
-					padding: "1rem",
-					top: 0,
-					background: "var(--color-surface)",
-				}}
+		<section className={cls.card}>
+			<button
+				type="button"
+				className={cls.summary}
+				aria-expanded={expanded}
+				aria-controls={listId}
+				onClick={() => setExpanded((previous) => !previous)}
 			>
-				<div
-					style={{
-						width: "100%",
-					}}
-				>
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							width: "inherit",
-						}}
-					>
-						<div
-							style={{
-								fontSize: "18px",
-								fontWeight: 600,
-								color: "var(--color-text)",
-								background: "var(--color-surface)",
-							}}
-						>
-							{user?.title}
-						</div>
+				<span className={cls.avatar} aria-hidden="true">
+					{user.photo ? (
+						<img src={user.photo} alt="" loading="lazy" />
+					) : (
+						initials
+					)}
+				</span>
+				<span className={cls.person}>
+					<span className={cls.personName}>{title}</span>
+					<span className={cls.personMeta}>
+						<span>Сделок: {deals.length}</span>
 						{isTotal && (
-							<div>
-								{opportunity ? (
-									<div
-										style={{
-											whiteSpace: "nowrap",
-											fontSize: "13px",
-											fontWeight: 600,
-											color: "var(--color-accent)",
-											background: "#063d43",
-											padding: "4px 8px",
-											borderRadius: "999px",
-										}}
-									>
-										Сумма продаж: {Number(opportunity).toLocaleString("ru-RU")}{" "}
-										₽
-									</div>
-								) : null}
-							</div>
+							<span className={cls.total}>
+								{opportunity.toLocaleString("ru-RU", {
+									maximumFractionDigits: 2,
+								})}{" "}
+								₽
+							</span>
 						)}
-					</div>
-
-					<div
-						style={{
-							color: "var(--color-text)",
-							marginTop: "4px",
-							textAlign: "left",
-							display: "flex",
-							gap: "12px",
-							cursor: "pointer",
-						}}
-						onClick={() => setExpanded((prev) => !prev)}
-					>
-						<div> Сделок: {deals.length}</div>
-
-						<div
-							style={{
-								transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
-								transition: "transform 0.2s ease",
-								color: "var(--color-accent)",
-								fontSize: "0.85rem",
-								flexShrink: 0,
-							}}
-						>
-							▶
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{expanded && (
-				<div
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						gap: "12px",
-						borderTop: "1px solid var(--color-border)",
-						padding: "1rem",
-					}}
+					</span>
+				</span>
+				<span
+					className={`${cls.chevron} ${expanded ? cls.chevronExpanded : ""}`}
+					aria-hidden="true"
 				>
-					{deals.map((item) => (
-						<div
-							onClick={() => openTask(item.id, EntityTypeIds.default, "common")}
-						>
-							<SalesItem
-								key={item.id}
-								deal={item}
-								onTitleClick={() =>
-									openTask(item.id, EntityTypeIds.default, "common")
-								}
-							/>
-						</div>
-					))}
-				</div>
-			)}
-		</div>
+					⌄
+				</span>
+			</button>
+			<div id={listId} className={cls.dealList} hidden={!expanded}>
+				{deals.length ? (
+					deals.map((deal) => (
+						<SalesItem
+							key={deal.id}
+							deal={deal}
+							onTitleClick={() =>
+								openTask(deal.id, EntityTypeIds.default, "common")
+							}
+						/>
+					))
+				) : (
+					<p className={cls.empty}>За выбранный период сделок нет.</p>
+				)}
+			</div>
+		</section>
 	);
 };

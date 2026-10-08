@@ -1,6 +1,20 @@
+import dayjs from "dayjs";
 import type { Deal } from "@/pages/ReportsPage/types/deals.types";
 import { SalesCodes } from "@/pages/ReportsPage/types/types";
-import { convertToDate } from "@/shared/utils";
+import cls from "./SalesCard.module.scss";
+
+const formatDate = (value?: string) => {
+	if (!value) return "—";
+	const calendarDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+	const date = dayjs(calendarDate ?? value);
+	if (
+		!date.isValid() ||
+		(calendarDate && date.format("YYYY-MM-DD") !== calendarDate)
+	) {
+		return "—";
+	}
+	return date.format("DD.MM.YYYY");
+};
 
 export const SalesItem = ({
 	deal,
@@ -9,89 +23,51 @@ export const SalesItem = ({
 	deal: Deal;
 	onTitleClick?: () => void;
 }) => {
-	return (
-		<div
-			key={deal.id}
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: "10px",
-				padding: "14px",
-				border: "1px solid var(--color-border)",
-				borderRadius: "12px",
-				background: "var(--color-surface-soft)",
-				color: "var(--color-text)",
-			}}
+	const amount = Number(deal.opportunity);
+	const hasAmount =
+		deal.opportunity !== null &&
+		deal.opportunity !== undefined &&
+		String(deal.opportunity).trim() !== "" &&
+		Number.isFinite(amount);
+	const title = deal.title?.trim() || `Сделка №${deal.id}`;
+	const content = (
+		<>
+			<span className={cls.dealHeading}>
+				<span className={cls.dealTitle}>{title}</span>
+				{onTitleClick && (
+					<span className={cls.openIcon} aria-hidden="true">
+						↗
+					</span>
+				)}
+			</span>
+			{hasAmount && (
+				<span className={cls.amount}>
+					{amount.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽
+				</span>
+			)}
+			<span className={cls.dealDates}>
+				<span>
+					<span className={cls.dateLabel}>ППО</span>
+					{formatDate(deal[SalesCodes.ppoDay])}
+				</span>
+				<span>
+					<span className={cls.dateLabel}>КП</span>
+					{formatDate(deal[SalesCodes.kpday])}
+				</span>
+			</span>
+		</>
+	);
+
+	return onTitleClick ? (
+		<button
+			type="button"
+			className={cls.deal}
+			aria-label={`Открыть сделку «${title}»`}
+			onClick={onTitleClick}
 		>
-			<div
-				style={{
-					display: "flex",
-					alignItems: "flex-start",
-					justifyContent: "space-between",
-					gap: "12px",
-				}}
-			>
-				<button
-					type="button"
-					style={{
-						padding: 0,
-						border: 0,
-						background: "transparent",
-						fontSize: "15px",
-						fontWeight: 600,
-						color: "var(--color-text)",
-						cursor: onTitleClick ? "pointer" : "default",
-						lineHeight: 1.4,
-						textAlign: "left",
-					}}
-					onClick={(event) => {
-						if (!onTitleClick) return;
-
-						event.stopPropagation();
-						onTitleClick();
-					}}
-				>
-					{deal.title}
-				</button>
-
-				{deal.opportunity ? (
-					<div
-						style={{
-							whiteSpace: "nowrap",
-							fontSize: "13px",
-							fontWeight: 600,
-							color: "var(--color-accent)",
-							background: "#063d43",
-							padding: "4px 8px",
-							borderRadius: "999px",
-						}}
-					>
-						{Number(deal.opportunity).toLocaleString("ru-RU")} ₽
-					</div>
-				) : null}
-			</div>
-
-			<div
-				style={{
-					display: "grid",
-					gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-					gap: "8px 16px",
-					fontSize: "13px",
-					color: "var(--color-text)",
-				}}
-			>
-				<div>
-					<span style={{ color: "var(--color-text)" }}>ППО:</span>{" "}
-					{deal[SalesCodes.ppoDay]
-						? convertToDate(deal[SalesCodes.ppoDay])
-						: "—"}
-				</div>
-
-				<div>
-					<span style={{ color: "var(--color-text)" }}>КП:</span>{" "}
-					{deal[SalesCodes.kpday] ? convertToDate(deal[SalesCodes.kpday]) : "—"}
-				</div>
-			</div>
-		</div>
+			{content}
+		</button>
+	) : (
+		<div className={cls.deal}>{content}</div>
 	);
 };

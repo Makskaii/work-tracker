@@ -270,16 +270,19 @@ export const MainLayout = () => {
 					setCurrentUserId(currUser?.userId ?? null);
 					setFrameStatus("ready");
 
-					const isLanding = ["/", "/reports", "/reports/calendar"].includes(initialPathname);
+					const normalizedInitialPathname = initialPathname.toLowerCase().replace(/\/+$/, "") || "/";
+					const isLanding = ["/", "/reports", "/reports/calendar"].includes(normalizedInitialPathname);
 					const savedPath = isLanding && currUser?.userId
 						? readAppNavigation(getAppNavigationKey(currUser.userId), canRestorePath)
 						: null;
+					const isDeniedSalesLanding = isLanding &&
+						!canRestorePath(initialPathname) && ability.can("read", "sales-report");
 					const target = savedPath ?? (
-						initialPathname === "/" || initialPathname === "/reports" ? redirectTo : null
+						initialPathname === "/" || initialPathname === "/reports" || isDeniedSalesLanding ? redirectTo : null
 					);
 					if (target && target !== initialPathname) {
 						pendingRestoredPath.current = target;
-						navigate(savedPath ? { pathname: target, search: initialSearch, hash: initialHash } : target, { replace: true });
+						navigate(savedPath || isDeniedSalesLanding ? { pathname: target, search: initialSearch, hash: initialHash } : target, { replace: true });
 					}
 				}
 			} catch {
