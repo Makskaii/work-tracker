@@ -35,6 +35,33 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe("sales detail cards", () => {
+	it("shows all list-layout deals immediately beneath a static employee heading", () => {
+		render(
+			<SalesCard
+				user={user}
+				deals={[deal(), deal({ id: "42", title: "Новый клиент" })]}
+				isTotal={false}
+				layout="list"
+			/>,
+		);
+		expect(screen.getByText("Алёна Семаева")).toBeInTheDocument();
+		expect(screen.getByText("Сделок: 2")).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /Алёна Семаева/ }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Открыть сделку «Новый клиент»" }),
+		).toBeVisible();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Открыть сделку «Вентаж»" }),
+		);
+		expect(slider.openTask).toHaveBeenCalledExactlyOnceWith(
+			"41",
+			EntityTypeIds.default,
+			"common",
+		);
+	});
+
 	it("can expand and collapse an employee from the keyboard and opens a deal once", async () => {
 		const keyboard = userEvent.setup();
 		render(<SalesCard user={user} deals={[deal()]} isTotal={false} />);

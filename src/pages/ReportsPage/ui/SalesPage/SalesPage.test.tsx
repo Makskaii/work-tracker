@@ -127,37 +127,113 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("sales report view", () => {
-	it("opens empty metric details with a clear message and closes them", () => {
+	it("shows all created deals by default below the complete summary without detail or employee expansion controls", () => {
 		loaded();
 		render(<SalesPage />);
-		const details = screen.getByRole("button", {
-			name: "Подробнее: Проведённые ППО",
+		const table = screen.getByRole("table");
+		const row = screen.getByRole("row", { name: /Созданные сделки/ });
+		const panel = screen.getByRole("region", {
+			name: "Детализация: Созданные сделки",
 		});
-		fireEvent.click(details);
-		expect(details).toHaveAttribute("aria-expanded", "true");
-		const panel = screen.getByRole("complementary", {
+		expect(row).toHaveAttribute("aria-selected", "true");
+		expect(row).toHaveAttribute("tabindex", "0");
+		expect(within(table).getAllByRole("columnheader")).toHaveLength(4);
+		expect(
+			table.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(within(panel).getByText(employee.title)).toBeInTheDocument();
+		expect(
+			within(panel).getAllByRole("button", { name: /Открыть сделку/ }),
+		).toHaveLength(2);
+		for (const deal of deals) {
+			expect(
+				within(panel).getByRole("button", {
+					name: `Открыть сделку «${deal.title}»`,
+				}),
+			).toBeVisible();
+		}
+		expect(
+			screen.queryByRole("button", {
+				name: /Подробнее|Скрыть|Закрыть детализацию/,
+			}),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /Алёна Семаева/ }),
+		).not.toBeInTheDocument();
+		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+	});
+
+	it("selects an empty metric by its row and retains the summary and visible list on repeated selection", () => {
+		loaded();
+		render(<SalesPage />);
+		const table = screen.getByRole("table");
+		const createdRow = screen.getByRole("row", { name: /Созданные сделки/ });
+		const row = screen.getByRole("row", { name: /Проведённые ППО/ });
+		fireEvent.click(row);
+		expect(row).toHaveAttribute("aria-selected", "true");
+		expect(createdRow).toHaveAttribute("aria-selected", "false");
+		const panel = screen.getByRole("region", {
 			name: "Детализация: Проведённые ППО",
 		});
 		expect(
 			within(panel).getByText("За этот период данных нет."),
 		).toBeInTheDocument();
 		expect(within(panel).getByText("Сделок: 0")).toBeInTheDocument();
-		fireEvent.click(
-			within(panel).getByRole("button", { name: "Закрыть детализацию" }),
+		expect(screen.getByRole("table")).toBe(table);
+		expect(screen.getByRole("row", { name: /Созданные сделки/ })).toBe(
+			createdRow,
 		);
-		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
-		expect(details).toHaveAttribute("aria-expanded", "false");
+		fireEvent.click(row);
+		expect(
+			screen.getByRole("region", { name: "Детализация: Проведённые ППО" }),
+		).toBe(panel);
+		expect(row).toHaveAttribute("aria-selected", "true");
+		fireEvent.click(createdRow);
+		expect(screen.getByRole("table")).toBe(table);
+		expect(screen.getByRole("row", { name: /Созданные сделки/ })).toBe(
+			createdRow,
+		);
+		expect(
+			screen.getByRole("button", { name: "Открыть сделку «Вентаж»" }),
+		).toBeVisible();
 	});
 
-	it("keeps rows and expanded deal cards mounted during a background period refresh", () => {
+	it("supports Enter and Space selection without hiding the selected metric", () => {
+		loaded();
+		render(<SalesPage />);
+		const table = screen.getByRole("table");
+		const createdRow = screen.getByRole("row", { name: /Созданные сделки/ });
+		const emptyRow = screen.getByRole("row", { name: /Проведённые ППО/ });
+		expect(emptyRow).toHaveAttribute("tabindex", "0");
+		emptyRow.focus();
+		expect(emptyRow).toHaveFocus();
+		fireEvent.keyDown(emptyRow, { key: "Enter" });
+		expect(emptyRow).toHaveAttribute("aria-selected", "true");
+		expect(
+			screen.getByRole("region", { name: "Детализация: Проведённые ППО" }),
+		).toBeVisible();
+		createdRow.focus();
+		expect(createdRow).toHaveFocus();
+		const space = new KeyboardEvent("keydown", {
+			key: " ",
+			bubbles: true,
+			cancelable: true,
+		});
+		fireEvent(createdRow, space);
+		expect(space.defaultPrevented).toBe(true);
+		expect(createdRow).toHaveAttribute("aria-selected", "true");
+		fireEvent.keyDown(createdRow, { key: "Enter" });
+		expect(createdRow).toHaveAttribute("aria-selected", "true");
+		expect(
+			screen.getByRole("region", { name: "Детализация: Созданные сделки" }),
+		).toBeVisible();
+		expect(screen.getByRole("table")).toBe(table);
+	});
+
+	it("keeps the summary, selected row and visible deal buttons mounted during a background period refresh", () => {
 		loaded();
 		const view = render(<SalesPage />);
-		fireEvent.click(
-			screen.getByRole("button", { name: "Подробнее: Созданные сделки" }),
-		);
-		fireEvent.click(
-			screen.getByRole("button", { name: /Алёна Семаева.*Сделок: 2/ }),
-		);
+		const table = screen.getByRole("table");
 		const dealButton = screen.getByRole("button", {
 			name: "Открыть сделку «Вентаж»",
 		});
@@ -166,7 +242,9 @@ describe("sales report view", () => {
 		state.start = "2026-10-12";
 		state.end = "2026-10-16";
 		view.rerender(<SalesPage />);
+		expect(screen.getByRole("table")).toBe(table);
 		expect(screen.getByRole("row", { name: /Созданные сделки/ })).toBe(row);
+		expect(row).toHaveAttribute("aria-selected", "true");
 		expect(
 			screen.getByRole("button", { name: "Открыть сделку «Вентаж»" }),
 		).toBe(dealButton);
@@ -233,6 +311,8 @@ describe("sales report view", () => {
 			"Загружаем звонки и сделки…",
 		);
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
-		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("region", { name: /Детализация:/ }),
+		).not.toBeInTheDocument();
 	});
 });

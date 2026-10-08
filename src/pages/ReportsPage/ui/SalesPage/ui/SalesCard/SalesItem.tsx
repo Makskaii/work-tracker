@@ -19,9 +19,11 @@ const formatDate = (value?: string) => {
 export const SalesItem = ({
 	deal,
 	onTitleClick,
+	layout = "cards",
 }: {
 	deal: Deal;
 	onTitleClick?: () => void;
+	layout?: "cards" | "list";
 }) => {
 	const amount = Number(deal.opportunity);
 	const hasAmount =
@@ -30,6 +32,8 @@ export const SalesItem = ({
 		String(deal.opportunity).trim() !== "" &&
 		Number.isFinite(amount);
 	const title = deal.title?.trim() || `Сделка №${deal.id}`;
+	const isList = layout === "list";
+	const className = `${cls.deal} ${isList ? cls.dealRow : ""}`;
 	const content = (
 		<>
 			<span className={cls.dealHeading}>
@@ -40,9 +44,11 @@ export const SalesItem = ({
 					</span>
 				)}
 			</span>
-			{hasAmount && (
+			{(hasAmount || isList) && (
 				<span className={cls.amount}>
-					{amount.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽
+					{hasAmount
+						? `${amount.toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ₽`
+						: "—"}
 				</span>
 			)}
 			<span className={cls.dealDates}>
@@ -61,13 +67,13 @@ export const SalesItem = ({
 	return onTitleClick ? (
 		<button
 			type="button"
-			className={cls.deal}
+			className={className}
 			aria-label={`Открыть сделку «${title}»`}
 			onClick={onTitleClick}
 		>
 			{content}
 		</button>
 	) : (
-		<div className={cls.deal}>{content}</div>
+		<div className={className}>{content}</div>
 	);
 };

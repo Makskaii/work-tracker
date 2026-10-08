@@ -26,7 +26,7 @@ export const SalesPage = () => {
 		end,
 		period,
 	);
-	const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+	const [selectedRowId, setSelectedRowId] = useState("2");
 	const rows = useMemo(
 		() => (snapshot ? buildSalesMetrics(snapshot.source, snapshot.period) : []),
 		[snapshot],
@@ -59,9 +59,7 @@ export const SalesPage = () => {
 			<header className={cls.header}>
 				<div>
 					<h1>Отчёт по продажам</h1>
-					<p>
-						План и факт отдела · сделки «Открытая линия Evolution» исключены
-					</p>
+					<p>План и факт отдела за выбранный период</p>
 				</div>
 				<button
 					type="button"
@@ -72,7 +70,7 @@ export const SalesPage = () => {
 					Обновить данные
 				</button>
 			</header>
-			<div className={`${cls.workspace} ${selectedRow ? cls.withDetails : ""}`}>
+			<div className={cls.workspace}>
 				<section className={cls.panel} aria-label="Показатели продаж">
 					<div className={cls.toolbar}>
 						<SegmentedControl onChange={setPeriod} value={period} />
@@ -136,6 +134,10 @@ export const SalesPage = () => {
 						</div>
 					) : (
 						<div className={cls.tableWrap}>
+							<p className={cls.selectionHint} id="sales-summary-hint">
+								Нажмите на показатель — его сделки или звонки появятся в списке
+								ниже.
+							</p>
 							<table className={cls.table}>
 								<thead>
 									<tr>
@@ -143,15 +145,23 @@ export const SalesPage = () => {
 										<th scope="col">План</th>
 										<th scope="col">Факт</th>
 										<th scope="col">Отклонение</th>
-										<th scope="col">
-											<span className={cls.metricMeta}>Детализация</span>
-										</th>
 									</tr>
 								</thead>
 								<tbody>
 									{rows.map((row) => (
 										<tr
 											key={row.id}
+											tabIndex={0}
+											aria-selected={selectedRowId === row.id}
+											aria-controls="sales-details"
+											aria-describedby="sales-summary-hint"
+											onClick={() => setSelectedRowId(row.id)}
+											onKeyDown={(event) => {
+												if (event.key === "Enter" || event.key === " ") {
+													event.preventDefault();
+													setSelectedRowId(row.id);
+												}
+											}}
 											className={
 												selectedRowId === row.id ? cls.selectedRow : undefined
 											}
@@ -174,22 +184,6 @@ export const SalesPage = () => {
 												{row.deviation > 0 ? "+" : ""}
 												{formatNumber(row.deviation, row.id === "7")}
 											</td>
-											<td>
-												<button
-													type="button"
-													className={cls.detailsButton}
-													aria-label={`Подробнее: ${row.title}`}
-													aria-expanded={selectedRowId === row.id}
-													aria-controls="sales-details"
-													onClick={() =>
-														setSelectedRowId(
-															selectedRowId === row.id ? null : row.id,
-														)
-													}
-												>
-													{selectedRowId === row.id ? "Скрыть" : "Подробнее"}
-												</button>
-											</td>
 										</tr>
 									))}
 								</tbody>
@@ -198,7 +192,7 @@ export const SalesPage = () => {
 					)}
 				</section>
 				{selectedRow && (
-					<aside
+					<section
 						className={cls.detailsColumn}
 						id="sales-details"
 						aria-label={`Детализация: ${selectedRow.title}`}
@@ -211,14 +205,6 @@ export const SalesPage = () => {
 									{selectedRow.items.length}
 								</span>
 							</div>
-							<button
-								type="button"
-								className={cls.closeDetails}
-								aria-label="Закрыть детализацию"
-								onClick={() => setSelectedRowId(null)}
-							>
-								×
-							</button>
 						</div>
 						<div className={cls.detailsBody}>
 							{!groupedItems.length && (
@@ -241,6 +227,7 @@ export const SalesPage = () => {
 										user={user}
 										deals={items as Deal[]}
 										isTotal={selectedRow.id === "7"}
+										layout="list"
 									/>
 								) : (
 									<div key={id} className={cls.callsCard}>
@@ -252,7 +239,7 @@ export const SalesPage = () => {
 								);
 							})}
 						</div>
-					</aside>
+					</section>
 				)}
 			</div>
 		</div>
