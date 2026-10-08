@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { FiCalendar, FiDownload, FiExternalLink } from "react-icons/fi";
-import { useBitrixSlider } from "@/shared/hooks/useBitrixSlider";
+import { FiCalendar, FiDownload } from "react-icons/fi";
 import { notify } from "@/shared/ui/NotificationPopup/notify";
 import styles from "./ClientHoursPackagesPage.module.scss";
 import {
@@ -9,8 +8,6 @@ import {
 } from "./clientHoursPackages.api";
 import {
 	downloadSupportPdf,
-	fetchPackageChecks,
-	type PackageChecks,
 	supportErrorMessage,
 } from "./supportAnalyst.api";
 import {
@@ -29,7 +26,6 @@ type Props = {
 type ReportMode = "package" | "period";
 type ReportRequest = {
 	packageId: number;
-	mode: ReportMode;
 	generation: number;
 	period?: SupportPackageReportPeriod;
 };
@@ -38,14 +34,10 @@ export const SupportPackageReportPanel = ({
 	purchaseDate,
 	hasPackages,
 	refreshKey,
-	onCardClosed,
 }: Props) => {
-	const { openTask } = useBitrixSlider();
 	const periodId = useId();
-	const [checks, setChecks] = useState<PackageChecks | null>(null);
 	const [pending, setPending] = useState<ReportMode | null>(null);
 	const pendingRef = useRef(false);
-	const [confirmation, setConfirmation] = useState<ReportRequest | null>(null);
 	const [periodOpen, setPeriodOpen] = useState(false);
 	const [period, setPeriod] = useState(() =>
 		initialReportPeriod(purchaseDate, moscowToday()),
@@ -55,8 +47,6 @@ export const SupportPackageReportPanel = ({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: each package starts with its own purchase date and invalidates previous requests.
 	useEffect(() => {
 		generationRef.current += 1;
-		setChecks(null);
-		setConfirmation(null);
 		setPeriodError(null);
 		setPeriod(initialReportPeriod(purchaseDate, moscowToday()));
 		setPeriodOpen(false);
@@ -64,19 +54,15 @@ export const SupportPackageReportPanel = ({
 			generationRef.current += 1;
 		};
 	}, [packageId, purchaseDate]);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: a refreshed snapshot invalidates checks while preserving the chosen date range.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a refreshed snapshot invalidates pending reports while preserving the chosen date range.
 	useEffect(() => {
 		generationRef.current += 1;
-		setChecks(null);
-		setConfirmation(null);
 		return () => {
 			generationRef.current += 1;
 		};
 	}, [refreshKey]);
 	const invalidate = () => {
 		generationRef.current += 1;
-		setChecks(null);
-		setConfirmation(null);
 		setPeriodError(null);
 	};
 	const updatePeriod = (
@@ -86,41 +72,21 @@ export const SupportPackageReportPanel = ({
 		invalidate();
 		setPeriod((current) => ({ ...current, [field]: value }));
 	};
-	const downloadReport = async (
-		mode: ReportMode,
-		confirmedRequest?: ReportRequest,
-	) => {
+	const downloadReport = async (mode: ReportMode) => {
 		if (!packageId || pendingRef.current) return;
 		if (mode === "period") {
 			const error = validateReportPeriod(period, moscowToday());
 			setPeriodError(error);
 			if (error) return;
 		}
-		const request = confirmedRequest ?? {
+		const request: ReportRequest = {
 			packageId,
-			mode,
 			generation: generationRef.current,
 			...(mode === "period" ? { period: { ...period } } : {}),
 		};
-		if (
-			request.packageId !== packageId ||
-			request.generation !== generationRef.current
-		)
-			return;
 		pendingRef.current = true;
 		setPending(mode);
 		try {
-			const checked = await fetchPackageChecks(request.packageId);
-			if (request.generation !== generationRef.current) return;
-			setChecks(checked);
-			if (
-				checked.blocking ||
-				(checked.issues.length > 0 && !confirmedRequest)
-			) {
-				setConfirmation(request);
-				return;
-			}
-			setConfirmation(null);
 			const pdf = request.period
 				? await fetchSupportHoursPackageReport(
 						request.packageId,
@@ -141,7 +107,7 @@ export const SupportPackageReportPanel = ({
 					cause,
 					mode === "period"
 						? "Не удалось сформировать отчёт за период. Повторите попытку."
-						: "Не удалось сформировать отчёт по пакету. Повторите попытку.",
+						: "Не удалось сформировать отчёт для клиента. Повторите попытку.",
 				),
 				type: "error",
 			});
@@ -154,14 +120,14 @@ export const SupportPackageReportPanel = ({
 	return (
 		<section
 			className={styles.packageReportPanel}
-			aria-label="Клиентский отчёт по пакету"
+			aria-label="Отчёт для клиента"
 		>
 			<div className={styles.reportPanelHeading}>
 				<div>
 					<h2>Отчёт для клиента</h2>
 					<p>
 						{packageId
-							? "За весь пакет по сегодняшний день"
+							? "Задачи и часы по данным кабинета клиента"
 							: hasPackages
 								? "Выберите пакет для отчёта"
 								: "Добавьте пакет для отчёта"}
@@ -176,7 +142,7 @@ export const SupportPackageReportPanel = ({
 						onClick={() => void downloadReport("package")}
 					>
 						<FiDownload aria-hidden="true" />
-						{pending === "package" ? "Готовим отчёт…" : "Отчёт по пакету"}
+						{pending === "package" ? "Готовим отчёт…" : "Скачать отчёт"}
 					</button>
 					<button
 						className={styles.packageReportButton}
@@ -238,7 +204,7 @@ export const SupportPackageReportPanel = ({
 					</button>
 					<p className={styles.reportPeriodHint}>
 						Задачи с работами за эти даты показываем целиком, включая работы вне
-						периода. Отдельные работы — только за период. Обе даты включены.
+						периода. Обе даты включены.
 					</p>
 					{periodError && (
 						<p
@@ -250,61 +216,6 @@ export const SupportPackageReportPanel = ({
 						</p>
 					)}
 				</form>
-			)}
-			{checks && (
-				<div
-					className={
-						checks.issues.length ? styles.reportChecks : styles.checksSuccess
-					}
-				>
-					<strong>
-						{checks.issues.length
-							? `Нужно проверить: ${checks.issues.length}`
-							: "Проверка пройдена"}
-					</strong>
-					{checks.issues.length > 0 && (
-						<>
-							<p>
-								{checks.blocking
-									? "Исправьте ошибки связей перед формированием отчёта."
-									: "Проверьте замечания. При необходимости можно продолжить с текущими данными."}
-							</p>
-							<ul>
-								{checks.issues.map((issue, index) => (
-									<li key={`${issue.code}-${issue.itemId}-${index}`}>
-										<span>{issue.message}</span>
-										<button
-											type="button"
-											className={styles.inlineAction}
-											onClick={async () => {
-												await openTask(issue.itemId, issue.entityTypeId);
-												invalidate();
-												await onCardClosed?.();
-											}}
-										>
-											<FiExternalLink aria-hidden="true" />
-											Открыть карточку
-										</button>
-									</li>
-								))}
-							</ul>
-						</>
-					)}
-					{confirmation && !checks.blocking && (
-						<button
-							className={styles.packageReportButton}
-							type="button"
-							disabled={pending !== null}
-							onClick={() =>
-								void downloadReport(confirmation.mode, confirmation)
-							}
-						>
-							{confirmation.mode === "period"
-								? "Скачать за период с этими данными"
-								: "Скачать с этими данными"}
-						</button>
-					)}
-				</div>
 			)}
 		</section>
 	);

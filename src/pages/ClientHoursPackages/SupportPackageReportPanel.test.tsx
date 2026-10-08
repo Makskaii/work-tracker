@@ -12,7 +12,6 @@ const api = vi.hoisted(() => ({
 	fetchPackageChecks: vi.fn(),
 	fetchPdf: vi.fn(),
 	downloadSupportPdf: vi.fn(),
-	openTask: vi.fn(),
 	notify: vi.fn(),
 }));
 vi.mock("./supportAnalyst.api", async (importOriginal) => ({
@@ -22,9 +21,6 @@ vi.mock("./supportAnalyst.api", async (importOriginal) => ({
 }));
 vi.mock("./clientHoursPackages.api", () => ({
 	fetchSupportHoursPackageReport: api.fetchPdf,
-}));
-vi.mock("@/shared/hooks/useBitrixSlider", () => ({
-	useBitrixSlider: () => ({ openTask: api.openTask }),
 }));
 vi.mock("@/shared/ui/NotificationPopup/notify", () => ({ notify: api.notify }));
 
@@ -36,24 +32,6 @@ const deferred = <T,>() => {
 		reject = rejectPromise;
 	});
 	return { promise, resolve, reject };
-};
-const noIssues = {
-	checkedAt: "2026-10-01T10:00:00Z",
-	blocking: false,
-	issues: [],
-};
-const warning = {
-	checkedAt: "2026-10-01T10:00:00Z",
-	blocking: false,
-	issues: [
-		{
-			code: "limit_exceeded",
-			severity: "warning",
-			message: "Проверьте часы задачи",
-			entityTypeId: 1072,
-			itemId: 11,
-		},
-	],
 };
 const props = { packageId: 7, purchaseDate: "2026-09-01", hasPackages: true };
 const openPeriod = () =>
@@ -68,20 +46,20 @@ const choosePeriod = (dateFrom = "2026-09-10", dateTo = "2026-09-20") => {
 };
 
 beforeEach(() => {
-	vi.clearAllMocks();
+	vi.resetAllMocks();
 	vi.setSystemTime(new Date("2026-10-01T12:00:00Z"));
-	api.fetchPackageChecks.mockResolvedValue(noIssues);
+	api.fetchPackageChecks.mockRejectedValue(new Error("Package checks must not run during client export"));
 	api.fetchPdf.mockResolvedValue(
 		new Blob(["PDF"], { type: "application/pdf" }),
 	);
 });
 afterEach(() => vi.useRealTimers());
 
-describe("package PDF and optional period", () => {
-	it("keeps the whole package action and shows native date controls only when expanded", () => {
+describe("client cabinet PDF and optional period", () => {
+	it("keeps the current client report action and shows native date controls only when expanded", () => {
 		render(<SupportPackageReportPanel {...props} />);
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeEnabled();
 		expect(screen.queryByLabelText("С даты")).not.toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "За период" })).toHaveAttribute(
@@ -93,7 +71,7 @@ describe("package PDF and optional period", () => {
 		expect(screen.getByLabelText("С даты")).toHaveValue("2026-09-01");
 		expect(screen.getByLabelText("По дату")).toHaveValue("2026-10-01");
 		expect(screen.getByText(/Задачи с работами за эти даты/)).toHaveTextContent(
-			"включая работы вне периода. Отдельные работы — только за период.",
+			"включая работы вне периода. Обе даты включены.",
 		);
 		expect(screen.getByRole("button", { name: "За период" })).toHaveAttribute(
 			"aria-expanded",
@@ -103,7 +81,7 @@ describe("package PDF and optional period", () => {
 	it("requires a selected package for both export actions", () => {
 		render(<SupportPackageReportPanel {...props} packageId={null} />);
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeDisabled();
 		expect(screen.getByRole("button", { name: "За период" })).toBeDisabled();
 		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
@@ -114,7 +92,7 @@ describe("package PDF and optional period", () => {
 		choosePeriod();
 		fireEvent.click(screen.getByRole("button", { name: "Скачать за период" }));
 		await waitFor(() => expect(api.downloadSupportPdf).toHaveBeenCalled());
-		expect(api.fetchPackageChecks).toHaveBeenCalledExactlyOnceWith(7);
+		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
 		expect(api.fetchPdf).toHaveBeenCalledExactlyOnceWith(7, {
 			dateFrom: "2026-09-10",
 			dateTo: "2026-09-20",
@@ -144,59 +122,45 @@ describe("package PDF and optional period", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent(message);
 		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
 		expect(api.fetchPdf).not.toHaveBeenCalled();
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		await waitFor(() =>
 			expect(api.fetchPdf).toHaveBeenCalledExactlyOnceWith(7),
 		);
 	});
-	it("confirms the same period and clears confirmation when dates change", async () => {
-		api.fetchPackageChecks.mockResolvedValue(warning);
+	it("downloads the current cabinet PDF directly without package checks or confirmation", async () => {
 		render(<SupportPackageReportPanel {...props} />);
-		openPeriod();
-		choosePeriod();
-		fireEvent.click(screen.getByRole("button", { name: "Скачать за период" }));
-		await screen.findByRole("button", {
-			name: "Скачать за период с этими данными",
-		});
-		choosePeriod("2026-09-11", "2026-09-20");
-		expect(
-			screen.queryByRole("button", {
-				name: "Скачать за период с этими данными",
-			}),
-		).not.toBeInTheDocument();
-		expect(screen.queryByText("Проверьте часы задачи")).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Скачать за период" }));
-		fireEvent.click(
-			await screen.findByRole("button", {
-				name: "Скачать за период с этими данными",
-			}),
-		);
-		await waitFor(() =>
-			expect(api.fetchPdf).toHaveBeenCalledExactlyOnceWith(7, {
-				dateFrom: "2026-09-11",
-				dateTo: "2026-09-20",
-			}),
-		);
-		expect(api.fetchPackageChecks).toHaveBeenCalledTimes(3);
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
+		await waitFor(() => expect(api.downloadSupportPdf).toHaveBeenCalledExactlyOnceWith(
+			expect.any(Blob), "support-package-7.pdf",
+		));
+		expect(api.fetchPdf).toHaveBeenCalledExactlyOnceWith(7);
+		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
+		expect(screen.queryByText(/Нужно проверить|Проверка пройдена/)).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /Скачать с этими данными/ })).not.toBeInTheDocument();
 	});
-	it("blocks period export when checks report a blocking issue", async () => {
-		api.fetchPackageChecks.mockResolvedValue({ ...warning, blocking: true });
+	it("shows canonical backend validation errors and allows retry without a partial download", async () => {
+		api.fetchPdf.mockRejectedValueOnce({
+			response: { data: { message: "У отчёта указаны разные задачи. Исправьте связь в Битрикс24 перед выгрузкой" } },
+		});
 		render(<SupportPackageReportPanel {...props} />);
 		openPeriod();
 		fireEvent.click(screen.getByRole("button", { name: "Скачать за период" }));
-		await screen.findByText("Проверьте часы задачи");
-		expect(api.fetchPdf).not.toHaveBeenCalled();
-		expect(
-			screen.queryByRole("button", {
-				name: "Скачать за период с этими данными",
-			}),
-		).not.toBeInTheDocument();
+		await waitFor(() => expect(api.notify).toHaveBeenCalledWith({
+			message: "У отчёта указаны разные задачи. Исправьте связь в Битрикс24 перед выгрузкой",
+			type: "error",
+		}));
+		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
+		expect(api.downloadSupportPdf).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Скачать за период" })).toBeEnabled();
+		fireEvent.click(screen.getByRole("button", { name: "Скачать за период" }));
+		await waitFor(() => expect(api.downloadSupportPdf).toHaveBeenCalledTimes(1));
+		expect(api.fetchPdf).toHaveBeenCalledTimes(2);
 	});
 	it("does not download an old package's PDF after switching packages", async () => {
 		const pdf = deferred<Blob>();
 		api.fetchPdf.mockReturnValueOnce(pdf.promise);
 		const view = render(<SupportPackageReportPanel {...props} />);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		await waitFor(() => expect(api.fetchPdf).toHaveBeenCalledWith(7));
 		view.rerender(
 			<SupportPackageReportPanel
@@ -210,17 +174,18 @@ describe("package PDF and optional period", () => {
 		openPeriod();
 		expect(screen.getByLabelText("С даты")).toHaveValue("2026-09-15");
 	});
-	it("ignores an old period's checks after changing a date", async () => {
-		const checks = deferred<typeof warning>();
-		api.fetchPackageChecks.mockReturnValueOnce(checks.promise);
+	it("ignores a stale period's failure after changing a date", async () => {
+		const pdf = deferred<Blob>();
+		api.fetchPdf.mockReturnValueOnce(pdf.promise);
 		render(<SupportPackageReportPanel {...props} />);
 		openPeriod();
 		choosePeriod();
 		fireEvent.click(screen.getByRole("button", { name: "Скачать за период" }));
 		choosePeriod("2026-09-11", "2026-09-20");
-		await act(async () => checks.resolve(warning));
-		expect(screen.queryByText("Проверьте часы задачи")).not.toBeInTheDocument();
-		expect(api.fetchPdf).not.toHaveBeenCalled();
+		await act(async () => pdf.reject(new Error("Old period unavailable")));
+		expect(api.notify).not.toHaveBeenCalled();
+		expect(api.downloadSupportPdf).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Скачать за период" })).toBeEnabled();
 	});
 	it("ignores an old period's PDF after changing a date and prevents duplicate requests", async () => {
 		const pdf = deferred<Blob>();
@@ -232,7 +197,7 @@ describe("package PDF and optional period", () => {
 		fireEvent.submit(screen.getByRole("form", { name: "Отчёт за период" }));
 		await waitFor(() => expect(api.fetchPdf).toHaveBeenCalledTimes(1));
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeDisabled();
 		choosePeriod("2026-09-11", "2026-09-20");
 		await act(async () => pdf.resolve(new Blob(["old period"])));
@@ -247,7 +212,7 @@ describe("package PDF and optional period", () => {
 		const view = render(
 			<SupportPackageReportPanel {...props} refreshKey={1} />,
 		);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		await waitFor(() => expect(api.fetchPdf).toHaveBeenCalledTimes(1));
 		view.rerender(<SupportPackageReportPanel {...props} refreshKey={2} />);
 		await act(async () => pdf.resolve(new Blob(["old data"])));
@@ -273,7 +238,7 @@ describe("package PDF and optional period", () => {
 		const pdf = deferred<Blob>();
 		api.fetchPdf.mockReturnValueOnce(pdf.promise);
 		const view = render(<SupportPackageReportPanel {...props} />);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		await waitFor(() => expect(api.fetchPdf).toHaveBeenCalledTimes(1));
 		view.unmount();
 		await act(async () => pdf.reject(new Error("old request")));

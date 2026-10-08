@@ -466,51 +466,31 @@ describe("report creation and editing", () => {
 	});
 });
 
-describe("current client PDF checks", () => {
-	it("shows a blocking project mismatch, lets the analyst open the source, and prevents exporting", async () => {
-		api.fetchPackageChecks.mockResolvedValue({
-			blocking: true,
-			issues: [
-				{
-					code: "project_mismatch",
-					severity: "error",
-					message: "Проект отчёта отличается от проекта задачи",
-					entityTypeId: 1060,
-					itemId: "5403",
-				},
-			],
-		});
+describe("current client PDF without package checks", () => {
+	it("downloads without invoking mutating package checks or source-card controls", async () => {
+		api.fetchPackageChecks.mockRejectedValueOnce(new Error("Package checks unavailable"));
+		fetchPdf.mockResolvedValue(new Blob(["client cabinet PDF"]));
 		render(<SupportPackageReportPanel packageId={7} hasPackages />);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
-		expect(await screen.findByText("Нужно проверить: 1")).toBeInTheDocument();
-		expect(fetchPdf).not.toHaveBeenCalled();
-		expect(
-			screen.queryByRole("button", { name: "Скачать с этими данными" }),
-		).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Открыть карточку" }));
-		expect(openTask).toHaveBeenCalledWith("5403", 1060);
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
+		await waitFor(() => expect(api.downloadSupportPdf).toHaveBeenCalledExactlyOnceWith(
+			expect.any(Blob), "support-package-7.pdf",
+		));
+		expect(fetchPdf).toHaveBeenCalledExactlyOnceWith(7);
+		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
+		expect(openTask).not.toHaveBeenCalled();
+		expect(screen.queryByRole("button", { name: "Открыть карточку" })).not.toBeInTheDocument();
 	});
-	it("shows warnings without changing hours and permits explicitly continuing", async () => {
-		api.fetchPackageChecks.mockResolvedValue({
-			blocking: false,
-			issues: [
-				{
-					code: "limit_exceeded",
-					severity: "warning",
-					message: "Задача: 26 / 20 ч",
-					entityTypeId: 1072,
-					itemId: 1002,
-				},
-			],
-		});
-		fetchPdf.mockResolvedValue(new Blob(["pdf"]));
+	it("surfaces canonical validation failures without downloading and restores the export action", async () => {
+		fetchPdf.mockRejectedValueOnce({ response: { data: { message: "Укажите купленные часы в кабинете клиента перед формированием отчёта" } } });
 		render(<SupportPackageReportPanel packageId={7} hasPackages />);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
-		fireEvent.click(
-			await screen.findByRole("button", { name: "Скачать с этими данными" }),
-		);
-		await waitFor(() => expect(fetchPdf).toHaveBeenCalledWith(7));
-		expect(api.fetchPackageChecks).toHaveBeenCalledTimes(2);
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
+		await waitFor(() => expect(notify).toHaveBeenCalledWith({
+			message: "Укажите купленные часы в кабинете клиента перед формированием отчёта",
+			type: "error",
+		}));
+		expect(api.downloadSupportPdf).not.toHaveBeenCalled();
+		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Скачать отчёт" })).toBeEnabled();
 	});
 	it("does not load or save archives on mount, package changes or current PDF download", async () => {
 		const get = vi.spyOn($backendApi, "get");
@@ -529,14 +509,14 @@ describe("current client PDF checks", () => {
 			);
 			expect(get).not.toHaveBeenCalled();
 			expect(post).not.toHaveBeenCalled();
-			fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+			fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 			await waitFor(() =>
 				expect(api.downloadSupportPdf).toHaveBeenCalledWith(
 					expect.any(Blob),
 					"support-package-8.pdf",
 				),
 			);
-			expect(api.fetchPackageChecks).toHaveBeenCalledExactlyOnceWith(8);
+			expect(api.fetchPackageChecks).not.toHaveBeenCalled();
 			expect(fetchPdf).toHaveBeenCalledExactlyOnceWith(8);
 			expect(get).not.toHaveBeenCalled();
 			expect(post).not.toHaveBeenCalled();
@@ -545,41 +525,22 @@ describe("current client PDF checks", () => {
 			post.mockRestore();
 		}
 	});
-	it("ignores a late check for the previous package", async () => {
-		const late = deferred<{
-			blocking: boolean;
-			issues: Array<{
-				code: string;
-				severity: string;
-				message: string;
-				entityTypeId: number;
-				itemId: number;
-			}>;
-		}>();
-		api.fetchPackageChecks.mockReturnValueOnce(late.promise);
-		const view = render(
-			<SupportPackageReportPanel packageId={7} hasPackages />,
-		);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+	it("ignores a late PDF for the previous package and allows the current export afterward", async () => {
+		const late = deferred<Blob>();
+		fetchPdf.mockReturnValueOnce(late.promise);
+		const view = render(<SupportPackageReportPanel packageId={7} hasPackages />);
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		view.rerender(<SupportPackageReportPanel packageId={8} hasPackages />);
-		await act(async () =>
-			late.resolve({
-				blocking: true,
-				issues: [
-					{
-						code: "old_project",
-						severity: "error",
-						message: "Ошибка старого пакета",
-						entityTypeId: 1060,
-						itemId: 1,
-					},
-				],
-			}),
-		);
-		expect(screen.queryByText("Ошибка старого пакета")).not.toBeInTheDocument();
-		expect(fetchPdf).not.toHaveBeenCalled();
-		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
-		).toBeEnabled();
+		await act(async () => late.resolve(new Blob(["old client PDF"])));
+		expect(api.downloadSupportPdf).not.toHaveBeenCalled();
+		expect(api.fetchPackageChecks).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Скачать отчёт" })).toBeEnabled();
+		fetchPdf.mockResolvedValueOnce(new Blob(["current client PDF"]));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
+		await waitFor(() => expect(api.downloadSupportPdf).toHaveBeenCalledExactlyOnceWith(
+			expect.any(Blob), "support-package-8.pdf",
+		));
+		expect(fetchPdf).toHaveBeenNthCalledWith(1, 7);
+		expect(fetchPdf).toHaveBeenNthCalledWith(2, 8);
 	});
 });

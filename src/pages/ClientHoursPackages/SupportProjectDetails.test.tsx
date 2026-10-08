@@ -269,7 +269,7 @@ describe("selected support package PDF", () => {
 
 	it("requires an explicit package when several packages are listed", () => {
 		const { rerender } = render(<SupportProjectDetails {...props} />);
-		const button = screen.getByRole("button", { name: "Отчёт по пакету" });
+		const button = screen.getByRole("button", { name: "Скачать отчёт" });
 		expect(button).toBeDisabled();
 		expect(screen.getByText("Выберите пакет для отчёта")).toBeInTheDocument();
 		fireEvent.click(button);
@@ -277,11 +277,11 @@ describe("selected support package PDF", () => {
 		rerender(<SupportProjectDetails {...props} selectedPurchaseId={2} />);
 		expect(button).toBeEnabled();
 		expect(
-			screen.getByText("За весь пакет по сегодняшний день"),
+			screen.getByText("Задачи и часы по данным кабинета клиента"),
 		).toBeInTheDocument();
 	});
 
-	it("downloads the entire selected package once, blocks duplicate clicks, and releases its URL", async () => {
+	it("downloads the current client PDF once, blocks duplicate clicks, and releases its URL", async () => {
 		vi.useFakeTimers();
 		let finish!: (blob: Blob) => void;
 		const pending = new Promise<Blob>((resolve) => {
@@ -289,13 +289,13 @@ describe("selected support package PDF", () => {
 		});
 		fetchSupportHoursPackageReport.mockReturnValueOnce(pending);
 		render(<SupportProjectDetails {...props} selectedPurchaseId={2} />);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		const loading = screen.getByRole("button", { name: "Готовим отчёт…" });
 		expect(loading).toBeDisabled();
 		expect(loading).toHaveAttribute("aria-busy", "true");
 		fireEvent.click(loading);
 		await act(async () => {
-			/* Let the pre-export check resolve before inspecting generation. */
+			/* Flush the pending export action before inspecting generation. */
 		});
 		expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(2);
 		const pdf = new Blob(["%PDF-1.4 test"], { type: "application/pdf" });
@@ -306,7 +306,7 @@ describe("selected support package PDF", () => {
 		]);
 		expect(document.querySelector("a[download]")).toBeNull();
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeEnabled();
 		expect(revokeObjectURL).not.toHaveBeenCalled();
 		act(() => vi.advanceTimersByTime(1000));
@@ -321,7 +321,7 @@ describe("selected support package PDF", () => {
 				projectPackages={{ ...projectPackages, purchases: [purchases[0]] }}
 			/>,
 		);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		await waitFor(() => expect(downloads).toHaveLength(1));
 		expect(fetchSupportHoursPackageReport).toHaveBeenCalledExactlyOnceWith(1);
 	});
@@ -334,7 +334,7 @@ describe("selected support package PDF", () => {
 			/>,
 		);
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeEnabled();
 		expect(
 			screen.queryByRole("button", { name: /Зафиксировать версию/ }),
@@ -342,7 +342,7 @@ describe("selected support package PDF", () => {
 		expect(screen.queryByText(/Сохранённые версии/)).not.toBeInTheDocument();
 		view.rerender(<SupportProjectDetails {...props} selectedPurchaseId={2} />);
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeEnabled();
 		expect(
 			screen.queryByRole("button", { name: /Скачать PDF/ }),
@@ -354,15 +354,15 @@ describe("selected support package PDF", () => {
 			new Error("Generation unavailable"),
 		);
 		render(<SupportProjectDetails {...props} selectedPurchaseId={1} />);
-		fireEvent.click(screen.getByRole("button", { name: "Отчёт по пакету" }));
+		fireEvent.click(screen.getByRole("button", { name: "Скачать отчёт" }));
 		await waitFor(() =>
 			expect(notify).toHaveBeenCalledWith({
-				message: "Не удалось сформировать отчёт по пакету. Повторите попытку.",
+				message: "Не удалось сформировать отчёт для клиента. Повторите попытку.",
 				type: "error",
 			}),
 		);
 		expect(
-			screen.getByRole("button", { name: "Отчёт по пакету" }),
+			screen.getByRole("button", { name: "Скачать отчёт" }),
 		).toBeEnabled();
 		expect(createObjectURL).not.toHaveBeenCalled();
 		expect(downloads).toHaveLength(0);
