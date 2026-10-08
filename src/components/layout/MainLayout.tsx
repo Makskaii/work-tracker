@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { getWorkTrackerDepartmentAccess } from "@/shared/api/getDepartments";
 import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
+import type { WorkTrackerBitrix } from "@/shared/config/bitrixProvider/bitrixContext";
+import { createStandaloneBitrix } from "@/shared/config/bitrixProvider/standaloneBitrix";
+import { captureEmployeeCallback, connectEmployeeFrame, getEmployeeSession, logoutEmployee } from "@/shared/config/auth/employeeAuth.api";
+import { employeeSessionState, setIframeTokenProvider, type EmployeeSession } from "@/shared/config/auth/employee.sessions";
 import { canAccessWorkTrackerPath } from "@/shared/config/ability/routeAccess";
 import { WorkTrackerRouteGuard } from "../protectedRoute/WorkTrackerRouteGuard";
 import {
@@ -16,18 +20,20 @@ import { useAppUpdateBlocker } from "@/shared/lib/appUpdates";
 import { ability } from "../../shared/config/ability/casl";
 import { Spinner } from "../spinner/Spinner";
 import { AppHeader } from "./AppHeader";
+import { EmployeeLogin } from "./EmployeeLogin";
 
 const devMode =
 	typeof import.meta !== "undefined" && (import.meta.env?.DEV ?? false);
 
 const $logger = LoggerFactory.createForBrowser("MyApp", devMode);
+if (!devMode) captureEmployeeCallback();
 
 type AbilityRule = {
 	action: string;
 	subject: string;
 };
 
-type BitrixFrameStatus = "loading" | "ready" | "unavailable";
+type BitrixFrameStatus = "loading" | "ready" | "unavailable" | "login";
 
 const canRestorePath = (pathname: string) => canAccessWorkTrackerPath(ability, pathname);
 
@@ -75,7 +81,11 @@ const BitrixFrameUnavailable = () => (
 );
 
 export const MainLayout = () => {
-	const [b24, setB24] = useState<B24Frame | null>(null);
+	const [b24, setB24] = useState<WorkTrackerBitrix | null>(null);
+	const [employeeSession, setEmployeeSession] = useState<EmployeeSession | null>(null);
+	const [loginError, setLoginError] = useState<string | null>(null);
+	const [retryVersion, setRetryVersion] = useState(0);
+	const [loggingOut, setLoggingOut] = useState(false);
 	const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 	const [frameStatus, setFrameStatus] = useState<BitrixFrameStatus>("loading");
 	const navigate = useNavigate();
@@ -85,6 +95,20 @@ export const MainLayout = () => {
 	const initialHash = useRef(location.hash).current;
 	const pendingRestoredPath = useRef<string | null>(null);
 	useAppUpdateBlocker(frameStatus === "loading");
+	const isStandaloneEmployee = !devMode && window.self === window.top;
+
+	useEffect(() => employeeSessionState.subscribeExpired(() => {
+		if (!isStandaloneEmployee) {
+			setLoginError("Не удалось подтвердить сессию Битрикс24. Подключитесь заново, чтобы продолжить работу.");
+			return;
+		}
+		ability.update([]);
+		setEmployeeSession(null);
+		setCurrentUserId(null);
+		setB24(null);
+		setLoginError("Сессия завершилась. Войдите через Битрикс24, чтобы продолжить работу.");
+		setFrameStatus("login");
+	}), [isStandaloneEmployee]);
 
 	useEffect(() => {
 		if (frameStatus !== "ready" || !currentUserId) return;
@@ -100,6 +124,7 @@ export const MainLayout = () => {
 	useEffect(() => {
 		let isMounted = true;
 		let initializedFrame: B24Frame | null = null;
+		if (retryVersion > 0) setLoginError(null);
 
 		const getCurrentUserDepartmentInfo = async (
 			frame: B24Frame,
@@ -134,7 +159,34 @@ export const MainLayout = () => {
 				let redirectTo: string | null = null;
 
 				if (!devMode && window.self === window.top) {
-					window.location.replace("/marketplace/app/3/");
+					setIframeTokenProvider(null);
+					try {
+						const session = await getEmployeeSession();
+						if (!isMounted) return;
+						ability.update(session.rules);
+						setEmployeeSession(session);
+						setCurrentUserId(session.user.id);
+						setB24(createStandaloneBitrix());
+						setLoginError(null);
+						setFrameStatus("ready");
+						const landing = ["/", "/reports", "/reports/calendar"].includes(initialPathname.toLowerCase().replace(/\/+$/, "") || "/");
+						const savedPath = landing ? readAppNavigation(getAppNavigationKey(session.user.id), canRestorePath) : null;
+						const returnTo = session.returnTo && canRestorePath(session.returnTo.split(/[?#]/)[0]) ? session.returnTo : null;
+						const fallback = ability.can("read", "post") ? "/reports/calendar" : ability.can("read", "sales-report") ? "/reports/sales" : ability.can("create-client", "client") ? "/create-client-form" : ability.can("read", `employee-${session.user.id}`) ? `/employee/${session.user.id}/stats` : null;
+						const target = returnTo ?? savedPath ?? (landing && !canRestorePath(initialPathname) ? fallback : null);
+						if (target && target !== initialPathname) {
+							pendingRestoredPath.current = target.split(/[?#]/)[0];
+							navigate(target, { replace: true });
+						}
+					} catch (cause) {
+						if (!isMounted) return;
+						ability.update([]);
+						setB24(null);
+						const status = (cause as { response?: { status?: number } })?.response?.status;
+						const friendlyError = cause instanceof Error && /^(Вход не завершён|Не удалось получить вашу учётную запись)/.test(cause.message) ? cause.message : "Не удалось подключиться к Битрикс24. Повторите попытку.";
+						setLoginError(status === 401 ? null : status === 403 ? "У вашей учётной записи нет доступа к Work Tracker. Обратитесь к администратору." : friendlyError);
+						setFrameStatus("login");
+					}
 					return;
 				}
 
@@ -181,6 +233,24 @@ export const MainLayout = () => {
 				}
 
 				initializedFrame = frame;
+				if (frame.auth?.getAuthData) {
+					employeeSessionState.set(null);
+					let tokenRefresh: Promise<string> | null = null;
+					const tokenProvider = async () => {
+						const current = frame.auth.getAuthData();
+						if (current && current.expires * 1000 > Date.now() + 60_000 && current.access_token) return current.access_token;
+						if (!tokenRefresh) tokenRefresh = frame.auth.refreshAuth().then((auth) => {
+							if (!auth.access_token) throw new Error("Обновите сессию Битрикс24");
+							return auth.access_token;
+						}).finally(() => { tokenRefresh = null; });
+						return tokenRefresh;
+					};
+					setIframeTokenProvider(tokenProvider);
+					// Cookie setup is optional for the embedded app. Its SDK token
+					// authenticates all requests immediately, so this must not delay
+					// the existing parallel user/department lookups.
+					void tokenProvider().then(connectEmployeeFrame).catch(() => undefined);
+				}
 				// User/department lookups determine UI roles, not SDK readiness.
 				// A failed lookup must not discard the initialized portal session.
 				setB24(frame);
@@ -269,6 +339,7 @@ export const MainLayout = () => {
 					setB24(frame);
 					setCurrentUserId(currUser?.userId ?? null);
 					setFrameStatus("ready");
+					setLoginError(null);
 
 					const normalizedInitialPathname = initialPathname.toLowerCase().replace(/\/+$/, "") || "/";
 					const isLanding = ["/", "/reports", "/reports/calendar"].includes(normalizedInitialPathname);
@@ -303,7 +374,7 @@ export const MainLayout = () => {
 			// here breaks later mounts and StrictMode: the loader returns the
 			// same frame with its message subscription already removed.
 		};
-	}, [navigate, initialPathname, initialSearch, initialHash]);
+	}, [navigate, initialPathname, initialSearch, initialHash, retryVersion]);
 
 	if (frameStatus === "loading") {
 		return <Spinner />;
@@ -312,20 +383,34 @@ export const MainLayout = () => {
 	if (frameStatus === "unavailable") {
 		return <BitrixFrameUnavailable />;
 	}
+	if (frameStatus === "login") {
+		return <EmployeeLogin error={loginError} returnTo={`${location.pathname}${location.search}${location.hash}`} onRetry={() => { setFrameStatus("loading"); setRetryVersion((value) => value + 1); }} />;
+	}
 
 	return (
-		<B24Context.Provider value={{ b24, currentUserId, status: b24 ? "ready" : "standalone" }}>
+		<B24Context.Provider value={{ b24, currentUserId, status: b24 ? "ready" : "standalone", mode: isStandaloneEmployee ? "employee" : b24 ? "iframe" : "preview", portalOrigin: employeeSession?.portalOrigin }}>
 			<div
 				style={{
 					display: "flex",
 					flexDirection: "column",
-					height: "100%",
+					height: isStandaloneEmployee ? "100dvh" : "100%",
 					minHeight: 0,
 					overflow: "hidden",
 					background: "transparent",
 				}}
 			>
 				<AppHeader />
+				{!isStandaloneEmployee && loginError && <div role="alert" style={{ background: "#332321", color: "#ffcebe", padding: "12px 24px 12px calc(var(--app-sidebar-width, 72px) + 24px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}><span>{loginError}</span><button type="button" onClick={() => { setFrameStatus("loading"); setRetryVersion((value) => value + 1); }}>Подключиться заново</button></div>}
+				{isStandaloneEmployee && employeeSession && <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexShrink: 0, minHeight: 52, padding: "10px 24px 10px calc(var(--app-sidebar-width, 72px) + 24px)", background: "#11181b", borderBottom: "1px solid #26363c", color: "#a7b7bd", boxSizing: "border-box" }}>
+					<span>Work Tracker <span style={{ color: "#e5e7eb", marginLeft: 16 }}>{employeeSession.user.name}</span></span>
+					<div style={{ display: "flex", alignItems: "center", gap: 12 }}>{loginError && <span role="alert">{loginError}</span>}<button type="button" disabled={loggingOut} onClick={async () => {
+						setLoggingOut(true);
+						try {
+							await logoutEmployee();
+							ability.update([]); setB24(null); setCurrentUserId(null); setEmployeeSession(null); setLoginError(null); setFrameStatus("login");
+						} catch { setLoginError("Не удалось выйти. Повторите попытку."); } finally { setLoggingOut(false); }
+					}}>{loggingOut ? "Выходим…" : "Выйти"}</button></div>
+				</div>}
 
 				<main
 					style={{

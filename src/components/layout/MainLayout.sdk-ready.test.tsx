@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	initialize: vi.fn(), departments: vi.fn(), call: vi.fn(), ability: vi.fn(),
-	navigate: vi.fn(), outlet: vi.fn(), options: vi.fn(),
+	navigate: vi.fn(), outlet: vi.fn(), options: vi.fn(), connectFrame: vi.fn(),
 }));
 vi.mock("@bitrix24/b24jssdk", () => ({
 	initializeB24Frame: mocks.initialize,
@@ -29,6 +29,10 @@ vi.mock("@/pages/ClientHoursPackages/supportAnalyst.api", () => ({
 	fetchSupportReportOptions: mocks.options,
 	getSupportReportForEdit: vi.fn(), prepareSupportReportFields: vi.fn(),
 	supportErrorMessage: (_error: unknown, fallback: string) => fallback,
+}));
+vi.mock("@/shared/config/auth/employeeAuth.api", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@/shared/config/auth/employeeAuth.api")>()),
+	connectEmployeeFrame: mocks.connectFrame,
 }));
 
 const originalTop = Object.getOwnPropertyDescriptor(window, "top");
@@ -100,6 +104,20 @@ describe("Bitrix SDK readiness and ownership", () => {
 			{ action: "create-client", subject: "client" },
 		]);
 		expect(mocks.navigate).not.toHaveBeenCalled();
+	});
+
+	it("does not delay user/department lookups or visible tasks while the optional iframe cookie is being connected", async () => {
+		mocks.connectFrame.mockReturnValue(new Promise(() => undefined));
+		const sdk = {
+			...frame(),
+			auth: { isAdmin: false, getAuthData: () => ({ access_token: "user-sdk-token", expires: Date.now() / 1000 + 3600 }), refreshAuth: vi.fn() },
+		} as unknown as B24Frame;
+		mocks.initialize.mockResolvedValue(sdk);
+		await renderLayout();
+		expect(await screen.findByTestId("sdk-status")).toHaveTextContent("connected:ready");
+		expect(mocks.connectFrame).toHaveBeenCalledExactlyOnceWith("user-sdk-token");
+		expect(mocks.departments).toHaveBeenCalledTimes(1);
+		expect(mocks.call).toHaveBeenCalledExactlyOnceWith({ method: "user.current" });
 	});
 
 	it("keeps SDK readiness independent of failed department metadata", async () => {

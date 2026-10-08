@@ -221,6 +221,8 @@ export const router = createBrowserRouter(
 		},
 	],
 	{
-		basename: import.meta.env.BASE_URL,
+		// Bitrix's registered OAuth handler is the base path without a final
+		// slash. Accept both that callback and ordinary nested application URLs.
+		basename: import.meta.env.BASE_URL.replace(/\/+$/, "") || "/",
 	},
 );

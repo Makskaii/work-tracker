@@ -36,8 +36,8 @@ export const SupportReportModal = ({
 	onClose,
 	onSaved,
 }: Props) => {
-	const { b24, status: sdkStatus } = useB24();
-	const isStandalonePreview = sdkStatus === "standalone" || window.self === window.top;
+	const { b24, status: sdkStatus, mode } = useB24();
+	const isStandalonePreview = mode !== "employee" && (sdkStatus === "standalone" || window.self === window.top);
 	const [values, setValues] = useState({
 		taskId: initialTaskId ?? "",
 		description: "",
