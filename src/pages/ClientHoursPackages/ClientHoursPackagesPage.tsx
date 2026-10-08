@@ -62,17 +62,19 @@ const isInactiveSupportProjectError = (cause: unknown) => {
 };
 
 export const ClientHoursPackagesPage = () => {
-  const { b24 } = useB24();
+  const { b24, mode } = useB24();
   const [pendingTransfer, setPendingTransfer] = useState<{projectId: number; id: string} | null>(null);
   const [transferBusy, setTransferBusy] = useState(false);
   const transferKeyRef = useRef<{fingerprint: string; id: string} | null>(null);
   const getTransferToken = useCallback(async () => {
+    if (mode === "employee") return "employee-session";
     if (!b24) throw new Error("Откройте приложение внутри Битрикс24, чтобы переносить работы со своими правами");
+    if (!b24.auth) throw new Error("Не удалось подключиться к сессии Битрикс24");
     const auth = b24.auth.getAuthData();
     const current = !auth || auth.expires * 1000 <= Date.now() + 60_000 ? await b24.auth.refreshAuth() : auth;
     if (!current.access_token) throw new Error("Обновите сессию Битрикс24");
     return current.access_token;
-  }, [b24]);
+  }, [b24, mode]);
 	const [packages, setPackages] = useState<ClientPackage[]>([]);
 	const packagesRef = useRef<ClientPackage[]>([]);
 	const [projects, setProjects] = useState<SupportProjectOption[]>([]);

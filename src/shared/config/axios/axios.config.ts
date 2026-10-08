@@ -5,6 +5,7 @@ import axios, {
 	type InternalAxiosRequestConfig,
 } from "axios";
 import { authStorage } from "../auth/auth.sessions";
+import { employeeSessionState, getIframeTokenProvider, isClientCabinetRequest, isProductionStandalone } from "../auth/employee.sessions";
 import { trackAppUpdateRequests } from "./axios-update-tracker";
 
 const defaultConfig = {
@@ -22,8 +23,34 @@ export const $api = axios.create({
 
 export const $backendApi = axios.create({
 	baseURL: import.meta.env.VITE_BFF_API_URL,
+	withCredentials: true,
 	...defaultConfig,
 });
+
+// Auth endpoints intentionally bypass the client-cabinet JWT interceptor.
+export const $employeeAuthApi = axios.create({
+	baseURL: import.meta.env.VITE_BFF_API_URL || "/devapps/work-tracker/api/",
+	withCredentials: true,
+	...defaultConfig,
+});
+$employeeAuthApi.interceptors.request.use((config) => {
+	const session = employeeSessionState.get();
+	if (session && config.method !== "get") config.headers.set("X-Work-Tracker-CSRF", session.csrfToken);
+	return config;
+});
+
+const employeeRestAdapter: AxiosAdapter = async (config) => {
+	const method = String(config.url ?? "").replace(/^\/+|\.json$/g, "");
+	if (!/^[a-z][a-z0-9_.]+$/i.test(method)) throw new Error("Недопустимый запрос к Битрикс24");
+	const body = typeof config.data === "string" ? JSON.parse(config.data) : config.data;
+	const params = { ...(config.params ?? {}), ...(body && typeof body === "object" ? body : {}) };
+	const tokenProvider = getIframeTokenProvider();
+	const token = tokenProvider ? await tokenProvider() : null;
+	const { data, status, statusText, headers } = await $employeeAuthApi.post("auth/employee/rest", { method, params }, { signal: config.signal, timeout: config.timeout, ...(token ? { headers: { "X-Bitrix-Token": token } } : {}) });
+	return { data, status, statusText, headers, config };
+};
+const shouldUseEmployeeProxy = () => Boolean(employeeSessionState.get() || getIframeTokenProvider() || isProductionStandalone());
+const getApiAdapter = () => shouldUseEmployeeProxy() ? employeeRestAdapter : defaultApiAdapter;
 
 trackAppUpdateRequests($api);
 trackAppUpdateRequests($backendApi);
@@ -89,6 +116,8 @@ const getBitrixCacheKey = (config: InternalAxiosRequestConfig) => {
 	}
 
 	return JSON.stringify({
+		user: employeeSessionState.get()?.user.id ?? null,
+		sessionRevision: employeeSessionState.getRevision(),
 		data: normalizeCacheValue(config.data),
 		method: String(config.method ?? "get").toLowerCase(),
 		params: normalizeCacheValue(config.params),
@@ -121,6 +150,7 @@ $api.interceptors.request.use((config) => {
 	const cacheKey = getBitrixCacheKey(config);
 
 	if (!cacheKey) {
+		if (shouldUseEmployeeProxy()) config.adapter = employeeRestAdapter;
 		return config;
 	}
 
@@ -143,7 +173,7 @@ $api.interceptors.request.use((config) => {
 	}
 
 	config.adapter = ((requestConfig) => {
-		const request = defaultApiAdapter(requestConfig)
+		const request = getApiAdapter()(requestConfig)
 			.then((response) => {
 				// Bitrix may return an API error with HTTP 200. A retry must reach CRM.
 				// Adapters return raw JSON before Axios applies transformResponse.
@@ -192,7 +222,26 @@ $api.interceptors.request.use((config) => {
 	return config;
 });
 
-$backendApi.interceptors.request.use((config) => {
+$backendApi.interceptors.request.use(async (config) => {
+	const employee = employeeSessionState.get();
+	const clientRequest = isClientCabinetRequest(String(config.url ?? ""));
+	const iframeToken = getIframeTokenProvider();
+	if (iframeToken && !clientRequest) {
+		config.headers.delete("Authorization");
+		config.headers.set("X-Bitrix-Token", await iframeToken());
+		return config;
+	}
+	if (employee && !clientRequest) {
+		config.headers.delete("Authorization");
+		config.headers.delete("X-Bitrix-Token");
+		if (config.method !== "get") config.headers.set("X-Work-Tracker-CSRF", employee.csrfToken);
+		return config;
+	}
+	if (isProductionStandalone() && !clientRequest) {
+		config.headers.delete("Authorization");
+		config.headers.delete("X-Bitrix-Token");
+		return config;
+	}
 	const session = authStorage.get();
 
 	if (session?.accessToken) {
@@ -205,6 +254,11 @@ $backendApi.interceptors.request.use((config) => {
 $backendApi.interceptors.response.use(
 	(response) => response,
 	(error) => {
+		if (error.response?.status === 401 && (employeeSessionState.get() || getIframeTokenProvider() || isProductionStandalone()) && !isClientCabinetRequest(String(error.config?.url ?? ""))) {
+			employeeSessionState.expire();
+			clearBitrixReadCache();
+			return Promise.reject(error);
+		}
 		if (
 			error.response?.status === 401 &&
 			!error.config?.headers?.["X-Bitrix-Token"]
@@ -219,3 +273,11 @@ $backendApi.interceptors.response.use(
 		return Promise.reject(error);
 	},
 );
+
+$employeeAuthApi.interceptors.response.use((response) => response, (error) => {
+	if (error.response?.status === 401 && !/auth\/employee\/(?:me|complete|frame)/.test(String(error.config?.url ?? ""))) {
+		employeeSessionState.expire();
+		clearBitrixReadCache();
+	}
+	return Promise.reject(error);
+});
