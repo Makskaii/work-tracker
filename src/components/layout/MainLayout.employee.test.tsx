@@ -28,13 +28,37 @@ beforeEach(() => {
 	vi.resetModules(); vi.clearAllMocks(); vi.stubEnv("DEV", false); sessionStorage.clear(); mocks.rules = [];
 	mocks.session.mockResolvedValue(session); mocks.logout.mockResolvedValue(undefined);
 });
-afterEach(() => { cleanup(); vi.unstubAllEnvs(); });
+afterEach(() => { cleanup(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+function usePublicDevelopmentBuild() {
+	vi.stubEnv("DEV", true);
+	const location = new URL("https://crm.evolution-soft.ru/devapps/work-tracker/development-kanban");
+	vi.stubGlobal("window", new Proxy(window, { get: (target, property, receiver) => property === "location" ? location : Reflect.get(target, property, receiver) }));
+}
 async function renderLayout(path = "/development-kanban") {
 	const { MainLayout } = await import("./MainLayout");
 	return render(<MemoryRouter initialEntries={[path]}><MainLayout /></MemoryRouter>);
 }
 
 describe("Work Tracker outside the portal", () => {
+	it("requires Bitrix login on a public host even when a deployed build is marked DEV", async () => {
+		usePublicDevelopmentBuild();
+		mocks.session.mockRejectedValue({ response: { status: 401 } });
+		await renderLayout();
+		expect(await screen.findByRole("link", { name: /Войти через Битрикс24/ })).toBeVisible();
+		expect(mocks.session).toHaveBeenCalledTimes(1);
+		expect(mocks.update).toHaveBeenLastCalledWith([]);
+		expect(screen.queryByTestId("work-page")).not.toBeInTheDocument();
+		expect(mocks.initialize).not.toHaveBeenCalled();
+	});
+	it("uses verified server roles and the employee account on a public host marked DEV", async () => {
+		usePublicDevelopmentBuild();
+		await renderLayout();
+		expect(await screen.findByTestId("work-page")).toBeVisible();
+		expect(screen.getByText(session.user.name)).toBeVisible();
+		expect(screen.getByRole("button", { name: "Выйти" })).toBeVisible();
+		expect(mocks.session).toHaveBeenCalledTimes(1);
+		expect(mocks.update).toHaveBeenLastCalledWith(session.rules);
+	});
 	it("opens the real employee workspace with server-provided roles and an account/logout header", async () => {
 		await renderLayout();
 		expect(await screen.findByTestId("work-page")).toBeVisible();

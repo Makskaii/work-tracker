@@ -7,7 +7,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN NODE_ENV=production npm run build
 
 # run stage
 FROM nginx:stable-alpine
