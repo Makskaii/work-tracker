@@ -7,7 +7,7 @@ import { B24Context } from "@/shared/config/bitrixProvider/bitrixContext";
 import type { WorkTrackerBitrix } from "@/shared/config/bitrixProvider/bitrixContext";
 import { createStandaloneBitrix } from "@/shared/config/bitrixProvider/standaloneBitrix";
 import { captureEmployeeCallback, connectEmployeeFrame, getEmployeeSession, logoutEmployee } from "@/shared/config/auth/employeeAuth.api";
-import { employeeSessionState, setIframeTokenProvider, type EmployeeSession } from "@/shared/config/auth/employee.sessions";
+import { employeeSessionState, isLocalDevelopmentPreview, isProductionStandalone, setIframeTokenProvider, type EmployeeSession } from "@/shared/config/auth/employee.sessions";
 import { canAccessWorkTrackerPath } from "@/shared/config/ability/routeAccess";
 import { WorkTrackerRouteGuard } from "../protectedRoute/WorkTrackerRouteGuard";
 import {
@@ -26,7 +26,7 @@ const devMode =
 	typeof import.meta !== "undefined" && (import.meta.env?.DEV ?? false);
 
 const $logger = LoggerFactory.createForBrowser("MyApp", devMode);
-if (!devMode) captureEmployeeCallback();
+if (!isLocalDevelopmentPreview()) captureEmployeeCallback();
 
 type AbilityRule = {
 	action: string;
@@ -95,7 +95,7 @@ export const MainLayout = () => {
 	const initialHash = useRef(location.hash).current;
 	const pendingRestoredPath = useRef<string | null>(null);
 	useAppUpdateBlocker(frameStatus === "loading");
-	const isStandaloneEmployee = !devMode && window.self === window.top;
+	const isStandaloneEmployee = isProductionStandalone();
 
 	useEffect(() => employeeSessionState.subscribeExpired(() => {
 		if (!isStandaloneEmployee) {
@@ -158,7 +158,7 @@ export const MainLayout = () => {
 				const nextRules: AbilityRule[] = [];
 				let redirectTo: string | null = null;
 
-				if (!devMode && window.self === window.top) {
+				if (isStandaloneEmployee) {
 					setIframeTokenProvider(null);
 					try {
 						const session = await getEmployeeSession();
@@ -192,7 +192,7 @@ export const MainLayout = () => {
 
 				// A development build embedded in the portal still needs the real
 				// signed-in user's SDK session. Only standalone previews bypass it.
-				if (devMode && window.self === window.top) {
+				if (isLocalDevelopmentPreview()) {
 					addRuleIfMissing(nextRules, {
 						action: "read",
 						subject: "post",
@@ -374,7 +374,7 @@ export const MainLayout = () => {
 			// here breaks later mounts and StrictMode: the loader returns the
 			// same frame with its message subscription already removed.
 		};
-	}, [navigate, initialPathname, initialSearch, initialHash, retryVersion]);
+	}, [navigate, initialPathname, initialSearch, initialHash, retryVersion, isStandaloneEmployee]);
 
 	if (frameStatus === "loading") {
 		return <Spinner />;

@@ -9,7 +9,7 @@ vi.mock("axios", async (importOriginal) => {
 const session = { user: { id: 30, name: "Сотрудник", departmentIds: [23], isAdmin: false }, rules: [{ action: "read", subject: "post" }], portalOrigin: "https://crm.evolution-soft.ru", csrfToken: "csrf-example", expiresAt: "2026-10-09" };
 const response = (config: InternalAxiosRequestConfig, data: unknown = { result: { items: [{ id: 5 }] }, next: 50, total: 75 }) => ({ data, status: 200, statusText: "OK", headers: new AxiosHeaders(), config });
 beforeEach(() => { vi.resetModules(); transport.mockReset(); sessionStorage.clear(); vi.stubEnv("DEV", true); });
-afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 async function setup() {
 	const state = await import("../auth/employee.sessions");
 	const clients = await import("./axios.config");
@@ -20,6 +20,19 @@ async function setup() {
 }
 
 describe("employee cookie and iframe transports", () => {
+	it("never sends public-host reads directly to unauthenticated REST when a deployed build is marked DEV", async () => {
+		const location = new URL("https://crm.evolution-soft.ru/devapps/work-tracker/reports/calendar");
+		vi.stubGlobal("window", new Proxy(window, { get: (target, property, receiver) => property === "location" ? location : Reflect.get(target, property, receiver) }));
+		const { $api, employeeSessionState } = await setup();
+		expect(employeeSessionState.get()).toBeNull();
+		await $api.get("crm.item.list", { params: { entityTypeId: 1060, filter: { ">=begindate": "2026-10-01" } } });
+		expect(transport.mock.calls[0][0].url).toBe("auth/employee/rest");
+		expect(JSON.parse(transport.mock.calls[0][0].data)).toEqual({ method: "crm.item.list", params: { entityTypeId: 1060, filter: { ">=begindate": "2026-10-01" } } });
+		employeeSessionState.set(session);
+		await $api.get("user.get");
+		expect(transport.mock.calls[1][0].url).toBe("auth/employee/rest");
+		expect(transport.mock.calls[1][0].headers.get("X-Work-Tracker-CSRF")).toBe("csrf-example");
+	});
 	it("proxies employee reads and preserves native pagination and read caching", async () => {
 		const { employeeSessionState, $api } = await setup(); employeeSessionState.set(session);
 		const params = { entityTypeId: 1072, filter: { stageId: "SPRINT" }, start: 0 };

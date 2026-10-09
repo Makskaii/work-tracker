@@ -153,11 +153,17 @@ describe("Bitrix SDK readiness and ownership", () => {
 
 	it("initializes the user's real session for development builds embedded in Bitrix", async () => {
 		vi.stubEnv("DEV", true);
-		mocks.initialize.mockResolvedValue(frame());
+		mocks.initialize.mockResolvedValue({
+			...frame(),
+			auth: { isAdmin: false, getAuthData: () => ({ access_token: "local-iframe-sdk-token", expires: Date.now() / 1000 + 3600 }), refreshAuth: vi.fn() },
+		});
 		await renderLayout();
 		expect(await screen.findByTestId("sdk-status")).toHaveTextContent("connected:ready");
 		expect(mocks.initialize).toHaveBeenCalledTimes(1);
 		expect(mocks.ability).toHaveBeenLastCalledWith([]);
+		const { getIframeTokenProvider } = await import("@/shared/config/auth/employee.sessions");
+		expect(await getIframeTokenProvider()?.()).toBe("local-iframe-sdk-token");
+		expect(mocks.connectFrame).toHaveBeenCalledExactlyOnceWith("local-iframe-sdk-token");
 	});
 
 	it("explains an SDK connection failure and offers reconnect instead of claiming the portal is absent", async () => {

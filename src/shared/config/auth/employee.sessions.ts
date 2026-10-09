@@ -34,8 +34,14 @@ export const setIframeTokenProvider = (provider: (() => Promise<string>) | null)
 };
 export const getIframeTokenProvider = () => iframeTokenProvider;
 
+// NODE_ENV can make Vite mark a deployed build as DEV. That flag alone must
+// never grant preview permissions or disable employee authentication.
+export const isLocalDevelopmentPreview = (hostname = window.location.hostname) =>
+	import.meta.env.DEV && window.self === window.top &&
+	["localhost", "127.0.0.1", "[::1]"].includes(hostname);
+
 export const isProductionStandalone = () =>
-	!import.meta.env.DEV && window.self === window.top;
+	window.self === window.top && !isLocalDevelopmentPreview();
 
 export const isClientCabinetRequest = (url: string) =>
 	/^\/?(?:auth\/(?!employee(?:\/|$))|client-profile(?:\/|$)|clients\/me(?:\/|$))/.test(url);
